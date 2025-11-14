@@ -17,7 +17,7 @@ FROM base AS builder
 WORKDIR /app
 
 # Build arguments for environment variables
-ARG PUBLIC_VITE_API_BASE_URL
+ARG PUBLIC_API_BASE_URL
 ARG PUBLIC_RECAPTCHA_SITE_KEY
 
 # Copy node_modules from deps stage
@@ -27,12 +27,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set environment variables for build
-ENV PUBLIC_VITE_API_BASE_URL=${PUBLIC_VITE_API_BASE_URL}
+ENV PUBLIC_API_BASE_URL=${PUBLIC_API_BASE_URL}
 ENV PUBLIC_RECAPTCHA_SITE_KEY=${PUBLIC_RECAPTCHA_SITE_KEY}
 
 # Debug: Print environment variables before build
 RUN echo "Build-time environment variables:" && \
-    echo "PUBLIC_VITE_API_BASE_URL=${PUBLIC_VITE_API_BASE_URL}" && \
+    echo "PUBLIC_API_BASE_URL=${PUBLIC_API_BASE_URL}" && \
     echo "PUBLIC_RECAPTCHA_SITE_KEY=${PUBLIC_RECAPTCHA_SITE_KEY}" && \
     echo "NODE_ENV=${NODE_ENV}"
 
@@ -46,16 +46,16 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Build arguments for runtime environment variables
-ARG PUBLIC_VITE_API_BASE_URL
+ARG PUBLIC_API_BASE_URL
 ARG PUBLIC_RECAPTCHA_SITE_KEY
 
 # Set runtime environment variables
-ENV PUBLIC_VITE_API_BASE_URL=${PUBLIC_VITE_API_BASE_URL}
+ENV PUBLIC_API_BASE_URL=${PUBLIC_API_BASE_URL}
 ENV PUBLIC_RECAPTCHA_SITE_KEY=${PUBLIC_RECAPTCHA_SITE_KEY}
 
 # Debug: Print runtime environment variables
 RUN echo "Runtime environment variables:" && \
-    echo "PUBLIC_VITE_API_BASE_URL=${PUBLIC_VITE_API_BASE_URL}" && \
+    echo "PUBLIC_API_BASE_URL=${PUBLIC_API_BASE_URL}" && \
     echo "PUBLIC_RECAPTCHA_SITE_KEY=${PUBLIC_RECAPTCHA_SITE_KEY}" && \
     echo "NODE_ENV=${NODE_ENV}"
 

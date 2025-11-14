@@ -9,15 +9,11 @@ const config = {
 	kit: {
 		adapter: adapter({
 			// Precompress static assets for better performance
-			precompress: true,
-			// Enable environment variables at runtime
-			envPrefix: 'PUBLIC_'
+			precompress: true
 		}),
 		env: {
 			// Expose environment variables to client-side code
-			publicPrefix: 'PUBLIC_',
-			// Allow dynamic environment variables
-			privatePrefix: ''
+			publicPrefix: 'PUBLIC_'
 		}
 	}
 };

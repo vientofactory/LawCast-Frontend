@@ -4,10 +4,10 @@
 	import axios from 'axios';
 	import Header from '$lib/components/Header.svelte';
 	import { env } from '$env/dynamic/public';
-	import { PUBLIC_VITE_API_BASE_URL as STATIC_API_URL } from '$env/static/public';
+	import { PUBLIC_API_BASE_URL as STATIC_API_URL } from '$env/static/public';
 
 	// Try dynamic env first, fallback to static, then to default
-	const API_BASE = env.PUBLIC_VITE_API_BASE_URL || STATIC_API_URL || 'http://localhost:3001/api';
+	const API_BASE = env.PUBLIC_API_BASE_URL || STATIC_API_URL || 'http://localhost:3001/api';
 
 	interface Notice {
 		num: number;
