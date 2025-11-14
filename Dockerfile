@@ -16,6 +16,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Sync SvelteKit configuration
+RUN npm run prepare
+
 # Build the application
 RUN npm run build
 
@@ -40,7 +43,7 @@ COPY --from=builder --chown=sveltekit:nodejs /app/node_modules ./node_modules
 USER sveltekit
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
