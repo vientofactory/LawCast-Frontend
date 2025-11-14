@@ -16,13 +16,24 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 
+# Build arguments for environment variables
+ARG PUBLIC_VITE_API_BASE_URL
+ARG PUBLIC_RECAPTCHA_SITE_KEY
+
 # Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Remove unnecessary files but keep .env files for build
+RUN find . -name "node_modules" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# Set environment variables for build
+ENV PUBLIC_VITE_API_BASE_URL=${PUBLIC_VITE_API_BASE_URL}
+ENV PUBLIC_RECAPTCHA_SITE_KEY=${PUBLIC_RECAPTCHA_SITE_KEY}
+
+# Build the application with environment variables
 RUN npm run build
 
 # Production stage

@@ -3,8 +3,9 @@
 	import { Bell, ExternalLink, Loader2, ArrowLeft, Calendar, Users } from 'lucide-svelte';
 	import axios from 'axios';
 	import Header from '$lib/components/Header.svelte';
+	import { PUBLIC_VITE_API_BASE_URL } from '$env/static/public';
 
-	const API_BASE = process.env.PUBLIC_VITE_API_BASE_URL || 'http://localhost:3001/api';
+	const API_BASE = PUBLIC_VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 	interface Notice {
 		num: number;

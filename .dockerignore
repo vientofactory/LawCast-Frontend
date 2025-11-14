@@ -51,12 +51,12 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
 .env.test
-.env.production
 .env.local
-# Allow .env.example for Docker builds
+# Allow .env files for SvelteKit build-time environment variables
+!.env
 !.env.example
+!.env.production
 
 # parcel-bundler cache
 .cache
