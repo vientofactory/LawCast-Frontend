@@ -1,51 +1,56 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { AlertTriangle, Bell, Plus, Trash2, ExternalLink, RefreshCw } from 'lucide-svelte';
+	import { AlertTriangle, Bell, Plus, ExternalLink, RefreshCw, Loader2 } from 'lucide-svelte';
 	import axios from 'axios';
+	import { PUBLIC_VITE_API_BASE_URL } from '$env/static/public';
+	import { browser } from '$app/environment';
 
-	const API_BASE = 'http://localhost:3001/api';
+	const API_BASE = PUBLIC_VITE_API_BASE_URL || 'http://localhost:3001/api';
+	const RECAPTCHA_SITE_KEY = browser ? (import.meta.env.PUBLIC_RECAPTCHA_SITE_KEY as string) || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI' : '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 
-	interface Webhook {
-		id: number;
-		description: string;
-		createdAt: string;
-	}
+	let recaptchaLoaded = false;
+	let recaptchaWidgetId: number | null = null;
 
 	interface Notice {
-		id: number;
 		num: number;
 		subject: string;
 		proposerCategory: string;
 		committee: string;
 		numComments: number;
 		link: string;
-		createdAt: string;
 	}
 
-	let webhooks: Webhook[] = [];
 	let recentNotices: Notice[] = [];
 	let stats = { webhooks: { total: 0, active: 0, inactive: 0 }, cache: { size: 0, lastUpdated: null, maxSize: 50 } };
 	let newWebhookUrl = '';
-	let newWebhookDescription = '';
-	let recaptchaToken = 'dummy_token'; // TODO: 실제 reCAPTCHA 구현
-	let isLoading = false;
+	let recaptchaToken = '';
+
+	let isInitialLoading = true;
+	let isSubmitting = false;
+	let isManualChecking = false;
 	let error = '';
 	let success = '';
 
 	onMount(async () => {
-		await loadWebhooks();
-		await loadRecentNotices();
-		await loadStats();
-	});
-
-	async function loadWebhooks() {
 		try {
-			const response = await axios.get(`${API_BASE}/webhooks`);
-			webhooks = response.data.data;
+			await Promise.all([
+				loadRecentNotices(),
+				loadStats()
+			]);
+			loadRecaptcha();
 		} catch (err) {
-			console.error('Failed to load webhooks:', err);
+			console.error('Failed to load initial data:', err);
+			error = '초기 데이터 로딩에 실패했습니다. 페이지를 새로고침해주세요.';
+		} finally {
+			isInitialLoading = false;
+			// reCAPTCHA 로드가 낦을 경우를 대비해 지연 렌더링 시도
+			setTimeout(() => {
+				if (recaptchaLoaded && recaptchaWidgetId === null) {
+					renderRecaptcha();
+				}
+			}, 1000);
 		}
-	}
+	});
 
 	async function loadRecentNotices() {
 		try {
@@ -65,6 +70,50 @@
 		}
 	}
 
+	function loadRecaptcha() {
+		if (typeof window !== 'undefined' && !recaptchaLoaded) {
+			const script = document.createElement('script');
+			script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit';
+			script.async = true;
+			script.defer = true;
+			document.head.appendChild(script);
+			
+			// 전역 콜백 설정
+			(window as any).onRecaptchaLoad = () => {
+				recaptchaLoaded = true;
+				renderRecaptcha();
+			};
+		}
+	}
+
+	function renderRecaptcha() {
+		if (typeof window !== 'undefined' && (window as any).grecaptcha && recaptchaLoaded) {
+			const container = document.getElementById('recaptcha-container');
+			if (container && recaptchaWidgetId === null) {
+				recaptchaWidgetId = (window as any).grecaptcha.render('recaptcha-container', {
+					'sitekey': RECAPTCHA_SITE_KEY,
+					'callback': (token: string) => {
+						recaptchaToken = token;
+					},
+					'expired-callback': () => {
+						recaptchaToken = '';
+					},
+					'error-callback': () => {
+						error = 'reCAPTCHA 인증에 실패했습니다. 다시 시도해주세요.';
+						recaptchaToken = '';
+					}
+				});
+			}
+		}
+	}
+
+	function resetRecaptcha() {
+		if (typeof window !== 'undefined' && (window as any).grecaptcha && recaptchaWidgetId !== null) {
+			(window as any).grecaptcha.reset(recaptchaWidgetId);
+			recaptchaToken = '';
+		}
+	}
+
 	async function addWebhook() {
 		if (!newWebhookUrl.trim()) {
 			error = '웹훅 URL을 입력해주세요.';
@@ -76,54 +125,48 @@
 			return;
 		}
 
-		isLoading = true;
+		if (!recaptchaToken) {
+			error = 'reCAPTCHA 인증을 완료해주세요.';
+			return;
+		}
+
+		isSubmitting = true;
 		error = '';
 		success = '';
 
 		try {
 			const response = await axios.post(`${API_BASE}/webhooks`, {
 				url: newWebhookUrl,
-				description: newWebhookDescription || undefined,
 				recaptchaToken
 			});
 
 			success = response.data.message;
 			newWebhookUrl = '';
-			newWebhookDescription = '';
-			await loadWebhooks();
+			resetRecaptcha();
+			await loadStats(); // 통계 업데이트
 		} catch (err: any) {
 			error = err.response?.data?.message || '웹훅 등록에 실패했습니다.';
+			resetRecaptcha();
 		} finally {
-			isLoading = false;
+			isSubmitting = false;
 		}
 	}
 
-	async function removeWebhook(id: number) {
-		if (!confirm('정말로 이 웹훅을 삭제하시겠습니까?')) return;
-
-		try {
-			await axios.delete(`${API_BASE}/webhooks/${id}`);
-			await loadWebhooks();
-			success = '웹훅이 삭제되었습니다.';
-		} catch (err) {
-			error = '웹훅 삭제에 실패했습니다.';
-		}
-	}
-
-	async function manualCheck() {
-		isLoading = true;
+	async function refreshData() {
+		isManualChecking = true;
 		error = '';
 		success = '';
 
 		try {
-			const response = await axios.post(`${API_BASE}/check`);
-			success = response.data.message;
-			await loadRecentNotices();
-			await loadStats();
+			await Promise.all([
+				loadRecentNotices(),
+				loadStats()
+			]);
+			success = '데이터를 새로고침했습니다.';
 		} catch (err) {
-			error = '수동 체크에 실패했습니다.';
+			error = '데이터 새로고침에 실패했습니다.';
 		} finally {
-			isLoading = false;
+			isManualChecking = false;
 		}
 	}
 
@@ -132,8 +175,15 @@
 		success = '';
 	}
 
-	function formatDate(dateString: string) {
-		return new Date(dateString).toLocaleString('ko-KR');
+	function formatDate(dateString: string | null) {
+		if (!dateString) return '없음';
+		try {
+			const date = new Date(dateString);
+			if (isNaN(date.getTime())) return '날짜 오류';
+			return date.toLocaleString('ko-KR');
+		} catch {
+			return '날짜 오류';
+		}
 	}
 </script>
 
@@ -157,25 +207,46 @@
 					</div>
 				</div>
 				<button
-					on:click={manualCheck}
-					disabled={isLoading}
-					class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+					on:click={refreshData}
+					disabled={isManualChecking || isInitialLoading}
+					class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 				>
-					<RefreshCw class="h-4 w-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
-					{isLoading ? '확인 중...' : '수동 체크'}
+					<RefreshCw class="h-4 w-4 mr-2 {isManualChecking ? 'animate-spin' : ''}" />
+					{isManualChecking ? '새로고침 중...' : '데이터 새로고침'}
 				</button>
 			</div>
 		</div>
 	</header>
 
 	<main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+		<!-- Initial Loading State -->
+		{#if isInitialLoading}
+			<div class="flex items-center justify-center py-16">
+				<div class="text-center">
+					<Loader2 class="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+					<p class="text-gray-600">데이터를 불러오는 중...</p>
+				</div>
+			</div>
+		{:else}
 		<!-- Messages -->
 		{#if error}
 			<div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-				<div class="flex items-center">
-					<AlertTriangle class="h-5 w-5 text-red-600 mr-2" />
-					<span class="text-red-800">{error}</span>
-					<button on:click={clearMessage} class="ml-auto text-red-600 hover:text-red-800">×</button>
+				<div class="flex items-center justify-between">
+					<div class="flex items-center">
+						<AlertTriangle class="h-5 w-5 text-red-600 mr-2" />
+						<span class="text-red-800">{error}</span>
+					</div>
+					<div class="flex space-x-2">
+						{#if error.includes('초기 데이터')}
+							<button 
+								on:click={() => location.reload()} 
+								class="text-red-600 hover:text-red-800 text-sm underline"
+							>
+								새로고침
+							</button>
+						{/if}
+						<button on:click={clearMessage} class="text-red-600 hover:text-red-800 text-lg">×</button>
+					</div>
 				</div>
 			</div>
 		{/if}
@@ -213,57 +284,33 @@
 						/>
 					</div>
 					
+					<!-- reCAPTCHA -->
 					<div>
-						<label for="webhook-description" class="block text-sm font-medium text-gray-700 mb-2">
-							설명 (선택사항)
-						</label>
-						<input
-							id="webhook-description"
-							type="text"
-							bind:value={newWebhookDescription}
-							placeholder="예: 개발팀 알림"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-						/>
+						<div id="recaptcha-container" class="mb-4"></div>
+						{#if !recaptchaLoaded}
+							<div class="text-sm text-gray-500 mb-2">
+								<Loader2 class="inline h-4 w-4 animate-spin mr-1" />
+								reCAPTCHA 로딩 중...
+							</div>
+						{/if}
 					</div>
 					
 					<button
 						type="submit"
-						disabled={isLoading}
-						class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+						disabled={isSubmitting || isInitialLoading}
+						class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center transition-colors"
 					>
-						{isLoading ? '등록 중...' : '웹훅 등록'}
+						{#if isSubmitting}
+							<Loader2 class="h-4 w-4 animate-spin mr-2" />
+							등록 중...
+						{:else}
+							<Plus class="h-4 w-4 mr-2" />
+							웹훅 등록
+						{/if}
 					</button>
 				</form>
 
-				<!-- Registered Webhooks -->
-				<div class="mt-6">
-					<h3 class="text-md font-medium text-gray-900 mb-3">등록된 웹훅 ({webhooks.length})</h3>
-					{#if webhooks.length === 0}
-						<p class="text-gray-500 text-sm">등록된 웹훅이 없습니다.</p>
-					{:else}
-						<div class="space-y-2">
-							{#each webhooks as webhook}
-								<div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-									<div>
-										<p class="text-sm font-medium text-gray-900">
-											{webhook.description || `웹훅 #${webhook.id}`}
-										</p>
-										<p class="text-xs text-gray-500">
-											등록: {formatDate(webhook.createdAt)}
-										</p>
-									</div>
-									<button
-										on:click={() => removeWebhook(webhook.id)}
-										class="text-red-600 hover:text-red-800 p-1"
-										title="삭제"
-									>
-										<Trash2 class="h-4 w-4" />
-									</button>
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</div>
+
 			</div>
 
 			<!-- Recent Notices -->
@@ -273,7 +320,13 @@
 				</h2>
 				
 				{#if recentNotices.length === 0}
-					<p class="text-gray-500">아직 수집된 입법예고가 없습니다.</p>
+					<div class="text-center py-8">
+						<div class="text-gray-400 mb-2">
+							<Bell class="h-8 w-8 mx-auto" />
+						</div>
+						<p class="text-gray-500">아직 수집된 입법예고가 없습니다.</p>
+						<p class="text-gray-400 text-sm mt-1">서버가 시작되면 자동으로 데이터를 수집합니다.</p>
+					</div>
 				{:else}
 					<div class="space-y-3">
 						{#each recentNotices.slice(0, 10) as notice}
@@ -296,9 +349,9 @@
 									<span>{notice.proposerCategory} | {notice.committee}</span>
 									<span>의견 {notice.numComments}개</span>
 								</div>
-								<div class="text-xs text-gray-400 mt-1">
-									{formatDate(notice.createdAt)}
-								</div>
+							<div class="text-xs text-gray-400 mt-1">
+								의안번호: {notice.num}
+							</div>
 							</div>
 						{/each}
 					</div>
@@ -331,12 +384,13 @@
 			<h3 class="text-md font-medium text-blue-900 mb-2">서비스 안내</h3>
 			<ul class="text-sm text-blue-800 space-y-1">
 				<li>• 10분마다 자동으로 새로운 입법예고를 확인합니다</li>
-				<li>• 새로운 입법예고 발견 시 등록된 Discord 웹훅으로 알림을 전송합니다</li>
-				<li>• 로그인 없이 간단하게 웹훅만 등록하면 사용할 수 있습니다</li>
-				<li>• Discord 채널/서버에서 웹훅 URL을 발급받아 등록해주세요</li>
-				<li>• ✨ 개선: 메모리 캐시로 빠른 응답, 실패한 웹훅 자동 삭제, 병렬 알림 처리</li>
+				<li>• 새로운 입법예고 발견 시 Discord 웹훅으로 알림을 전송합니다</li>
+				<li>• 로그인 없이 간단하게 Discord 웹훅 URL만 등록하면 됩니다</li>
+				<li>• reCAPTCHA 인증을 통해 스팸 방지 기능을 제공합니다</li>
+				<li>• 등록된 웹훅은 비공개로 처리되며 목록에 표시되지 않습니다</li>
 			</ul>
 		</div>
+		{/if}
 	</main>
 </div>
 
