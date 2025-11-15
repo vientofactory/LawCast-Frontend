@@ -1,27 +1,25 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { AlertTriangle, Bell, Plus, ExternalLink, Loader2 } from 'lucide-svelte';
-	import axios from 'axios';
+	import { Bell, Plus, ExternalLink, Loader2 } from 'lucide-svelte';
 	import Header from '$lib/components/Header.svelte';
-	import { PUBLIC_API_BASE_URL, PUBLIC_RECAPTCHA_SITE_KEY } from '$env/static/public';
+	import Alert from '$lib/components/Alert.svelte';
+	import { PUBLIC_RECAPTCHA_SITE_KEY } from '$env/static/public';
+	import { apiClient } from '$lib/api/client';
+	import type { Notice, SystemStats } from '$lib/types/api';
+	import {
+		validateDiscordWebhookUrl,
+		normalizeWebhookUrl,
+		formatDate,
+		openExternalLink
+	} from '$lib/utils/helpers';
 
-	const API_BASE = PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
 	const RECAPTCHA_SITE_KEY_VAL = PUBLIC_RECAPTCHA_SITE_KEY || '';
 
 	let recaptchaLoaded = false;
 	let recaptchaWidgetId: number | null = null;
 
-	interface Notice {
-		num: number;
-		subject: string;
-		proposerCategory: string;
-		committee: string;
-		numComments: number;
-		link: string;
-	}
-
 	let recentNotices: Notice[] = [];
-	let stats = {
+	let stats: SystemStats = {
 		webhooks: { total: 0, active: 0, inactive: 0 },
 		cache: { size: 0, lastUpdated: null, maxSize: 50 }
 	};
@@ -53,19 +51,19 @@
 
 	async function loadRecentNotices() {
 		try {
-			const response = await axios.get(`${API_BASE}/notices/recent`);
-			recentNotices = response.data.data;
+			recentNotices = await apiClient.getRecentNotices();
 		} catch (err) {
 			console.error('Failed to load recent notices:', err);
+			// 에러는 상위에서 처리
 		}
 	}
 
 	async function loadStats() {
 		try {
-			const response = await axios.get(`${API_BASE}/stats`);
-			stats = response.data.data;
+			stats = await apiClient.getSystemStats();
 		} catch (err) {
 			console.error('Failed to load stats:', err);
+			// 에러는 상위에서 처리
 		}
 	}
 
@@ -160,62 +158,25 @@
 			// URL 정규화
 			const normalizedUrl = normalizeWebhookUrl(newWebhookUrl);
 
-			const response = await axios.post(
-				`${API_BASE}/webhooks`,
-				{
-					url: normalizedUrl,
-					recaptchaToken: recaptchaToken.trim()
-				},
-				{
-					timeout: 10000, // 10초 타임아웃
-					headers: {
-						'Content-Type': 'application/json'
-					}
-				}
-			);
+			const result = await apiClient.registerWebhook({
+				url: normalizedUrl,
+				recaptchaToken: recaptchaToken.trim()
+			});
 
-			if (response.data.success) {
-				success = response.data.message || '웹훅이 성공적으로 등록되었습니다.';
+			if (result.success) {
+				success = result.message || '웹훅이 성공적으로 등록되었습니다.';
 				newWebhookUrl = '';
 				resetRecaptcha();
 				await loadStats(); // 통계 업데이트
 			} else {
-				error = response.data.message || '웹훅 등록에 실패했습니다.';
+				error = result.message || '웹훅 등록에 실패했습니다.';
 				resetRecaptcha();
 			}
 		} catch (err: unknown) {
 			resetRecaptcha();
 
-			if (axios.isAxiosError(err)) {
-				const response = err.response;
-
-				if (response?.status === 400) {
-					// 유효성 검증 오류
-					if (response.data?.errors && Array.isArray(response.data.errors)) {
-						error = response.data.errors.join(' ');
-					} else {
-						error = response.data?.message || '입력 데이터가 올바르지 않습니다.';
-					}
-				} else if (response?.status === 409) {
-					// 중복 URL
-					error = '이미 등록된 웹훅 URL입니다.';
-				} else if (response?.status === 429) {
-					// 너무 많은 요청
-					error = '너무 많은 웹훅이 등록되어 있습니다.';
-				} else if (response && response.status >= 500) {
-					// 서버 오류
-					error = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-				} else {
-					error = response?.data?.message || '웹훅 등록에 실패했습니다.';
-				}
-			} else if (err instanceof Error) {
-				if (err.name === 'TimeoutError' || err.message.includes('timeout')) {
-					error = '요청 시간이 초과되었습니다. 다시 시도해주세요.';
-				} else if (err.message.includes('Network Error')) {
-					error = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
-				} else {
-					error = '웹훅 등록 중 오류가 발생했습니다.';
-				}
+			if (err instanceof Error) {
+				error = err.message;
 			} else {
 				error = '예상치 못한 오류가 발생했습니다.';
 			}
@@ -228,95 +189,6 @@
 		error = '';
 		success = '';
 	}
-
-	function formatDate(dateString: string | null) {
-		if (!dateString) return '없음';
-		try {
-			const date = new Date(dateString);
-			if (isNaN(date.getTime())) return '날짜 오류';
-			return date.toLocaleString('ko-KR');
-		} catch {
-			return '날짜 오류';
-		}
-	}
-
-	function openNoticeLink(link: string) {
-		window.open(link, '_blank', 'noopener,noreferrer');
-	}
-
-	function validateDiscordWebhookUrl(url: string): { isValid: boolean; message?: string } {
-		if (!url || !url.trim()) {
-			return { isValid: false, message: '웹훅 URL을 입력해주세요.' };
-		}
-
-		// URL 길이 검증
-		if (url.length > 500) {
-			return { isValid: false, message: 'URL이 너무 깁니다. (500자 이내)' };
-		}
-
-		// 기본 URL 형식 검증
-		try {
-			const parsedUrl = new URL(url);
-
-			// HTTPS 프로토콜 강제
-			if (parsedUrl.protocol !== 'https:') {
-				return { isValid: false, message: 'HTTPS URL만 지원됩니다.' };
-			}
-
-			// Discord 도메인 검증
-			if (parsedUrl.hostname !== 'discord.com' && parsedUrl.hostname !== 'discordapp.com') {
-				return { isValid: false, message: 'Discord 웹훅 URL만 지원됩니다.' };
-			}
-
-			// 웹훅 경로 검증
-			if (!parsedUrl.pathname.startsWith('/api/webhooks/')) {
-				return { isValid: false, message: '올바른 Discord 웹훅 URL 형식이 아닙니다.' };
-			}
-
-			// 웹훅 경로 구조 검증
-			const pathParts = parsedUrl.pathname.split('/');
-			if (pathParts.length < 5 || !pathParts[3] || !pathParts[4]) {
-				return { isValid: false, message: '웹훅 URL에 필요한 정보가 누락되었습니다.' };
-			}
-
-			const webhookId = pathParts[3];
-			const webhookToken = pathParts[4];
-
-			// 웹훅 ID 형식 검증 (Discord Snowflake)
-			if (!/^\d{17,20}$/.test(webhookId)) {
-				return { isValid: false, message: '올바르지 않은 웹훅 ID 형식입니다.' };
-			}
-
-			// 웹훅 토큰 형식 검증
-			if (!/^[a-zA-Z0-9_-]{64,68}$/.test(webhookToken)) {
-				return { isValid: false, message: '올바르지 않은 웹훅 토큰 형식입니다.' };
-			}
-
-			return { isValid: true };
-		} catch {
-			return { isValid: false, message: '올바르지 않은 URL 형식입니다.' };
-		}
-	}
-
-	function normalizeWebhookUrl(url: string): string {
-		try {
-			// eslint-disable-next-line svelte/prefer-svelte-reactivity
-			const parsed = new URL(url.trim());
-			// 쿼리 파라미터와 해시 제거
-			parsed.search = '';
-			parsed.hash = '';
-
-			let normalizedPath = parsed.pathname;
-			// 끝의 슬래시 제거
-			if (normalizedPath.endsWith('/') && normalizedPath.length > 1) {
-				normalizedPath = normalizedPath.slice(0, -1);
-			}
-
-			return `${parsed.protocol}//${parsed.host}${normalizedPath}`;
-		} catch {
-			return url.trim();
-		}
-	}
 </script>
 
 <svelte:head>
@@ -324,7 +196,7 @@
 	<meta name="description" content="국회 입법예고 변동사항을 디스코드로 알려드립니다." />
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
 	<Header />
 
 	<main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -339,51 +211,41 @@
 		{:else}
 			<!-- Messages -->
 			{#if error}
-				<div class="mb-6 rounded-md border border-red-200 bg-red-50 p-4">
-					<div class="flex items-center justify-between">
-						<div class="flex items-center">
-							<AlertTriangle class="mr-2 h-5 w-5 text-red-600" />
-							<span class="text-red-800">{error}</span>
-						</div>
-						<div class="flex space-x-2">
-							{#if error.includes('초기 데이터')}
-								<button
-									on:click={() => location.reload()}
-									class="text-sm text-red-600 underline hover:text-red-800"
-								>
-									새로고침
-								</button>
-							{/if}
-							<button on:click={clearMessage} class="text-lg text-red-600 hover:text-red-800"
-								>×</button
-							>
-						</div>
-					</div>
-				</div>
+				<Alert
+					type="error"
+					message={error}
+					showRefresh={error.includes('초기 데이터')}
+					onDismiss={clearMessage}
+					onRefresh={() => location.reload()}
+				/>
 			{/if}
 
 			{#if success}
-				<div class="mb-6 rounded-md border border-green-200 bg-green-50 p-4">
-					<div class="flex items-center">
-						<div class="mr-2 h-5 w-5 text-green-600">✓</div>
-						<span class="text-green-800">{success}</span>
-						<button on:click={clearMessage} class="ml-auto text-green-600 hover:text-green-800"
-							>×</button
-						>
-					</div>
-				</div>
+				<Alert
+					type="success"
+					message={success}
+					autoHide={true}
+					autoHideDelay={4000}
+					onDismiss={clearMessage}
+				/>
 			{/if}
 
-			<i class="text-gray-500">
+			<blockquote
+				class="rounded-lg border-l-4 border-blue-300 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 p-4 leading-relaxed font-medium text-slate-600 italic"
+			>
 				게임에 잠수함 패치는 있을 수 있지만, 법안에 잠수함 패치는 있을 수 없습니다.<br />
 				모든 사람들이 입법예고의 투명한 감시 권리를 가질 수 있는 그 날까지 LawCast는 함께합니다.
-			</i>
+			</blockquote>
 
 			<div class="mt-5 grid grid-cols-1 gap-8 lg:grid-cols-2">
 				<!-- Webhook Registration -->
-				<div class="rounded-lg bg-white p-6 shadow">
-					<h2 class="mb-4 flex items-center text-lg font-semibold text-gray-900">
-						<Plus class="mr-2 h-5 w-5" />
+				<div
+					class="rounded-2xl border border-white/50 bg-white/80 p-6 shadow-lg shadow-blue-100/50 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-blue-100/60"
+				>
+					<h2 class="mb-6 flex items-center text-xl font-bold tracking-tight text-gray-800">
+						<div class="mr-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 p-2">
+							<Plus class="h-5 w-5 text-white" />
+						</div>
 						웹훅 등록
 					</h2>
 
@@ -397,7 +259,7 @@
 								type="url"
 								bind:value={newWebhookUrl}
 								placeholder="https://discord.com/api/webhooks/..."
-								class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none"
+								class="w-full rounded-xl border-2 border-gray-200 bg-gray-50/50 px-4 py-3 text-gray-700 shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 focus:outline-none"
 								maxlength="500"
 								autocomplete="off"
 								spellcheck="false"
@@ -424,7 +286,7 @@
 						<button
 							type="submit"
 							disabled={isSubmitting || isInitialLoading}
-							class="flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+							class="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-200/50 transition-all duration-200 hover:-translate-y-0.5 hover:from-blue-600 hover:to-indigo-700 hover:shadow-xl hover:shadow-blue-300/60 disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
 						>
 							{#if isSubmitting}
 								<Loader2 class="mr-2 h-4 w-4 animate-spin" />
@@ -438,9 +300,14 @@
 				</div>
 
 				<!-- Recent Notices -->
-				<div class="rounded-lg bg-white p-6 shadow">
-					<div class="mb-4 flex items-center justify-between">
-						<h2 class="text-lg font-semibold text-gray-900">
+				<div
+					class="rounded-2xl border border-white/50 bg-white/80 p-6 shadow-lg shadow-green-100/50 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-green-100/60"
+				>
+					<div class="mb-6 flex items-center justify-between">
+						<h2 class="flex items-center text-xl font-bold tracking-tight text-gray-800">
+							<div class="mr-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 p-2">
+								<Bell class="h-5 w-5 text-white" />
+							</div>
 							최근 입법예고 ({recentNotices.length})
 						</h2>
 						{#if recentNotices.length > 0}
@@ -467,14 +334,18 @@
 					{:else}
 						<div class="space-y-3">
 							{#each recentNotices.slice(0, 5) as notice (notice.num)}
-								<div class="rounded-md border border-gray-200 p-3">
-									<div class="mb-2 flex items-start justify-between">
-										<h3 class="line-clamp-2 text-sm font-medium text-gray-900">
+								<div
+									class="group rounded-xl border border-gray-100 bg-gradient-to-r from-gray-50/50 to-blue-50/30 p-4 transition-all duration-200 hover:from-blue-50/60 hover:to-indigo-50/40 hover:shadow-md"
+								>
+									<div class="mb-3 flex items-start justify-between">
+										<h3
+											class="line-clamp-2 text-sm leading-relaxed font-semibold text-gray-800 group-hover:text-gray-900"
+										>
 											{notice.subject}
 										</h3>
 										<button
-											on:click={() => openNoticeLink(notice.link)}
-											class="ml-2 shrink-0 border-none bg-transparent p-1 text-blue-600 hover:text-blue-800"
+											on:click={() => openExternalLink(notice.link)}
+											class="ml-3 shrink-0 rounded-lg bg-blue-100/80 p-2 text-blue-600 transition-all duration-200 hover:scale-105 hover:bg-blue-200 hover:text-blue-700"
 											title="자세히 보기"
 										>
 											<ExternalLink class="h-4 w-4" />
@@ -507,32 +378,58 @@
 			</div>
 
 			<!-- Stats Section -->
-			<div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-				<div class="rounded-lg bg-white p-4 shadow">
-					<h3 class="text-sm font-medium text-gray-600">등록된 웹훅</h3>
-					<p class="text-2xl font-bold text-blue-600">{stats.webhooks.active.toLocaleString()}</p>
-					<p class="text-xs text-gray-500">활성 / 총 {stats.webhooks.total.toLocaleString()}개</p>
+			<div class="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+				<div
+					class="rounded-2xl border border-blue-200/30 bg-gradient-to-br from-blue-50 to-indigo-100/60 p-6 shadow-lg shadow-blue-100/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-200/60"
+				>
+					<h3 class="mb-2 text-sm font-semibold text-blue-700">등록된 웹훅</h3>
+					<p class="mb-1 text-3xl font-bold text-blue-600">
+						{stats.webhooks.active.toLocaleString()}
+					</p>
+					<p class="text-xs text-blue-500/80">
+						활성 / 총 {stats.webhooks.total.toLocaleString()}개
+					</p>
 				</div>
-				<div class="rounded-lg bg-white p-4 shadow">
-					<h3 class="text-sm font-medium text-gray-600">캐시된 입법예고</h3>
-					<p class="text-2xl font-bold text-green-600">{stats.cache.size}</p>
-					<p class="text-xs text-gray-500">최대 {stats.cache.maxSize}개</p>
+				<div
+					class="rounded-2xl border border-green-200/30 bg-gradient-to-br from-green-50 to-emerald-100/60 p-6 shadow-lg shadow-green-100/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-green-200/60"
+				>
+					<h3 class="mb-2 text-sm font-semibold text-green-700">캐시된 입법예고</h3>
+					<p class="mb-1 text-3xl font-bold text-green-600">{stats.cache.size}</p>
+					<p class="text-xs text-green-500/80">최대 {stats.cache.maxSize}개</p>
 				</div>
-				<div class="rounded-lg bg-white p-4 shadow">
-					<h3 class="text-sm font-medium text-gray-600">마지막 업데이트</h3>
-					<p class="text-sm font-medium text-gray-900">
+				<div
+					class="rounded-2xl border border-purple-200/30 bg-gradient-to-br from-purple-50 to-pink-100/60 p-6 shadow-lg shadow-purple-100/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-200/60"
+				>
+					<h3 class="mb-2 text-sm font-semibold text-purple-700">마지막 업데이트</h3>
+					<p class="text-lg font-bold text-purple-600">
 						{stats.cache.lastUpdated ? formatDate(stats.cache.lastUpdated) : '없음'}
 					</p>
 				</div>
 			</div>
 
 			<!-- Info Section -->
-			<div class="mt-6 rounded-md border border-blue-200 bg-blue-50 p-4">
-				<h3 class="text-md mb-2 font-medium text-blue-900">서비스 안내</h3>
-				<ul class="space-y-1 text-sm text-blue-800">
-					<li>• 10분마다 자동으로 새로운 입법예고를 확인합니다</li>
-					<li>• 새로운 입법예고 발견 시 Discord 웹훅으로 알림을 전송합니다</li>
-					<li>• 로그인 없이 간단하게 Discord 웹훅 URL만 등록하면 됩니다</li>
+			<div
+				class="mt-8 rounded-2xl border border-blue-200/40 bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/40 p-6 shadow-lg shadow-blue-100/30 backdrop-blur-sm"
+			>
+				<h3 class="mb-4 flex items-center text-lg font-bold text-blue-900">
+					<div class="mr-2 rounded-lg bg-blue-200/50 p-1.5">
+						<Bell class="h-4 w-4 text-blue-700" />
+					</div>
+					서비스 안내
+				</h3>
+				<ul class="space-y-3 text-sm text-blue-800">
+					<li class="flex items-start">
+						<span class="mt-0.5 mr-3 h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+						10분마다 자동으로 새로운 입법예고를 확인합니다
+					</li>
+					<li class="flex items-start">
+						<span class="mt-0.5 mr-3 h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+						새로운 입법예고 발견 시 Discord 웹훅으로 알림을 전송합니다
+					</li>
+					<li class="flex items-start">
+						<span class="mt-0.5 mr-3 h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+						로그인 없이 간단하게 Discord 웹훅 URL만 등록하면 됩니다
+					</li>
 				</ul>
 			</div>
 		{/if}
