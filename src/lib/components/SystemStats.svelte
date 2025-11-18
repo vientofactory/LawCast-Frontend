@@ -20,7 +20,7 @@
 	<div
 		class="rounded-2xl border border-green-200/30 bg-linear-to-br from-green-50 to-emerald-100/60 p-6 shadow-lg shadow-green-100/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-green-200/60"
 	>
-		<h3 class="mb-2 text-sm font-semibold text-green-700">캐시된 입법예고</h3>
+		<h3 class="mb-2 text-sm font-semibold text-green-700">수집된 입법예고</h3>
 		<p class="mb-1 text-3xl font-bold text-green-600">{stats.cache.size}</p>
 		<p class="text-xs text-green-500/80">최대 {stats.cache.maxSize}개</p>
 	</div>
