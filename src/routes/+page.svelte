@@ -13,7 +13,7 @@
 	let recentNotices: Notice[] = [];
 	let stats: SystemStatsType = {
 		webhooks: { total: 0, active: 0, inactive: 0 },
-		cache: { size: 0, lastUpdated: null, maxSize: 50 }
+		cache: { size: 0, lastUpdated: null, maxSize: 50, isInitialized: false }
 	};
 
 	let isInitialLoading = true;

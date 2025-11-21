@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Bell } from 'lucide-svelte';
+	import { Bell, Github } from 'lucide-svelte';
 </script>
 
 <div
@@ -23,6 +23,18 @@
 		<li class="flex items-start">
 			<span class="mt-0.5 mr-3 h-1.5 w-1.5 rounded-full bg-blue-400"></span>
 			로그인 없이 간단하게 Discord 웹훅 URL만 등록하면 됩니다
+		</li>
+		<li class="flex items-start">
+			<span class="mt-0.5 mr-3 h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+			<a
+				href="https://github.com/vientofactory/lawcast"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="flex items-center space-x-2 text-blue-800 hover:text-blue-600 transition-colors"
+			>
+				<Github class="h-4 w-4" />
+				<span>오픈소스 프로젝트</span>
+			</a>
 		</li>
 	</ul>
 </div>
