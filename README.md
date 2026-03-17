@@ -8,7 +8,7 @@ LawCast 서비스의 웹 프론트엔드 애플리케이션입니다. SvelteKit 
 - **최근 공지 조회**: 입법예고 변동사항 실시간 확인
 - **시스템 통계**: 웹훅 및 캐시 상태 모니터링
 - **반응형 디자인**: 모바일 친화적인 UI
-- **reCAPTCHA v2 통합**: 봇 방지 기능 제공
+- **HashGuard(PoW) 통합**: 스팸 방지 기능 제공
 
 ## 기술 스택
 
@@ -74,7 +74,7 @@ src/
 ```env
 # API 베이스 URL
 API_BASE_URL=http://localhost:3000
-PUBLIC_RECAPTCHA_SITE_KEY=your-recaptcha-site-key
+PUBLIC_HASHGUARD_URL=https://hashguard.viento.me
 ```
 
 ## 개발 명령어

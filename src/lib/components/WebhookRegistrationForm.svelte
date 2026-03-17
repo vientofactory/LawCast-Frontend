@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { PUBLIC_RECAPTCHA_SITE_KEY } from '$env/static/public';
+	import { PUBLIC_HASHGUARD_URL } from '$env/static/public';
+	import { HashGuardClient } from 'hashguard-client';
 	import { apiClient } from '$lib/api/client';
 	import { validateDiscordWebhookUrl, normalizeWebhookUrl } from '$lib/utils/helpers';
 	import WebhookGuide from './WebhookGuide.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { faPlus, faSpinner } from '@fortawesome/free-solid-svg-icons';
+	import { faPlus, faSpinner, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
 	import type { SystemStats } from '$lib/types/api';
 
-	const RECAPTCHA_SITE_KEY_VAL = PUBLIC_RECAPTCHA_SITE_KEY || '';
+	const HASHGUARD_URL_VAL = PUBLIC_HASHGUARD_URL || 'https://hashguard.viento.me';
 
 	// Props
 	export let isInitialLoading = false;
@@ -18,82 +18,9 @@
 	export let onClearMessage: () => void = () => {};
 	export let onWebhookRegistered: () => void = () => {};
 
-	let recaptchaLoaded = false;
-	let recaptchaWidgetId: number | null = null;
 	let newWebhookUrl = '';
-	let recaptchaToken = '';
 	let isSubmitting = false;
-	onMount(() => {
-		loadRecaptcha();
-		// reCAPTCHA 로드가 늦을 경우를 대비해 지연 렌더링 시도
-		setTimeout(() => {
-			if (recaptchaLoaded && recaptchaWidgetId === null) {
-				renderRecaptcha();
-			}
-		}, 1000);
-	});
-
-	function loadRecaptcha() {
-		if (typeof window !== 'undefined' && !recaptchaLoaded) {
-			const script = document.createElement('script');
-			script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit';
-			script.async = true;
-			script.defer = true;
-			document.head.appendChild(script);
-
-			// 전역 콜백 설정
-			(window as unknown as Window & { onRecaptchaLoad: () => void }).onRecaptchaLoad = () => {
-				recaptchaLoaded = true;
-				renderRecaptcha();
-			};
-		}
-	}
-
-	function renderRecaptcha() {
-		if (
-			typeof window !== 'undefined' &&
-			(
-				window as unknown as {
-					grecaptcha: { render: (container: string, options: Record<string, unknown>) => number };
-				}
-			).grecaptcha &&
-			recaptchaLoaded
-		) {
-			const container = document.getElementById('recaptcha-container');
-			if (container && recaptchaWidgetId === null) {
-				recaptchaWidgetId = (
-					window as unknown as {
-						grecaptcha: { render: (container: string, options: Record<string, unknown>) => number };
-					}
-				).grecaptcha.render('recaptcha-container', {
-					sitekey: RECAPTCHA_SITE_KEY_VAL,
-					callback: (token: string) => {
-						recaptchaToken = token;
-					},
-					'expired-callback': () => {
-						recaptchaToken = '';
-					},
-					'error-callback': () => {
-						onError('reCAPTCHA 인증에 실패했습니다. 다시 시도해주세요.');
-						recaptchaToken = '';
-					}
-				});
-			}
-		}
-	}
-
-	function resetRecaptcha() {
-		if (
-			typeof window !== 'undefined' &&
-			(window as unknown as { grecaptcha: { reset: (id: number) => void } }).grecaptcha &&
-			recaptchaWidgetId !== null
-		) {
-			(window as unknown as { grecaptcha: { reset: (id: number) => void } }).grecaptcha.reset(
-				recaptchaWidgetId
-			);
-			recaptchaToken = '';
-		}
-	}
+	let isSolvingPoW = false;
 
 	async function addWebhook() {
 		// 웹훅 URL 유효성 검증
@@ -103,14 +30,8 @@
 			return;
 		}
 
-		// reCAPTCHA 검증
-		if (!recaptchaToken || recaptchaToken.trim().length === 0) {
-			onError('reCAPTCHA 인증을 완료해주세요.');
-			return;
-		}
-
 		// 중복 제출 방지
-		if (isSubmitting) {
+		if (isSubmitting || isSolvingPoW) {
 			return;
 		}
 
@@ -118,26 +39,36 @@
 		onClearMessage();
 
 		try {
+			// 스팸 방지 검증 수행
+			isSolvingPoW = true;
+			const client = new HashGuardClient({
+				baseUrl: HASHGUARD_URL_VAL
+			});
+			const powResult = await client.execute('webhook-registration');
+			const proof = powResult.verification.proofToken;
+			isSolvingPoW = false;
+
+			if (!proof) {
+				throw new Error('보안 검증에 실패했습니다.');
+			}
+
 			// URL 정규화
 			const normalizedUrl = normalizeWebhookUrl(newWebhookUrl);
 
 			const result = await apiClient.registerWebhook({
 				url: normalizedUrl,
-				recaptchaToken: recaptchaToken.trim()
+				proof: proof
 			});
 
 			if (result.success) {
 				onSuccess(result.message || '웹훅이 성공적으로 등록되었습니다.');
 				newWebhookUrl = '';
-				resetRecaptcha();
 				onWebhookRegistered(); // 통계 업데이트를 위한 이벤트
 			} else {
 				onError(result.message || '웹훅 등록에 실패했습니다.');
-				resetRecaptcha();
 			}
 		} catch (err: unknown) {
-			resetRecaptcha();
-
+			isSolvingPoW = false;
 			if (err instanceof Error) {
 				onError(err.message);
 			} else {
@@ -203,23 +134,15 @@
 			{/if}
 		</div>
 
-		<!-- reCAPTCHA -->
-		<div>
-			<div id="recaptcha-container" class="mb-4"></div>
-			{#if !recaptchaLoaded}
-				<div class="mb-2 text-sm text-gray-500">
-					<FontAwesomeIcon icon={faSpinner} class="mr-1 inline h-4 w-4 animate-spin" />
-					reCAPTCHA 로딩 중...
-				</div>
-			{/if}
-		</div>
-
 		<button
 			type="submit"
-			disabled={isSubmitting || isInitialLoading}
+			disabled={isSubmitting || isInitialLoading || isSolvingPoW}
 			class="flex w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-200/50 transition-all duration-200 hover:-translate-y-0.5 hover:from-blue-600 hover:to-indigo-700 hover:shadow-xl hover:shadow-blue-300/60 disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
 		>
-			{#if isSubmitting}
+			{#if isSolvingPoW}
+				<FontAwesomeIcon icon={faShieldHalved} class="mr-2 h-4 w-4 animate-pulse" />
+				스팸 방지 검증 중...
+			{:else if isSubmitting}
 				<FontAwesomeIcon icon={faSpinner} class="mr-2 h-4 w-4 animate-spin" />
 				등록 중...
 			{:else}
@@ -227,6 +150,11 @@
 				웹훅 등록
 			{/if}
 		</button>
+		{#if isSolvingPoW}
+			<p class="animate-pulse text-center text-xs text-gray-500">
+				잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.
+			</p>
+		{/if}
 	</form>
 
 	<WebhookGuide />

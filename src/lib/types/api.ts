@@ -54,7 +54,7 @@ export interface ApiResponse<T> {
 
 export interface WebhookRegistrationRequest {
 	url: string;
-	recaptchaToken: string;
+	proof: string;
 }
 
 export interface WebhookValidationResult {
