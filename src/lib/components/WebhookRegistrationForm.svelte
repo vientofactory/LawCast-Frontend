@@ -1,14 +1,11 @@
 <script lang="ts">
-	import { PUBLIC_HASHGUARD_URL } from '$env/static/public';
-	import { HashGuardClient } from 'hashguard-client';
 	import { apiClient } from '$lib/api/client';
+	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
 	import { validateDiscordWebhookUrl, normalizeWebhookUrl } from '$lib/utils/helpers';
 	import WebhookGuide from './WebhookGuide.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faPlus, faSpinner, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
 	import type { SystemStats } from '$lib/types/api';
-
-	const HASHGUARD_URL_VAL = PUBLIC_HASHGUARD_URL || 'https://hashguard.viento.me';
 
 	// Props
 	export let isInitialLoading = false;
@@ -21,6 +18,15 @@
 	let newWebhookUrl = '';
 	let isSubmitting = false;
 	let isSolvingPoW = false;
+	let powStatusMessage = '';
+	let powAttempts: number | null = null;
+	let powDifficultyBits: number | null = null;
+
+	function updatePowStatus(status: PowStatus) {
+		powStatusMessage = status.message;
+		powAttempts = status.attempts ?? powAttempts;
+		powDifficultyBits = status.difficultyBits ?? powDifficultyBits;
+	}
 
 	async function addWebhook() {
 		// 웹훅 URL 유효성 검증
@@ -41,16 +47,13 @@
 		try {
 			// 스팸 방지 검증 수행
 			isSolvingPoW = true;
-			const client = new HashGuardClient({
-				baseUrl: HASHGUARD_URL_VAL
-			});
-			const powResult = await client.execute('webhook-registration');
-			const proof = powResult.verification.proofToken;
-			isSolvingPoW = false;
+			powStatusMessage = '보안 검증을 준비하고 있어요...';
+			powAttempts = null;
+			powDifficultyBits = null;
 
-			if (!proof) {
-				throw new Error('보안 검증에 실패했습니다.');
-			}
+			const proof = await executePowInWorker('webhook-registration', updatePowStatus);
+			isSolvingPoW = false;
+			powStatusMessage = '';
 
 			// URL 정규화
 			const normalizedUrl = normalizeWebhookUrl(newWebhookUrl);
@@ -69,6 +72,9 @@
 			}
 		} catch (err: unknown) {
 			isSolvingPoW = false;
+			powStatusMessage = '';
+			powAttempts = null;
+			powDifficultyBits = null;
 			if (err instanceof Error) {
 				onError(err.message);
 			} else {
@@ -76,6 +82,9 @@
 			}
 		} finally {
 			isSubmitting = false;
+			if (!isSolvingPoW) {
+				powStatusMessage = '';
+			}
 		}
 	}
 </script>
@@ -152,8 +161,22 @@
 		</button>
 		{#if isSolvingPoW}
 			<p class="animate-pulse text-center text-xs text-gray-500">
-				잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.
+				{powStatusMessage ||
+					'잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.'}
 			</p>
+			{#if powDifficultyBits !== null || powAttempts !== null}
+				<p class="text-center text-[11px] text-gray-400">
+					{#if powDifficultyBits !== null}
+						난이도: {powDifficultyBits}bit
+					{/if}
+					{#if powDifficultyBits !== null && powAttempts !== null}
+						·
+					{/if}
+					{#if powAttempts !== null}
+						시도 횟수: {powAttempts.toLocaleString()}
+					{/if}
+				</p>
+			{/if}
 		{/if}
 	</form>
 
