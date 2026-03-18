@@ -32,6 +32,9 @@ type WorkerStatusEvent = {
 	message: string;
 	attempts?: number;
 	difficultyBits?: number;
+	hashRate?: number;
+	estimatedRemainingMs?: number;
+	attemptProgress?: number;
 };
 
 type WorkerResultEvent = {
@@ -114,19 +117,20 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
 		postStatus(requestId, 'issue', '서버에 보안 챌린지를 요청하고 있어요...');
 		const challenge = await client.issueChallenge(request.context);
 
-		let lastReportedAttempts = 0;
 		postStatus(requestId, 'solve', '작업증명 해시를 계산하는 중입니다...', {
 			difficultyBits: challenge.difficultyBits
 		});
 		const solveResult = solvePow(challenge.challengeId, challenge.seed, challenge.target, {
-			onProgress: (attempts) => {
-				if (attempts - lastReportedAttempts < 100_000) {
-					return;
-				}
-				lastReportedAttempts = attempts;
+			difficultyBits: challenge.difficultyBits,
+			progressInterval: 50_000,
+			onEstimate: (estimate) => {
+				if (estimate.phase !== 'progress') return;
 				postStatus(requestId, 'solve', '작업증명 해시를 계산하는 중입니다...', {
-					attempts,
-					difficultyBits: challenge.difficultyBits
+					attempts: estimate.attempts,
+					difficultyBits: challenge.difficultyBits,
+					hashRate: estimate.hashRate,
+					estimatedRemainingMs: estimate.estimatedRemainingMs ?? undefined,
+					attemptProgress: estimate.attemptProgress
 				});
 			}
 		});

@@ -21,11 +21,30 @@
 	let powStatusMessage = '';
 	let powAttempts: number | null = null;
 	let powDifficultyBits: number | null = null;
+	let powHashRate: number | null = null;
+	let powEstimatedRemainingMs: number | null = null;
+	let powAttemptProgress: number | null = null;
+
+	function formatHashRate(rate: number): string {
+		if (rate >= 1_000_000) return `${(rate / 1_000_000).toFixed(1)} MH/s`;
+		if (rate >= 1_000) return `${Math.round(rate / 1_000).toLocaleString()} kH/s`;
+		return `${Math.round(rate).toLocaleString()} H/s`;
+	}
+
+	function formatRemainingTime(ms: number): string {
+		if (ms >= 60_000) return `약 ${Math.ceil(ms / 60_000)}분`;
+		if (ms >= 10_000) return `약 ${Math.ceil(ms / 1_000)}초`;
+		return '잠시 후 완료';
+	}
 
 	function updatePowStatus(status: PowStatus) {
 		powStatusMessage = status.message;
 		powAttempts = status.attempts ?? powAttempts;
 		powDifficultyBits = status.difficultyBits ?? powDifficultyBits;
+		if (status.hashRate !== undefined) powHashRate = status.hashRate;
+		if (status.estimatedRemainingMs !== undefined)
+			powEstimatedRemainingMs = status.estimatedRemainingMs;
+		if (status.attemptProgress !== undefined) powAttemptProgress = status.attemptProgress;
 	}
 
 	async function addWebhook() {
@@ -50,6 +69,9 @@
 			powStatusMessage = '보안 검증을 준비하고 있어요...';
 			powAttempts = null;
 			powDifficultyBits = null;
+			powHashRate = null;
+			powEstimatedRemainingMs = null;
+			powAttemptProgress = null;
 
 			const proof = await executePowInWorker('webhook-registration', updatePowStatus);
 			isSolvingPoW = false;
@@ -75,6 +97,9 @@
 			powStatusMessage = '';
 			powAttempts = null;
 			powDifficultyBits = null;
+			powHashRate = null;
+			powEstimatedRemainingMs = null;
+			powAttemptProgress = null;
 			if (err instanceof Error) {
 				onError(err.message);
 			} else {
@@ -164,18 +189,30 @@
 				{powStatusMessage ||
 					'잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.'}
 			</p>
-			{#if powDifficultyBits !== null || powAttempts !== null}
-				<p class="text-center text-[11px] text-gray-400">
+			{#if powAttemptProgress !== null && powAttemptProgress > 0}
+				<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+					<div
+						class="h-full rounded-full bg-linear-to-r from-blue-400 to-indigo-500 transition-all duration-500"
+						style="width: {Math.min(powAttemptProgress * 100, 100).toFixed(1)}%"
+					></div>
+				</div>
+			{/if}
+			{#if powEstimatedRemainingMs !== null || powHashRate !== null || powDifficultyBits !== null}
+				<div class="flex items-center justify-center gap-2 text-[11px] text-gray-400">
+					{#if powEstimatedRemainingMs !== null}
+						<span class="font-medium text-blue-500"
+							>{formatRemainingTime(powEstimatedRemainingMs)}</span
+						>
+						<span>·</span>
+					{/if}
+					{#if powHashRate !== null}
+						<span>{formatHashRate(powHashRate)}</span>
+					{/if}
 					{#if powDifficultyBits !== null}
-						난이도: {powDifficultyBits}bit
+						{#if powHashRate !== null}<span>·</span>{/if}
+						<span>난이도 {powDifficultyBits}bit</span>
 					{/if}
-					{#if powDifficultyBits !== null && powAttempts !== null}
-						·
-					{/if}
-					{#if powAttempts !== null}
-						시도 횟수: {powAttempts.toLocaleString()}
-					{/if}
-				</p>
+				</div>
 			{/if}
 		{/if}
 	</form>

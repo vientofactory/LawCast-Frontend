@@ -46,6 +46,9 @@ export type PowStatus = {
 	message: string;
 	attempts?: number;
 	difficultyBits?: number;
+	hashRate?: number;
+	estimatedRemainingMs?: number;
+	attemptProgress?: number;
 };
 
 type WorkerStatusEvent = {
@@ -55,6 +58,9 @@ type WorkerStatusEvent = {
 	message: string;
 	attempts?: number;
 	difficultyBits?: number;
+	hashRate?: number;
+	estimatedRemainingMs?: number;
+	attemptProgress?: number;
 };
 
 type WorkerResultEvent = {
@@ -105,7 +111,10 @@ function ensureWorker(): Worker {
 				phase: data.phase,
 				message: data.message,
 				attempts: data.attempts,
-				difficultyBits: data.difficultyBits
+				difficultyBits: data.difficultyBits,
+				hashRate: data.hashRate,
+				estimatedRemainingMs: data.estimatedRemainingMs,
+				attemptProgress: data.attemptProgress
 			});
 			return;
 		}
@@ -150,18 +159,18 @@ function notifyStatus(
 }
 
 function solveChallengeOnMainThread(challenge: Challenge, onStatus?: (status: PowStatus) => void) {
-	let lastReportedAttempts = 0;
-
 	return import('hashguard-client').then(({ solvePow }) =>
 		solvePow(challenge.challengeId, challenge.seed, challenge.target, {
-			onProgress: (attempts) => {
-				if (attempts - lastReportedAttempts < 100_000) {
-					return;
-				}
-				lastReportedAttempts = attempts;
+			difficultyBits: challenge.difficultyBits,
+			progressInterval: 50_000,
+			onEstimate: (estimate) => {
+				if (estimate.phase !== 'progress') return;
 				notifyStatus(onStatus, 'solve', '작업증명 해시를 계산하는 중입니다...', {
-					attempts,
-					difficultyBits: challenge.difficultyBits
+					attempts: estimate.attempts,
+					difficultyBits: challenge.difficultyBits,
+					hashRate: estimate.hashRate,
+					estimatedRemainingMs: estimate.estimatedRemainingMs ?? undefined,
+					attemptProgress: estimate.attemptProgress
 				});
 			}
 		})

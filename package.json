@@ -45,7 +45,7 @@
 		"@fortawesome/svelte-fontawesome": "^0.2.4",
 		"@types/nprogress": "^0.2.3",
 		"axios": "^1.13.2",
-		"hashguard-client": "^1.2.0",
+		"hashguard-client": "^1.3.0",
 		"nprogress": "^0.2.0",
 		"svelte-recaptcha": "^0.0.0"
 	},
