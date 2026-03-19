@@ -165,13 +165,18 @@ function solveChallengeOnMainThread(challenge: Challenge, onStatus?: (status: Po
 			progressInterval: 50_000,
 			onEstimate: (estimate) => {
 				if (estimate.phase !== 'progress') return;
-				notifyStatus(onStatus, 'solve', '작업증명 해시를 계산하는 중입니다...', {
-					attempts: estimate.attempts,
-					difficultyBits: challenge.difficultyBits,
-					hashRate: estimate.hashRate,
-					estimatedRemainingMs: estimate.estimatedRemainingMs ?? undefined,
-					attemptProgress: estimate.attemptProgress
-				});
+				notifyStatus(
+					onStatus,
+					'solve',
+					'잠시만 기다려주세요, 작업증명 해시를 계산하는 중입니다...',
+					{
+						attempts: estimate.attempts,
+						difficultyBits: challenge.difficultyBits,
+						hashRate: estimate.hashRate,
+						estimatedRemainingMs: estimate.estimatedRemainingMs ?? undefined,
+						attemptProgress: estimate.attemptProgress
+					}
+				);
 			}
 		})
 	);
@@ -189,7 +194,7 @@ async function executeOnMainThread(
 	notifyStatus(onStatus, 'issue', '서버에 보안 챌린지를 요청하고 있어요...');
 	const challenge = await client.issueChallenge(context);
 
-	notifyStatus(onStatus, 'solve', '작업증명 해시를 계산하는 중입니다...', {
+	notifyStatus(onStatus, 'solve', '잠시만 기다려주세요, 작업증명 해시를 계산하는 중입니다...', {
 		difficultyBits: challenge.difficultyBits
 	});
 	const solveResult = await solveChallengeOnMainThread(challenge, onStatus);
