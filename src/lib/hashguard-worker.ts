@@ -158,28 +158,25 @@ function notifyStatus(
 	onStatus?.({ phase, message, ...extra });
 }
 
-function solveChallengeOnMainThread(challenge: Challenge, onStatus?: (status: PowStatus) => void) {
-	return import('hashguard-client').then(({ solvePow }) =>
-		solvePow(challenge.challengeId, challenge.seed, challenge.target, {
-			difficultyBits: challenge.difficultyBits,
-			progressInterval: 50_000,
-			onEstimate: (estimate) => {
-				if (estimate.phase !== 'progress') return;
-				notifyStatus(
-					onStatus,
-					'solve',
-					'잠시만 기다려주세요, 작업증명 해시를 계산하는 중입니다...',
-					{
-						attempts: estimate.attempts,
-						difficultyBits: challenge.difficultyBits,
-						hashRate: estimate.hashRate,
-						estimatedRemainingMs: estimate.estimatedRemainingMs ?? undefined,
-						attemptProgress: estimate.attemptProgress
-					}
-				);
-			}
-		})
-	);
+async function solveChallengeOnMainThread(
+	challenge: Challenge,
+	onStatus?: (status: PowStatus) => void
+) {
+	const { solvePow } = await import('hashguard-client');
+	return solvePow(challenge.challengeId, challenge.seed, challenge.target, {
+		difficultyBits: challenge.difficultyBits,
+		progressInterval: 50000,
+		onEstimate: (estimate_1) => {
+			if (estimate_1.phase !== 'progress') return;
+			notifyStatus(onStatus, 'solve', '잠시만 기다려주세요, 작업증명 해시를 계산하는 중입니다...', {
+				attempts: estimate_1.attempts,
+				difficultyBits: challenge.difficultyBits,
+				hashRate: estimate_1.hashRate,
+				estimatedRemainingMs: estimate_1.estimatedRemainingMs ?? undefined,
+				attemptProgress: estimate_1.attemptProgress
+			});
+		}
+	});
 }
 
 async function executeOnMainThread(
