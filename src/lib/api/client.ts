@@ -78,7 +78,16 @@ async function request<T>(
 			throw errorData;
 		}
 
-		return (data as ApiResponse<T>).data;
+		const envelope = data as ApiResponse<T>;
+		if (envelope && typeof envelope === 'object' && 'success' in envelope) {
+			if (envelope.data !== undefined) {
+				return envelope.data;
+			}
+
+			return data as T;
+		}
+
+		return data as T;
 	} catch (error) {
 		throw normalizeError(error);
 	} finally {
