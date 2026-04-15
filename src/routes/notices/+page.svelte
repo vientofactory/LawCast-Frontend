@@ -11,55 +11,54 @@
 		faExternalLink,
 		faFileDownload,
 		faFileText,
-		faSpinner,
+		faMagnifyingGlass,
 		faTriangleExclamation,
 		faUser
 	} from '@fortawesome/free-solid-svg-icons';
-	import { invalidateAll } from '$app/navigation';
-	import type { PageData } from './$types';
+	import type { ArchiveNoticeListResponse } from '$lib/types/api';
 
-	export let data: PageData;
+	export let data: {
+		archive: ArchiveNoticeListResponse;
+		error?: string;
+	};
 
-	$: notices = data.notices || [];
+	$: archive = data.archive;
+	$: notices = archive?.items || [];
+	$: currentPage = archive?.page || 1;
+	$: totalPages = archive?.totalPages || 1;
+	$: totalItems = archive?.total || 0;
+	$: limit = archive?.limit || 10;
+	$: searchQuery = archive?.search || '';
+	$: archiveCount = archive?.stats?.archiveCount || 0;
+
 	const pageDescription =
-		'국회 입법예고 전체 목록과 AI 요약을 확인하고, 각 법률안의 제안이유 및 주요내용 원문으로 이동할 수 있습니다.';
+		'입법예고 아카이브에서 키워드 검색과 페이지네이션으로 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.';
 
 	let error = '';
 	$: if (data) {
 		error = data.error || '';
 	}
 
-	let isLoading = false;
-	let currentPage = 1;
-	const itemsPerPage = 10;
+	function buildPageLink(page: number) {
+		const params = [`page=${encodeURIComponent(String(page))}`];
+		params.push(`limit=${encodeURIComponent(String(limit))}`);
 
-	async function loadNotices() {
-		try {
-			isLoading = true;
-			await invalidateAll();
-		} catch (err) {
-			console.error('Failed to load notices:', err);
-			error = '데이터를 새로고침하는데 실패했습니다.';
-		} finally {
-			isLoading = false;
+		const trimmedSearch = searchQuery.trim();
+		if (trimmedSearch) {
+			params.push(`search=${encodeURIComponent(trimmedSearch)}`);
 		}
-	}
 
-	$: paginatedNotices = notices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-	$: totalPages = Math.ceil(notices.length / itemsPerPage);
-
-	function goToPage(page: number) {
-		if (page >= 1 && page <= totalPages) {
-			currentPage = page;
-			window.scrollTo({ top: 0, behavior: 'smooth' });
-		}
+		return `/notices?${params.join('&')}`;
 	}
 
 	function getPaginationInfo() {
-		const start = (currentPage - 1) * itemsPerPage + 1;
-		const end = Math.min(currentPage * itemsPerPage, notices.length);
-		return `${start}-${end} / ${notices.length}개`;
+		if (totalItems === 0) {
+			return '0개';
+		}
+
+		const start = (currentPage - 1) * limit + 1;
+		const end = Math.min(currentPage * limit, totalItems);
+		return `${start}-${end} / ${totalItems}개`;
 	}
 
 	function shouldShowAIBriefing(notice: (typeof notices)[number]) {
@@ -68,7 +67,9 @@
 </script>
 
 <svelte:head>
-	<title>전체 입법예고{notices.length > 0 ? ` (${notices.length}건)` : ''} - LawCast</title>
+	<title
+		>전체 입법예고{notices.length > 0 ? ` (${notices.length.toLocaleString('ko-KR')}건)` : ''} - LawCast</title
+	>
 	<meta name="description" content={pageDescription} />
 	<meta
 		name="keywords"
@@ -80,14 +81,14 @@
 	<meta property="og:site_name" content="LawCast" />
 	<meta
 		property="og:title"
-		content={`전체 입법예고${notices.length > 0 ? ` (${notices.length}건)` : ''} - LawCast`}
+		content={`전체 입법예고${notices.length > 0 ? ` (${notices.length.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
 	/>
 	<meta property="og:description" content={pageDescription} />
 
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta
 		name="twitter:title"
-		content={`전체 입법예고${notices.length > 0 ? ` (${notices.length}건)` : ''} - LawCast`}
+		content={`전체 입법예고${notices.length > 0 ? ` (${notices.length.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
 	/>
 	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
@@ -125,23 +126,15 @@
 			</div>
 		</div>
 
-		{#if isLoading}
-			<div class="flex items-center justify-center py-16">
-				<div class="text-center">
-					<FontAwesomeIcon
-						icon={faSpinner}
-						class="mx-auto mb-4 h-8 w-8 animate-spin text-blue-600"
-					/>
-					<p class="text-gray-600">입법예고 데이터를 불러오는 중...</p>
-				</div>
-			</div>
-		{:else if error}
-			<Alert
-				type="error"
-				message={error}
-				customAction={{ label: '다시 시도', handler: loadNotices }}
-				dismissible={false}
-			/>
+		<div
+			class="mb-6 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+		>
+			<p class="text-sm font-medium text-slate-600">입법예고 아카이브 건수</p>
+			<p class="text-lg font-bold text-slate-900">{archiveCount.toLocaleString('ko-KR')}건</p>
+		</div>
+
+		{#if error}
+			<Alert type="error" message={error} dismissible={false} />
 		{:else if notices.length === 0}
 			<div
 				class="rounded-2xl border border-gray-200/50 bg-linear-to-br from-gray-50 to-blue-50/30 p-16 text-center shadow-xl backdrop-blur-sm"
@@ -152,8 +145,34 @@
 				<h3 class="mb-3 text-2xl font-bold text-gray-800">입법예고가 없습니다</h3>
 			</div>
 		{:else}
+			<form method="GET" action="/notices" class="mb-5">
+				<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+					<div class="relative flex-1">
+						<FontAwesomeIcon
+							icon={faMagnifyingGlass}
+							class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+						/>
+						<input
+							type="text"
+							name="search"
+							value={searchQuery}
+							placeholder="법률안명, 소관위원회, 원문 키워드 검색"
+							class="w-full rounded-lg border border-gray-200 bg-white py-2 pr-3 pl-10 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+						/>
+					</div>
+					<input type="hidden" name="page" value="1" />
+					<input type="hidden" name="limit" value={String(limit)} />
+					<button
+						type="submit"
+						class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+					>
+						검색
+					</button>
+				</div>
+			</form>
+
 			<div class="space-y-4">
-				{#each paginatedNotices as notice (notice.num)}
+				{#each notices as notice (notice.num)}
 					<div class="rounded-lg bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6">
 						<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 							<div class="min-w-0 flex-1">
@@ -168,7 +187,7 @@
 											class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700"
 										>
 											<FontAwesomeIcon icon={faUser} class="mr-1 h-3 w-3" />
-											의견 {notice.numComments.toLocaleString()}개
+											의견 {notice.numComments.toLocaleString('ko-KR')}개
 										</span>
 									{/if}
 								</div>
@@ -247,21 +266,21 @@
 
 			{#if totalPages > 1}
 				<div class="mt-12 flex items-center justify-center space-x-3">
-					<button
-						on:click={() => goToPage(currentPage - 1)}
-						disabled={currentPage === 1}
-						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+					<a
+						href={currentPage > 1 ? buildPageLink(currentPage - 1) : '#'}
+						aria-disabled={currentPage === 1}
+						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
 					>
 						이전
-					</button>
+					</a>
 
 					{#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
 						const start = Math.max(1, currentPage - 2);
 						const end = Math.min(totalPages, start + 4);
 						return start + i <= end ? start + i : null;
 					}).filter((page): page is number => page !== null) as page (page)}
-						<button
-							on:click={() => goToPage(page)}
+						<a
+							href={buildPageLink(page)}
 							class={`rounded-xl px-4 py-3 text-sm font-bold shadow-sm transition-all duration-200 hover:shadow-md ${
 								currentPage === page
 									? 'scale-105 bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
@@ -269,15 +288,15 @@
 							}`}
 						>
 							{page}
-						</button>
+						</a>
 					{/each}
-					<button
-						on:click={() => goToPage(currentPage + 1)}
-						disabled={currentPage === totalPages}
-						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+					<a
+						href={currentPage < totalPages ? buildPageLink(currentPage + 1) : '#'}
+						aria-disabled={currentPage === totalPages}
+						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
 					>
 						다음
-					</button>
+					</a>
 				</div>
 
 				<div class="mt-6 text-center">

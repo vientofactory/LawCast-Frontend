@@ -44,7 +44,11 @@
 		>
 			<div class="flex items-center">
 				<FontAwesomeIcon icon={faDatabase} class="mr-1.5 h-3 w-3 text-green-600" />
-				<span>수집된 입법예고: <span class="text-gray-700">{stats.cache.size}개</span></span>
+				<span
+					>수집된 입법예고: <span class="text-gray-700"
+						>{stats.cache.size.toLocaleString('ko-KR')}개</span
+					></span
+				>
 			</div>
 			<div class="flex items-center">
 				<FontAwesomeIcon icon={faClock} class="mr-1.5 h-3 w-3 text-blue-600" />

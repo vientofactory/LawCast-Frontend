@@ -3,6 +3,7 @@ import NProgress from 'nprogress';
 import type {
 	Notice,
 	NoticeDetail,
+	ArchiveNoticeListResponse,
 	SystemStats,
 	SystemHealth,
 	ApiResponse,
@@ -158,6 +159,40 @@ export async function getRecentNotices(customFetch?: Fetch): Promise<Notice[]> {
 }
 
 /**
+ * 아카이브 입법예고 목록 조회 (검색/페이지네이션)
+ */
+export async function getArchivedNotices(
+	params: { page?: number; limit?: number; search?: string } = {},
+	customFetch?: Fetch
+): Promise<ArchiveNoticeListResponse> {
+	try {
+		const query = new URLSearchParams();
+
+		if (params.page && params.page > 0) {
+			query.set('page', String(params.page));
+		}
+
+		if (params.limit && params.limit > 0) {
+			query.set('limit', String(params.limit));
+		}
+
+		if (params.search?.trim()) {
+			query.set('search', params.search.trim());
+		}
+
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<ArchiveNoticeListResponse>(
+			`/notices/archive${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load archived notices:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
  * 입법예고 상세 조회 (원문 포함)
  */
 export async function getNoticeDetail(
@@ -238,6 +273,7 @@ export async function registerWebhook(
 // 기존 코드와의 호환성을 위한 객체 export
 export const apiClient = {
 	getRecentNotices,
+	getArchivedNotices,
 	getNoticeDetail,
 	getSystemStats,
 	getSystemHealth,

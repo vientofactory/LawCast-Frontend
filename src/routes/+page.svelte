@@ -42,7 +42,7 @@
 <svelte:head>
 	<title
 		>LawCast - 국회 입법예고 알리미{recentNotices?.length > 0
-			? ` | 최근 ${recentNotices.length}건`
+			? ` | 최근 ${recentNotices.length.toLocaleString('ko-KR')}건`
 			: ''}</title
 	>
 	<meta name="description" content={pageDescription} />
@@ -56,14 +56,14 @@
 	<meta property="og:site_name" content="LawCast" />
 	<meta
 		property="og:title"
-		content={`LawCast - 국회 입법예고 알리미${recentNotices?.length > 0 ? ` | 최근 ${recentNotices.length}건` : ''}`}
+		content={`LawCast - 국회 입법예고 알리미${recentNotices?.length > 0 ? ` | 최근 ${recentNotices.length.toLocaleString('ko-KR')}건` : ''}`}
 	/>
 	<meta property="og:description" content={pageDescription} />
 
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta
 		name="twitter:title"
-		content={`LawCast - 국회 입법예고 알리미${recentNotices?.length > 0 ? ` | 최근 ${recentNotices.length}건` : ''}`}
+		content={`LawCast - 국회 입법예고 알리미${recentNotices?.length > 0 ? ` | 최근 ${recentNotices.length.toLocaleString('ko-KR')}건` : ''}`}
 	/>
 	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>

@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			recentNotices: [],
 			stats: {
 				webhooks: { total: 0, active: 0, inactive: 0 },
-				cache: { size: 0, lastUpdated: null, maxSize: 50, isInitialized: false }
+				cache: { size: 0, lastUpdated: null, maxSize: 10, isInitialized: false }
 			},
 			error: '초기 데이터 로딩에 실패했습니다. 페이지를 새로고침해주세요.'
 		};
