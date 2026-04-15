@@ -173,9 +173,7 @@
 									{/if}
 								</div>
 
-								<h3
-									class="mb-3 text-lg leading-tight font-semibold [overflow-wrap:anywhere] break-words text-gray-900"
-								>
+								<h3 class="mb-3 text-lg leading-tight font-semibold wrap-break-word text-gray-900">
 									{notice.subject}
 								</h3>
 
