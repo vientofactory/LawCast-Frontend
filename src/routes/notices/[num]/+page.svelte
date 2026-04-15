@@ -29,7 +29,9 @@
 	}
 
 	$: pageTitle = `${detail.notice.subject} - 제안이유 및 주요내용 원문 | LawCast`;
-	$: pageDescription = buildExcerpt(detail.originalContent.proposalReason);
+	$: pageDescription = buildExcerpt(
+		detail.notice.aiSummary ?? detail.originalContent.proposalReason
+	);
 
 	$: shouldShowAIBriefing =
 		detail.notice.aiSummaryStatus === 'ready' || detail.notice.aiSummaryStatus === 'unavailable';

@@ -2,12 +2,7 @@
 	import { page } from '$app/state';
 	import Header from '$lib/components/Header.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import {
-		faArrowLeft,
-		faCompass,
-		faFaceFrownOpen,
-		faTriangleExclamation
-	} from '@fortawesome/free-solid-svg-icons';
+	import { faArrowLeft, faCompass, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 
 	const status = $derived(page.status);
 	const appError = $derived(page.error as App.Error | null);
