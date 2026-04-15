@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
+	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -11,6 +12,7 @@
 		faFileDownload,
 		faFileText,
 		faSpinner,
+		faTriangleExclamation,
 		faUser
 	} from '@fortawesome/free-solid-svg-icons';
 	import { invalidateAll } from '$app/navigation';
@@ -19,6 +21,8 @@
 	export let data: PageData;
 
 	$: notices = data.notices || [];
+	const pageDescription =
+		'국회 입법예고 전체 목록과 AI 요약을 확인하고, 각 법률안의 제안이유 및 주요내용 원문으로 이동할 수 있습니다.';
 
 	let error = '';
 	$: if (data) {
@@ -35,7 +39,6 @@
 			await invalidateAll();
 		} catch (err) {
 			console.error('Failed to load notices:', err);
-			// invalidateAll 실패 시 에러 처리
 			error = '데이터를 새로고침하는데 실패했습니다.';
 		} finally {
 			isLoading = false;
@@ -58,18 +61,41 @@
 		const end = Math.min(currentPage * itemsPerPage, notices.length);
 		return `${start}-${end} / ${notices.length}개`;
 	}
+
+	function shouldShowAIBriefing(notice: (typeof notices)[number]) {
+		return notice.aiSummaryStatus === 'ready' || notice.aiSummaryStatus === 'unavailable';
+	}
 </script>
 
 <svelte:head>
-	<title>전체 입법예고 - LawCast</title>
-	<meta name="description" content="국회 입법예고 전체 목록을 확인하세요." />
+	<title>전체 입법예고{notices.length > 0 ? ` (${notices.length}건)` : ''} - LawCast</title>
+	<meta name="description" content={pageDescription} />
+	<meta
+		name="keywords"
+		content="전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, AI 요약"
+	/>
+	<meta name="robots" content="index, follow, max-image-preview:large" />
+
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="LawCast" />
+	<meta
+		property="og:title"
+		content={`전체 입법예고${notices.length > 0 ? ` (${notices.length}건)` : ''} - LawCast`}
+	/>
+	<meta property="og:description" content={pageDescription} />
+
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta
+		name="twitter:title"
+		content={`전체 입법예고${notices.length > 0 ? ` (${notices.length}건)` : ''} - LawCast`}
+	/>
+	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
 
 <div class="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
 	<Header />
 
 	<main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-		<!-- Breadcrumb -->
 		<nav class="mb-8 flex items-center space-x-3 text-sm">
 			<a
 				href="../"
@@ -82,27 +108,23 @@
 			<span class="font-semibold text-gray-700">전체 입법예고</span>
 		</nav>
 
-		<!-- Header -->
-		<div class="mb-8 rounded-2xl border border-white/50 bg-white/70 p-8 shadow-lg backdrop-blur-sm">
-			<div class="mb-4 flex items-center">
-				<div class="mr-4 rounded-xl bg-linear-to-r from-blue-500 to-indigo-500 p-3">
-					<FontAwesomeIcon icon={faBell} class="h-8 w-8 text-white" />
+		<div
+			class="mb-6 rounded-xl border border-amber-200/80 bg-linear-to-r from-amber-50 to-orange-50 p-4 shadow-sm"
+		>
+			<div class="flex items-start gap-3">
+				<div class="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
+					<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
 				</div>
 				<div>
-					<h1 class="text-4xl font-bold tracking-tight text-gray-800">전체 입법예고</h1>
-					<p class="mt-2 text-lg text-gray-600">
-						최근 수집된 입법예고 목록입니다.
-						<span
-							class="ml-2 inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700"
-						>
-							{notices.length}개
-						</span>
+					<p class="text-sm font-semibold text-amber-900">안내</p>
+					<p class="mt-1 text-sm leading-relaxed text-amber-800/90">
+						AI 요약은 참고용으로 제공되며 해석상 오류가 있을 수 있습니다. 중요 판단 전 반드시 각
+						법률안의 원문(제안이유 및 주요내용)을 함께 확인해주세요.
 					</p>
 				</div>
 			</div>
 		</div>
 
-		<!-- Loading State -->
 		{#if isLoading}
 			<div class="flex items-center justify-center py-16">
 				<div class="text-center">
@@ -130,7 +152,6 @@
 				<h3 class="mb-3 text-2xl font-bold text-gray-800">입법예고가 없습니다</h3>
 			</div>
 		{:else}
-			<!-- Notices List -->
 			<div class="space-y-4">
 				{#each paginatedNotices as notice (notice.num)}
 					<div class="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
@@ -166,10 +187,24 @@
 										소관위원회: {notice.committee}
 									</div>
 								</div>
+
+								{#if shouldShowAIBriefing(notice)}
+									<AIBriefingCard
+										summary={notice.aiSummary ?? null}
+										status={notice.aiSummaryStatus ?? 'unavailable'}
+									/>
+								{/if}
 							</div>
 
 							<div class="ml-4 flex shrink-0 items-center gap-2">
-								<!-- 파일 다운로드 버튼들 -->
+								<a
+									href={`/notices/${notice.num}`}
+									class="inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800"
+									title="제안이유 및 주요내용 원문 조회"
+								>
+									원문 조회
+								</a>
+
 								{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
 									<div class="flex gap-1">
 										{#if isDownloadable(notice.attachments.pdfFile)}
@@ -195,7 +230,6 @@
 									</div>
 									<div class="h-6 w-px bg-gray-200"></div>
 								{/if}
-								<!-- 상세보기 버튼 -->
 								<button
 									on:click={() => openExternalLink(notice.link)}
 									class="cursor-pointer rounded-md bg-gray-50 p-2.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700"
@@ -209,7 +243,6 @@
 				{/each}
 			</div>
 
-			<!-- Pagination -->
 			{#if totalPages > 1}
 				<div class="mt-12 flex items-center justify-center space-x-3">
 					<button

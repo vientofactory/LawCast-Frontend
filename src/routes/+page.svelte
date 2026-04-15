@@ -9,6 +9,8 @@
 	export let data: PageData;
 
 	$: ({ recentNotices, stats } = data);
+	const pageDescription =
+		'국회 입법예고 변동사항을 디스코드로 빠르게 받아보세요. 최신 입법예고 목록과 시스템 상태를 한 번에 확인할 수 있습니다.';
 
 	// Local state for UI messages
 	let error = '';
@@ -38,8 +40,32 @@
 </script>
 
 <svelte:head>
-	<title>LawCast - 국회 입법예고 알리미</title>
-	<meta name="description" content="국회 입법예고 변동사항을 디스코드로 알려드립니다." />
+	<title
+		>LawCast - 국회 입법예고 알리미{recentNotices?.length > 0
+			? ` | 최근 ${recentNotices.length}건`
+			: ''}</title
+	>
+	<meta name="description" content={pageDescription} />
+	<meta
+		name="keywords"
+		content="LawCast, 입법예고, 국회 법률안, 법안 알림, 디스코드 웹훅, 법률안 모니터링"
+	/>
+	<meta name="robots" content="index, follow, max-image-preview:large" />
+
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="LawCast" />
+	<meta
+		property="og:title"
+		content={`LawCast - 국회 입법예고 알리미${recentNotices?.length > 0 ? ` | 최근 ${recentNotices.length}건` : ''}`}
+	/>
+	<meta property="og:description" content={pageDescription} />
+
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta
+		name="twitter:title"
+		content={`LawCast - 국회 입법예고 알리미${recentNotices?.length > 0 ? ` | 최근 ${recentNotices.length}건` : ''}`}
+	/>
+	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
 
 <div class="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">

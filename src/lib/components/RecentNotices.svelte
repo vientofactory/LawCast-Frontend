@@ -8,7 +8,8 @@
 		faFileText,
 		faPlus,
 		faClock,
-		faDatabase
+		faDatabase,
+		faRobot
 	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
@@ -54,6 +55,31 @@
 				>
 			</div>
 		</div>
+	{/if}
+
+	{#if notices.length > 0}
+		<a
+			href="./notices"
+			class="group/ai mb-4 block rounded-xl border border-cyan-200/70 bg-linear-to-r from-cyan-50 via-sky-50 to-indigo-50 p-3 shadow-sm transition-all duration-200 hover:shadow-md"
+		>
+			<div class="flex items-center justify-between gap-3">
+				<div class="min-w-0">
+					<p class="inline-flex items-center text-xs font-bold tracking-wide text-cyan-700">
+						<FontAwesomeIcon icon={faRobot} class="mr-1.5 h-3.5 w-3.5" />
+						AI 에이전트 브리핑
+					</p>
+					<p class="mt-1 text-sm font-medium text-slate-700">
+						전체 입법예고 페이지에서 각 법률안의 AI 요약을 확인할 수 있습니다!
+					</p>
+				</div>
+				<span
+					class="inline-flex shrink-0 items-center rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-semibold text-cyan-700 transition-colors group-hover/ai:bg-cyan-200"
+				>
+					보러가기
+					<FontAwesomeIcon icon={faExternalLink} class="ml-1.5 h-3 w-3" />
+				</span>
+			</div>
+		</a>
 	{/if}
 
 	{#if notices.length === 0}
