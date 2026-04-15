@@ -104,25 +104,6 @@
 			<span class="font-semibold text-gray-700">전체 입법예고</span>
 		</nav>
 
-		<div class="mb-8 rounded-2xl border border-white/50 bg-white/70 p-8 shadow-lg backdrop-blur-sm">
-			<div class="mb-4 flex items-center">
-				<div class="mr-4 rounded-xl bg-linear-to-r from-blue-500 to-indigo-500 p-3">
-					<FontAwesomeIcon icon={faBell} class="h-8 w-8 text-white" />
-				</div>
-				<div>
-					<h1 class="text-4xl font-bold tracking-tight text-gray-800">전체 입법예고</h1>
-					<p class="mt-2 text-lg text-gray-600">
-						최근 수집된 입법예고 목록입니다.
-						<span
-							class="ml-2 inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700"
-						>
-							{notices.length}개
-						</span>
-					</p>
-				</div>
-			</div>
-		</div>
-
 		<div
 			class="mb-6 rounded-xl border border-amber-200/80 bg-linear-to-r from-amber-50 to-orange-50 p-4 shadow-sm"
 		>
