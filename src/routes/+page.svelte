@@ -10,7 +10,7 @@
 
 	$: ({ recentNotices, stats } = data);
 	const pageDescription =
-		'국회 입법예고 변동사항을 디스코드로 빠르게 받아보세요. 최신 입법예고 목록과 시스템 상태를 한 번에 확인할 수 있습니다.';
+		'국회 입법예고 변동사항을 디스코드로 빠르게 받아보세요. 최신 입법예고 목록과 AI의 요약을 한 번에 확인할 수 있습니다.';
 
 	// Local state for UI messages
 	let error = '';
