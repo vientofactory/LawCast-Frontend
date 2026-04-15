@@ -61,6 +61,10 @@
 		const end = Math.min(currentPage * itemsPerPage, notices.length);
 		return `${start}-${end} / ${notices.length}개`;
 	}
+
+	function shouldShowAIBriefing(notice: (typeof notices)[number]) {
+		return notice.aiSummaryStatus === 'ready' || notice.aiSummaryStatus === 'unavailable';
+	}
 </script>
 
 <svelte:head>
@@ -184,8 +188,11 @@
 									</div>
 								</div>
 
-								{#if notice.aiSummary}
-									<AIBriefingCard summary={notice.aiSummary} />
+								{#if shouldShowAIBriefing(notice)}
+									<AIBriefingCard
+										summary={notice.aiSummary ?? null}
+										status={notice.aiSummaryStatus ?? 'unavailable'}
+									/>
 								{/if}
 							</div>
 

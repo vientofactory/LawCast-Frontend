@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { faRobot } from '@fortawesome/free-solid-svg-icons';
+	import { faRobot, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 
-	export let summary: string;
+	export let summary: string | null = null;
+	export let status: 'ready' | 'unavailable' | 'not_supported' | 'not_requested' = 'ready';
 	export let title = '핵심 내용 AI 요약';
+
+	$: isReady = status === 'ready' && !!summary?.trim();
 </script>
 
 <div
@@ -26,7 +29,21 @@
 	</div>
 
 	<p class="relative z-10 mt-2 text-xs font-semibold tracking-[0.12em] text-cyan-800/80">{title}</p>
-	<p class="relative z-10 mt-1.5 text-sm leading-relaxed text-slate-800">{summary}</p>
+
+	{#if isReady}
+		<p class="relative z-10 mt-1.5 text-sm leading-relaxed text-slate-800">{summary}</p>
+	{:else}
+		<div class="relative z-10 mt-2 rounded-lg border border-amber-200 bg-white/75 p-3">
+			<p class="flex items-center text-xs font-semibold text-amber-800">
+				<FontAwesomeIcon icon={faTriangleExclamation} class="mr-1.5 h-3.5 w-3.5" />
+				AI 요약 생성이 일시적으로 지연되었거나 실패했습니다.
+			</p>
+			<p class="mt-1 text-xs leading-relaxed text-amber-700">
+				원문(제안이유 및 주요내용)을 기준으로 먼저 확인해주세요. 이후 재시도 시 요약이 표시될 수
+				있습니다.
+			</p>
+		</div>
+	{/if}
 </div>
 
 <style>

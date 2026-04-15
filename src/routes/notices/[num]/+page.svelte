@@ -30,6 +30,9 @@
 
 	$: pageTitle = `${detail.notice.subject} - 제안이유 및 주요내용 원문 | LawCast`;
 	$: pageDescription = buildExcerpt(detail.originalContent.proposalReason);
+
+	$: shouldShowAIBriefing =
+		detail.notice.aiSummaryStatus === 'ready' || detail.notice.aiSummaryStatus === 'unavailable';
 </script>
 
 <svelte:head>
@@ -99,8 +102,11 @@
 				</button>
 			</div>
 
-			{#if detail.notice.aiSummary}
-				<AIBriefingCard summary={detail.notice.aiSummary} />
+			{#if shouldShowAIBriefing}
+				<AIBriefingCard
+					summary={detail.notice.aiSummary ?? null}
+					status={detail.notice.aiSummaryStatus ?? 'unavailable'}
+				/>
 			{/if}
 		</section>
 

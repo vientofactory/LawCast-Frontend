@@ -6,6 +6,7 @@ export interface Notice {
 	numComments: number;
 	link: string;
 	aiSummary?: string | null;
+	aiSummaryStatus?: 'ready' | 'unavailable' | 'not_supported' | 'not_requested';
 	contentId?: string | null;
 	attachments: {
 		pdfFile: string;
