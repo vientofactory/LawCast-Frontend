@@ -5,10 +5,23 @@ export interface Notice {
 	committee: string;
 	numComments: number;
 	link: string;
+	aiSummary?: string | null;
+	contentId?: string | null;
 	attachments: {
 		pdfFile: string;
 		hwpFile: string;
 	};
+}
+
+export interface NoticeOriginalContent {
+	contentId: string;
+	title: string;
+	proposalReason: string;
+}
+
+export interface NoticeDetail {
+	notice: Notice;
+	originalContent: NoticeOriginalContent;
 }
 
 export interface WebhookStats {

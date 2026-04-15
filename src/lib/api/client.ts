@@ -2,6 +2,7 @@ import { browser } from '$app/environment';
 import NProgress from 'nprogress';
 import type {
 	Notice,
+	NoticeDetail,
 	SystemStats,
 	SystemHealth,
 	ApiResponse,
@@ -157,6 +158,25 @@ export async function getRecentNotices(customFetch?: Fetch): Promise<Notice[]> {
 }
 
 /**
+ * 입법예고 상세 조회 (원문 포함)
+ */
+export async function getNoticeDetail(
+	noticeNum: number,
+	customFetch?: Fetch
+): Promise<NoticeDetail> {
+	try {
+		return await request<NoticeDetail>(
+			`/notices/${noticeNum}/detail`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error(`Failed to load notice detail (${noticeNum}):`, error);
+		throw normalizeError(error);
+	}
+}
+
+/**
  * 시스템 통계 조회
  */
 export async function getSystemStats(customFetch?: Fetch): Promise<SystemStats> {
@@ -218,6 +238,7 @@ export async function registerWebhook(
 // 기존 코드와의 호환성을 위한 객체 export
 export const apiClient = {
 	getRecentNotices,
+	getNoticeDetail,
 	getSystemStats,
 	getSystemHealth,
 	registerWebhook
