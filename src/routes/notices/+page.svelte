@@ -154,8 +154,8 @@
 		{:else}
 			<div class="space-y-4">
 				{#each paginatedNotices as notice (notice.num)}
-					<div class="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
-						<div class="flex items-start justify-between">
+					<div class="rounded-lg bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6">
+						<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 							<div class="min-w-0 flex-1">
 								<div class="mb-3 flex flex-wrap items-center gap-2">
 									<span
@@ -173,7 +173,9 @@
 									{/if}
 								</div>
 
-								<h3 class="mb-3 text-lg leading-tight font-semibold text-gray-900">
+								<h3
+									class="mb-3 text-lg leading-tight font-semibold [overflow-wrap:anywhere] break-words text-gray-900"
+								>
 									{notice.subject}
 								</h3>
 
@@ -196,7 +198,9 @@
 								{/if}
 							</div>
 
-							<div class="ml-4 flex shrink-0 items-center gap-2">
+							<div
+								class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end lg:ml-4 lg:w-auto lg:shrink-0"
+							>
 								<a
 									href={`/notices/${notice.num}`}
 									class="inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800"
@@ -206,7 +210,7 @@
 								</a>
 
 								{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
-									<div class="flex gap-1">
+									<div class="flex items-center gap-1">
 										{#if isDownloadable(notice.attachments.pdfFile)}
 											<button
 												on:click={() =>
@@ -227,8 +231,8 @@
 												<FontAwesomeIcon icon={faFileDownload} class="h-5 w-5" />
 											</button>
 										{/if}
+										<div class="hidden h-6 w-px bg-gray-200 sm:block"></div>
 									</div>
-									<div class="h-6 w-px bg-gray-200"></div>
 								{/if}
 								<button
 									on:click={() => openExternalLink(notice.link)}
