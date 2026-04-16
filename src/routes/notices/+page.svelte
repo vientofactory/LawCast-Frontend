@@ -105,7 +105,7 @@
 
 <svelte:head>
 	<title
-		>전체 입법예고{notices.length > 0 ? ` (${notices.length.toLocaleString('ko-KR')}건)` : ''} - LawCast</title
+		>전체 입법예고{archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast</title
 	>
 	<meta name="description" content={pageDescription} />
 	<meta
@@ -118,14 +118,14 @@
 	<meta property="og:site_name" content="LawCast" />
 	<meta
 		property="og:title"
-		content={`전체 입법예고${notices.length > 0 ? ` (${notices.length.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
+		content={`전체 입법예고${archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
 	/>
 	<meta property="og:description" content={pageDescription} />
 
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta
 		name="twitter:title"
-		content={`전체 입법예고${notices.length > 0 ? ` (${notices.length.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
+		content={`전체 입법예고${archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
 	/>
 	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
