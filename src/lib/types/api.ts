@@ -5,6 +5,8 @@ export interface Notice {
 	committee: string;
 	numComments: number;
 	link: string;
+	archiveStartedAt?: string;
+	lastUpdatedAt?: string;
 	aiSummary?: string | null;
 	aiSummaryStatus?: 'ready' | 'unavailable' | 'not_supported' | 'not_requested';
 	contentId?: string | null;
@@ -23,6 +25,21 @@ export interface NoticeOriginalContent {
 export interface NoticeDetail {
 	notice: Notice;
 	originalContent: NoticeOriginalContent;
+}
+
+export interface ArchiveNoticeListResponse {
+	items: Notice[];
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+	search: string;
+	stats: {
+		cacheCount: number;
+		matchedCacheCount: number;
+		archiveCount: number;
+		mergedCount: number;
+	};
 }
 
 export interface WebhookStats {
