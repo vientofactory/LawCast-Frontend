@@ -21,9 +21,30 @@ export interface NoticeOriginalContent {
 	proposalReason: string;
 }
 
+export interface NoticeArchiveMetadata {
+	archivedAt: string | null;
+	sourceHtmlSha256: string | null;
+	sourceHtmlSize: number;
+	integrity: {
+		checkedAt: string | null;
+		passed: boolean | null;
+		calculatedSha256: string | null;
+	};
+	http: {
+		fetchedAt: string | null;
+		statusCode: number | null;
+		contentType: string | null;
+		etag: string | null;
+		lastModified: string | null;
+		requestUrl?: string;
+		responseUrl?: string;
+	};
+}
+
 export interface NoticeDetail {
 	notice: Notice;
 	originalContent: NoticeOriginalContent;
+	archiveMetadata: NoticeArchiveMetadata;
 }
 
 export interface ArchiveNoticeListResponse {
