@@ -65,21 +65,32 @@
 	const quickStart7Days = toInputDate(addDays(today, -6));
 	const quickStart30Days = toInputDate(addDays(today, -29));
 	const quickMonthStart = toInputDate(new SvelteDate(today.getFullYear(), today.getMonth(), 1));
+	$: isQuick7DaysActive = startDate === quickStart7Days && endDate === todayInputDate;
+	$: isQuick30DaysActive = startDate === quickStart30Days && endDate === todayInputDate;
+	$: isQuickThisMonthActive = startDate === quickMonthStart && endDate === todayInputDate;
+	$: isQuickClearRangeActive = !startDate.trim() && !endDate.trim();
 	$: hasDateReversed =
 		startDate.trim().length > 0 && endDate.trim().length > 0 && startDate > endDate;
 
-	function buildFilterLink(overrides: {
+	type QueryLinkOverrides = {
+		page?: number;
 		search?: string;
 		startDate?: string;
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
-	}) {
-		const params: string[] = ['page=1', `limit=${encodeURIComponent(String(limit))}`];
+	};
 
+	function buildQueryLink(overrides: QueryLinkOverrides = {}) {
+		const nextPage = overrides.page ?? currentPage;
 		const nextSearch = (overrides.search ?? searchQuery).trim();
 		const nextStartDate = (overrides.startDate ?? startDate).trim();
 		const nextEndDate = (overrides.endDate ?? endDate).trim();
 		const nextSortOrder = overrides.sortOrder ?? sortOrder;
+
+		const params: string[] = [
+			`page=${encodeURIComponent(String(nextPage))}`,
+			`limit=${encodeURIComponent(String(limit))}`
+		];
 
 		if (nextSearch) {
 			params.push(`search=${encodeURIComponent(nextSearch)}`);
@@ -98,26 +109,23 @@
 		return `/notices?${params.join('&')}`;
 	}
 
+	function buildFilterLink(overrides: {
+		search?: string;
+		startDate?: string;
+		endDate?: string;
+		sortOrder?: 'asc' | 'desc';
+	}) {
+		return buildQueryLink({
+			page: 1,
+			search: overrides.search,
+			startDate: overrides.startDate,
+			endDate: overrides.endDate,
+			sortOrder: overrides.sortOrder
+		});
+	}
+
 	function buildPageLink(page: number) {
-		const params = [`page=${encodeURIComponent(String(page))}`];
-		params.push(`limit=${encodeURIComponent(String(limit))}`);
-
-		const trimmedSearch = searchQuery.trim();
-		if (trimmedSearch) {
-			params.push(`search=${encodeURIComponent(trimmedSearch)}`);
-		}
-
-		if (startDate.trim()) {
-			params.push(`startDate=${encodeURIComponent(startDate.trim())}`);
-		}
-
-		if (endDate.trim()) {
-			params.push(`endDate=${encodeURIComponent(endDate.trim())}`);
-		}
-
-		params.push(`sortOrder=${encodeURIComponent(sortOrder)}`);
-
-		return `/notices?${params.join('&')}`;
+		return buildQueryLink({ page });
 	}
 
 	function getPaginationInfo() {
@@ -231,8 +239,19 @@
 		<div
 			class="mb-6 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
 		>
-			<p class="text-sm font-medium text-slate-600">입법예고 아카이브 건수</p>
-			<p class="text-lg font-bold text-slate-900">{archiveCount.toLocaleString('ko-KR')}건</p>
+			<p class="text-sm font-medium text-slate-600">
+				{hasActiveFilters ? '현재 검색 결과' : '입법예고 아카이브 건수'}
+			</p>
+			<p class="text-lg font-bold text-slate-900">
+				{#if hasActiveFilters}
+					{totalItems.toLocaleString('ko-KR')}건
+					<span class="ml-1 text-sm font-medium text-slate-500"
+						>/ 전체 {archiveCount.toLocaleString('ko-KR')}건</span
+					>
+				{:else}
+					{archiveCount.toLocaleString('ko-KR')}건
+				{/if}
+			</p>
 		</div>
 
 		{#if error}
@@ -243,36 +262,54 @@
 					<span class="text-xs font-semibold text-slate-500">빠른 기간</span>
 					<a
 						href={buildFilterLink({ startDate: quickStart7Days, endDate: todayInputDate })}
-						class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+						class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+							isQuick7DaysActive
+								? 'border-blue-300 bg-blue-50 text-blue-700'
+								: 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+						}`}
 					>
 						최근 7일
 					</a>
 					<a
 						href={buildFilterLink({ startDate: quickStart30Days, endDate: todayInputDate })}
-						class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+						class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+							isQuick30DaysActive
+								? 'border-blue-300 bg-blue-50 text-blue-700'
+								: 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+						}`}
 					>
 						최근 30일
 					</a>
 					<a
 						href={buildFilterLink({ startDate: quickMonthStart, endDate: todayInputDate })}
-						class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+						class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+							isQuickThisMonthActive
+								? 'border-blue-300 bg-blue-50 text-blue-700'
+								: 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+						}`}
 					>
 						이번 달
 					</a>
 					<a
 						href={buildFilterLink({ startDate: '', endDate: '' })}
-						class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+						class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+							isQuickClearRangeActive
+								? 'border-blue-300 bg-blue-50 text-blue-700'
+								: 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+						}`}
 					>
 						기간 해제
 					</a>
 				</div>
 				<div class="grid gap-2 md:grid-cols-[1fr_auto_auto_auto] md:items-center">
 					<div class="relative flex-1">
+						<label for="archive-search" class="sr-only">검색어</label>
 						<FontAwesomeIcon
 							icon={faMagnifyingGlass}
 							class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
 						/>
 						<input
+							id="archive-search"
 							type="text"
 							name="search"
 							value={searchQuery}
@@ -280,7 +317,9 @@
 							class="w-full rounded-lg border border-gray-200 bg-white py-2 pr-3 pl-10 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 						/>
 					</div>
+					<label for="archive-start-date" class="sr-only">시작일</label>
 					<input
+						id="archive-start-date"
 						type="date"
 						name="startDate"
 						value={startDate}
@@ -288,7 +327,9 @@
 						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 						title="시작일"
 					/>
+					<label for="archive-end-date" class="sr-only">종료일</label>
 					<input
+						id="archive-end-date"
 						type="date"
 						name="endDate"
 						value={endDate}
@@ -296,7 +337,9 @@
 						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 						title="종료일"
 					/>
+					<label for="archive-sort-order" class="sr-only">정렬</label>
 					<select
+						id="archive-sort-order"
 						name="sortOrder"
 						value={sortOrder}
 						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
@@ -316,17 +359,43 @@
 					<div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
 						<span class="font-semibold text-slate-500">적용된 필터</span>
 						{#if searchQuery.trim()}
-							<span class="rounded-full bg-blue-50 px-2 py-1 font-semibold text-blue-700">
+							<span
+								class="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 font-semibold text-blue-700"
+							>
 								키워드: {searchQuery.trim()}
+								<a
+									href={buildFilterLink({ search: '' })}
+									class="ml-2 text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-800"
+								>
+									해제
+								</a>
 							</span>
 						{/if}
 						{#if startDate.trim() || endDate.trim()}
-							<span class="rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700">
+							<span
+								class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700"
+							>
 								기간: {startDate || '처음'} ~ {endDate || '현재'}
+								<a
+									href={buildFilterLink({ startDate: '', endDate: '' })}
+									class="ml-2 text-emerald-700 underline decoration-emerald-400 underline-offset-2 hover:text-emerald-900"
+								>
+									해제
+								</a>
 							</span>
 						{/if}
-						<span class="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">
+						<span
+							class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700"
+						>
 							정렬: {sortOrder === 'asc' ? '의안번호 오름차순' : '의안번호 내림차순'}
+							{#if sortOrder !== 'desc'}
+								<a
+									href={buildFilterLink({ sortOrder: 'desc' })}
+									class="ml-2 text-slate-600 underline decoration-slate-300 underline-offset-2 hover:text-slate-900"
+								>
+									기본값
+								</a>
+							{/if}
 						</span>
 					</div>
 				{/if}
@@ -450,24 +519,40 @@
 
 				{#if totalPages > 1}
 					<div class="mt-12 flex items-center justify-center space-x-3">
-						<a
-							href={currentPage > 1 ? buildPageLink(1) : '#'}
-							aria-disabled={currentPage === 1}
-							aria-label="첫 페이지로 이동"
-							title="첫 페이지"
-							class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
-						>
-							<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
-						</a>
-						<a
-							href={currentPage > 1 ? buildPageLink(currentPage - 1) : '#'}
-							aria-disabled={currentPage === 1}
-							aria-label="이전 페이지로 이동"
-							title="이전 페이지"
-							class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
-						>
-							<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
-						</a>
+						{#if currentPage > 1}
+							<a
+								href={buildPageLink(1)}
+								aria-label="첫 페이지로 이동"
+								title="첫 페이지"
+								class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md"
+							>
+								<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
+							</a>
+						{:else}
+							<span
+								aria-hidden="true"
+								class="rounded-xl border-2 border-gray-200 bg-white/60 px-4 py-3 text-sm font-semibold text-gray-400 opacity-60"
+							>
+								<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
+							</span>
+						{/if}
+						{#if currentPage > 1}
+							<a
+								href={buildPageLink(currentPage - 1)}
+								aria-label="이전 페이지로 이동"
+								title="이전 페이지"
+								class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md"
+							>
+								<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
+							</a>
+						{:else}
+							<span
+								aria-hidden="true"
+								class="rounded-xl border-2 border-gray-200 bg-white/60 px-4 py-3 text-sm font-semibold text-gray-400 opacity-60"
+							>
+								<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
+							</span>
+						{/if}
 
 						{#each getPaginationItems() as item, idx (`${item}-${idx}`)}
 							{#if typeof item === 'number'}
@@ -485,24 +570,40 @@
 								<span class="px-2 text-sm font-semibold text-gray-400">...</span>
 							{/if}
 						{/each}
-						<a
-							href={currentPage < totalPages ? buildPageLink(currentPage + 1) : '#'}
-							aria-disabled={currentPage === totalPages}
-							aria-label="다음 페이지로 이동"
-							title="다음 페이지"
-							class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
-						>
-							<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
-						</a>
-						<a
-							href={currentPage < totalPages ? buildPageLink(totalPages) : '#'}
-							aria-disabled={currentPage === totalPages}
-							aria-label="마지막 페이지로 이동"
-							title="마지막 페이지"
-							class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
-						>
-							<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
-						</a>
+						{#if currentPage < totalPages}
+							<a
+								href={buildPageLink(currentPage + 1)}
+								aria-label="다음 페이지로 이동"
+								title="다음 페이지"
+								class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md"
+							>
+								<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
+							</a>
+						{:else}
+							<span
+								aria-hidden="true"
+								class="rounded-xl border-2 border-gray-200 bg-white/60 px-4 py-3 text-sm font-semibold text-gray-400 opacity-60"
+							>
+								<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
+							</span>
+						{/if}
+						{#if currentPage < totalPages}
+							<a
+								href={buildPageLink(totalPages)}
+								aria-label="마지막 페이지로 이동"
+								title="마지막 페이지"
+								class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md"
+							>
+								<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
+							</a>
+						{:else}
+							<span
+								aria-hidden="true"
+								class="rounded-xl border-2 border-gray-200 bg-white/60 px-4 py-3 text-sm font-semibold text-gray-400 opacity-60"
+							>
+								<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
+							</span>
+						{/if}
 					</div>
 
 					<div class="mt-6 text-center">
