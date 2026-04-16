@@ -3,6 +3,7 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
+	import { SvelteDate } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
@@ -32,7 +33,11 @@
 	$: totalItems = archive?.total || 0;
 	$: limit = archive?.limit || 10;
 	$: searchQuery = archive?.search || '';
-	$: hasActiveSearch = searchQuery.trim().length > 0;
+	$: startDate = archive?.startDate || '';
+	$: endDate = archive?.endDate || '';
+	$: sortOrder = archive?.sortOrder === 'asc' ? 'asc' : 'desc';
+	$: hasActiveFilters =
+		searchQuery.trim().length > 0 || startDate.trim().length > 0 || endDate.trim().length > 0;
 	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
 
 	const pageDescription =
@@ -43,6 +48,56 @@
 		error = data.error || '';
 	}
 
+	function toInputDate(date: Date) {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+
+	function addDays(base: Date, amount: number) {
+		const dayMillis = 24 * 60 * 60 * 1000;
+		return new SvelteDate(base.getTime() + amount * dayMillis);
+	}
+
+	const today = new SvelteDate();
+	const todayInputDate = toInputDate(today);
+	const quickStart7Days = toInputDate(addDays(today, -6));
+	const quickStart30Days = toInputDate(addDays(today, -29));
+	const quickMonthStart = toInputDate(new SvelteDate(today.getFullYear(), today.getMonth(), 1));
+	$: hasDateReversed =
+		startDate.trim().length > 0 && endDate.trim().length > 0 && startDate > endDate;
+
+	function buildFilterLink(overrides: {
+		search?: string;
+		startDate?: string;
+		endDate?: string;
+		sortOrder?: 'asc' | 'desc';
+	}) {
+		const params: string[] = ['page=1', `limit=${encodeURIComponent(String(limit))}`];
+
+		const nextSearch = (overrides.search ?? searchQuery).trim();
+		const nextStartDate = (overrides.startDate ?? startDate).trim();
+		const nextEndDate = (overrides.endDate ?? endDate).trim();
+		const nextSortOrder = overrides.sortOrder ?? sortOrder;
+
+		if (nextSearch) {
+			params.push(`search=${encodeURIComponent(nextSearch)}`);
+		}
+
+		if (nextStartDate) {
+			params.push(`startDate=${encodeURIComponent(nextStartDate)}`);
+		}
+
+		if (nextEndDate) {
+			params.push(`endDate=${encodeURIComponent(nextEndDate)}`);
+		}
+
+		params.push(`sortOrder=${encodeURIComponent(nextSortOrder)}`);
+
+		return `/notices?${params.join('&')}`;
+	}
+
 	function buildPageLink(page: number) {
 		const params = [`page=${encodeURIComponent(String(page))}`];
 		params.push(`limit=${encodeURIComponent(String(limit))}`);
@@ -51,6 +106,16 @@
 		if (trimmedSearch) {
 			params.push(`search=${encodeURIComponent(trimmedSearch)}`);
 		}
+
+		if (startDate.trim()) {
+			params.push(`startDate=${encodeURIComponent(startDate.trim())}`);
+		}
+
+		if (endDate.trim()) {
+			params.push(`endDate=${encodeURIComponent(endDate.trim())}`);
+		}
+
+		params.push(`sortOrder=${encodeURIComponent(sortOrder)}`);
 
 		return `/notices?${params.join('&')}`;
 	}
@@ -174,7 +239,34 @@
 			<Alert type="error" message={error} dismissible={false} />
 		{:else}
 			<form method="GET" action="/notices" class="mb-5">
-				<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+				<div class="mb-2 flex flex-wrap items-center gap-2">
+					<span class="text-xs font-semibold text-slate-500">빠른 기간</span>
+					<a
+						href={buildFilterLink({ startDate: quickStart7Days, endDate: todayInputDate })}
+						class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+					>
+						최근 7일
+					</a>
+					<a
+						href={buildFilterLink({ startDate: quickStart30Days, endDate: todayInputDate })}
+						class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+					>
+						최근 30일
+					</a>
+					<a
+						href={buildFilterLink({ startDate: quickMonthStart, endDate: todayInputDate })}
+						class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+					>
+						이번 달
+					</a>
+					<a
+						href={buildFilterLink({ startDate: '', endDate: '' })}
+						class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+					>
+						기간 해제
+					</a>
+				</div>
+				<div class="grid gap-2 md:grid-cols-[1fr_auto_auto_auto] md:items-center">
 					<div class="relative flex-1">
 						<FontAwesomeIcon
 							icon={faMagnifyingGlass}
@@ -188,14 +280,69 @@
 							class="w-full rounded-lg border border-gray-200 bg-white py-2 pr-3 pl-10 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 						/>
 					</div>
+					<input
+						type="date"
+						name="startDate"
+						value={startDate}
+						max={endDate || undefined}
+						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+						title="시작일"
+					/>
+					<input
+						type="date"
+						name="endDate"
+						value={endDate}
+						min={startDate || undefined}
+						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+						title="종료일"
+					/>
+					<select
+						name="sortOrder"
+						value={sortOrder}
+						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+					>
+						<option value="desc">의안번호 내림차순</option>
+						<option value="asc">의안번호 오름차순</option>
+					</select>
 					<input type="hidden" name="page" value="1" />
 					<input type="hidden" name="limit" value={String(limit)} />
+				</div>
+				{#if hasDateReversed}
+					<p class="mt-2 text-xs font-medium text-amber-700">
+						시작일이 종료일보다 늦습니다. 검색 시 서버에서 자동으로 범위를 보정합니다.
+					</p>
+				{/if}
+				{#if hasActiveFilters}
+					<div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+						<span class="font-semibold text-slate-500">적용된 필터</span>
+						{#if searchQuery.trim()}
+							<span class="rounded-full bg-blue-50 px-2 py-1 font-semibold text-blue-700">
+								키워드: {searchQuery.trim()}
+							</span>
+						{/if}
+						{#if startDate.trim() || endDate.trim()}
+							<span class="rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700">
+								기간: {startDate || '처음'} ~ {endDate || '현재'}
+							</span>
+						{/if}
+						<span class="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">
+							정렬: {sortOrder === 'asc' ? '의안번호 오름차순' : '의안번호 내림차순'}
+						</span>
+					</div>
+				{/if}
+				<div class="mt-2 flex items-center gap-2">
 					<button
 						type="submit"
 						class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
 					>
 						검색
 					</button>
+					<a
+						href="/notices"
+						class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
+					>
+						필터 초기화
+					</a>
 				</div>
 			</form>
 
@@ -207,9 +354,9 @@
 						<FontAwesomeIcon icon={faBell} class="h-16 w-16 text-gray-400" />
 					</div>
 					<h3 class="mb-3 text-2xl font-bold text-gray-800">
-						{hasActiveSearch ? '검색 결과가 없습니다' : '입법예고가 없습니다'}
+						{hasActiveFilters ? '검색 결과가 없습니다' : '입법예고가 없습니다'}
 					</h3>
-					{#if hasActiveSearch}
+					{#if hasActiveFilters}
 						<p class="text-sm text-gray-600">다른 키워드로 다시 검색해보세요.</p>
 					{/if}
 				</div>
