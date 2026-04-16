@@ -59,6 +59,9 @@ export interface CacheInfo {
 export interface SystemStats {
 	webhooks: WebhookStats;
 	cache: CacheInfo;
+	archive: {
+		count: number;
+	};
 }
 
 export interface SystemHealthStats {
