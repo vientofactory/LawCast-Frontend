@@ -25,7 +25,7 @@
 			<div class="mr-3 rounded-lg bg-linear-to-r from-green-500 to-emerald-500 p-2">
 				<FontAwesomeIcon icon={faBell} class="h-5 w-5 text-white" />
 			</div>
-			최근 입법예고 ({notices.length})
+			최근 입법예고
 		</h2>
 		{#if notices.length > 0}
 			<a
@@ -46,7 +46,7 @@
 				<FontAwesomeIcon icon={faDatabase} class="mr-1.5 h-3 w-3 text-green-600" />
 				<span
 					>수집된 입법예고: <span class="text-gray-700"
-						>{stats.cache.size.toLocaleString('ko-KR')}개</span
+						>{stats.archive.count.toLocaleString('ko-KR')}개</span
 					></span
 				>
 			</div>
@@ -158,7 +158,7 @@
 					class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
 				>
 					<FontAwesomeIcon icon={faPlus} class="mr-1 h-4 w-4" />
-					{notices.length - 5}개 더 보기
+					더 보기
 				</a>
 			</div>
 		{/if}

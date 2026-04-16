@@ -9,6 +9,7 @@
 	export let data: PageData;
 
 	$: ({ recentNotices, stats } = data);
+	$: archiveTotalCount = stats?.archive?.count ?? 0;
 	const pageDescription =
 		'국회 입법예고 변동사항을 디스코드로 빠르게 받아보세요. 최신 입법예고 목록과 AI의 요약을 한 번에 확인할 수 있습니다.';
 
@@ -41,8 +42,8 @@
 
 <svelte:head>
 	<title
-		>LawCast - 국회 입법예고 알리미{recentNotices?.length > 0
-			? ` | 최근 ${recentNotices.length.toLocaleString('ko-KR')}건`
+		>LawCast - 국회 입법예고 알리미{archiveTotalCount > 0
+			? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건`
 			: ''}</title
 	>
 	<meta name="description" content={pageDescription} />
@@ -56,14 +57,14 @@
 	<meta property="og:site_name" content="LawCast" />
 	<meta
 		property="og:title"
-		content={`LawCast - 국회 입법예고 알리미${recentNotices?.length > 0 ? ` | 최근 ${recentNotices.length.toLocaleString('ko-KR')}건` : ''}`}
+		content={`LawCast - 국회 입법예고 알리미${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
 	/>
 	<meta property="og:description" content={pageDescription} />
 
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta
 		name="twitter:title"
-		content={`LawCast - 국회 입법예고 알리미${recentNotices?.length > 0 ? ` | 최근 ${recentNotices.length.toLocaleString('ko-KR')}건` : ''}`}
+		content={`LawCast - 국회 입법예고 알리미${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
 	/>
 	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
