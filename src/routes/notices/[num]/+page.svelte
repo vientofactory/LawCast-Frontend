@@ -10,6 +10,7 @@
 		faChevronDown,
 		faChevronUp,
 		faClock,
+		faDownload,
 		faFingerprint,
 		faExternalLink,
 		faFileLines,
@@ -198,42 +199,53 @@
 
 			{#if isArchiveMetaOpen}
 				<div in:slide={{ duration: 240 }} out:slide={{ duration: 180 }}>
-					<div in:fade out:fade class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-							<p class="text-xs font-semibold text-slate-500">아카이브 시각</p>
-							<p class="mt-1 font-medium text-slate-800">
-								<FontAwesomeIcon icon={faClock} class="mr-1 h-3.5 w-3.5 text-slate-500" />
-								{formatDateTime(detail.archiveMetadata.archivedAt)}
-							</p>
+					<div in:fade out:fade>
+						<div class="mt-4 mb-3 flex justify-end">
+							<a
+								href={`/api/notices/${detail.notice.num}/export`}
+								class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+							>
+								<FontAwesomeIcon icon={faDownload} class="mr-1.5 h-3.5 w-3.5" />
+								자료 반출 요청 (ZIP: JSON + 메타데이터)
+							</a>
 						</div>
-						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-							<p class="text-xs font-semibold text-slate-500">무결성 검증</p>
-							<p class="mt-1 font-medium text-slate-800">{integrityStatusLabel}</p>
-							<p class="mt-1 text-xs text-slate-600">
-								검증 시각: {formatDateTime(detail.archiveMetadata.integrity.checkedAt)}
-							</p>
-						</div>
-						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2">
-							<p class="text-xs font-semibold text-slate-500">HTML SHA256</p>
-							<p class="mt-1 font-mono text-xs break-all text-slate-800">
-								<FontAwesomeIcon icon={faFingerprint} class="mr-1 h-3.5 w-3.5 text-slate-500" />
-								{detail.archiveMetadata.sourceHtmlSha256 || 'N/A'}
-							</p>
-							<p class="mt-1 text-xs text-slate-600">
-								원문 HTML 크기: {detail.archiveMetadata.sourceHtmlSize.toLocaleString('ko-KR')} bytes
-							</p>
-						</div>
-						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-							<p class="text-xs font-semibold text-slate-500">HTTP 상태 코드</p>
-							<p class="mt-1 font-medium text-slate-800">
-								{detail.archiveMetadata.http.statusCode ?? 'N/A'}
-							</p>
-						</div>
-						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-							<p class="text-xs font-semibold text-slate-500">HTTP 수집 시각</p>
-							<p class="mt-1 font-medium text-slate-800">
-								{formatDateTime(detail.archiveMetadata.http.fetchedAt)}
-							</p>
+						<div class="grid gap-3 text-sm sm:grid-cols-2">
+							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+								<p class="text-xs font-semibold text-slate-500">아카이브 시각</p>
+								<p class="mt-1 font-medium text-slate-800">
+									<FontAwesomeIcon icon={faClock} class="mr-1 h-3.5 w-3.5 text-slate-500" />
+									{formatDateTime(detail.archiveMetadata.archivedAt)}
+								</p>
+							</div>
+							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+								<p class="text-xs font-semibold text-slate-500">무결성 검증</p>
+								<p class="mt-1 font-medium text-slate-800">{integrityStatusLabel}</p>
+								<p class="mt-1 text-xs text-slate-600">
+									검증 시각: {formatDateTime(detail.archiveMetadata.integrity.checkedAt)}
+								</p>
+							</div>
+							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2">
+								<p class="text-xs font-semibold text-slate-500">SHA256 지문</p>
+								<p class="mt-1 font-mono text-xs break-all text-slate-800">
+									<FontAwesomeIcon icon={faFingerprint} class="h-3.5 w-3.5 text-slate-500" />
+									{detail.archiveMetadata.sourceHtmlSha256 || 'N/A'}
+								</p>
+								<p class="mt-1 text-xs text-slate-600">
+									원문 HTML 크기: {detail.archiveMetadata.sourceHtmlSize.toLocaleString('ko-KR')} bytes
+								</p>
+							</div>
+							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+								<p class="text-xs font-semibold text-slate-500">HTTP 상태 코드</p>
+								<p class="mt-1 font-medium text-slate-800">
+									{detail.archiveMetadata.http.statusCode ?? 'N/A'}
+								</p>
+							</div>
+							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+								<p class="text-xs font-semibold text-slate-500">HTTP 수집 시각</p>
+								<p class="mt-1 font-medium text-slate-800">
+									{formatDateTime(detail.archiveMetadata.http.fetchedAt)}
+								</p>
+							</div>
 						</div>
 					</div>
 				</div>
