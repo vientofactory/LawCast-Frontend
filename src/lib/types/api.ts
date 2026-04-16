@@ -3,7 +3,6 @@ export interface Notice {
 	subject: string;
 	proposerCategory: string;
 	committee: string;
-	numComments: number;
 	link: string;
 	archiveStartedAt?: string;
 	lastUpdatedAt?: string;

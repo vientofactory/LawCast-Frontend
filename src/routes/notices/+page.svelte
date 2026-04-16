@@ -16,8 +16,7 @@
 		faFileDownload,
 		faFileText,
 		faMagnifyingGlass,
-		faTriangleExclamation,
-		faUser
+		faTriangleExclamation
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { ArchiveNoticeListResponse } from '$lib/types/api';
 
@@ -226,14 +225,6 @@
 										>
 											의안번호 {notice.num}
 										</span>
-										{#if notice.numComments > 0}
-											<span
-												class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700"
-											>
-												<FontAwesomeIcon icon={faUser} class="mr-1 h-3 w-3" />
-												의견 {notice.numComments.toLocaleString('ko-KR')}개
-											</span>
-										{/if}
 									</div>
 
 									<h3

@@ -142,7 +142,6 @@
 					</div>
 					<div class="flex items-center justify-between text-xs text-gray-500">
 						<span>{notice.proposerCategory} | {notice.committee}</span>
-						<span>의견 {notice.numComments.toLocaleString()}개</span>
 					</div>
 					<div class="mt-1 text-xs text-gray-400">
 						<span>의안번호: {notice.num}</span>
