@@ -33,7 +33,8 @@
 	$: totalItems = archive?.total || 0;
 	$: limit = archive?.limit || 10;
 	$: searchQuery = archive?.search || '';
-	$: archiveCount = archive?.stats?.archiveCount || 0;
+	$: hasActiveSearch = searchQuery.trim().length > 0;
+	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
 
 	const pageDescription =
 		'입법예고 아카이브에서 키워드 검색과 페이지네이션으로 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.';
@@ -172,15 +173,6 @@
 
 		{#if error}
 			<Alert type="error" message={error} dismissible={false} />
-		{:else if notices.length === 0}
-			<div
-				class="rounded-2xl border border-gray-200/50 bg-linear-to-br from-gray-50 to-blue-50/30 p-16 text-center shadow-xl backdrop-blur-sm"
-			>
-				<div class="mb-6 inline-block rounded-full bg-linear-to-r from-gray-200 to-blue-200 p-6">
-					<FontAwesomeIcon icon={faBell} class="h-16 w-16 text-gray-400" />
-				</div>
-				<h3 class="mb-3 text-2xl font-bold text-gray-800">입법예고가 없습니다</h3>
-			</div>
 		{:else}
 			<form method="GET" action="/notices" class="mb-5">
 				<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -208,163 +200,181 @@
 				</div>
 			</form>
 
-			<div class="space-y-4">
-				{#each notices as notice (notice.num)}
-					<div class="rounded-lg bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6">
-						<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-							<div class="min-w-0 flex-1">
-								<div class="mb-3 flex flex-wrap items-center gap-2">
-									<span
-										class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
-									>
-										의안번호 {notice.num}
-									</span>
-									{#if notice.numComments > 0}
+			{#if notices.length === 0}
+				<div
+					class="rounded-2xl border border-gray-200/50 bg-linear-to-br from-gray-50 to-blue-50/30 p-16 text-center shadow-xl backdrop-blur-sm"
+				>
+					<div class="mb-6 inline-block rounded-full bg-linear-to-r from-gray-200 to-blue-200 p-6">
+						<FontAwesomeIcon icon={faBell} class="h-16 w-16 text-gray-400" />
+					</div>
+					<h3 class="mb-3 text-2xl font-bold text-gray-800">
+						{hasActiveSearch ? '검색 결과가 없습니다' : '입법예고가 없습니다'}
+					</h3>
+					{#if hasActiveSearch}
+						<p class="text-sm text-gray-600">다른 키워드로 다시 검색해보세요.</p>
+					{/if}
+				</div>
+			{:else}
+				<div class="space-y-4">
+					{#each notices as notice (notice.num)}
+						<div class="rounded-lg bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6">
+							<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+								<div class="min-w-0 flex-1">
+									<div class="mb-3 flex flex-wrap items-center gap-2">
 										<span
-											class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700"
+											class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
 										>
-											<FontAwesomeIcon icon={faUser} class="mr-1 h-3 w-3" />
-											의견 {notice.numComments.toLocaleString('ko-KR')}개
+											의안번호 {notice.num}
 										</span>
+										{#if notice.numComments > 0}
+											<span
+												class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700"
+											>
+												<FontAwesomeIcon icon={faUser} class="mr-1 h-3 w-3" />
+												의견 {notice.numComments.toLocaleString('ko-KR')}개
+											</span>
+										{/if}
+									</div>
+
+									<h3
+										class="mb-3 text-lg leading-tight font-semibold wrap-break-word text-gray-900"
+									>
+										{notice.subject}
+									</h3>
+
+									<div class="flex flex-wrap gap-4 text-sm text-gray-600">
+										<div class="flex items-center">
+											<FontAwesomeIcon icon={faCalendar} class="mr-1 h-4 w-4" />
+											제안자 구분: {notice.proposerCategory}
+										</div>
+										<div class="flex items-center">
+											<FontAwesomeIcon icon={faBell} class="mr-1 h-4 w-4" />
+											소관위원회: {notice.committee}
+										</div>
+									</div>
+
+									{#if shouldShowAIBriefing(notice)}
+										<AIBriefingCard
+											summary={notice.aiSummary ?? null}
+											status={notice.aiSummaryStatus ?? 'unavailable'}
+										/>
 									{/if}
 								</div>
 
-								<h3 class="mb-3 text-lg leading-tight font-semibold wrap-break-word text-gray-900">
-									{notice.subject}
-								</h3>
+								<div
+									class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end lg:ml-4 lg:w-auto lg:shrink-0"
+								>
+									<a
+										href={`/notices/${notice.num}`}
+										class="inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800"
+										title="제안이유 및 주요내용 원문 조회"
+									>
+										원문 조회
+									</a>
 
-								<div class="flex flex-wrap gap-4 text-sm text-gray-600">
-									<div class="flex items-center">
-										<FontAwesomeIcon icon={faCalendar} class="mr-1 h-4 w-4" />
-										제안자 구분: {notice.proposerCategory}
-									</div>
-									<div class="flex items-center">
-										<FontAwesomeIcon icon={faBell} class="mr-1 h-4 w-4" />
-										소관위원회: {notice.committee}
-									</div>
+									{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
+										<div class="flex items-center gap-1">
+											{#if isDownloadable(notice.attachments.pdfFile)}
+												<button
+													on:click={() =>
+														downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
+													class="cursor-pointer rounded-md bg-red-50 p-2.5 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
+													title="PDF 다운로드"
+												>
+													<FontAwesomeIcon icon={faFileText} class="h-5 w-5" />
+												</button>
+											{/if}
+											{#if isDownloadable(notice.attachments.hwpFile)}
+												<button
+													on:click={() =>
+														downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
+													class="cursor-pointer rounded-md bg-blue-50 p-2.5 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
+													title="HWP 다운로드"
+												>
+													<FontAwesomeIcon icon={faFileDownload} class="h-5 w-5" />
+												</button>
+											{/if}
+											<div class="hidden h-6 w-px bg-gray-200 sm:block"></div>
+										</div>
+									{/if}
+									<button
+										on:click={() => openExternalLink(notice.link)}
+										class="cursor-pointer rounded-md bg-gray-50 p-2.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700"
+										title="자세히 보기"
+									>
+										<FontAwesomeIcon icon={faExternalLink} class="h-5 w-5" />
+									</button>
 								</div>
-
-								{#if shouldShowAIBriefing(notice)}
-									<AIBriefingCard
-										summary={notice.aiSummary ?? null}
-										status={notice.aiSummaryStatus ?? 'unavailable'}
-									/>
-								{/if}
-							</div>
-
-							<div
-								class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end lg:ml-4 lg:w-auto lg:shrink-0"
-							>
-								<a
-									href={`/notices/${notice.num}`}
-									class="inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800"
-									title="제안이유 및 주요내용 원문 조회"
-								>
-									원문 조회
-								</a>
-
-								{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
-									<div class="flex items-center gap-1">
-										{#if isDownloadable(notice.attachments.pdfFile)}
-											<button
-												on:click={() =>
-													downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
-												class="cursor-pointer rounded-md bg-red-50 p-2.5 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
-												title="PDF 다운로드"
-											>
-												<FontAwesomeIcon icon={faFileText} class="h-5 w-5" />
-											</button>
-										{/if}
-										{#if isDownloadable(notice.attachments.hwpFile)}
-											<button
-												on:click={() =>
-													downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
-												class="cursor-pointer rounded-md bg-blue-50 p-2.5 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
-												title="HWP 다운로드"
-											>
-												<FontAwesomeIcon icon={faFileDownload} class="h-5 w-5" />
-											</button>
-										{/if}
-										<div class="hidden h-6 w-px bg-gray-200 sm:block"></div>
-									</div>
-								{/if}
-								<button
-									on:click={() => openExternalLink(notice.link)}
-									class="cursor-pointer rounded-md bg-gray-50 p-2.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700"
-									title="자세히 보기"
-								>
-									<FontAwesomeIcon icon={faExternalLink} class="h-5 w-5" />
-								</button>
 							</div>
 						</div>
-					</div>
-				{/each}
-			</div>
-
-			{#if totalPages > 1}
-				<div class="mt-12 flex items-center justify-center space-x-3">
-					<a
-						href={currentPage > 1 ? buildPageLink(1) : '#'}
-						aria-disabled={currentPage === 1}
-						aria-label="첫 페이지로 이동"
-						title="첫 페이지"
-						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
-					>
-						<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
-					</a>
-					<a
-						href={currentPage > 1 ? buildPageLink(currentPage - 1) : '#'}
-						aria-disabled={currentPage === 1}
-						aria-label="이전 페이지로 이동"
-						title="이전 페이지"
-						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
-					>
-						<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
-					</a>
-
-					{#each getPaginationItems() as item, idx (`${item}-${idx}`)}
-						{#if typeof item === 'number'}
-							<a
-								href={buildPageLink(item)}
-								class={`rounded-xl px-4 py-3 text-sm font-bold shadow-sm transition-all duration-200 hover:shadow-md ${
-									currentPage === item
-										? 'scale-105 bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
-										: 'border-2 border-gray-200 bg-white/80 text-gray-600 backdrop-blur-sm hover:border-blue-200 hover:bg-white hover:text-blue-600'
-								}`}
-							>
-								{item}
-							</a>
-						{:else}
-							<span class="px-2 text-sm font-semibold text-gray-400">...</span>
-						{/if}
 					{/each}
-					<a
-						href={currentPage < totalPages ? buildPageLink(currentPage + 1) : '#'}
-						aria-disabled={currentPage === totalPages}
-						aria-label="다음 페이지로 이동"
-						title="다음 페이지"
-						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
-					>
-						<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
-					</a>
-					<a
-						href={currentPage < totalPages ? buildPageLink(totalPages) : '#'}
-						aria-disabled={currentPage === totalPages}
-						aria-label="마지막 페이지로 이동"
-						title="마지막 페이지"
-						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
-					>
-						<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
-					</a>
 				</div>
 
-				<div class="mt-6 text-center">
-					<span
-						class="inline-flex items-center rounded-full bg-linear-to-r from-gray-100 to-blue-100 px-4 py-2 text-sm font-semibold text-gray-700"
-					>
-						{getPaginationInfo()}
-					</span>
-				</div>
+				{#if totalPages > 1}
+					<div class="mt-12 flex items-center justify-center space-x-3">
+						<a
+							href={currentPage > 1 ? buildPageLink(1) : '#'}
+							aria-disabled={currentPage === 1}
+							aria-label="첫 페이지로 이동"
+							title="첫 페이지"
+							class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
+						>
+							<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
+						</a>
+						<a
+							href={currentPage > 1 ? buildPageLink(currentPage - 1) : '#'}
+							aria-disabled={currentPage === 1}
+							aria-label="이전 페이지로 이동"
+							title="이전 페이지"
+							class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
+						>
+							<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
+						</a>
+
+						{#each getPaginationItems() as item, idx (`${item}-${idx}`)}
+							{#if typeof item === 'number'}
+								<a
+									href={buildPageLink(item)}
+									class={`rounded-xl px-4 py-3 text-sm font-bold shadow-sm transition-all duration-200 hover:shadow-md ${
+										currentPage === item
+											? 'scale-105 bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
+											: 'border-2 border-gray-200 bg-white/80 text-gray-600 backdrop-blur-sm hover:border-blue-200 hover:bg-white hover:text-blue-600'
+									}`}
+								>
+									{item}
+								</a>
+							{:else}
+								<span class="px-2 text-sm font-semibold text-gray-400">...</span>
+							{/if}
+						{/each}
+						<a
+							href={currentPage < totalPages ? buildPageLink(currentPage + 1) : '#'}
+							aria-disabled={currentPage === totalPages}
+							aria-label="다음 페이지로 이동"
+							title="다음 페이지"
+							class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
+						>
+							<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
+						</a>
+						<a
+							href={currentPage < totalPages ? buildPageLink(totalPages) : '#'}
+							aria-disabled={currentPage === totalPages}
+							aria-label="마지막 페이지로 이동"
+							title="마지막 페이지"
+							class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
+						>
+							<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
+						</a>
+					</div>
+
+					<div class="mt-6 text-center">
+						<span
+							class="inline-flex items-center rounded-full bg-linear-to-r from-gray-100 to-blue-100 px-4 py-2 text-sm font-semibold text-gray-700"
+						>
+							{getPaginationInfo()}
+						</span>
+					</div>
+				{/if}
 			{/if}
 		{/if}
 	</main>
