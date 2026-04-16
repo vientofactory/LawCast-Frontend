@@ -7,13 +7,19 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
 	const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(20, requestedLimit)) : 10;
 	const search = (url.searchParams.get('search') || '').trim();
+	const startDate = (url.searchParams.get('startDate') || '').trim();
+	const endDate = (url.searchParams.get('endDate') || '').trim();
+	const sortOrder = url.searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
 
 	try {
 		const archive = await apiClient.getArchivedNotices(
 			{
 				page,
 				limit,
-				search
+				search,
+				startDate,
+				endDate,
+				sortOrder
 			},
 			fetch
 		);
@@ -29,6 +35,9 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				total: 0,
 				totalPages: 1,
 				search,
+				startDate,
+				endDate,
+				sortOrder,
 				stats: {
 					cacheCount: 0,
 					matchedCacheCount: 0,

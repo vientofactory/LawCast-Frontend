@@ -33,6 +33,9 @@ export interface ArchiveNoticeListResponse {
 	total: number;
 	totalPages: number;
 	search: string;
+	startDate?: string;
+	endDate?: string;
+	sortOrder?: 'asc' | 'desc';
 	stats: {
 		cacheCount: number;
 		matchedCacheCount: number;

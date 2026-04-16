@@ -162,7 +162,14 @@ export async function getRecentNotices(customFetch?: Fetch): Promise<Notice[]> {
  * 아카이브 입법예고 목록 조회 (검색/페이지네이션)
  */
 export async function getArchivedNotices(
-	params: { page?: number; limit?: number; search?: string } = {},
+	params: {
+		page?: number;
+		limit?: number;
+		search?: string;
+		startDate?: string;
+		endDate?: string;
+		sortOrder?: 'asc' | 'desc';
+	} = {},
 	customFetch?: Fetch
 ): Promise<ArchiveNoticeListResponse> {
 	try {
@@ -178,6 +185,18 @@ export async function getArchivedNotices(
 
 		if (params.search?.trim()) {
 			query.set('search', params.search.trim());
+		}
+
+		if (params.startDate?.trim()) {
+			query.set('startDate', params.startDate.trim());
+		}
+
+		if (params.endDate?.trim()) {
+			query.set('endDate', params.endDate.trim());
+		}
+
+		if (params.sortOrder === 'asc' || params.sortOrder === 'desc') {
+			query.set('sortOrder', params.sortOrder);
 		}
 
 		const suffix = query.toString() ? `?${query.toString()}` : '';
