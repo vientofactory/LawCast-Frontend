@@ -33,6 +33,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 					cacheCount: 0,
 					matchedCacheCount: 0,
 					archiveCount: 0,
+					totalArchiveCount: 0,
 					mergedCount: 0
 				}
 			},

@@ -38,6 +38,7 @@ export interface ArchiveNoticeListResponse {
 		cacheCount: number;
 		matchedCacheCount: number;
 		archiveCount: number;
+		totalArchiveCount: number;
 		mergedCount: number;
 	};
 }
