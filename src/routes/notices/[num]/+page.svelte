@@ -2,13 +2,19 @@
 	import Header from '$lib/components/Header.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
+	import { fade, slide } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
 		faBell,
+		faChevronDown,
+		faChevronUp,
+		faClock,
+		faFingerprint,
 		faExternalLink,
 		faFileLines,
 		faScaleBalanced,
+		faShieldHalved,
 		faTriangleExclamation,
 		faUser
 	} from '@fortawesome/free-solid-svg-icons';
@@ -28,6 +34,19 @@
 		return `${normalized.slice(0, maxLength)}...`;
 	}
 
+	function formatDateTime(value: string | null): string {
+		if (!value) {
+			return 'N/A';
+		}
+
+		const date = new Date(value);
+		if (Number.isNaN(date.getTime())) {
+			return 'N/A';
+		}
+
+		return date.toLocaleString('ko-KR');
+	}
+
 	$: pageTitle = `${detail.notice.subject} - 제안이유 및 주요내용 원문 | LawCast`;
 	$: pageDescription = buildExcerpt(
 		detail.notice.aiSummary ?? detail.originalContent.proposalReason
@@ -35,6 +54,14 @@
 
 	$: shouldShowAIBriefing =
 		detail.notice.aiSummaryStatus === 'ready' || detail.notice.aiSummaryStatus === 'unavailable';
+	$: integrityStatusLabel =
+		detail.archiveMetadata.integrity.passed === true
+			? '검증 통과'
+			: detail.archiveMetadata.integrity.passed === false
+				? '검증 실패'
+				: '검증 대기';
+
+	let isArchiveMetaOpen = false;
 </script>
 
 <svelte:head>
@@ -93,6 +120,12 @@
 							<FontAwesomeIcon icon={faBell} class="mr-1.5 h-3.5 w-3.5" />
 							{detail.notice.committee}
 						</span>
+						<span
+							class="inline-flex items-center rounded-md bg-emerald-100 px-2 py-1 text-emerald-800"
+						>
+							<FontAwesomeIcon icon={faClock} class="mr-1.5 h-3.5 w-3.5" />
+							아카이브: {formatDateTime(detail.archiveMetadata.archivedAt)}
+						</span>
 					</div>
 				</div>
 				<button
@@ -129,7 +162,7 @@
 			</div>
 		</section>
 
-		<section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+		<section class="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
 			<div class="mb-4 flex items-center gap-2">
 				<FontAwesomeIcon icon={faFileLines} class="h-5 w-5 text-indigo-600" />
 				<h2 class="text-lg font-bold text-gray-900">제안이유 및 주요내용 원문</h2>
@@ -140,6 +173,71 @@
 					{detail.originalContent.proposalReason}
 				</p>
 			</div>
+		</section>
+
+		<section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+			<button
+				type="button"
+				on:click={() => (isArchiveMetaOpen = !isArchiveMetaOpen)}
+				class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-slate-50"
+				aria-label={isArchiveMetaOpen
+					? '아카이브 무결성 메타데이터 닫기'
+					: '아카이브 무결성 메타데이터 열기'}
+				title={isArchiveMetaOpen ? '닫기' : '열기'}
+			>
+				<span class="flex items-center gap-2">
+					<FontAwesomeIcon icon={faShieldHalved} class="h-5 w-5 text-emerald-600" />
+					<h2 class="text-lg font-bold text-gray-900">아카이브 무결성 메타데이터</h2>
+				</span>
+				<span
+					class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition-all duration-200 hover:bg-slate-100 hover:text-slate-800"
+				>
+					<FontAwesomeIcon icon={isArchiveMetaOpen ? faChevronUp : faChevronDown} class="h-4 w-4" />
+				</span>
+			</button>
+
+			{#if isArchiveMetaOpen}
+				<div in:slide={{ duration: 240 }} out:slide={{ duration: 180 }}>
+					<div in:fade out:fade class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+							<p class="text-xs font-semibold text-slate-500">아카이브 시각</p>
+							<p class="mt-1 font-medium text-slate-800">
+								<FontAwesomeIcon icon={faClock} class="mr-1 h-3.5 w-3.5 text-slate-500" />
+								{formatDateTime(detail.archiveMetadata.archivedAt)}
+							</p>
+						</div>
+						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+							<p class="text-xs font-semibold text-slate-500">무결성 검증</p>
+							<p class="mt-1 font-medium text-slate-800">{integrityStatusLabel}</p>
+							<p class="mt-1 text-xs text-slate-600">
+								검증 시각: {formatDateTime(detail.archiveMetadata.integrity.checkedAt)}
+							</p>
+						</div>
+						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2">
+							<p class="text-xs font-semibold text-slate-500">HTML SHA256</p>
+							<p class="mt-1 font-mono text-xs break-all text-slate-800">
+								<FontAwesomeIcon icon={faFingerprint} class="mr-1 h-3.5 w-3.5 text-slate-500" />
+								{detail.archiveMetadata.sourceHtmlSha256 || 'N/A'}
+							</p>
+							<p class="mt-1 text-xs text-slate-600">
+								원문 HTML 크기: {detail.archiveMetadata.sourceHtmlSize.toLocaleString('ko-KR')} bytes
+							</p>
+						</div>
+						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+							<p class="text-xs font-semibold text-slate-500">HTTP 상태 코드</p>
+							<p class="mt-1 font-medium text-slate-800">
+								{detail.archiveMetadata.http.statusCode ?? 'N/A'}
+							</p>
+						</div>
+						<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+							<p class="text-xs font-semibold text-slate-500">HTTP 수집 시각</p>
+							<p class="mt-1 font-medium text-slate-800">
+								{formatDateTime(detail.archiveMetadata.http.fetchedAt)}
+							</p>
+						</div>
+					</div>
+				</div>
+			{/if}
 		</section>
 	</main>
 </div>
