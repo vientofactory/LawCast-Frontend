@@ -6,8 +6,12 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
+		faAnglesLeft,
+		faAnglesRight,
 		faBell,
 		faCalendar,
+		faChevronLeft,
+		faChevronRight,
 		faExternalLink,
 		faFileDownload,
 		faFileText,
@@ -63,6 +67,39 @@
 
 	function shouldShowAIBriefing(notice: (typeof notices)[number]) {
 		return notice.aiSummaryStatus === 'ready' || notice.aiSummaryStatus === 'unavailable';
+	}
+
+	function getPaginationItems(): Array<number | 'left-ellipsis' | 'right-ellipsis'> {
+		if (totalPages <= 7) {
+			return Array.from({ length: totalPages }, (_, idx) => idx + 1);
+		}
+
+		const items: Array<number | 'left-ellipsis' | 'right-ellipsis'> = [1];
+		let start = Math.max(2, currentPage - 1);
+		let end = Math.min(totalPages - 1, currentPage + 1);
+
+		if (currentPage <= 3) {
+			start = 2;
+			end = 4;
+		} else if (currentPage >= totalPages - 2) {
+			start = totalPages - 3;
+			end = totalPages - 1;
+		}
+
+		if (start > 2) {
+			items.push('left-ellipsis');
+		}
+
+		for (let page = start; page <= end; page++) {
+			items.push(page);
+		}
+
+		if (end < totalPages - 1) {
+			items.push('right-ellipsis');
+		}
+
+		items.push(totalPages);
+		return items;
 	}
 </script>
 
@@ -267,35 +304,57 @@
 			{#if totalPages > 1}
 				<div class="mt-12 flex items-center justify-center space-x-3">
 					<a
-						href={currentPage > 1 ? buildPageLink(currentPage - 1) : '#'}
+						href={currentPage > 1 ? buildPageLink(1) : '#'}
 						aria-disabled={currentPage === 1}
+						aria-label="첫 페이지로 이동"
+						title="첫 페이지"
 						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
 					>
-						이전
+						<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
+					</a>
+					<a
+						href={currentPage > 1 ? buildPageLink(currentPage - 1) : '#'}
+						aria-disabled={currentPage === 1}
+						aria-label="이전 페이지로 이동"
+						title="이전 페이지"
+						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
+					>
+						<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
 					</a>
 
-					{#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-						const start = Math.max(1, currentPage - 2);
-						const end = Math.min(totalPages, start + 4);
-						return start + i <= end ? start + i : null;
-					}).filter((page): page is number => page !== null) as page (page)}
-						<a
-							href={buildPageLink(page)}
-							class={`rounded-xl px-4 py-3 text-sm font-bold shadow-sm transition-all duration-200 hover:shadow-md ${
-								currentPage === page
-									? 'scale-105 bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
-									: 'border-2 border-gray-200 bg-white/80 text-gray-600 backdrop-blur-sm hover:border-blue-200 hover:bg-white hover:text-blue-600'
-							}`}
-						>
-							{page}
-						</a>
+					{#each getPaginationItems() as item, idx (`${item}-${idx}`)}
+						{#if typeof item === 'number'}
+							<a
+								href={buildPageLink(item)}
+								class={`rounded-xl px-4 py-3 text-sm font-bold shadow-sm transition-all duration-200 hover:shadow-md ${
+									currentPage === item
+										? 'scale-105 bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
+										: 'border-2 border-gray-200 bg-white/80 text-gray-600 backdrop-blur-sm hover:border-blue-200 hover:bg-white hover:text-blue-600'
+								}`}
+							>
+								{item}
+							</a>
+						{:else}
+							<span class="px-2 text-sm font-semibold text-gray-400">...</span>
+						{/if}
 					{/each}
 					<a
 						href={currentPage < totalPages ? buildPageLink(currentPage + 1) : '#'}
 						aria-disabled={currentPage === totalPages}
+						aria-label="다음 페이지로 이동"
+						title="다음 페이지"
 						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
 					>
-						다음
+						<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
+					</a>
+					<a
+						href={currentPage < totalPages ? buildPageLink(totalPages) : '#'}
+						aria-disabled={currentPage === totalPages}
+						aria-label="마지막 페이지로 이동"
+						title="마지막 페이지"
+						class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:opacity-50"
+					>
+						<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
 					</a>
 				</div>
 
