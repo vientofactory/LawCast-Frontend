@@ -8,7 +8,6 @@
 		faArrowLeft,
 		faBell,
 		faChevronDown,
-		faChevronUp,
 		faClock,
 		faDownload,
 		faFingerprint,
@@ -182,15 +181,14 @@
 			</div>
 		</section>
 
-		<section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-			<button
-				type="button"
-				on:click={() => (isArchiveMetaOpen = !isArchiveMetaOpen)}
-				class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-slate-50"
-				aria-label={isArchiveMetaOpen
-					? '아카이브 무결성 메타데이터 닫기'
-					: '아카이브 무결성 메타데이터 열기'}
-				title={isArchiveMetaOpen ? '닫기' : '열기'}
+		<details
+			bind:open={isArchiveMetaOpen}
+			class="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+		>
+			<summary
+				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-slate-50"
+				aria-label="아카이브 무결성 메타데이터 열기/닫기"
+				title="아카이브 무결성 메타데이터 열기/닫기"
 			>
 				<span class="flex items-center gap-2">
 					<FontAwesomeIcon icon={faShieldHalved} class="h-5 w-5 text-emerald-600" />
@@ -199,14 +197,19 @@
 				<span
 					class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition-all duration-200 hover:bg-slate-100 hover:text-slate-800"
 				>
-					<FontAwesomeIcon icon={isArchiveMetaOpen ? faChevronUp : faChevronDown} class="h-4 w-4" />
+					<span
+						class="inline-flex transition-transform duration-200"
+						class:rotate-180={isArchiveMetaOpen}
+					>
+						<FontAwesomeIcon icon={faChevronDown} class="h-4 w-4" />
+					</span>
 				</span>
-			</button>
+			</summary>
 
 			{#if isArchiveMetaOpen}
 				<div in:slide={{ duration: 240 }} out:slide={{ duration: 180 }}>
-					<div in:fade out:fade>
-						<div class="mt-4 mb-3 flex justify-end">
+					<div in:fade={{ duration: 200 }} out:fade={{ duration: 140 }} class="mt-4">
+						<div class="mb-3 flex justify-end">
 							<a
 								href={`/api/notices/${detail.notice.num}/export`}
 								class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
@@ -256,6 +259,6 @@
 					</div>
 				</div>
 			{/if}
-		</section>
+		</details>
 	</main>
 </div>
