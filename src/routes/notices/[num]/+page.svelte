@@ -24,6 +24,7 @@
 	export let data: { detail: NoticeDetail };
 
 	$: detail = data.detail;
+	$: aiSummaryEnabled = detail.aiSummaryEnabled !== false;
 
 	function buildExcerpt(content: string, maxLength = 180): string {
 		const normalized = content.replace(/\s+/g, ' ').trim();
@@ -50,11 +51,14 @@
 
 	$: pageTitle = `${detail.notice.subject} - 제안이유 및 주요내용 원문 | LawCast`;
 	$: pageDescription = buildExcerpt(
-		detail.notice.aiSummary ?? detail.originalContent.proposalReason
+		aiSummaryEnabled
+			? (detail.notice.aiSummary ?? detail.originalContent.proposalReason)
+			: detail.originalContent.proposalReason
 	);
 
 	$: shouldShowAIBriefing =
-		detail.notice.aiSummaryStatus === 'ready' || detail.notice.aiSummaryStatus === 'unavailable';
+		aiSummaryEnabled &&
+		(detail.notice.aiSummaryStatus === 'ready' || detail.notice.aiSummaryStatus === 'unavailable');
 	$: integrityStatusLabel =
 		detail.archiveMetadata.integrity.passed === true
 			? '검증 통과'
@@ -146,22 +150,24 @@
 			{/if}
 		</section>
 
-		<section
-			class="mb-6 rounded-xl border border-amber-200/80 bg-linear-to-r from-amber-50 to-orange-50 p-4 shadow-sm"
-		>
-			<div class="flex items-start gap-3">
-				<div class="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
-					<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
+		{#if aiSummaryEnabled}
+			<section
+				class="mb-6 rounded-xl border border-amber-200/80 bg-linear-to-r from-amber-50 to-orange-50 p-4 shadow-sm"
+			>
+				<div class="flex items-start gap-3">
+					<div class="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
+						<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
+					</div>
+					<div>
+						<p class="text-sm font-semibold text-amber-900">안내</p>
+						<p class="mt-1 text-sm leading-relaxed text-amber-800/90">
+							AI 요약은 참고용이며 오류가 있을 수 있습니다. 아래 원문(제안이유 및 주요내용)을 최종
+							기준으로 확인해주세요.
+						</p>
+					</div>
 				</div>
-				<div>
-					<p class="text-sm font-semibold text-amber-900">안내</p>
-					<p class="mt-1 text-sm leading-relaxed text-amber-800/90">
-						AI 요약은 참고용이며 오류가 있을 수 있습니다. 아래 원문(제안이유 및 주요내용)을 최종
-						기준으로 확인해주세요.
-					</p>
-				</div>
-			</div>
-		</section>
+			</section>
+		{/if}
 
 		<section class="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
 			<div class="mb-4 flex items-center gap-2">
