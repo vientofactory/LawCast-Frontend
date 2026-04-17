@@ -344,8 +344,8 @@
 						value={sortOrder}
 						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 					>
-						<option value="desc">의안번호 내림차순</option>
-						<option value="asc">의안번호 오름차순</option>
+						<option value="desc">내림차순</option>
+						<option value="asc">오름차순</option>
 					</select>
 					<input type="hidden" name="page" value="1" />
 					<input type="hidden" name="limit" value={String(limit)} />
@@ -387,7 +387,7 @@
 						<span
 							class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700"
 						>
-							정렬: {sortOrder === 'asc' ? '의안번호 오름차순' : '의안번호 내림차순'}
+							정렬: {sortOrder === 'asc' ? '오름차순' : '내림차순'}
 							{#if sortOrder !== 'desc'}
 								<a
 									href={buildFilterLink({ sortOrder: 'desc' })}

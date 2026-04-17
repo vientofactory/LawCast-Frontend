@@ -106,6 +106,13 @@
 							{notice.subject}
 						</h3>
 						<div class="ml-3 flex shrink-0 items-center gap-1">
+							<a
+								href={`/notices/${notice.num}`}
+								class="inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800"
+								title="제안이유 및 주요내용 원문 조회"
+							>
+								원문 조회
+							</a>
 							<!-- 파일 다운로드 버튼들 -->
 							{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
 								<div class="flex gap-1">

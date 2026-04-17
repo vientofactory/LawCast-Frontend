@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { faBell } from '@fortawesome/free-solid-svg-icons';
 	import { faGithub } from '@fortawesome/free-brands-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 </script>
@@ -13,18 +12,13 @@
 				href="/"
 				class="text-decoration-none group flex items-center space-x-4 transition-all duration-300 hover:scale-105"
 			>
-				<div
-					class="rounded-2xl bg-linear-to-br from-blue-500 via-indigo-500 to-purple-600 p-3 shadow-lg shadow-blue-200/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-blue-300/60"
-				>
-					<FontAwesomeIcon icon={faBell} class="h-10 w-10 text-white" />
-				</div>
 				<div>
 					<h1
 						class="bg-linear-to-r from-gray-800 via-blue-700 to-indigo-700 bg-clip-text text-3xl font-bold tracking-tight text-transparent"
 					>
 						LawCast
 					</h1>
-					<p class="mt-1 text-sm font-medium text-gray-600">국회 입법예고 디스코드 알리미</p>
+					<p class="mt-1 text-sm font-medium text-gray-600">국회 입법예고 스냅샷 아카이브</p>
 				</div>
 			</a>
 
