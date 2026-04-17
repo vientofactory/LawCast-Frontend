@@ -98,7 +98,7 @@
 
 {#if visible}
 	<div
-		class="mb-6 rounded-xl border {config.containerClass} p-4 shadow-sm backdrop-blur-sm transition-all duration-300 ease-out"
+		class="rounded-xl border {config.containerClass} p-4 shadow-sm backdrop-blur-sm transition-all duration-300 ease-out"
 		class:animate-fade-in={visible}
 		class:opacity-0={!visible}
 		class:transform={true}

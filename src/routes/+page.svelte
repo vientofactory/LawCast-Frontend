@@ -73,30 +73,30 @@
 	<Header />
 
 	<main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-		<!-- Messages -->
-		{#if error}
-			<Alert
-				type="error"
-				message={error}
-				showRefresh={error.includes('초기 데이터')}
-				onDismiss={clearMessage}
-				onRefresh={() => location.reload()}
-			/>
-		{/if}
-
-		{#if success}
-			<Alert
-				type="success"
-				message={success}
-				autoHide={true}
-				autoHideDelay={4000}
-				onDismiss={clearMessage}
-			/>
-		{/if}
-
 		<div class="mt-5 flex flex-col gap-8">
 			<!-- Recent Notices -->
 			<RecentNotices notices={recentNotices} {stats} />
+
+			<!-- Messages -->
+			{#if error}
+				<Alert
+					type="error"
+					message={error}
+					showRefresh={error.includes('초기 데이터')}
+					onDismiss={clearMessage}
+					onRefresh={() => location.reload()}
+				/>
+			{/if}
+
+			{#if success}
+				<Alert
+					type="success"
+					message={success}
+					autoHide={true}
+					autoHideDelay={4000}
+					onDismiss={clearMessage}
+				/>
+			{/if}
 
 			<!-- Webhook Registration -->
 			<WebhookRegistrationForm
