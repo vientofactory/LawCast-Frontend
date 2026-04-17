@@ -19,7 +19,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			stats: {
 				webhooks: { total: 0, active: 0, inactive: 0 },
 				cache: { size: 0, lastUpdated: null, maxSize: 10, isInitialized: false },
-				archive: { count: 0 }
+				archive: { count: 0 },
+				aiSummaryEnabled: false
 			},
 			error: '초기 데이터 로딩에 실패했습니다. 페이지를 새로고침해주세요.'
 		};

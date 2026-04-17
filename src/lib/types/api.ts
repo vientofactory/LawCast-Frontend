@@ -45,6 +45,7 @@ export interface NoticeDetail {
 	notice: Notice;
 	originalContent: NoticeOriginalContent;
 	archiveMetadata: NoticeArchiveMetadata;
+	aiSummaryEnabled?: boolean;
 }
 
 export interface ArchiveNoticeListResponse {
@@ -57,6 +58,7 @@ export interface ArchiveNoticeListResponse {
 	startDate?: string;
 	endDate?: string;
 	sortOrder?: 'asc' | 'desc';
+	aiSummaryEnabled?: boolean;
 	stats: {
 		cacheCount: number;
 		matchedCacheCount: number;
@@ -86,6 +88,7 @@ export interface SystemStats {
 	archive: {
 		count: number;
 	};
+	aiSummaryEnabled?: boolean;
 }
 
 export interface SystemHealthStats {

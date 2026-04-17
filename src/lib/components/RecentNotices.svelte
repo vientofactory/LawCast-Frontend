@@ -15,6 +15,7 @@
 
 	export let notices: Notice[] = [];
 	export let stats: SystemStats | undefined = undefined;
+	$: aiSummaryEnabled = stats?.aiSummaryEnabled !== false;
 </script>
 
 <div
@@ -61,7 +62,7 @@
 		</div>
 	{/if}
 
-	{#if notices.length > 0}
+	{#if notices.length > 0 && aiSummaryEnabled}
 		<a
 			href="./notices"
 			class="group/ai mb-4 block rounded-xl border border-cyan-200/70 bg-linear-to-r from-cyan-50 via-sky-50 to-indigo-50 p-3 shadow-sm transition-all duration-200 hover:shadow-md"

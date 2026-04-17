@@ -36,12 +36,14 @@
 	$: startDate = archive?.startDate || '';
 	$: endDate = archive?.endDate || '';
 	$: sortOrder = archive?.sortOrder === 'asc' ? 'asc' : 'desc';
+	$: aiSummaryEnabled = archive?.aiSummaryEnabled !== false;
 	$: hasActiveFilters =
 		searchQuery.trim().length > 0 || startDate.trim().length > 0 || endDate.trim().length > 0;
 	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
 
-	const pageDescription =
-		'입법예고 아카이브에서 키워드 검색과 페이지네이션으로 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.';
+	$: pageDescription = aiSummaryEnabled
+		? '입법예고 아카이브에서 키워드 검색과 페이지네이션으로 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.'
+		: '입법예고 아카이브에서 키워드 검색과 페이지네이션으로 법률안을 조회하고 원문을 확인할 수 있습니다.';
 
 	let error = '';
 	$: if (data) {
@@ -139,6 +141,10 @@
 	}
 
 	function shouldShowAIBriefing(notice: (typeof notices)[number]) {
+		if (!aiSummaryEnabled) {
+			return false;
+		}
+
 		return notice.aiSummaryStatus === 'ready' || notice.aiSummaryStatus === 'unavailable';
 	}
 
@@ -183,7 +189,9 @@
 	<meta name="description" content={pageDescription} />
 	<meta
 		name="keywords"
-		content="전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, AI 요약"
+		content={aiSummaryEnabled
+			? '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, AI 요약'
+			: '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용'}
 	/>
 	<meta name="robots" content="index, follow, max-image-preview:large" />
 
@@ -219,22 +227,24 @@
 			<span class="font-semibold text-gray-700">전체 입법예고</span>
 		</nav>
 
-		<div
-			class="mb-6 rounded-xl border border-amber-200/80 bg-linear-to-r from-amber-50 to-orange-50 p-4 shadow-sm"
-		>
-			<div class="flex items-start gap-3">
-				<div class="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
-					<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
-				</div>
-				<div>
-					<p class="text-sm font-semibold text-amber-900">안내</p>
-					<p class="mt-1 text-sm leading-relaxed text-amber-800/90">
-						AI 요약은 참고용으로 제공되며 해석상 오류가 있을 수 있습니다. 중요 판단 전 반드시 각
-						법률안의 원문(제안이유 및 주요내용)을 함께 확인해주세요.
-					</p>
+		{#if aiSummaryEnabled}
+			<div
+				class="mb-6 rounded-xl border border-amber-200/80 bg-linear-to-r from-amber-50 to-orange-50 p-4 shadow-sm"
+			>
+				<div class="flex items-start gap-3">
+					<div class="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
+						<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
+					</div>
+					<div>
+						<p class="text-sm font-semibold text-amber-900">안내</p>
+						<p class="mt-1 text-sm leading-relaxed text-amber-800/90">
+							AI 요약은 참고용으로 제공되며 해석상 오류가 있을 수 있습니다. 중요 판단 전 반드시 각
+							법률안의 원문(제안이유 및 주요내용)을 함께 확인해주세요.
+						</p>
+					</div>
 				</div>
 			</div>
-		</div>
+		{/if}
 
 		<div
 			class="mb-6 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
