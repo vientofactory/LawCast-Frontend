@@ -42,7 +42,7 @@
 
 <svelte:head>
 	<title
-		>LawCast - 국회 입법예고 알리미{archiveTotalCount > 0
+		>LawCast - 국회 입법예고 스냅샷 아카이브{archiveTotalCount > 0
 			? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건`
 			: ''}</title
 	>
@@ -57,14 +57,14 @@
 	<meta property="og:site_name" content="LawCast" />
 	<meta
 		property="og:title"
-		content={`LawCast - 국회 입법예고 알리미${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
+		content={`LawCast - 국회 입법예고 스냅샷 아카이브${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
 	/>
 	<meta property="og:description" content={pageDescription} />
 
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta
 		name="twitter:title"
-		content={`LawCast - 국회 입법예고 알리미${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
+		content={`LawCast - 국회 입법예고 스냅샷 아카이브${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
 	/>
 	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
@@ -94,14 +94,10 @@
 			/>
 		{/if}
 
-		<blockquote
-			class="rounded-lg border-l-4 border-blue-300 bg-linear-to-r from-blue-50/50 to-indigo-50/30 p-4 leading-relaxed font-medium text-slate-600 italic"
-		>
-			게임에 잠수함 패치는 있을 수 있지만, 법안에 잠수함 패치는 있을 수 없습니다.<br />
-			모든 사람들이 입법예고의 투명한 감시 권리를 가질 수 있는 그 날까지 LawCast는 함께합니다.
-		</blockquote>
+		<div class="mt-5 flex flex-col gap-8">
+			<!-- Recent Notices -->
+			<RecentNotices notices={recentNotices} {stats} />
 
-		<div class="mt-5 grid grid-cols-1 gap-8 lg:grid-cols-2">
 			<!-- Webhook Registration -->
 			<WebhookRegistrationForm
 				isInitialLoading={false}
@@ -111,9 +107,6 @@
 				onClearMessage={clearMessage}
 				onWebhookRegistered={handleWebhookRegistered}
 			/>
-
-			<!-- Recent Notices -->
-			<RecentNotices notices={recentNotices} {stats} />
 		</div>
 	</main>
 </div>
