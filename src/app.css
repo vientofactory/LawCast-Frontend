@@ -98,3 +98,17 @@ body {
 	border-top-color: #6366f1 !important;
 	border-left-color: #6366f1 !important;
 }
+
+/* 공통 로딩 슬라이드 효과 */
+.loading-slide {
+	animation: loading-slide 1.15s ease-in-out infinite;
+}
+
+@keyframes loading-slide {
+	0% {
+		transform: translateX(-120%);
+	}
+	100% {
+		transform: translateX(320%);
+	}
+}

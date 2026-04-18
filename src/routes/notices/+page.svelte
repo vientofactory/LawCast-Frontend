@@ -3,6 +3,7 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
+	import { navigating } from '$app/stores';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -17,6 +18,7 @@
 		faFileDownload,
 		faFileText,
 		faMagnifyingGlass,
+		faSpinner,
 		faTriangleExclamation
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { ArchiveNoticeListResponse } from '$lib/types/api';
@@ -73,6 +75,18 @@
 	$: isQuickClearRangeActive = !startDate.trim() && !endDate.trim();
 	$: hasDateReversed =
 		startDate.trim().length > 0 && endDate.trim().length > 0 && startDate > endDate;
+	$: isServerLoading =
+		!!$navigating?.to?.url && $navigating.to.url.pathname.replace(/\/+$/, '') === '/notices';
+
+	let pendingPaginationPage: number | null = null;
+	let wasServerLoading = false;
+
+	$: {
+		if (wasServerLoading && !isServerLoading) {
+			pendingPaginationPage = null;
+		}
+		wasServerLoading = isServerLoading;
+	}
 
 	type QueryLinkOverrides = {
 		page?: number;
@@ -180,6 +194,21 @@
 		items.push(totalPages);
 		return items;
 	}
+
+	function handlePaginationClick(event: MouseEvent, targetPage: number) {
+		if (
+			event.defaultPrevented ||
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey
+		) {
+			return;
+		}
+
+		pendingPaginationPage = targetPage;
+	}
 </script>
 
 <svelte:head>
@@ -267,7 +296,14 @@
 		{#if error}
 			<Alert type="error" message={error} dismissible={false} />
 		{:else}
-			<form method="GET" action="/notices" class="mb-5">
+			<form
+				method="GET"
+				action="/notices"
+				class="mb-5"
+				class:pointer-events-none={isServerLoading}
+				class:opacity-80={isServerLoading}
+				aria-busy={isServerLoading}
+			>
 				<div class="mb-2 flex flex-wrap items-center gap-2">
 					<span class="text-xs font-semibold text-slate-500">빠른 기간</span>
 					<a
@@ -412,9 +448,15 @@
 				<div class="mt-2 flex items-center gap-2">
 					<button
 						type="submit"
+						disabled={isServerLoading}
 						class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
 					>
-						검색
+						{#if isServerLoading}
+							<FontAwesomeIcon icon={faSpinner} class="mr-2 h-4 w-4 animate-spin" />
+							불러오는 중
+						{:else}
+							검색
+						{/if}
 					</button>
 					<a
 						href="/notices"
@@ -423,208 +465,260 @@
 						필터 초기화
 					</a>
 				</div>
-			</form>
-
-			{#if notices.length === 0}
-				<div
-					class="rounded-2xl border border-gray-200/50 bg-linear-to-br from-gray-50 to-blue-50/30 p-16 text-center shadow-xl backdrop-blur-sm"
-				>
-					<div class="mb-6 inline-block rounded-full bg-linear-to-r from-gray-200 to-blue-200 p-6">
-						<FontAwesomeIcon icon={faBell} class="h-16 w-16 text-gray-400" />
-					</div>
-					<h3 class="mb-3 text-2xl font-bold text-gray-800">
-						{hasActiveFilters ? '검색 결과가 없습니다' : '입법예고가 없습니다'}
-					</h3>
-					{#if hasActiveFilters}
-						<p class="text-sm text-gray-600">다른 키워드로 다시 검색해보세요.</p>
-					{/if}
-				</div>
-			{:else}
-				<div class="space-y-4">
-					{#each notices as notice (notice.num)}
-						<div class="rounded-lg bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6">
-							<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-								<div class="min-w-0 flex-1">
-									<div class="mb-3 flex flex-wrap items-center gap-2">
-										<span
-											class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
-										>
-											의안번호 {notice.num}
-										</span>
-									</div>
-
-									<h3
-										class="mb-3 text-lg leading-tight font-semibold wrap-break-word text-gray-900"
-									>
-										{notice.subject}
-									</h3>
-
-									<div class="flex flex-wrap gap-4 text-sm text-gray-600">
-										<div class="flex items-center">
-											<FontAwesomeIcon icon={faCalendar} class="mr-1 h-4 w-4" />
-											제안자 구분: {notice.proposerCategory}
-										</div>
-										<div class="flex items-center">
-											<FontAwesomeIcon icon={faBell} class="mr-1 h-4 w-4" />
-											소관위원회: {notice.committee}
-										</div>
-									</div>
-
-									{#if shouldShowAIBriefing(notice)}
-										<AIBriefingCard
-											summary={notice.aiSummary ?? null}
-											status={notice.aiSummaryStatus ?? 'unavailable'}
-										/>
-									{/if}
-								</div>
-
-								<div
-									class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end lg:ml-4 lg:w-auto lg:shrink-0"
-								>
-									<a
-										href={`/notices/${notice.num}`}
-										class="inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800"
-										title="제안이유 및 주요내용 원문 조회"
-									>
-										원문 조회
-									</a>
-
-									{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
-										<div class="flex items-center gap-1">
-											{#if isDownloadable(notice.attachments.pdfFile)}
-												<button
-													on:click={() =>
-														downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
-													class="cursor-pointer rounded-md bg-red-50 p-2.5 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
-													title="PDF 다운로드"
-												>
-													<FontAwesomeIcon icon={faFileText} class="h-5 w-5" />
-												</button>
-											{/if}
-											{#if isDownloadable(notice.attachments.hwpFile)}
-												<button
-													on:click={() =>
-														downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
-													class="cursor-pointer rounded-md bg-blue-50 p-2.5 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
-													title="HWP 다운로드"
-												>
-													<FontAwesomeIcon icon={faFileDownload} class="h-5 w-5" />
-												</button>
-											{/if}
-											<div class="hidden h-6 w-px bg-gray-200 sm:block"></div>
-										</div>
-									{/if}
-									<button
-										on:click={() => openExternalLink(notice.link)}
-										class="cursor-pointer rounded-md bg-gray-50 p-2.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700"
-										title="자세히 보기"
-									>
-										<FontAwesomeIcon icon={faExternalLink} class="h-5 w-5" />
-									</button>
-								</div>
-							</div>
-						</div>
-					{/each}
-				</div>
-
-				{#if totalPages > 1}
-					<div class="mt-12 flex items-center justify-center space-x-3">
-						{#if currentPage > 1}
-							<a
-								href={buildPageLink(1)}
-								aria-label="첫 페이지로 이동"
-								title="첫 페이지"
-								class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md"
-							>
-								<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
-							</a>
-						{:else}
-							<span
-								aria-hidden="true"
-								class="rounded-xl border-2 border-gray-200 bg-white/60 px-4 py-3 text-sm font-semibold text-gray-400 opacity-60"
-							>
-								<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
-							</span>
-						{/if}
-						{#if currentPage > 1}
-							<a
-								href={buildPageLink(currentPage - 1)}
-								aria-label="이전 페이지로 이동"
-								title="이전 페이지"
-								class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md"
-							>
-								<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
-							</a>
-						{:else}
-							<span
-								aria-hidden="true"
-								class="rounded-xl border-2 border-gray-200 bg-white/60 px-4 py-3 text-sm font-semibold text-gray-400 opacity-60"
-							>
-								<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
-							</span>
-						{/if}
-
-						{#each getPaginationItems() as item, idx (`${item}-${idx}`)}
-							{#if typeof item === 'number'}
-								<a
-									href={buildPageLink(item)}
-									class={`rounded-xl px-4 py-3 text-sm font-bold shadow-sm transition-all duration-200 hover:shadow-md ${
-										currentPage === item
-											? 'scale-105 bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
-											: 'border-2 border-gray-200 bg-white/80 text-gray-600 backdrop-blur-sm hover:border-blue-200 hover:bg-white hover:text-blue-600'
-									}`}
-								>
-									{item}
-								</a>
-							{:else}
-								<span class="px-2 text-sm font-semibold text-gray-400">...</span>
-							{/if}
-						{/each}
-						{#if currentPage < totalPages}
-							<a
-								href={buildPageLink(currentPage + 1)}
-								aria-label="다음 페이지로 이동"
-								title="다음 페이지"
-								class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md"
-							>
-								<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
-							</a>
-						{:else}
-							<span
-								aria-hidden="true"
-								class="rounded-xl border-2 border-gray-200 bg-white/60 px-4 py-3 text-sm font-semibold text-gray-400 opacity-60"
-							>
-								<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
-							</span>
-						{/if}
-						{#if currentPage < totalPages}
-							<a
-								href={buildPageLink(totalPages)}
-								aria-label="마지막 페이지로 이동"
-								title="마지막 페이지"
-								class="rounded-xl border-2 border-gray-200 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md"
-							>
-								<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
-							</a>
-						{:else}
-							<span
-								aria-hidden="true"
-								class="rounded-xl border-2 border-gray-200 bg-white/60 px-4 py-3 text-sm font-semibold text-gray-400 opacity-60"
-							>
-								<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
-							</span>
-						{/if}
-					</div>
-
-					<div class="mt-6 text-center">
-						<span
-							class="inline-flex items-center rounded-full bg-linear-to-r from-gray-100 to-blue-100 px-4 py-2 text-sm font-semibold text-gray-700"
-						>
-							{getPaginationInfo()}
-						</span>
+				{#if isServerLoading}
+					<div
+						class="mt-3 h-1 w-full overflow-hidden rounded-full bg-blue-100"
+						role="status"
+						aria-live="polite"
+					>
+						<div class="loading-slide h-full w-1/3 rounded-full bg-blue-500"></div>
 					</div>
 				{/if}
-			{/if}
+			</form>
+
+			<div class="relative">
+				{#if notices.length === 0}
+					<div
+						class="rounded-2xl border border-gray-200/50 bg-linear-to-br from-gray-50 to-blue-50/30 p-16 text-center shadow-xl backdrop-blur-sm"
+					>
+						<div
+							class="mb-6 inline-block rounded-full bg-linear-to-r from-gray-200 to-blue-200 p-6"
+						>
+							<FontAwesomeIcon icon={faBell} class="h-16 w-16 text-gray-400" />
+						</div>
+						<h3 class="mb-3 text-2xl font-bold text-gray-800">
+							{hasActiveFilters ? '검색 결과가 없습니다' : '입법예고가 없습니다'}
+						</h3>
+						{#if hasActiveFilters}
+							<p class="text-sm text-gray-600">다른 키워드로 다시 검색해보세요.</p>
+						{/if}
+					</div>
+				{:else}
+					<div class="space-y-4" class:opacity-85={isServerLoading}>
+						{#each notices as notice (notice.num)}
+							<div class="rounded-lg bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6">
+								<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+									<div class="min-w-0 flex-1">
+										<div class="mb-3 flex flex-wrap items-center gap-2">
+											<span
+												class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+											>
+												의안번호 {notice.num}
+											</span>
+										</div>
+
+										<h3
+											class="mb-3 text-lg leading-tight font-semibold wrap-break-word text-gray-900"
+										>
+											{notice.subject}
+										</h3>
+
+										<div class="flex flex-wrap gap-4 text-sm text-gray-600">
+											<div class="flex items-center">
+												<FontAwesomeIcon icon={faCalendar} class="mr-1 h-4 w-4" />
+												제안자 구분: {notice.proposerCategory}
+											</div>
+											<div class="flex items-center">
+												<FontAwesomeIcon icon={faBell} class="mr-1 h-4 w-4" />
+												소관위원회: {notice.committee}
+											</div>
+										</div>
+
+										{#if shouldShowAIBriefing(notice)}
+											<AIBriefingCard
+												summary={notice.aiSummary ?? null}
+												status={notice.aiSummaryStatus ?? 'unavailable'}
+											/>
+										{/if}
+									</div>
+
+									<div
+										class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end lg:ml-4 lg:w-auto lg:shrink-0"
+									>
+										<a
+											href={`/notices/${notice.num}`}
+											class="inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800"
+											title="제안이유 및 주요내용 원문 조회"
+										>
+											원문 조회
+										</a>
+
+										{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
+											<div class="flex items-center gap-1">
+												{#if isDownloadable(notice.attachments.pdfFile)}
+													<button
+														on:click={() =>
+															downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
+														class="cursor-pointer rounded-md bg-red-50 p-2.5 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
+														title="PDF 다운로드"
+													>
+														<FontAwesomeIcon icon={faFileText} class="h-5 w-5" />
+													</button>
+												{/if}
+												{#if isDownloadable(notice.attachments.hwpFile)}
+													<button
+														on:click={() =>
+															downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
+														class="cursor-pointer rounded-md bg-blue-50 p-2.5 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
+														title="HWP 다운로드"
+													>
+														<FontAwesomeIcon icon={faFileDownload} class="h-5 w-5" />
+													</button>
+												{/if}
+												<div class="hidden h-6 w-px bg-gray-200 sm:block"></div>
+											</div>
+										{/if}
+										<button
+											on:click={() => openExternalLink(notice.link)}
+											class="cursor-pointer rounded-md bg-gray-50 p-2.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700"
+											title="자세히 보기"
+										>
+											<FontAwesomeIcon icon={faExternalLink} class="h-5 w-5" />
+										</button>
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+
+					{#if totalPages > 1}
+						<div class="mt-12 flex flex-wrap items-center justify-center gap-2 px-2">
+							{#if currentPage > 1}
+								<a
+									href={buildPageLink(1)}
+									on:click={(event) => handlePaginationClick(event, 1)}
+									aria-label="첫 페이지로 이동"
+									title="첫 페이지"
+									class="rounded-xl border-2 border-gray-200 bg-white/80 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+								>
+									{#if pendingPaginationPage === 1}
+										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+									{:else}
+										<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
+									{/if}
+								</a>
+							{:else}
+								<span
+									aria-hidden="true"
+									class="rounded-xl border-2 border-gray-200 bg-white/60 px-3 py-2 text-xs font-semibold text-gray-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+								>
+									<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
+								</span>
+							{/if}
+							{#if currentPage > 1}
+								<a
+									href={buildPageLink(currentPage - 1)}
+									on:click={(event) => handlePaginationClick(event, currentPage - 1)}
+									aria-label="이전 페이지로 이동"
+									title="이전 페이지"
+									class="rounded-xl border-2 border-gray-200 bg-white/80 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+								>
+									{#if pendingPaginationPage === currentPage - 1}
+										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+									{:else}
+										<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
+									{/if}
+								</a>
+							{:else}
+								<span
+									aria-hidden="true"
+									class="rounded-xl border-2 border-gray-200 bg-white/60 px-3 py-2 text-xs font-semibold text-gray-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+								>
+									<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
+								</span>
+							{/if}
+
+							{#each getPaginationItems() as item, idx (`${item}-${idx}`)}
+								{#if typeof item === 'number'}
+									<a
+										href={buildPageLink(item)}
+										on:click={(event) => handlePaginationClick(event, item)}
+										class={`rounded-xl px-3 py-2 text-xs font-bold shadow-sm transition-all duration-200 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm ${
+											currentPage === item
+												? 'scale-105 bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
+												: 'border-2 border-gray-200 bg-white/80 text-gray-600 backdrop-blur-sm hover:border-blue-200 hover:bg-white hover:text-blue-600'
+										}`}
+									>
+										{#if pendingPaginationPage === item}
+											<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+										{:else}
+											{item}
+										{/if}
+									</a>
+								{:else}
+									<span class="px-1 text-xs font-semibold text-gray-400 sm:px-2 sm:text-sm"
+										>...</span
+									>
+								{/if}
+							{/each}
+							{#if currentPage < totalPages}
+								<a
+									href={buildPageLink(currentPage + 1)}
+									on:click={(event) => handlePaginationClick(event, currentPage + 1)}
+									aria-label="다음 페이지로 이동"
+									title="다음 페이지"
+									class="rounded-xl border-2 border-gray-200 bg-white/80 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+								>
+									{#if pendingPaginationPage === currentPage + 1}
+										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+									{:else}
+										<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
+									{/if}
+								</a>
+							{:else}
+								<span
+									aria-hidden="true"
+									class="rounded-xl border-2 border-gray-200 bg-white/60 px-3 py-2 text-xs font-semibold text-gray-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+								>
+									<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
+								</span>
+							{/if}
+							{#if currentPage < totalPages}
+								<a
+									href={buildPageLink(totalPages)}
+									on:click={(event) => handlePaginationClick(event, totalPages)}
+									aria-label="마지막 페이지로 이동"
+									title="마지막 페이지"
+									class="rounded-xl border-2 border-gray-200 bg-white/80 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+								>
+									{#if pendingPaginationPage === totalPages}
+										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+									{:else}
+										<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
+									{/if}
+								</a>
+							{:else}
+								<span
+									aria-hidden="true"
+									class="rounded-xl border-2 border-gray-200 bg-white/60 px-3 py-2 text-xs font-semibold text-gray-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+								>
+									<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
+								</span>
+							{/if}
+						</div>
+
+						<div class="mt-6 text-center">
+							<span
+								class="inline-flex items-center rounded-full bg-linear-to-r from-gray-100 to-blue-100 px-4 py-2 text-sm font-semibold text-gray-700"
+							>
+								{getPaginationInfo()}
+							</span>
+						</div>
+					{/if}
+				{/if}
+
+				{#if isServerLoading}
+					<div class="pointer-events-none absolute inset-0 z-10 rounded-2xl bg-white/35"></div>
+					<div
+						class="pointer-events-none absolute top-3 right-3 z-20 inline-flex items-center rounded-full border border-blue-200 bg-white/90 px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm"
+						role="status"
+						aria-live="polite"
+					>
+						<FontAwesomeIcon icon={faSpinner} class="mr-1.5 h-3.5 w-3.5 animate-spin" />
+						불러오는 중
+					</div>
+				{/if}
+			</div>
 		{/if}
 	</main>
 </div>
