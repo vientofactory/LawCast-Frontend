@@ -3,9 +3,10 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import WebhookRegistrationForm from '$lib/components/WebhookRegistrationForm.svelte';
 	import RecentNotices from '$lib/components/RecentNotices.svelte';
+	import { navigating } from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
+	import { faMagnifyingGlass, faSpinner } from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -17,6 +18,8 @@
 	$: pageDescription = aiSummaryEnabled
 		? '국회 입법예고 변동사항을 디스코드로 빠르게 받아보세요. 최신 입법예고 목록과 AI의 요약을 한 번에 확인할 수 있습니다.'
 		: '국회 입법예고 변동사항을 디스코드로 빠르게 받아보세요. 최신 입법예고 목록과 원문 정보를 한 번에 확인할 수 있습니다.';
+	$: isQuickSearchLoading =
+		!!$navigating?.to?.url && $navigating.to.url.pathname.replace(/\/+$/, '') === '/notices';
 
 	// Local state for UI messages
 	let error = '';
@@ -91,22 +94,44 @@
 						전체 입법예고로 이동
 					</a>
 				</div>
-				<form method="GET" action="/notices" class="flex flex-col gap-2 sm:flex-row">
+				<form
+					method="GET"
+					action="/notices"
+					class="flex flex-col gap-2 sm:flex-row"
+					class:pointer-events-none={isQuickSearchLoading}
+					class:opacity-80={isQuickSearchLoading}
+					aria-busy={isQuickSearchLoading}
+				>
 					<input
 						type="text"
 						name="search"
 						placeholder="법률안명, 제안자, 소관위원회로 검색"
+						disabled={isQuickSearchLoading}
 						class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-xs outline-hidden transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
 					/>
 					<button
 						type="submit"
 						aria-label="검색"
 						title="검색"
+						disabled={isQuickSearchLoading}
 						class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-blue-700"
 					>
-						<FontAwesomeIcon icon={faMagnifyingGlass} class="h-4 w-4" />
+						{#if isQuickSearchLoading}
+							<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+						{:else}
+							<FontAwesomeIcon icon={faMagnifyingGlass} class="h-4 w-4" />
+						{/if}
 					</button>
 				</form>
+				{#if isQuickSearchLoading}
+					<div
+						class="mt-3 h-1 w-full overflow-hidden rounded-full bg-blue-100"
+						role="status"
+						aria-live="polite"
+					>
+						<div class="loading-slide h-full w-1/3 rounded-full bg-blue-500"></div>
+					</div>
+				{/if}
 			</section>
 
 			<!-- Recent Notices -->
