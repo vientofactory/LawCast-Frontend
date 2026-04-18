@@ -4,6 +4,8 @@
 	import WebhookRegistrationForm from '$lib/components/WebhookRegistrationForm.svelte';
 	import RecentNotices from '$lib/components/RecentNotices.svelte';
 	import { invalidateAll } from '$app/navigation';
+	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+	import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -77,6 +79,36 @@
 
 	<main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 		<div class="mt-5 flex flex-col gap-8">
+			<section
+				class="rounded-2xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
+			>
+				<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+					<h2 class="text-base font-bold text-gray-900">법률안 빠른 검색</h2>
+					<a
+						href="/notices"
+						class="text-xs font-semibold text-blue-700 transition-colors hover:text-blue-800"
+					>
+						전체 입법예고로 이동
+					</a>
+				</div>
+				<form method="GET" action="/notices" class="flex flex-col gap-2 sm:flex-row">
+					<input
+						type="text"
+						name="search"
+						placeholder="법률안명, 제안자, 소관위원회로 검색"
+						class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-xs outline-hidden transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+					/>
+					<button
+						type="submit"
+						aria-label="검색"
+						title="검색"
+						class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-blue-700"
+					>
+						<FontAwesomeIcon icon={faMagnifyingGlass} class="h-4 w-4" />
+					</button>
+				</form>
+			</section>
+
 			<!-- Recent Notices -->
 			<RecentNotices notices={recentNotices} {stats} />
 

@@ -65,6 +65,16 @@
 				? '검증 실패'
 				: '검증 대기';
 
+	$: contentFacts = [
+		{ label: '의안번호', value: detail.originalContent.billNumber },
+		{ label: '제안자', value: detail.originalContent.proposer },
+		{ label: '제안일', value: detail.originalContent.proposalDate },
+		{ label: '소관위원회', value: detail.originalContent.committee },
+		{ label: '회부일', value: detail.originalContent.referralDate },
+		{ label: '입법예고기간', value: detail.originalContent.noticePeriod },
+		{ label: '제안회기', value: detail.originalContent.proposalSession }
+	].filter((item) => !!item.value);
+
 	let isArchiveMetaOpen = false;
 </script>
 
@@ -164,6 +174,23 @@
 							기준으로 확인해주세요.
 						</p>
 					</div>
+				</div>
+			</section>
+		{/if}
+
+		{#if contentFacts.length > 0}
+			<section class="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+				<div class="mb-4 flex items-center gap-2">
+					<FontAwesomeIcon icon={faScaleBalanced} class="h-5 w-5 text-blue-600" />
+					<h2 class="text-lg font-bold text-gray-900">입법예고 정보</h2>
+				</div>
+				<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+					{#each contentFacts as fact (fact.label)}
+						<div class="rounded-lg border border-gray-200 bg-white px-3 py-2">
+							<p class="text-xs font-semibold text-gray-500">{fact.label}</p>
+							<p class="mt-1 text-sm font-medium text-gray-800">{fact.value}</p>
+						</div>
+					{/each}
 				</div>
 			</section>
 		{/if}

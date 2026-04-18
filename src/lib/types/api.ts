@@ -19,6 +19,13 @@ export interface NoticeOriginalContent {
 	contentId: string;
 	title: string;
 	proposalReason: string;
+	billNumber: string | null;
+	proposer: string | null;
+	proposalDate: string | null;
+	committee: string | null;
+	referralDate: string | null;
+	noticePeriod: string | null;
+	proposalSession: string | null;
 }
 
 export interface NoticeArchiveMetadata {
