@@ -214,12 +214,12 @@
 		>
 			<summary
 				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-slate-50"
-				aria-label="아카이브 무결성 메타데이터 열기/닫기"
-				title="아카이브 무결성 메타데이터 열기/닫기"
+				aria-label="아카이브 상세정보 열기/닫기"
+				title="아카이브 상세정보 열기/닫기"
 			>
 				<span class="flex items-center gap-2">
 					<FontAwesomeIcon icon={faShieldHalved} class="h-5 w-5 text-emerald-600" />
-					<h2 class="text-lg font-bold text-gray-900">아카이브 무결성 메타데이터</h2>
+					<h2 class="text-lg font-bold text-gray-900">아카이브 상세정보</h2>
 				</span>
 				<span
 					class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition-all duration-200 hover:bg-slate-100 hover:text-slate-800"
@@ -242,7 +242,7 @@
 								class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
 							>
 								<FontAwesomeIcon icon={faDownload} class="mr-1.5 h-3.5 w-3.5" />
-								자료 반출 요청 (ZIP: JSON + 메타데이터)
+								자료 반출 요청(ZIP)
 							</a>
 						</div>
 						<div class="grid gap-3 text-sm sm:grid-cols-2">
