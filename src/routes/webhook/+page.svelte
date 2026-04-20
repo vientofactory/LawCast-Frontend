@@ -3,7 +3,7 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import WebhookRegistrationForm from '$lib/components/WebhookRegistrationForm.svelte';
 	import { invalidateAll } from '$app/navigation';
-
+	import { onMount } from 'svelte';
 	let error = '';
 	let success = '';
 
@@ -23,6 +23,15 @@
 	async function handleWebhookRegistered() {
 		await invalidateAll();
 	}
+
+	onMount(async () => {
+		const { warmupHashGuardWorker } = await import('$lib/hashguard-worker');
+		try {
+			await warmupHashGuardWorker();
+		} catch {
+			/* empty */
+		}
+	});
 </script>
 
 <svelte:head>
