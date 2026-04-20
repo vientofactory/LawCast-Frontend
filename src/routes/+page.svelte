@@ -1,10 +1,7 @@
 <script lang="ts">
 	import Header from '$lib/components/Header.svelte';
-	import Alert from '$lib/components/Alert.svelte';
-	import WebhookRegistrationForm from '$lib/components/WebhookRegistrationForm.svelte';
 	import RecentNotices from '$lib/components/RecentNotices.svelte';
 	import { navigating } from '$app/stores';
-	import { invalidateAll } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faMagnifyingGlass, faSpinner } from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
@@ -20,32 +17,6 @@
 		: '국회 입법예고 변동사항을 디스코드로 빠르게 받아보세요. 최신 입법예고 목록과 원문 정보를 한 번에 확인할 수 있습니다.';
 	$: isQuickSearchLoading =
 		!!$navigating?.to?.url && $navigating.to.url.pathname.replace(/\/+$/, '') === '/notices';
-
-	// Local state for UI messages
-	let error = '';
-	let success = '';
-
-	// Update error from data if present
-	$: if (data.error) {
-		error = data.error;
-	}
-
-	function clearMessage() {
-		error = '';
-		success = '';
-	}
-
-	function handleWebhookError(message: string) {
-		error = message;
-	}
-
-	function handleWebhookSuccess(message: string) {
-		success = message;
-	}
-
-	async function handleWebhookRegistered() {
-		await invalidateAll(); // 통계 업데이트
-	}
 </script>
 
 <svelte:head>
@@ -137,43 +108,11 @@
 
 			<!-- Recent Notices -->
 			<RecentNotices notices={recentNotices} {stats} />
-
-			<!-- Messages -->
-			{#if error}
-				<Alert
-					type="error"
-					message={error}
-					showRefresh={error.includes('초기 데이터')}
-					onDismiss={clearMessage}
-					onRefresh={() => location.reload()}
-				/>
-			{/if}
-
-			{#if success}
-				<Alert
-					type="success"
-					message={success}
-					autoHide={true}
-					autoHideDelay={4000}
-					onDismiss={clearMessage}
-				/>
-			{/if}
-
-			<!-- Webhook Registration -->
-			<WebhookRegistrationForm
-				isInitialLoading={false}
-				{stats}
-				onError={handleWebhookError}
-				onSuccess={handleWebhookSuccess}
-				onClearMessage={clearMessage}
-				onWebhookRegistered={handleWebhookRegistered}
-			/>
 		</div>
 	</main>
 </div>
 
 <style>
-	/* 더 부드러운 호버 효과를 위한 커스텀 스타일 */
 	:global(.group:hover .transition-colors) {
 		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 	}

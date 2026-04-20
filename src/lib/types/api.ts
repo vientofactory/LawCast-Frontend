@@ -78,7 +78,9 @@ export interface ArchiveNoticeListResponse {
 export interface WebhookStats {
 	total: number;
 	active: number;
-	inactive: number;
+	inactive?: number;
+	oldInactive?: number;
+	recentInactive?: number;
 	efficiency?: number;
 }
 
@@ -89,12 +91,47 @@ export interface CacheInfo {
 	isInitialized: boolean;
 }
 
+export type OllamaHealthStatus = 'disabled' | 'misconfigured' | 'unknown' | 'healthy' | 'unhealthy';
+
+export interface OllamaMetrics {
+	enabled: boolean;
+	configured: boolean;
+	model: string | null;
+	summary: {
+		total: number;
+		success: number;
+		failed: number;
+		skipped: number;
+		successRate: number;
+		lastLatencyMs?: number | null;
+		lastSuccessAt?: string | null;
+		lastFailureAt?: string | null;
+		lastError?: string | null;
+	};
+	health: {
+		status: OllamaHealthStatus;
+		lastCheckedAt: string | null;
+		lastLatencyMs: number | null;
+		availableModelCount: number | null;
+		error?: string | null;
+	};
+}
+
+export interface BatchProcessingStats {
+	jobCount: number;
+	jobIds?: string[];
+	isShuttingDown?: boolean;
+	activeTimeouts?: number;
+}
+
 export interface SystemStats {
 	webhooks: WebhookStats;
 	cache: CacheInfo;
 	archive: {
 		count: number;
 	};
+	batchProcessing?: BatchProcessingStats;
+	ollama?: OllamaMetrics;
 	aiSummaryEnabled?: boolean;
 }
 
