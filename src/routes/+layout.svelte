@@ -30,6 +30,9 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<meta name="robots" content="index, follow, max-image-preview:large" />
+	<meta property="og:site_name" content="LawCast" />
+	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 {@render children()}

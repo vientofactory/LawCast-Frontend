@@ -102,7 +102,18 @@
 	<title>LawCast - 시스템 상태</title>
 	<meta
 		name="description"
-		content="LawCast 시스템 상태 대시보드입니다. 웹훅, 캐시, 배치 처리, AI 요약(Ollama) 상태를 확인할 수 있습니다."
+		content="LawCast 시스템 상태 대시보드입니다. 웹훅, 캐시, 배치 처리, AI 요약 상태를 확인할 수 있습니다."
+	/>
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content="LawCast - 시스템 상태" />
+	<meta
+		property="og:description"
+		content="LawCast 시스템 상태 대시보드입니다. 웹훅, 캐시, 배치 처리, AI 요약 상태를 확인할 수 있습니다."
+	/>
+	<meta name="twitter:title" content="LawCast - 시스템 상태" />
+	<meta
+		name="twitter:description"
+		content="LawCast 시스템 상태 대시보드입니다. 웹훅, 캐시, 배치 처리, AI 요약 상태를 확인할 수 있습니다."
 	/>
 </svelte:head>
 

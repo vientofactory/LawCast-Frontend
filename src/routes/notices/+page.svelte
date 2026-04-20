@@ -222,17 +222,12 @@
 			? '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, AI 요약'
 			: '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용'}
 	/>
-	<meta name="robots" content="index, follow, max-image-preview:large" />
-
 	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content="LawCast" />
 	<meta
 		property="og:title"
 		content={`전체 입법예고${archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
 	/>
 	<meta property="og:description" content={pageDescription} />
-
-	<meta name="twitter:card" content="summary_large_image" />
 	<meta
 		name="twitter:title"
 		content={`전체 입법예고${archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast`}

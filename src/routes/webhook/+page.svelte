@@ -25,6 +25,29 @@
 	}
 </script>
 
+<svelte:head>
+	<title>LawCast - 웹훅 등록 | 국회 입법예고 스냅샷 아카이브</title>
+	<meta
+		name="description"
+		content="LawCast 웹훅 등록 페이지. 국회 입법예고 변동사항을 디스코드 등으로 실시간 받아보려면 웹훅을 등록하세요."
+	/>
+	<meta
+		name="keywords"
+		content="LawCast, 입법예고, 웹훅, 디스코드, 알림, 국회 법률안, 법안 모니터링, 입법예고 알림"
+	/>
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content="LawCast - 웹훅 등록 | 국회 입법예고 스냅샷 아카이브" />
+	<meta
+		property="og:description"
+		content="LawCast 웹훅 등록 페이지. 국회 입법예고 변동사항을 디스코드 등으로 실시간 받아보려면 웹훅을 등록하세요."
+	/>
+	<meta name="twitter:title" content="LawCast - 웹훅 등록 | 국회 입법예고 스냅샷 아카이브" />
+	<meta
+		name="twitter:description"
+		content="LawCast 웹훅 등록 페이지. 국회 입법예고 변동사항을 디스코드 등으로 실시간 받아보려면 웹훅을 등록하세요."
+	/>
+</svelte:head>
+
 <div class="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
 	<Header />
 

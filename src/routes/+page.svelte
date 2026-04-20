@@ -30,17 +30,12 @@
 		name="keywords"
 		content="LawCast, 입법예고, 국회 법률안, 법안 알림, 디스코드 웹훅, 법률안 모니터링"
 	/>
-	<meta name="robots" content="index, follow, max-image-preview:large" />
-
 	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content="LawCast" />
 	<meta
 		property="og:title"
 		content={`LawCast - 국회 입법예고 스냅샷 아카이브${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
 	/>
 	<meta property="og:description" content={pageDescription} />
-
-	<meta name="twitter:card" content="summary_large_image" />
 	<meta
 		name="twitter:title"
 		content={`LawCast - 국회 입법예고 스냅샷 아카이브${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
