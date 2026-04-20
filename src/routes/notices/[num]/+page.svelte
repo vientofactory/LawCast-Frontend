@@ -85,14 +85,9 @@
 		name="keywords"
 		content="법률안 원문, 제안이유 및 주요내용, 입법예고 상세, 국회 법안, 의안번호"
 	/>
-	<meta name="robots" content="index, follow, max-image-preview:large" />
-
 	<meta property="og:type" content="article" />
-	<meta property="og:site_name" content="LawCast" />
 	<meta property="og:title" content={pageTitle} />
 	<meta property="og:description" content={pageDescription} />
-
-	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content={pageTitle} />
 	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
