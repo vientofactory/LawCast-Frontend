@@ -1,3 +1,5 @@
+export type AISummaryStatus = 'ready' | 'unavailable' | 'not_supported' | 'not_requested';
+
 export interface Notice {
 	num: number;
 	subject: string;
@@ -7,7 +9,7 @@ export interface Notice {
 	archiveStartedAt?: string;
 	lastUpdatedAt?: string;
 	aiSummary?: string | null;
-	aiSummaryStatus?: 'ready' | 'unavailable' | 'not_supported' | 'not_requested';
+	aiSummaryStatus?: AISummaryStatus;
 	contentId?: string | null;
 	attachments: {
 		pdfFile: string;
