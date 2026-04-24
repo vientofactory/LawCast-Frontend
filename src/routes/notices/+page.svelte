@@ -3,8 +3,10 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
-	import { navigating } from '$app/stores';
-	import { SvelteDate } from 'svelte/reactivity';
+	import { navigating, page } from '$app/stores';
+	import { get } from 'svelte/store';
+	import { goto } from '$app/navigation';
+	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
@@ -90,6 +92,7 @@
 
 	type QueryLinkOverrides = {
 		page?: number;
+		limit?: number;
 		search?: string;
 		startDate?: string;
 		endDate?: string;
@@ -97,32 +100,21 @@
 	};
 
 	function buildQueryLink(overrides: QueryLinkOverrides = {}) {
-		const nextPage = overrides.page ?? currentPage;
-		const nextSearch = (overrides.search ?? searchQuery).trim();
-		const nextStartDate = (overrides.startDate ?? startDate).trim();
-		const nextEndDate = (overrides.endDate ?? endDate).trim();
-		const nextSortOrder = overrides.sortOrder ?? sortOrder;
-
-		const params: string[] = [
-			`page=${encodeURIComponent(String(nextPage))}`,
-			`limit=${encodeURIComponent(String(limit))}`
-		];
-
-		if (nextSearch) {
-			params.push(`search=${encodeURIComponent(nextSearch)}`);
-		}
-
-		if (nextStartDate) {
-			params.push(`startDate=${encodeURIComponent(nextStartDate)}`);
-		}
-
-		if (nextEndDate) {
-			params.push(`endDate=${encodeURIComponent(nextEndDate)}`);
-		}
-
-		params.push(`sortOrder=${encodeURIComponent(nextSortOrder)}`);
-
-		return `/notices?${params.join('&')}`;
+		// Always get the latest $page value for correct query params
+		const currentPageStore = get(page);
+		let searchParams = new SvelteURLSearchParams(currentPageStore.url.search);
+		if (overrides.page !== undefined) searchParams.set('page', String(overrides.page));
+		if (overrides.limit !== undefined) searchParams.set('limit', String(overrides.limit));
+		if (overrides.search !== undefined) searchParams.set('search', overrides.search.trim());
+		if (overrides.startDate !== undefined)
+			searchParams.set('startDate', overrides.startDate.trim());
+		if (overrides.endDate !== undefined) searchParams.set('endDate', overrides.endDate.trim());
+		if (overrides.sortOrder !== undefined) searchParams.set('sortOrder', overrides.sortOrder);
+		// 기본값 보장
+		if (!searchParams.get('page')) searchParams.set('page', String(currentPage));
+		if (!searchParams.get('limit')) searchParams.set('limit', String(limit));
+		if (!searchParams.get('sortOrder')) searchParams.set('sortOrder', sortOrder);
+		return `/notices?${searchParams.toString()}`;
 	}
 
 	function buildFilterLink(overrides: {
@@ -162,7 +154,8 @@
 		return notice.aiSummaryStatus === 'ready' || notice.aiSummaryStatus === 'unavailable';
 	}
 
-	function getPaginationItems(): Array<number | 'left-ellipsis' | 'right-ellipsis'> {
+	// Make pagination items reactive to archive/totalPages/currentPage
+	$: paginationItems = (() => {
 		if (totalPages <= 7) {
 			return Array.from({ length: totalPages }, (_, idx) => idx + 1);
 		}
@@ -193,7 +186,7 @@
 
 		items.push(totalPages);
 		return items;
-	}
+	})();
 
 	function handlePaginationClick(event: MouseEvent, targetPage: number) {
 		if (
@@ -206,8 +199,27 @@
 		) {
 			return;
 		}
-
+		event.preventDefault();
 		pendingPaginationPage = targetPage;
+		const url = buildPageLink(targetPage);
+		goto(url, { invalidateAll: true });
+	}
+
+	function handleFilterSubmit(event: Event) {
+		const form = event.currentTarget as HTMLFormElement;
+		const formData = new FormData(form);
+		const params = new SvelteURLSearchParams();
+		params.set('page', '1');
+		params.set('limit', String(limit));
+		const search = (formData.get('search') || '').toString().trim();
+		const startDate = (formData.get('startDate') || '').toString().trim();
+		const endDate = (formData.get('endDate') || '').toString().trim();
+		const sortOrder = (formData.get('sortOrder') || 'desc').toString();
+		if (search) params.set('search', search);
+		if (startDate) params.set('startDate', startDate);
+		if (endDate) params.set('endDate', endDate);
+		if (sortOrder) params.set('sortOrder', sortOrder);
+		goto(`/notices?${params.toString()}`, { invalidateAll: true });
 	}
 </script>
 
@@ -298,6 +310,7 @@
 				class:pointer-events-none={isServerLoading}
 				class:opacity-80={isServerLoading}
 				aria-busy={isServerLoading}
+				on:submit|preventDefault={handleFilterSubmit}
 			>
 				<div class="mb-2 flex flex-wrap items-center gap-2">
 					<span class="text-xs font-semibold text-slate-500">빠른 기간</span>
@@ -576,7 +589,7 @@
 						{/each}
 					</div>
 
-					{#if totalPages > 1}
+					{#if totalPages > 1 && totalItems > limit}
 						<div class="mt-12 flex flex-wrap items-center justify-center gap-2 px-2">
 							{#if currentPage > 1}
 								<a
@@ -623,7 +636,7 @@
 								</span>
 							{/if}
 
-							{#each getPaginationItems() as item, idx (`${item}-${idx}`)}
+							{#each paginationItems as item, idx (`${item}-${idx}`)}
 								{#if typeof item === 'number'}
 									<a
 										href={buildPageLink(item)}
