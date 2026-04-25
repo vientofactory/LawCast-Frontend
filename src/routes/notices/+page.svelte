@@ -202,7 +202,7 @@
 		event.preventDefault();
 		pendingPaginationPage = targetPage;
 		const url = buildPageLink(targetPage);
-		goto(url, { invalidateAll: true });
+		goto(url);
 	}
 
 	function handleFilterSubmit(event: Event) {
@@ -219,7 +219,7 @@
 		if (startDate) params.set('startDate', startDate);
 		if (endDate) params.set('endDate', endDate);
 		if (sortOrder) params.set('sortOrder', sortOrder);
-		goto(`/notices?${params.toString()}`, { invalidateAll: true });
+		goto(`/notices?${params.toString()}`);
 	}
 </script>
 
