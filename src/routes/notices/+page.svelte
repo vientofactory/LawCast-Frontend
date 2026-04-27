@@ -544,7 +544,7 @@
 										class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end lg:ml-4 lg:w-auto lg:shrink-0"
 									>
 										<a
-											href={`/notices/${notice.num}`}
+											href={`/notices/${notice.num}?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&sortOrder=${sortOrder}`}
 											class="inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800"
 											title="제안이유 및 주요내용 원문 조회"
 										>
