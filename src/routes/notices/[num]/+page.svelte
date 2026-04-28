@@ -2,6 +2,7 @@
 	import Header from '$lib/components/Header.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
+	import { page } from '$app/stores';
 	import { fade, slide } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -19,6 +20,7 @@
 		faUser
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { NoticeDetail } from '$lib/types/api';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 
 	export let data: { detail: NoticeDetail };
 
@@ -75,6 +77,25 @@
 		{ label: '제안회기', value: detail.originalContent.proposalSession }
 	].filter((item) => !!item.value);
 
+	$: pageParam = $page.url.searchParams.get('page');
+	$: limitParam = $page.url.searchParams.get('limit');
+	$: searchParam = $page.url.searchParams.get('search');
+	$: startDateParam = $page.url.searchParams.get('startDate');
+	$: endDateParam = $page.url.searchParams.get('endDate');
+	$: sortOrderParam = $page.url.searchParams.get('sortOrder');
+
+	$: backLink = (() => {
+		const params = new SvelteURLSearchParams();
+		if (pageParam) params.set('page', pageParam);
+		if (limitParam) params.set('limit', limitParam);
+		if (searchParam) params.set('search', searchParam);
+		if (startDateParam) params.set('startDate', startDateParam);
+		if (endDateParam) params.set('endDate', endDateParam);
+		if (sortOrderParam) params.set('sortOrder', sortOrderParam);
+		const query = params.toString();
+		return query ? `/notices?${query}` : '/notices';
+	})();
+
 	let isArchiveMetaOpen = false;
 </script>
 
@@ -98,7 +119,7 @@
 	<main class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
 		<nav class="mb-8 flex items-center space-x-3 text-sm">
 			<a
-				href="/notices"
+				href={backLink}
 				class="flex items-center rounded-lg border border-gray-200/50 bg-white/70 px-3 py-2 text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-gray-800"
 			>
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
