@@ -62,6 +62,10 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Change ownership of the app directory
 RUN chown -R sveltekit:nodejs /app
+
+# Remove SUID/SGID bits from binaries to prevent privilege escalation
+RUN find /bin /usr/bin /usr/local/bin -xdev \( -perm /4000 -o -perm /2000 \) -exec chmod -s {} + 2>/dev/null || true
+
 USER sveltekit
 
 # Expose port
