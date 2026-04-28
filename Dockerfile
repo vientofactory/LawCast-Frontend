@@ -1,4 +1,16 @@
 # Frontend Dockerfile
+
+# hardened_malloc build stage – security-focused memory allocator (GrapheneOS)
+# NOTE: Requires host vm.max_map_count >= 1048576:
+#   sysctl -w vm.max_map_count=1048576  (host)  or  docker-compose sysctls
+FROM node:24-alpine AS hardened-malloc
+RUN apk add --no-cache git build-base linux-headers
+RUN git clone --depth 1 https://github.com/GrapheneOS/hardened_malloc.git /hardened_malloc
+WORKDIR /hardened_malloc
+# CONFIG_NATIVE=false  – portable build for Alpine/musl (no host-specific CET/AVX instructions)
+# CONFIG_CXX_ALLOCATOR=false – skips libstdc++ linkage so the .so has no extra runtime deps
+RUN make CONFIG_NATIVE=false CONFIG_CXX_ALLOCATOR=false
+
 FROM node:24-alpine AS base
 
 # Install dependencies only when needed
@@ -32,7 +44,12 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
+# Copy hardened_malloc before LD_PRELOAD is active so the library exists
+# for all subsequent RUN instructions in this stage
+COPY --from=hardened-malloc /hardened_malloc/out/libhardened_malloc.so /usr/local/lib/libhardened_malloc.so
+
 ENV NODE_ENV=production
+ENV LD_PRELOAD=/usr/local/lib/libhardened_malloc.so
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
