@@ -119,11 +119,24 @@ export interface OllamaMetrics {
 	};
 }
 
+export interface BatchRunRecord {
+	id: string;
+	startedAt: string;
+	completedAt: string | null;
+	totalJobs: number;
+	successCount: number;
+	failedCount: number;
+	duration: number | null;
+	status: 'running' | 'completed' | 'failed';
+	error?: string | null;
+}
+
 export interface BatchProcessingStats {
 	jobCount: number;
 	jobIds?: string[];
 	isShuttingDown?: boolean;
 	activeTimeouts?: number;
+	recentJobs?: BatchRunRecord[];
 }
 
 export interface SystemStats {
@@ -135,14 +148,32 @@ export interface SystemStats {
 	batchProcessing?: BatchProcessingStats;
 	ollama?: OllamaMetrics;
 	aiSummaryEnabled?: boolean;
+	nodeRuntime?: {
+		eventLoopDelay: {
+			min: number;
+			max: number;
+			mean: number;
+			stddev: number;
+			percentiles: { p50: number; p90: number; p99: number };
+			exceeds: number;
+			lastUpdated: number;
+		} | null;
+		memory: {
+			rss: number;
+			heapTotal: number;
+			heapUsed: number;
+			external: number;
+			arrayBuffers: number;
+		};
+	};
 }
 
 export interface SystemHealthStats {
 	total: number;
 	active: number;
-	inactive: number;
-	oldInactive: number;
-	recentInactive: number;
+	inactive?: number;
+	oldInactive?: number;
+	recentInactive?: number;
 	efficiency: number;
 }
 
