@@ -19,7 +19,7 @@
 		faXmarkCircle
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
-	import type { OllamaHealthStatus } from '$lib/types/api';
+	import type { OllamaHealthStatus, BatchRunRecord, BatchProcessingStats } from '$lib/types/api';
 
 	export let data: PageData;
 
@@ -82,6 +82,41 @@
 					badge: 'bg-gray-100 text-gray-700 border-gray-200',
 					icon: faClock
 				};
+		}
+	}
+
+	$: recentJobs = ((stats.batchProcessing as BatchProcessingStats | undefined)?.recentJobs ??
+		[]) as BatchRunRecord[];
+
+	function formatDuration(ms: number | null | undefined): string {
+		if (ms == null) return '-';
+		if (ms < 1000) return `${ms}ms`;
+		return `${(ms / 1000).toFixed(1)}s`;
+	}
+
+	function batchStatusStyle(status: BatchRunRecord['status']) {
+		switch (status) {
+			case 'completed':
+				return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+			case 'failed':
+				return 'bg-red-100 text-red-700 border-red-200';
+			case 'running':
+				return 'bg-blue-100 text-blue-700 border-blue-200';
+			default:
+				return 'bg-slate-100 text-slate-600 border-slate-200';
+		}
+	}
+
+	function batchStatusLabel(status: BatchRunRecord['status']): string {
+		switch (status) {
+			case 'completed':
+				return '완료';
+			case 'failed':
+				return '실패';
+			case 'running':
+				return '실행 중';
+			default:
+				return status;
 		}
 	}
 
@@ -338,10 +373,8 @@
 						>
 					</li>
 					<li class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-						<span>배치 작업 ID 수</span>
-						<span class="font-semibold"
-							>{(stats.batchProcessing?.jobIds?.length ?? 0).toLocaleString('ko-KR')}</span
-						>
+						<span>최근 배치 이력</span>
+						<span class="font-semibold">{recentJobs.length.toLocaleString('ko-KR')}건</span>
 					</li>
 				</ul>
 			</section>
@@ -351,14 +384,14 @@
 			<section class="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
 				<h2 class="mb-2 flex items-center text-sm font-bold text-amber-900">
 					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-4 w-4" />
-					운영 주의 항목
+					안내
 				</h2>
 				<div class="space-y-1 text-sm text-amber-900">
 					{#if hasCacheIssue}
 						<p>캐시가 초기화되지 않았습니다. 크롤링/Redis 상태를 확인하세요.</p>
 					{/if}
 					{#if hasBatchBacklog}
-						<p>현재 배치 작업이 진행 중입니다. 대량 처리 시점일 수 있습니다.</p>
+						<p>현재 배치 작업이 진행 중입니다. 서비스 응답이 일시적으로 지연될 수 있습니다.</p>
 					{/if}
 					{#if hasOllamaIssue}
 						<p>
@@ -377,19 +410,71 @@
 		>
 			<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
 				<FontAwesomeIcon icon={faBoxArchive} class="mr-2 h-4 w-4 text-indigo-600" />
-				배치 작업 ID
+				최근 배치 작업 이력
+				{#if recentJobs.length > 0}
+					<span
+						class="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-600"
+					>
+						{recentJobs.length}건
+					</span>
+				{/if}
 			</h2>
-			{#if (stats.batchProcessing?.jobIds?.length ?? 0) === 0}
-				<p class="text-sm text-slate-500">실행 중인 배치 작업이 없습니다.</p>
+			{#if recentJobs.length === 0}
+				<p class="text-sm text-slate-500">기록된 배치 작업이 없습니다.</p>
 			{:else}
-				<div class="flex flex-wrap gap-2">
-					{#each stats.batchProcessing?.jobIds ?? [] as jobId (jobId)}
-						<span
-							class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-						>
-							{jobId}
-						</span>
-					{/each}
+				<div class="overflow-x-auto">
+					<table class="w-full min-w-140 text-sm">
+						<thead>
+							<tr class="border-b border-slate-100 text-left text-xs font-semibold text-slate-500">
+								<th class="pr-4 pb-2">ID</th>
+								<th class="pr-4 pb-2">시작 시간</th>
+								<th class="pr-4 pb-2">상태</th>
+								<th class="pr-4 pb-2 text-right">작업</th>
+								<th class="pr-4 pb-2 text-right">성공</th>
+								<th class="pr-4 pb-2 text-right">실패</th>
+								<th class="pb-2 text-right">소요</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-slate-50">
+							{#each recentJobs as job (job.id)}
+								<tr class="text-slate-700 hover:bg-slate-50/60">
+									<td class="py-2 pr-4">
+										<span
+											class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600"
+											title={job.id}
+										>
+											{job.id.slice(-12)}
+										</span>
+									</td>
+									<td class="py-2 pr-4 text-xs text-slate-500">{formatDateTime(job.startedAt)}</td>
+									<td class="py-2 pr-4">
+										<span
+											class={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${batchStatusStyle(job.status)}`}
+										>
+											{batchStatusLabel(job.status)}
+										</span>
+										{#if job.status === 'failed' && job.error}
+											<span class="ml-1 text-xs text-red-500" title={job.error}>(!)</span>
+										{/if}
+									</td>
+									<td class="py-2 pr-4 text-right font-semibold">{job.totalJobs}</td>
+									<td class="py-2 pr-4 text-right font-semibold text-emerald-600">
+										{job.status === 'running' ? '-' : job.successCount}
+									</td>
+									<td
+										class="py-2 pr-4 text-right font-semibold {job.failedCount > 0
+											? 'text-red-500'
+											: 'text-slate-400'}"
+									>
+										{job.status === 'running' ? '-' : job.failedCount}
+									</td>
+									<td class="py-2 text-right text-xs text-slate-500"
+										>{formatDuration(job.duration)}</td
+									>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
 				</div>
 			{/if}
 		</section>
