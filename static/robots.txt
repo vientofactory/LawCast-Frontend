@@ -1,3 +1,6 @@
-# allow crawling everything by default
 User-agent: *
-Disallow:
+Disallow: /status
+Disallow: /webhook
+Disallow: /api/
+
+Sitemap: https://law.viento.me/sitemap.xml
