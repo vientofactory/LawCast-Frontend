@@ -5,6 +5,10 @@ import type { Notice, ArchiveNoticeListResponse } from '$lib/types/api';
 const BACKEND_URL = API_BASE_URL || 'http://localhost:3001/api';
 const BATCH_SIZE = 100;
 const MAX_NOTICES = 5000; // Google 권장 상한 50,000 이내
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간
+
+let cachedXml: string | null = null;
+let cacheExpiresAt = 0;
 
 interface NoticeEntry {
 	num: number;
@@ -72,6 +76,16 @@ function urlTag(loc: string, lastmod: string, changefreq: string, priority: stri
 }
 
 export const GET: RequestHandler = async ({ fetch, url }) => {
+	const now = Date.now();
+	if (cachedXml && now < cacheExpiresAt) {
+		return new Response(cachedXml, {
+			headers: {
+				'Content-Type': 'application/xml; charset=utf-8',
+				'Cache-Control': 'public, max-age=3600, s-maxage=3600'
+			}
+		});
+	}
+
 	const origin = url.origin;
 	const today = new Date().toISOString().split('T')[0];
 
@@ -94,6 +108,9 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${[...staticEntries, ...noticeEntries].join('\n')}
 </urlset>`;
+
+	cachedXml = xml;
+	cacheExpiresAt = now + CACHE_TTL_MS;
 
 	return new Response(xml, {
 		headers: {
