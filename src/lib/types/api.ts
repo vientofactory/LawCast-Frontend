@@ -129,6 +129,7 @@ export interface BatchRunRecord {
 	duration: number | null;
 	status: 'running' | 'completed' | 'failed';
 	error?: string | null;
+	metadata?: Record<string, unknown>;
 }
 
 export interface BatchProcessingStats {
