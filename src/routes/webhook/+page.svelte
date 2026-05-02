@@ -4,6 +4,7 @@
 	import WebhookRegistrationForm from '$lib/components/WebhookRegistrationForm.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { warmupHashGuardWorker } from '$lib/hashguard-worker';
 	let error = '';
 	let success = '';
 
@@ -25,11 +26,10 @@
 	}
 
 	onMount(async () => {
-		const { warmupHashGuardWorker } = await import('$lib/hashguard-worker');
 		try {
 			await warmupHashGuardWorker();
-		} catch {
-			/* empty */
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
 		}
 	});
 </script>

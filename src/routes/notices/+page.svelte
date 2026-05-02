@@ -143,7 +143,7 @@
 
 		const start = (currentPage - 1) * limit + 1;
 		const end = Math.min(currentPage * limit, totalItems);
-		return `${start}-${end} / ${totalItems}개`;
+		return `${start.toLocaleString('ko-KR')}-${end.toLocaleString('ko-KR')} / ${totalItems.toLocaleString('ko-KR')}개`;
 	}
 
 	function shouldShowAIBriefing(notice: (typeof notices)[number]) {
