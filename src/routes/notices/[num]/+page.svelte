@@ -57,6 +57,67 @@
 			: detail.originalContent.proposalReason
 	);
 
+	function safeJsonLd(data: object): string {
+		return JSON.stringify(data)
+			.replace(/</g, '\\u003c')
+			.replace(/>/g, '\\u003e')
+			.replace(/&/g, '\\u0026');
+	}
+
+	$: pageUrl = $page.url.origin + $page.url.pathname;
+	$: publishedTime = detail.archiveMetadata.archivedAt ?? detail.notice.archiveStartedAt ?? null;
+	$: modifiedTime = detail.notice.lastUpdatedAt ?? publishedTime;
+	$: pageKeywords = [
+		detail.notice.subject,
+		detail.originalContent.committee ?? detail.notice.committee,
+		detail.originalContent.proposer,
+		detail.originalContent.billNumber,
+		'입법예고',
+		'국회 법률안',
+		'제안이유 및 주요내용',
+		'법률안 원문',
+		'의안번호'
+	]
+		.filter(Boolean)
+		.join(', ');
+	$: articleJsonLd = safeJsonLd({
+		'@context': 'https://schema.org',
+		'@graph': [
+			{
+				'@type': 'BreadcrumbList',
+				itemListElement: [
+					{ '@type': 'ListItem', position: 1, name: '홈', item: `${$page.url.origin}/` },
+					{
+						'@type': 'ListItem',
+						position: 2,
+						name: '전체 입법예고',
+						item: `${$page.url.origin}/notices`
+					},
+					{
+						'@type': 'ListItem',
+						position: 3,
+						name: detail.notice.subject,
+						item: pageUrl
+					}
+				]
+			},
+			{
+				'@type': 'Article',
+				headline: detail.notice.subject,
+				description: pageDescription,
+				url: pageUrl,
+				...(publishedTime ? { datePublished: publishedTime } : {}),
+				...(modifiedTime ? { dateModified: modifiedTime } : {}),
+				author: detail.originalContent.proposer
+					? { '@type': 'Organization', name: detail.originalContent.proposer }
+					: undefined,
+				publisher: { '@type': 'Organization', name: 'LawCast' },
+				inLanguage: 'ko',
+				isPartOf: { '@type': 'WebSite', name: 'LawCast', url: `${$page.url.origin}/` }
+			}
+		]
+	});
+
 	$: shouldShowAIBriefing =
 		aiSummaryEnabled &&
 		(detail.notice.aiSummaryStatus === 'ready' || detail.notice.aiSummaryStatus === 'unavailable');
@@ -101,16 +162,23 @@
 
 <svelte:head>
 	<title>{pageTitle}</title>
+	<link rel="canonical" href={pageUrl} />
 	<meta name="description" content={pageDescription} />
-	<meta
-		name="keywords"
-		content="법률안 원문, 제안이유 및 주요내용, 입법예고 상세, 국회 법안, 의안번호"
-	/>
+	<meta name="keywords" content={pageKeywords} />
 	<meta property="og:type" content="article" />
+	<meta property="og:url" content={pageUrl} />
 	<meta property="og:title" content={pageTitle} />
 	<meta property="og:description" content={pageDescription} />
+	{#if publishedTime}
+		<meta property="article:published_time" content={publishedTime} />
+	{/if}
+	{#if modifiedTime}
+		<meta property="article:modified_time" content={modifiedTime} />
+	{/if}
 	<meta name="twitter:title" content={pageTitle} />
 	<meta name="twitter:description" content={pageDescription} />
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+	{@html `<script type="application/ld+json">${articleJsonLd}<` + `/script>`}
 </svelte:head>
 
 <div class="min-h-screen bg-linear-to-br from-slate-50 via-sky-50/30 to-indigo-50/20">

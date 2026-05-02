@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Header from '$lib/components/Header.svelte';
 	import RecentNotices from '$lib/components/RecentNotices.svelte';
-	import { navigating } from '$app/stores';
+	import { navigating, page } from '$app/stores';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faMagnifyingGlass, faSpinner } from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
@@ -17,6 +17,31 @@
 		: '국회 입법예고 변동사항을 디스코드로 빠르게 받아보세요. 최신 입법예고 목록과 원문 정보를 한 번에 확인할 수 있습니다.';
 	$: isQuickSearchLoading =
 		!!$navigating?.to?.url && $navigating.to.url.pathname.replace(/\/+$/, '') === '/notices';
+
+	function safeJsonLd(data: object): string {
+		return JSON.stringify(data)
+			.replace(/</g, '\\u003c')
+			.replace(/>/g, '\\u003e')
+			.replace(/&/g, '\\u0026');
+	}
+
+	$: pageUrl = $page.url.origin + '/';
+	$: websiteJsonLd = safeJsonLd({
+		'@context': 'https://schema.org',
+		'@type': 'WebSite',
+		name: 'LawCast',
+		url: pageUrl,
+		description: '국회 입법예고 스냅샷 아카이브 서비스',
+		inLanguage: 'ko',
+		potentialAction: {
+			'@type': 'SearchAction',
+			target: {
+				'@type': 'EntryPoint',
+				urlTemplate: `${$page.url.origin}/notices?search={search_term_string}`
+			},
+			'query-input': 'required name=search_term_string'
+		}
+	});
 </script>
 
 <svelte:head>
@@ -25,12 +50,14 @@
 			? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건`
 			: ''}</title
 	>
+	<link rel="canonical" href={pageUrl} />
 	<meta name="description" content={pageDescription} />
 	<meta
 		name="keywords"
-		content="LawCast, 입법예고, 국회 법률안, 법안 알림, 디스코드 웹훅, 법률안 모니터링"
+		content="LawCast, 입법예고, 국회 입법예고 알림, 국회 법률안, 법안 알림, 디스코드 웹훅, 법률안 모니터링, 입법예고 아카이브, 법안 검색"
 	/>
 	<meta property="og:type" content="website" />
+	<meta property="og:url" content={pageUrl} />
 	<meta
 		property="og:title"
 		content={`LawCast - 국회 입법예고 스냅샷 아카이브${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
@@ -41,6 +68,8 @@
 		content={`LawCast - 국회 입법예고 스냅샷 아카이브${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
 	/>
 	<meta name="twitter:description" content={pageDescription} />
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+	{@html `<script type="application/ld+json">${websiteJsonLd}<` + `/script>`}
 </svelte:head>
 
 <div class="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
