@@ -45,6 +45,15 @@
 		searchQuery.trim().length > 0 || startDate.trim().length > 0 || endDate.trim().length > 0;
 	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
 
+	$: canonicalUrl = (() => {
+		const base = $page.url.origin + $page.url.pathname;
+		if (!hasActiveFilters && currentPage > 1) {
+			return `${base}?page=${currentPage}&limit=${limit}&sortOrder=${sortOrder}`;
+		}
+		return base;
+	})();
+	$: shouldNoIndex = hasActiveFilters;
+
 	$: pageDescription = aiSummaryEnabled
 		? '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.'
 		: '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고 원문을 확인할 수 있습니다.';
@@ -227,14 +236,19 @@
 	<title
 		>전체 입법예고{archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast</title
 	>
+	<link rel="canonical" href={canonicalUrl} />
+	{#if shouldNoIndex}
+		<meta name="robots" content="noindex, follow" />
+	{/if}
 	<meta name="description" content={pageDescription} />
 	<meta
 		name="keywords"
 		content={aiSummaryEnabled
-			? '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, AI 요약'
-			: '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용'}
+			? '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, AI 요약, 입법예고 아카이브, 법안 검색, 국회 입법예고 알림'
+			: '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, 입법예고 아카이브, 법안 검색, 국회 입법예고 알림'}
 	/>
 	<meta property="og:type" content="website" />
+	<meta property="og:url" content={canonicalUrl} />
 	<meta
 		property="og:title"
 		content={`전체 입법예고${archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
