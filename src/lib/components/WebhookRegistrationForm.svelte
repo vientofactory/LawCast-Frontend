@@ -23,7 +23,6 @@
 	let powDifficultyBits: number | null = null;
 	let powHashRate: number | null = null;
 	let powEstimatedRemainingMs: number | null = null;
-	let powAttemptProgress: number | null = null;
 
 	function formatHashRate(rate: number): string {
 		if (rate >= 1_000_000) return `${(rate / 1_000_000).toFixed(1)} MH/s`;
@@ -44,7 +43,6 @@
 		if (status.hashRate !== undefined) powHashRate = status.hashRate;
 		if (status.estimatedRemainingMs !== undefined)
 			powEstimatedRemainingMs = status.estimatedRemainingMs;
-		if (status.attemptProgress !== undefined) powAttemptProgress = status.attemptProgress;
 	}
 
 	async function addWebhook() {
@@ -71,7 +69,6 @@
 			powDifficultyBits = null;
 			powHashRate = null;
 			powEstimatedRemainingMs = null;
-			powAttemptProgress = null;
 
 			const proof = await executePowInWorker('webhook-registration', updatePowStatus);
 			isSolvingPoW = false;
@@ -99,7 +96,6 @@
 			powDifficultyBits = null;
 			powHashRate = null;
 			powEstimatedRemainingMs = null;
-			powAttemptProgress = null;
 			if (err instanceof Error) {
 				onError(err.message);
 			} else {
@@ -140,7 +136,7 @@
 		{#if stats}
 			<li class="flex items-start font-medium text-blue-700">
 				<span class="mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600"></span>
-				현재 {stats.webhooks.active.toLocaleString()}개의 채널에 알림을 전송하고 있습니다
+				현재 {stats.webhooks.active.toLocaleString('ko-KR')}개의 채널에 알림을 전송하고 있습니다
 			</li>
 		{/if}
 	</ul>
@@ -189,14 +185,6 @@
 				{powStatusMessage ||
 					'잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.'}
 			</p>
-			{#if powAttemptProgress !== null && powAttemptProgress > 0}
-				<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
-					<div
-						class="h-full rounded-full bg-linear-to-r from-blue-400 to-indigo-500 transition-all duration-500"
-						style="width: {Math.min(powAttemptProgress * 100, 100).toFixed(1)}%"
-					></div>
-				</div>
-			{/if}
 			{#if powEstimatedRemainingMs !== null || powHashRate !== null || powDifficultyBits !== null}
 				<div class="flex items-center justify-center gap-2 text-[11px] text-gray-400">
 					{#if powEstimatedRemainingMs !== null}
