@@ -46,8 +46,8 @@
 	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
 
 	$: pageDescription = aiSummaryEnabled
-		? '입법예고 아카이브에서 키워드 검색과 페이지네이션으로 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.'
-		: '입법예고 아카이브에서 키워드 검색과 페이지네이션으로 법률안을 조회하고 원문을 확인할 수 있습니다.';
+		? '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.'
+		: '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고 원문을 확인할 수 있습니다.';
 
 	let error = '';
 	$: if (data) {
