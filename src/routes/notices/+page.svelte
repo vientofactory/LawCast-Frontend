@@ -19,6 +19,7 @@
 		faExternalLink,
 		faFileDownload,
 		faFileText,
+		faLock,
 		faMagnifyingGlass,
 		faSpinner,
 		faTriangleExclamation
@@ -40,9 +41,16 @@
 	$: startDate = archive?.startDate || '';
 	$: endDate = archive?.endDate || '';
 	$: sortOrder = archive?.sortOrder === 'asc' ? 'asc' : 'desc';
+	$: isDoneFilter = (() => {
+		const v = $page.url.searchParams.get('isDone');
+		return v === 'true' ? true : v === 'false' ? false : undefined;
+	})();
 	$: aiSummaryEnabled = archive?.aiSummaryEnabled !== false;
 	$: hasActiveFilters =
-		searchQuery.trim().length > 0 || startDate.trim().length > 0 || endDate.trim().length > 0;
+		searchQuery.trim().length > 0 ||
+		startDate.trim().length > 0 ||
+		endDate.trim().length > 0 ||
+		isDoneFilter !== undefined;
 	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
 
 	$: canonicalUrl = (() => {
@@ -106,6 +114,7 @@
 		startDate?: string;
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
+		isDone?: boolean | null;
 	};
 
 	function buildQueryLink(overrides: QueryLinkOverrides = {}) {
@@ -119,6 +128,13 @@
 			searchParams.set('startDate', overrides.startDate.trim());
 		if (overrides.endDate !== undefined) searchParams.set('endDate', overrides.endDate.trim());
 		if (overrides.sortOrder !== undefined) searchParams.set('sortOrder', overrides.sortOrder);
+		if ('isDone' in overrides) {
+			if (overrides.isDone === null || overrides.isDone === undefined) {
+				searchParams.delete('isDone');
+			} else {
+				searchParams.set('isDone', String(overrides.isDone));
+			}
+		}
 		// 기본값 보장
 		if (!searchParams.get('page')) searchParams.set('page', String(currentPage));
 		if (!searchParams.get('limit')) searchParams.set('limit', String(limit));
@@ -131,13 +147,15 @@
 		startDate?: string;
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
+		isDone?: boolean | null;
 	}) {
 		return buildQueryLink({
 			page: 1,
 			search: overrides.search,
 			startDate: overrides.startDate,
 			endDate: overrides.endDate,
-			sortOrder: overrides.sortOrder
+			sortOrder: overrides.sortOrder,
+			...('isDone' in overrides ? { isDone: overrides.isDone } : {})
 		});
 	}
 
@@ -368,6 +386,43 @@
 					>
 						기간 해제
 					</a>
+					<span class="hidden h-4 w-px bg-slate-200 sm:block"></span>
+					<div
+						class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold"
+						role="group"
+						aria-label="입법예고 상태 필터"
+					>
+						<a
+							href={buildQueryLink({ page: 1, isDone: null })}
+							class={`rounded-full px-3 py-1 transition-colors ${
+								isDoneFilter === undefined
+									? 'bg-white text-slate-800 shadow-sm'
+									: 'text-slate-500 hover:text-slate-700'
+							}`}
+						>
+							전체
+						</a>
+						<a
+							href={buildQueryLink({ page: 1, isDone: false })}
+							class={`rounded-full px-3 py-1 transition-colors ${
+								isDoneFilter === false
+									? 'bg-emerald-500 text-white shadow-sm'
+									: 'text-slate-500 hover:text-slate-700'
+							}`}
+						>
+							진행 중
+						</a>
+						<a
+							href={buildQueryLink({ page: 1, isDone: isDoneFilter === true ? null : true })}
+							class={`rounded-full px-3 py-1 transition-colors ${
+								isDoneFilter === true
+									? 'bg-gray-400 text-white shadow-sm'
+									: 'text-slate-500 hover:text-slate-700'
+							}`}
+						>
+							종료된
+						</a>
+					</div>
 				</div>
 				<div class="grid gap-2 md:grid-cols-[1fr_auto_auto_auto] md:items-center">
 					<div class="relative flex-1">
@@ -452,6 +507,28 @@
 								</a>
 							</span>
 						{/if}
+						{#if isDoneFilter !== undefined}
+							<span
+								class={`inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ${
+									isDoneFilter ? 'bg-gray-200 text-gray-700' : 'bg-emerald-50 text-emerald-700'
+								}`}
+							>
+								{#if isDoneFilter}
+									<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
+									종료된 입법예고만
+								{:else}
+									<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+									진행 중인 입법예고만
+								{/if}
+								<a
+									href={buildQueryLink({ page: 1, isDone: null })}
+									class="ml-1 opacity-60 hover:opacity-100"
+									aria-label="상태 필터 해제"
+								>
+									✕
+								</a>
+							</span>
+						{/if}
 						<span
 							class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700"
 						>
@@ -518,7 +595,11 @@
 				{:else}
 					<div class="space-y-4" class:opacity-85={isServerLoading}>
 						{#each notices as notice (notice.num)}
-							<div class="rounded-lg bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6">
+							<div
+								class={`rounded-lg border-l-4 bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6 ${
+									notice.isDone ? 'border-l-gray-300 bg-gray-50/60' : 'border-l-emerald-400'
+								}`}
+							>
 								<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 									<div class="min-w-0 flex-1">
 										<div class="mb-3 flex flex-wrap items-center gap-2">
@@ -527,10 +608,25 @@
 											>
 												의안번호 {notice.num}
 											</span>
+											{#if notice.isDone}
+												<span
+													class="inline-flex items-center gap-1 rounded-md bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-600"
+												>
+													<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
+													입법예고 종료
+												</span>
+											{:else}
+												<span
+													class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700"
+												>
+													<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+													진행 중
+												</span>
+											{/if}
 										</div>
 
 										<h3
-											class="mb-3 text-lg leading-tight font-semibold wrap-break-word text-gray-900"
+											class={`mb-3 text-lg leading-tight font-semibold wrap-break-word ${notice.isDone ? 'text-gray-500' : 'text-gray-900'}`}
 										>
 											{notice.subject}
 										</h3>

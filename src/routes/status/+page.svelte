@@ -21,7 +21,12 @@
 		faArrowRight
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
-	import type { OllamaHealthStatus, BatchRunRecord, BatchProcessingStats } from '$lib/types/api';
+	import type {
+		OllamaHealthStatus,
+		BatchRunRecord,
+		BatchProcessingStats,
+		IsDoneSyncStatus
+	} from '$lib/types/api';
 
 	export let data: PageData;
 
@@ -30,6 +35,34 @@
 	$: error = data.error;
 
 	let isRefreshing = false;
+
+	$: isDoneSync = stats.archive.isDoneSync as IsDoneSyncStatus | null | undefined;
+
+	function isDoneSyncBadgeStyle(status: IsDoneSyncStatus['status'] | undefined) {
+		switch (status) {
+			case 'idle':
+				return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+			case 'running':
+				return 'bg-blue-100 text-blue-700 border-blue-200';
+			case 'failed':
+				return 'bg-red-100 text-red-700 border-red-200';
+			default:
+				return 'bg-slate-100 text-slate-500 border-slate-200';
+		}
+	}
+
+	function isDoneSyncStatusLabel(status: IsDoneSyncStatus['status'] | undefined) {
+		switch (status) {
+			case 'idle':
+				return '대기';
+			case 'running':
+				return '실행 중';
+			case 'failed':
+				return '오류';
+			default:
+				return '알 수 없음';
+		}
+	}
 
 	$: ollamaHealthStatus = (stats.ollama?.health.status ?? 'unknown') as OllamaHealthStatus;
 	$: hasOllamaIssue = ollamaHealthStatus === 'unhealthy' || ollamaHealthStatus === 'misconfigured';
@@ -406,6 +439,63 @@
 				</div>
 			</section>
 		{/if}
+
+		<section
+			class="mt-4 rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
+		>
+			<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
+				<FontAwesomeIcon icon={faArrowsRotate} class="mr-2 h-4 w-4 text-teal-600" />
+				종료 마커 동기화
+				{#if isDoneSync}
+					<span
+						class={`ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${isDoneSyncBadgeStyle(isDoneSync.status)}`}
+					>
+						{isDoneSyncStatusLabel(isDoneSync.status)}
+					</span>
+				{/if}
+			</h2>
+			{#if isDoneSync}
+				<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+					<div class="rounded-xl bg-slate-50 p-3">
+						<p class="text-xs text-slate-500">수신된 종료 건수</p>
+						<p class="mt-1 text-lg font-bold text-slate-900">
+							{(isDoneSync.lastResult?.fetchedDoneCount ?? 0).toLocaleString('ko-KR')}
+						</p>
+					</div>
+					<div class="rounded-xl bg-slate-50 p-3">
+						<p class="text-xs text-slate-500">신규 마킹</p>
+						<p class="mt-1 text-lg font-bold text-slate-900">
+							{(isDoneSync.lastResult?.markedDoneCount ?? 0).toLocaleString('ko-KR')}
+						</p>
+					</div>
+					<div class="rounded-xl bg-slate-50 p-3">
+						<p class="text-xs text-slate-500">복원된 건수</p>
+						<p class="mt-1 text-lg font-bold text-slate-900">
+							{(isDoneSync.lastResult?.revertedCount ?? 0).toLocaleString('ko-KR')}
+						</p>
+					</div>
+					<div class="rounded-xl bg-slate-50 p-3">
+						<p class="text-xs text-slate-500">스캔 행 수</p>
+						<p class="mt-1 text-lg font-bold text-slate-900">
+							{(isDoneSync.lastResult?.totalScanned ?? 0).toLocaleString('ko-KR')}
+						</p>
+					</div>
+				</div>
+				<ul class="mt-3 space-y-1.5 text-sm text-slate-700">
+					<li class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+						<span>마지막 실행</span>
+						<span class="font-semibold">{formatDateTime(isDoneSync.lastRunAt)}</span>
+					</li>
+					{#if isDoneSync.status === 'failed' && isDoneSync.lastError}
+						<li class="rounded-lg bg-red-50 px-3 py-2 text-red-700">
+							<span class="font-semibold">오류: </span>{isDoneSync.lastError}
+						</li>
+					{/if}
+				</ul>
+			{:else}
+				<p class="text-sm text-slate-500">동기화 이력이 없습니다. (서버 재시작 후 자동 실행)</p>
+			{/if}
+		</section>
 
 		<section
 			class="mt-4 rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm backdrop-blur-sm"

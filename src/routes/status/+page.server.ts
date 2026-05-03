@@ -21,7 +21,20 @@ const MOCK_STATS: SystemStats = {
 		maxSize: 200,
 		isInitialized: true
 	},
-	archive: { count: 3821 },
+	archive: {
+		count: 3821,
+		isDoneSync: {
+			status: 'idle',
+			lastRunAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+			lastResult: {
+				fetchedDoneCount: 1248,
+				markedDoneCount: 3,
+				revertedCount: 1,
+				totalScanned: 84
+			},
+			lastError: null
+		}
+	},
 	batchProcessing: {
 		jobCount: 1,
 		jobIds: ['batch_1745900001234_ab3f1'],
@@ -127,7 +140,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			stats: {
 				webhooks: { total: 0, active: 0, inactive: 0, efficiency: 0 },
 				cache: { size: 0, lastUpdated: null, maxSize: 10, isInitialized: false },
-				archive: { count: 0 },
+				archive: { count: 0, isDoneSync: null },
 				batchProcessing: {
 					jobCount: 0,
 					jobIds: [],

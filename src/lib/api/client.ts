@@ -4,6 +4,7 @@ import type {
 	Notice,
 	NoticeDetail,
 	ArchiveNoticeListResponse,
+	SearchNoticesResult,
 	SystemStats,
 	SystemHealth,
 	ApiResponse,
@@ -169,6 +170,7 @@ export async function getArchivedNotices(
 		startDate?: string;
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
+		isDone?: boolean;
 	} = {},
 	customFetch?: Fetch
 ): Promise<ArchiveNoticeListResponse> {
@@ -199,6 +201,10 @@ export async function getArchivedNotices(
 			query.set('sortOrder', params.sortOrder);
 		}
 
+		if (params.isDone !== undefined) {
+			query.set('isDone', String(params.isDone));
+		}
+
 		const suffix = query.toString() ? `?${query.toString()}` : '';
 		return await request<ArchiveNoticeListResponse>(
 			`/notices/archive${suffix}`,
@@ -207,6 +213,35 @@ export async function getArchivedNotices(
 		);
 	} catch (error) {
 		console.error('Failed to load archived notices:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 입법예고 통합 검색 (아카이브 DB + 실시간 크롤러 폴백)
+ */
+export async function searchNotices(
+	params: {
+		q: string;
+		page?: number;
+		limit?: number;
+		includeDone?: boolean;
+	},
+	customFetch?: Fetch
+): Promise<SearchNoticesResult> {
+	try {
+		const query = new URLSearchParams();
+		query.set('q', params.q.trim());
+		if (params.page && params.page > 0) query.set('page', String(params.page));
+		if (params.limit && params.limit > 0) query.set('limit', String(params.limit));
+		if (params.includeDone === false) query.set('includeDone', 'false');
+		return await request<SearchNoticesResult>(
+			`/notices/search?${query.toString()}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to search notices:', error);
 		throw normalizeError(error);
 	}
 }
@@ -293,6 +328,7 @@ export async function registerWebhook(
 export const apiClient = {
 	getRecentNotices,
 	getArchivedNotices,
+	searchNotices,
 	getNoticeDetail,
 	getSystemStats,
 	getSystemHealth,
