@@ -628,7 +628,12 @@
 										<h3
 											class={`mb-3 text-lg leading-tight font-semibold wrap-break-word ${notice.isDone ? 'text-gray-500' : 'text-gray-900'}`}
 										>
-											{notice.subject}
+											<a
+												href={`/notices/${notice.num}?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&sortOrder=${sortOrder}`}
+												class={`no-underline transition-colors duration-150 ${notice.isDone ? 'hover:text-gray-600' : 'hover:text-blue-600'}`}
+											>
+												{notice.subject}
+											</a>
 										</h3>
 
 										<div class="flex flex-wrap gap-4 text-sm text-gray-600">
