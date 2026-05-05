@@ -101,11 +101,12 @@
 					class="group rounded-xl border border-gray-100 bg-linear-to-r from-gray-50/50 to-blue-50/30 p-4 transition-all duration-200 hover:from-blue-50/60 hover:to-indigo-50/40 hover:shadow-md"
 				>
 					<div class="mb-3 flex items-start justify-between">
-						<h3
-							class="line-clamp-2 text-sm leading-relaxed font-semibold text-gray-800 group-hover:text-gray-900"
+						<a
+							href="/notices/{notice.num}"
+							class="line-clamp-2 text-sm leading-relaxed font-semibold text-gray-800 no-underline transition-colors duration-150 group-hover:text-gray-900 hover:text-blue-600"
 						>
 							{notice.subject}
-						</h3>
+						</a>
 						<div class="ml-3 flex shrink-0 items-center gap-1">
 							<!-- 파일 다운로드 버튼들 -->
 							{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}

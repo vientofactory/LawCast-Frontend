@@ -6,6 +6,7 @@ export interface Notice {
 	proposerCategory: string;
 	committee: string;
 	link: string;
+	isDone?: boolean;
 	archiveStartedAt?: string;
 	lastUpdatedAt?: string;
 	aiSummary?: string | null;
@@ -77,6 +78,32 @@ export interface ArchiveNoticeListResponse {
 	};
 }
 
+export interface SearchNoticesItem {
+	num: number;
+	subject: string;
+	proposerCategory: string;
+	committee: string;
+	link: string;
+	contentId: string | null;
+	isDone: boolean;
+	isArchived: boolean;
+	aiSummary: string | null;
+	aiSummaryStatus: AISummaryStatus;
+	attachments: { pdfFile: string; hwpFile: string };
+	archiveStartedAt: string | null;
+	lastUpdatedAt: string | null;
+}
+
+export interface SearchNoticesResult {
+	items: SearchNoticesItem[];
+	total: number;
+	page: number;
+	limit: number;
+	totalPages: number;
+	keyword: string;
+	source: 'archive' | 'crawler' | 'mixed';
+}
+
 export interface WebhookStats {
 	total: number;
 	active: number;
@@ -140,11 +167,27 @@ export interface BatchProcessingStats {
 	recentJobs?: BatchRunRecord[];
 }
 
+export interface IsDoneSyncResult {
+	fetchedDoneCount: number;
+	markedDoneCount: number;
+	revertedCount: number;
+	totalScanned: number;
+}
+
+export interface IsDoneSyncStatus {
+	status: 'idle' | 'running' | 'failed';
+	/** ISO-8601 timestamp of the last completed (or failed) run. */
+	lastRunAt: string | null;
+	lastResult: IsDoneSyncResult | null;
+	lastError: string | null;
+}
+
 export interface SystemStats {
 	webhooks: WebhookStats;
 	cache: CacheInfo;
 	archive: {
 		count: number;
+		isDoneSync?: IsDoneSyncStatus | null;
 	};
 	batchProcessing?: BatchProcessingStats;
 	ollama?: OllamaMetrics;
