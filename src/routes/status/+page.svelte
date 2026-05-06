@@ -340,44 +340,44 @@
 					<FontAwesomeIcon icon={faBolt} class="mr-2 h-4 w-4 text-amber-500" />
 					요약 지표
 				</h2>
-				<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+				<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3">
 					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">아카이브 수</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
+						<dt class="text-xs text-slate-500">아카이브 수</dt>
+						<dd class="mt-1 text-lg font-bold text-slate-900">
 							{stats.archive.count.toLocaleString('ko-KR')}
-						</p>
+						</dd>
 					</div>
 					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">AI 요약 시도</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
+						<dt class="text-xs text-slate-500">AI 요약 시도</dt>
+						<dd class="mt-1 text-lg font-bold text-slate-900">
 							{(stats.ollama?.summary.total ?? 0).toLocaleString('ko-KR')}
-						</p>
+						</dd>
 					</div>
 					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">AI 성공률</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
+						<dt class="text-xs text-slate-500">AI 성공률</dt>
+						<dd class="mt-1 text-lg font-bold text-slate-900">
 							{(stats.ollama?.summary.successRate ?? 0).toLocaleString('ko-KR')}%
-						</p>
+						</dd>
 					</div>
 					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">AI 실패</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
+						<dt class="text-xs text-slate-500">AI 실패</dt>
+						<dd class="mt-1 text-lg font-bold text-slate-900">
 							{(stats.ollama?.summary.failed ?? 0).toLocaleString('ko-KR')}
-						</p>
+						</dd>
 					</div>
 					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">AI 스킵</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
+						<dt class="text-xs text-slate-500">AI 스킵</dt>
+						<dd class="mt-1 text-lg font-bold text-slate-900">
 							{(stats.ollama?.summary.skipped ?? 0).toLocaleString('ko-KR')}
-						</p>
+						</dd>
 					</div>
 					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">작업 대기</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
+						<dt class="text-xs text-slate-500">작업 대기</dt>
+						<dd class="mt-1 text-lg font-bold text-slate-900">
 							{(stats.batchProcessing?.jobCount ?? 0).toLocaleString('ko-KR')}
-						</p>
+						</dd>
 					</div>
-				</div>
+				</dl>
 			</section>
 
 			<section
