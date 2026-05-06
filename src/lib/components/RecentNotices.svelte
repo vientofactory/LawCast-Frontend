@@ -18,8 +18,9 @@
 	$: aiSummaryEnabled = stats?.aiSummaryEnabled !== false;
 </script>
 
-<div
+<section
 	class="rounded-2xl border border-white/50 bg-white/80 p-6 shadow-lg shadow-green-100/50 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-green-100/60"
+	aria-label="최근 입법예고"
 >
 	<div class="mb-6 flex items-center justify-between">
 		<h2 class="flex items-center text-xl font-bold tracking-tight text-gray-800">
@@ -97,7 +98,7 @@
 	{:else}
 		<div class="space-y-3">
 			{#each notices.slice(0, 5) as notice (notice.num)}
-				<div
+				<article
 					class="group rounded-xl border border-gray-100 bg-linear-to-r from-gray-50/50 to-blue-50/30 p-4 transition-all duration-200 hover:from-blue-50/60 hover:to-indigo-50/40 hover:shadow-md"
 				>
 					<div class="mb-3 flex items-start justify-between">
@@ -148,7 +149,7 @@
 					<div class="mt-1 text-xs text-gray-400">
 						<span>의안번호: {notice.num}</span>
 					</div>
-				</div>
+				</article>
 			{/each}
 		</div>
 
@@ -164,7 +165,7 @@
 			</div>
 		{/if}
 	{/if}
-</div>
+</section>
 
 <style>
 	.line-clamp-2 {

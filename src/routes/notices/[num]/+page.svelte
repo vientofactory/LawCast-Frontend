@@ -186,7 +186,7 @@
 	<Header />
 
 	<main class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-		<nav class="mb-8 flex items-center space-x-3 text-sm">
+		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
 			<a
 				href={backLink}
 				class="flex items-center rounded-lg border border-gray-200/50 bg-white/70 px-3 py-2 text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-gray-800"
@@ -201,6 +201,8 @@
 		{#if detail.notice.isDone}
 			<div
 				class="mb-6 flex items-start gap-3 rounded-xl border border-gray-300 bg-gray-100 px-5 py-4 shadow-sm"
+				role="status"
+				aria-label="입법예고 종료 안내"
 			>
 				<div class="mt-0.5 rounded-full bg-gray-300 p-1.5 text-gray-600">
 					<FontAwesomeIcon icon={faLock} class="h-4 w-4" />
@@ -306,14 +308,14 @@
 					<FontAwesomeIcon icon={faScaleBalanced} class="h-5 w-5 text-blue-600" />
 					<h2 class="text-lg font-bold text-gray-900">입법예고 정보</h2>
 				</div>
-				<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+				<dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
 					{#each contentFacts as fact (fact.label)}
 						<div class="rounded-lg border border-gray-200 bg-white px-3 py-2">
-							<p class="text-xs font-semibold text-gray-500">{fact.label}</p>
-							<p class="mt-1 text-sm font-medium text-gray-800">{fact.value}</p>
+							<dt class="text-xs font-semibold text-gray-500">{fact.label}</dt>
+							<dd class="mt-1 text-sm font-medium text-gray-800">{fact.value}</dd>
 						</div>
 					{/each}
-				</div>
+				</dl>
 			</section>
 		{/if}
 
@@ -367,44 +369,44 @@
 								자료 반출 요청(ZIP)
 							</a>
 						</div>
-						<div class="grid gap-3 text-sm sm:grid-cols-2">
+						<dl class="grid gap-3 text-sm sm:grid-cols-2">
 							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-								<p class="text-xs font-semibold text-slate-500">아카이브 시각</p>
-								<p class="mt-1 font-medium text-slate-800">
+								<dt class="text-xs font-semibold text-slate-500">아카이브 시각</dt>
+								<dd class="mt-1 font-medium text-slate-800">
 									<FontAwesomeIcon icon={faClock} class="mr-1 h-3.5 w-3.5 text-slate-500" />
 									{formatDateTime(detail.archiveMetadata.archivedAt)}
-								</p>
+								</dd>
 							</div>
 							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-								<p class="text-xs font-semibold text-slate-500">무결성 검증</p>
-								<p class="mt-1 font-medium text-slate-800">{integrityStatusLabel}</p>
+								<dt class="text-xs font-semibold text-slate-500">무결성 검증</dt>
+								<dd class="mt-1 font-medium text-slate-800">{integrityStatusLabel}</dd>
 								<p class="mt-1 text-xs text-slate-600">
 									검증 시각: {formatDateTime(detail.archiveMetadata.integrity.checkedAt)}
 								</p>
 							</div>
 							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2">
-								<p class="text-xs font-semibold text-slate-500">SHA256 지문</p>
-								<p class="mt-1 font-mono text-xs break-all text-slate-800">
+								<dt class="text-xs font-semibold text-slate-500">SHA256 지문</dt>
+								<dd class="mt-1 font-mono text-xs break-all text-slate-800">
 									<FontAwesomeIcon icon={faFingerprint} class="h-3.5 w-3.5 text-slate-500" />
 									{detail.archiveMetadata.sourceHtmlSha256 || 'N/A'}
-								</p>
+								</dd>
 								<p class="mt-1 text-xs text-slate-600">
 									원문 HTML 크기: {detail.archiveMetadata.sourceHtmlSize.toLocaleString('ko-KR')} bytes
 								</p>
 							</div>
 							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-								<p class="text-xs font-semibold text-slate-500">HTTP 상태 코드</p>
-								<p class="mt-1 font-medium text-slate-800">
+								<dt class="text-xs font-semibold text-slate-500">HTTP 상태 코드</dt>
+								<dd class="mt-1 font-medium text-slate-800">
 									{detail.archiveMetadata.http.statusCode ?? 'N/A'}
-								</p>
+								</dd>
 							</div>
 							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-								<p class="text-xs font-semibold text-slate-500">HTTP 수집 시각</p>
-								<p class="mt-1 font-medium text-slate-800">
+								<dt class="text-xs font-semibold text-slate-500">HTTP 수집 시각</dt>
+								<dd class="mt-1 font-medium text-slate-800">
 									{formatDateTime(detail.archiveMetadata.http.fetchedAt)}
-								</p>
+								</dd>
 							</div>
-						</div>
+						</dl>
 					</div>
 				</div>
 			{/if}
