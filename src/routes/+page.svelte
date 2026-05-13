@@ -100,7 +100,7 @@
 					<input
 						type="text"
 						name="search"
-						placeholder="법률안명, 제안자, 소관위원회로 검색"
+						placeholder="법률안명, 소관위원회, 원문 키워드 검색"
 						disabled={isQuickSearchLoading}
 						required
 						class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-xs outline-hidden transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
