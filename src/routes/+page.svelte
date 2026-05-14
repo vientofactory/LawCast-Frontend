@@ -80,15 +80,7 @@
 			<section
 				class="rounded-2xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
 			>
-				<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-					<h2 class="text-base font-bold text-gray-900">법률안 빠른 검색</h2>
-					<a
-						href="/notices"
-						class="text-xs font-semibold text-blue-700 transition-colors hover:text-blue-800"
-					>
-						전체 입법예고로 이동
-					</a>
-				</div>
+				<h2 class="mb-3 text-base font-bold text-gray-900">법률안 빠른 검색</h2>
 				<form
 					method="GET"
 					action="/notices"

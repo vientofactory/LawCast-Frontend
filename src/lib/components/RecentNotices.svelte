@@ -34,7 +34,7 @@
 				href="./notices"
 				class="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
 			>
-				전체 보기
+				전체 입법예고 보기
 				<FontAwesomeIcon icon={faExternalLink} class="ml-1 h-4 w-4" />
 			</a>
 		{/if}
