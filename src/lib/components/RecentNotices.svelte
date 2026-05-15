@@ -99,10 +99,12 @@
 		<div class="space-y-3">
 			{#each notices.slice(0, 5) as notice (notice.num)}
 				<article
+					aria-labelledby="recent-notice-{notice.num}"
 					class="group rounded-xl border border-gray-100 bg-linear-to-r from-gray-50/50 to-blue-50/30 p-4 transition-all duration-200 hover:from-blue-50/60 hover:to-indigo-50/40 hover:shadow-md"
 				>
 					<div class="mb-3 flex items-start justify-between">
 						<a
+							id="recent-notice-{notice.num}"
 							href="/notices/{notice.num}"
 							class="line-clamp-2 text-sm leading-relaxed font-semibold text-gray-800 no-underline transition-colors duration-150 group-hover:text-gray-900 hover:text-blue-600"
 						>
@@ -115,8 +117,8 @@
 									{#if isDownloadable(notice.attachments.pdfFile)}
 										<button
 											on:click={() => downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
+											aria-label="PDF 다운로드"
 											class="cursor-pointer rounded-md bg-red-50/90 p-1.5 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
-											title="PDF 다운로드"
 										>
 											<FontAwesomeIcon icon={faFileText} class="h-3.5 w-3.5" />
 										</button>
@@ -124,8 +126,8 @@
 									{#if isDownloadable(notice.attachments.hwpFile)}
 										<button
 											on:click={() => downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
+											aria-label="HWP 다운로드"
 											class="cursor-pointer rounded-md bg-blue-50/90 p-1.5 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
-											title="HWP 다운로드"
 										>
 											<FontAwesomeIcon icon={faFileDownload} class="h-3.5 w-3.5" />
 										</button>
@@ -136,8 +138,8 @@
 							<!-- 상세보기 버튼 -->
 							<button
 								on:click={() => openExternalLink(notice.link)}
+								aria-label="온라인 원문 보기 (새 탭)"
 								class="cursor-pointer rounded-md bg-gray-50/90 p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700"
-								title="자세히 보기"
 							>
 								<FontAwesomeIcon icon={faExternalLink} class="h-3.5 w-3.5" />
 							</button>

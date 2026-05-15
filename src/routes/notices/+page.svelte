@@ -291,7 +291,7 @@
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
 				메인으로
 			</a>
-			<span class="text-gray-400">/</span>
+			<span class="text-gray-400" aria-hidden="true">/</span>
 			<span class="font-semibold text-gray-700">전체 입법예고</span>
 		</nav>
 
@@ -572,6 +572,7 @@
 						role="status"
 						aria-live="polite"
 					>
+						<span class="sr-only">불러오는 중...</span>
 						<div class="loading-slide h-full w-1/3 rounded-full bg-blue-500"></div>
 					</div>
 				{/if}
@@ -598,6 +599,7 @@
 					<div class="space-y-4" class:opacity-85={isServerLoading}>
 						{#each notices as notice (notice.num)}
 							<article
+								aria-labelledby="notice-heading-{notice.num}"
 								class={`rounded-lg border-l-4 bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6 ${
 									notice.isDone ? 'border-l-gray-300 bg-gray-50/60' : 'border-l-emerald-400'
 								}`}
@@ -674,8 +676,8 @@
 													<button
 														on:click={() =>
 															downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
+														aria-label="PDF 다운로드"
 														class="cursor-pointer rounded-md bg-red-50 p-2.5 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
-														title="PDF 다운로드"
 													>
 														<FontAwesomeIcon icon={faFileText} class="h-5 w-5" />
 													</button>
@@ -684,8 +686,8 @@
 													<button
 														on:click={() =>
 															downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
+														aria-label="HWP 다운로드"
 														class="cursor-pointer rounded-md bg-blue-50 p-2.5 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
-														title="HWP 다운로드"
 													>
 														<FontAwesomeIcon icon={faFileDownload} class="h-5 w-5" />
 													</button>
@@ -695,8 +697,8 @@
 										{/if}
 										<button
 											on:click={() => openExternalLink(notice.link)}
+											aria-label="자세히 보기 (새 탭)"
 											class="cursor-pointer rounded-md bg-gray-50 p-2.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700"
-											title="자세히 보기"
 										>
 											<FontAwesomeIcon icon={faExternalLink} class="h-5 w-5" />
 										</button>

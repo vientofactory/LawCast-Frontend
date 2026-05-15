@@ -75,7 +75,7 @@
 <div class="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
 	<Header />
 
-	<main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 		<div class="mt-5 flex flex-col gap-8">
 			<section
 				class="rounded-2xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
@@ -89,7 +89,9 @@
 					class:opacity-80={isQuickSearchLoading}
 					aria-busy={isQuickSearchLoading}
 				>
+					<label for="quick-search" class="sr-only">법률안 검색</label>
 					<input
+						id="quick-search"
 						type="text"
 						name="search"
 						placeholder="법률안명, 소관위원회, 원문 키워드 검색"
@@ -117,6 +119,7 @@
 						role="status"
 						aria-live="polite"
 					>
+						<span class="sr-only">불러오는 중...</span>
 						<div class="loading-slide h-full w-1/3 rounded-full bg-blue-500"></div>
 					</div>
 				{/if}
