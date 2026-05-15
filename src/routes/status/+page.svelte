@@ -190,7 +190,7 @@
 <div class="min-h-screen bg-linear-to-br from-slate-50 via-cyan-50/30 to-emerald-50/30">
 	<Header />
 
-	<main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 		<div class="mb-6 rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur-sm">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>

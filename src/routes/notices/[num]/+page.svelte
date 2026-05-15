@@ -185,7 +185,7 @@
 <div class="min-h-screen bg-linear-to-br from-slate-50 via-sky-50/30 to-indigo-50/20">
 	<Header />
 
-	<main class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+	<main id="main-content" class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
 		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
 			<a
 				href={backLink}
@@ -194,7 +194,7 @@
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
 				전체 입법예고
 			</a>
-			<span class="text-gray-400">/</span>
+			<span class="text-gray-400" aria-hidden="true">/</span>
 			<span class="font-semibold text-gray-700">법률안 원문 조회</span>
 		</nav>
 
@@ -338,8 +338,6 @@
 		>
 			<summary
 				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-slate-50"
-				aria-label="아카이브 상세정보 열기/닫기"
-				title="아카이브 상세정보 열기/닫기"
 			>
 				<span class="flex items-center gap-2">
 					<FontAwesomeIcon icon={faShieldHalved} class="h-5 w-5 text-emerald-600" />

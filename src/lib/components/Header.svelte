@@ -2,7 +2,13 @@
 	import { fly } from 'svelte/transition';
 	import { faGithub } from '@fortawesome/free-brands-svg-icons';
 	import { page } from '$app/state';
-	import { faChartLine, faFileLines, faHouse, faBars } from '@fortawesome/free-solid-svg-icons';
+	import {
+		faChartLine,
+		faFileLines,
+		faHouse,
+		faBars,
+		faLink
+	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
 	type HeaderMenuItem = {
@@ -14,7 +20,7 @@
 	const menuItems: HeaderMenuItem[] = [
 		{ href: '/', label: '홈', icon: faHouse },
 		{ href: '/notices', label: '입법예고', icon: faFileLines },
-		{ href: '/webhook', label: '웹훅 등록', icon: faFileLines },
+		{ href: '/webhook', label: '웹훅 등록', icon: faLink },
 		{ href: '/status', label: '시스템 상태', icon: faChartLine }
 	];
 
@@ -25,11 +31,55 @@
 	}
 
 	let mobileMenuOpen = false;
+	let menuButton: HTMLButtonElement;
+
 	function toggleMobileMenu() {
 		mobileMenuOpen = !mobileMenuOpen;
 	}
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
+		menuButton?.focus();
+	}
+
+	function trapFocus(node: HTMLElement) {
+		const focusableSelectors = [
+			'a[href]:not([tabindex="-1"])',
+			'button:not([disabled]):not([tabindex="-1"])',
+			'[tabindex]:not([tabindex="-1"])'
+		].join(', ');
+
+		function handleKeydown(event: KeyboardEvent) {
+			if (event.key === 'Escape') {
+				closeMobileMenu();
+				return;
+			}
+			if (event.key !== 'Tab') return;
+			const focusables = Array.from(node.querySelectorAll<HTMLElement>(focusableSelectors));
+			if (focusables.length === 0) return;
+			const first = focusables[0];
+			const last = focusables[focusables.length - 1];
+			if (event.shiftKey) {
+				if (document.activeElement === first) {
+					event.preventDefault();
+					last.focus();
+				}
+			} else {
+				if (document.activeElement === last) {
+					event.preventDefault();
+					first.focus();
+				}
+			}
+		}
+
+		node.addEventListener('keydown', handleKeydown);
+		const firstFocusable = node.querySelector<HTMLElement>(focusableSelectors);
+		firstFocusable?.focus();
+
+		return {
+			destroy() {
+				node.removeEventListener('keydown', handleKeydown);
+			}
+		};
 	}
 </script>
 
@@ -43,17 +93,18 @@
 				class="text-decoration-none group flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
 			>
 				<div>
-					<h1
+					<span
 						class="bg-linear-to-r from-slate-800 via-sky-700 to-indigo-700 bg-clip-text text-3xl font-bold tracking-tight text-transparent"
 					>
 						LawCast
-					</h1>
+					</span>
 					<p class="mt-1 text-sm font-medium text-slate-600">국회 입법예고 스냅샷 아카이브</p>
 				</div>
 			</a>
 
 			<!-- 햄버거/닫기 버튼 -->
 			<button
+				bind:this={menuButton}
 				class="inline-flex items-center justify-center rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2 text-slate-600 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:text-slate-800 md:hidden"
 				aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
 				on:click={toggleMobileMenu}
@@ -114,21 +165,17 @@
 {#if mobileMenuOpen}
 	<div class="fixed inset-0 z-1100 flex flex-col md:hidden">
 		<!-- 오버레이 -->
-		<div
-			class="absolute inset-0 bg-black/10"
-			aria-label="메뉴 오버레이"
-			role="button"
-			tabindex="0"
+		<button
+			type="button"
+			class="absolute inset-0 cursor-default bg-black/10"
+			aria-label="메뉴 닫기"
+			tabindex="-1"
 			on:click={closeMobileMenu}
-			on:keydown={(e) => {
-				if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-					closeMobileMenu();
-				}
-			}}
-		></div>
+		></button>
 		<!-- 메뉴 패널 -->
 		<nav
 			id="mobile-menu-panel"
+			use:trapFocus
 			class="relative z-10 w-full rounded-b-2xl border-b border-slate-200/70 bg-white/95 p-4 pt-6 shadow-lg"
 			aria-label="모바일 메뉴"
 			transition:fly={{ y: -16, duration: 180, opacity: 0 }}

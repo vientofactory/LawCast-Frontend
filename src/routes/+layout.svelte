@@ -30,4 +30,10 @@
 	<meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
+<a
+	href="#main-content"
+	class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-blue-700 focus:shadow-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"
+>
+	메인 콘텐츠로 건너뛰기
+</a>
 {@render children()}
