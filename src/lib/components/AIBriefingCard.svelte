@@ -69,7 +69,14 @@
 		);
 		transform: translateY(-120%);
 		animation: scan-line 3.2s linear infinite;
+		animation-delay: 2s;
 		pointer-events: none;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.agent-scanline::after {
+			animation: none;
+		}
 	}
 
 	@keyframes pulse-dot {

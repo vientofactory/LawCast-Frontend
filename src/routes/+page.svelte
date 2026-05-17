@@ -77,9 +77,7 @@
 
 	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 		<div class="mt-5 flex flex-col gap-8">
-			<section
-				class="rounded-2xl border border-blue-100 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
-			>
+			<section class="rounded-2xl border border-blue-100 bg-white/95 p-5 shadow-sm">
 				<h2 class="mb-3 text-base font-bold text-gray-900">법률안 빠른 검색</h2>
 				<form
 					method="GET"

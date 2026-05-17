@@ -84,7 +84,7 @@
 </script>
 
 <header
-	class="border-b border-slate-200/70 bg-linear-to-r from-white/95 via-sky-50/80 to-indigo-50/65 shadow-lg shadow-sky-100/40 backdrop-blur-md"
+	class="border-b border-slate-200/70 bg-linear-to-r from-white via-sky-50 to-indigo-50/80 shadow-lg shadow-sky-100/40"
 >
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 		<div class="flex flex-wrap items-center justify-between gap-4 py-5">
@@ -120,7 +120,7 @@
 
 			<!-- 데스크톱 메뉴 -->
 			<nav
-				class="hidden w-full rounded-2xl border border-white/70 bg-white/65 p-2 shadow-sm backdrop-blur-sm md:block md:w-auto"
+				class="hidden w-full rounded-2xl border border-slate-200/60 bg-white/95 p-2 shadow-sm md:block md:w-auto"
 				aria-label="주요 메뉴"
 			>
 				<ul class="flex flex-wrap items-center justify-center gap-1.5 text-sm font-semibold">

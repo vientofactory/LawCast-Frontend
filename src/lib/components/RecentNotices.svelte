@@ -19,7 +19,7 @@
 </script>
 
 <section
-	class="rounded-2xl border border-white/50 bg-white/80 p-6 shadow-lg shadow-green-100/50 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-green-100/60"
+	class="rounded-2xl border border-white/50 bg-white p-6 shadow-lg shadow-green-100/50 transition-all duration-300 hover:shadow-xl hover:shadow-green-100/60"
 	aria-label="최근 입법예고"
 >
 	<div class="mb-6 flex items-center justify-between">
