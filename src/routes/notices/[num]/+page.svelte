@@ -189,7 +189,7 @@
 		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
 			<a
 				href={backLink}
-				class="flex items-center rounded-lg border border-gray-200/50 bg-white/70 px-3 py-2 text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-gray-800"
+				class="flex items-center rounded-lg border border-gray-200/50 bg-white/90 px-3 py-2 text-gray-600 shadow-sm transition-all duration-200 hover:bg-white hover:text-gray-800"
 			>
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
 				전체 입법예고
@@ -217,7 +217,7 @@
 		{/if}
 
 		<section
-			class={`mb-6 rounded-2xl border p-6 shadow-lg backdrop-blur-sm ${detail.notice.isDone ? 'border-gray-200 bg-gray-50/80' : 'border-white/50 bg-white/75'}`}
+			class={`mb-6 rounded-2xl border p-6 shadow-lg ${detail.notice.isDone ? 'border-gray-200 bg-gray-50/90' : 'border-white/50 bg-white/90'}`}
 		>
 			<div class="mb-4 flex flex-wrap items-start justify-between gap-3">
 				<div>

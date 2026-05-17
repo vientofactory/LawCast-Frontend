@@ -191,7 +191,7 @@
 	<Header />
 
 	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-		<div class="mb-6 rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm backdrop-blur-sm">
+		<div class="mb-6 rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
 					<p class="text-xs font-semibold tracking-wide text-cyan-700">SYSTEM STATUS</p>
@@ -229,9 +229,7 @@
 		{/if}
 
 		<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-			<section
-				class="rounded-2xl border border-emerald-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm"
-			>
+			<section class="rounded-2xl border border-emerald-100 bg-white/90 p-4 shadow-sm">
 				<h2 class="mb-3 flex items-center text-sm font-bold text-slate-900">
 					<FontAwesomeIcon icon={faLink} class="mr-2 h-4 w-4 text-emerald-600" />
 					웹훅 상태
@@ -256,9 +254,7 @@
 				</div>
 			</section>
 
-			<section
-				class="rounded-2xl border border-blue-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm"
-			>
+			<section class="rounded-2xl border border-blue-100 bg-white/90 p-4 shadow-sm">
 				<h2 class="mb-3 flex items-center text-sm font-bold text-slate-900">
 					<FontAwesomeIcon icon={faDatabase} class="mr-2 h-4 w-4 text-blue-600" />
 					캐시 상태
@@ -282,9 +278,7 @@
 				</div>
 			</section>
 
-			<section
-				class="rounded-2xl border border-violet-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm"
-			>
+			<section class="rounded-2xl border border-violet-100 bg-white/90 p-4 shadow-sm">
 				<h2 class="mb-3 flex items-center text-sm font-bold text-slate-900">
 					<FontAwesomeIcon icon={faGear} class="mr-2 h-4 w-4 text-violet-600" />
 					배치 처리
@@ -307,9 +301,7 @@
 				</div>
 			</section>
 
-			<section
-				class="rounded-2xl border border-cyan-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm"
-			>
+			<section class="rounded-2xl border border-cyan-100 bg-white/90 p-4 shadow-sm">
 				<h2 class="mb-3 flex items-center text-sm font-bold text-slate-900">
 					<FontAwesomeIcon icon={faRobot} class="mr-2 h-4 w-4 text-cyan-600" />
 					AI 요약
@@ -333,9 +325,7 @@
 		</div>
 
 		<div class="mt-4 grid gap-4 lg:grid-cols-2">
-			<section
-				class="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
-			>
+			<section class="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
 				<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
 					<FontAwesomeIcon icon={faBolt} class="mr-2 h-4 w-4 text-amber-500" />
 					요약 지표
@@ -380,9 +370,7 @@
 				</dl>
 			</section>
 
-			<section
-				class="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
-			>
+			<section class="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
 				<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
 					<FontAwesomeIcon icon={faMicrochip} class="mr-2 h-4 w-4 text-sky-600" />
 					세부 상태
@@ -440,9 +428,7 @@
 			</section>
 		{/if}
 
-		<section
-			class="mt-4 rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
-		>
+		<section class="mt-4 rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
 			<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
 				<FontAwesomeIcon icon={faArrowsRotate} class="mr-2 h-4 w-4 text-teal-600" />
 				종료 마커 동기화
@@ -497,9 +483,7 @@
 			{/if}
 		</section>
 
-		<section
-			class="mt-4 rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
-		>
+		<section class="mt-4 rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
 			<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
 				<FontAwesomeIcon icon={faBoxArchive} class="mr-2 h-4 w-4 text-indigo-600" />
 				최근 배치 작업 이력

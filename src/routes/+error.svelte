@@ -29,7 +29,7 @@
 		class="mx-auto flex min-h-[calc(100vh-72px)] max-w-4xl items-center px-4 py-10 sm:px-6 lg:px-8"
 	>
 		<section
-			class="w-full rounded-2xl border border-white/60 bg-white/85 p-6 shadow-xl shadow-slate-200/40 backdrop-blur-sm sm:p-10"
+			class="w-full rounded-2xl border border-white/60 bg-white/85 p-6 shadow-xl shadow-slate-200/40 sm:p-10"
 		>
 			<div
 				class="mb-5 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800"

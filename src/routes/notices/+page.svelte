@@ -286,7 +286,7 @@
 		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
 			<a
 				href="../"
-				class="flex items-center rounded-lg border border-gray-200/50 bg-white/60 px-3 py-2 text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white/80 hover:text-gray-800"
+				class="flex items-center rounded-lg border border-gray-200/50 bg-white/90 px-3 py-2 text-gray-600 shadow-sm transition-all duration-200 hover:bg-white hover:text-gray-800"
 			>
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
 				메인으로
@@ -581,7 +581,7 @@
 			<div class="relative">
 				{#if notices.length === 0}
 					<div
-						class="rounded-2xl border border-gray-200/50 bg-linear-to-br from-gray-50 to-blue-50/30 p-16 text-center shadow-xl backdrop-blur-sm"
+						class="rounded-2xl border border-gray-200/50 bg-linear-to-br from-gray-50 to-blue-50/30 p-16 text-center shadow-xl"
 					>
 						<div
 							class="mb-6 inline-block rounded-full bg-linear-to-r from-gray-200 to-blue-200 p-6"
@@ -719,7 +719,7 @@
 									on:click={(event) => handlePaginationClick(event, 1)}
 									aria-label="첫 페이지로 이동"
 									title="첫 페이지"
-									class="rounded-xl border-2 border-gray-200 bg-white/80 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-gray-200 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === 1}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -741,7 +741,7 @@
 									on:click={(event) => handlePaginationClick(event, currentPage - 1)}
 									aria-label="이전 페이지로 이동"
 									title="이전 페이지"
-									class="rounded-xl border-2 border-gray-200 bg-white/80 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-gray-200 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === currentPage - 1}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -766,7 +766,7 @@
 										class={`rounded-xl px-3 py-2 text-xs font-bold shadow-sm transition-all duration-200 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm ${
 											currentPage === item
 												? 'scale-105 bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
-												: 'border-2 border-gray-200 bg-white/80 text-gray-600 backdrop-blur-sm hover:border-blue-200 hover:bg-white hover:text-blue-600'
+												: 'border-2 border-gray-200 bg-white/90 text-gray-600 hover:border-blue-200 hover:bg-white hover:text-blue-600'
 										}`}
 									>
 										{#if pendingPaginationPage === item}
@@ -787,7 +787,7 @@
 									on:click={(event) => handlePaginationClick(event, currentPage + 1)}
 									aria-label="다음 페이지로 이동"
 									title="다음 페이지"
-									class="rounded-xl border-2 border-gray-200 bg-white/80 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-gray-200 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === currentPage + 1}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -809,7 +809,7 @@
 									on:click={(event) => handlePaginationClick(event, totalPages)}
 									aria-label="마지막 페이지로 이동"
 									title="마지막 페이지"
-									class="rounded-xl border-2 border-gray-200 bg-white/80 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-gray-200 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === totalPages}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
