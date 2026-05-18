@@ -840,12 +840,20 @@
 				{#if isServerLoading}
 					<div class="pointer-events-none absolute inset-0 z-10 rounded-2xl bg-white/35"></div>
 					<div
-						class="pointer-events-none absolute top-3 right-3 z-20 inline-flex items-center rounded-full border border-blue-200 bg-white/90 px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm"
+						class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
 						role="status"
 						aria-live="polite"
 					>
-						<FontAwesomeIcon icon={faSpinner} class="mr-1.5 h-3.5 w-3.5 animate-spin" />
-						불러오는 중
+						<div
+							class="flex flex-col items-center gap-3 rounded-2xl border border-blue-100 bg-white/95 px-8 py-6 shadow-2xl shadow-blue-100/60 backdrop-blur-sm"
+						>
+							<div class="relative flex items-center justify-center">
+								<div
+									class="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-500"
+								></div>
+							</div>
+							<p class="text-sm font-semibold text-slate-700">불러오는 중...</p>
+						</div>
 					</div>
 				{/if}
 			</div>
