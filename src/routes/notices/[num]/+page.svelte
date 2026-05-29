@@ -14,6 +14,7 @@
 		faFingerprint,
 		faExternalLink,
 		faFileLines,
+		faImage,
 		faLock,
 		faScaleBalanced,
 		faShieldHalved,
@@ -159,6 +160,10 @@
 	})();
 
 	let isArchiveMetaOpen = false;
+	let isScreenshotExpanded = false;
+
+	$: screenshotUrl = `/api/notices/${detail.notice.num}/screenshot`;
+	$: hasScreenshot = detail.screenshotMeta?.hasScreenshot ?? false;
 </script>
 
 <svelte:head>
@@ -358,7 +363,17 @@
 			{#if isArchiveMetaOpen}
 				<div in:slide={{ duration: 240 }} out:slide={{ duration: 180 }}>
 					<div in:fade={{ duration: 200 }} out:fade={{ duration: 140 }} class="mt-4">
-						<div class="mb-3 flex justify-end">
+						<div class="mb-3 flex flex-wrap justify-end gap-2">
+							{#if hasScreenshot}
+								<button
+									on:click={() => (isScreenshotExpanded = !isScreenshotExpanded)}
+									class="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+									aria-expanded={isScreenshotExpanded}
+								>
+									<FontAwesomeIcon icon={faImage} class="mr-1.5 h-3.5 w-3.5" />
+									{isScreenshotExpanded ? '미리보기 닫기' : '국회 페이지 미리보기'}
+								</button>
+							{/if}
 							<a
 								href={`/api/notices/${detail.notice.num}/export`}
 								class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
@@ -367,6 +382,39 @@
 								자료 반출 요청(ZIP)
 							</a>
 						</div>
+
+						{#if hasScreenshot && isScreenshotExpanded}
+							<div
+								class="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+								in:slide={{ duration: 220 }}
+								out:slide={{ duration: 160 }}
+							>
+								<div
+									class="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2.5"
+								>
+									<span class="flex items-center gap-2 text-xs font-semibold text-slate-600">
+										<FontAwesomeIcon icon={faImage} class="h-3.5 w-3.5" />
+										국회 입법예고 페이지 스크린샷
+									</span>
+									<a
+										href={screenshotUrl}
+										download={`notice-${detail.notice.num}-screenshot.${detail.screenshotMeta.format ?? 'jpeg'}`}
+										class="inline-flex items-center gap-1.5 rounded-md bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-slate-700"
+									>
+										<FontAwesomeIcon icon={faDownload} class="h-3 w-3" />
+										다운로드
+									</a>
+								</div>
+								<div class="p-3">
+									<img
+										src={screenshotUrl}
+										alt="의안번호 {detail.notice.num} 국회 입법예고 페이지 스크린샷"
+										class="w-full rounded-lg border border-slate-200 shadow-sm"
+										loading="lazy"
+									/>
+								</div>
+							</div>
+						{/if}
 						<dl class="grid gap-3 text-sm sm:grid-cols-2">
 							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
 								<dt class="text-xs font-semibold text-slate-500">아카이브 시각</dt>

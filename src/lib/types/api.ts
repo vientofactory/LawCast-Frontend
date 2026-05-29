@@ -55,6 +55,10 @@ export interface NoticeDetail {
 	notice: Notice;
 	originalContent: NoticeOriginalContent;
 	archiveMetadata: NoticeArchiveMetadata;
+	screenshotMeta: {
+		hasScreenshot: boolean;
+		format: string | null;
+	};
 	aiSummaryEnabled?: boolean;
 }
 
