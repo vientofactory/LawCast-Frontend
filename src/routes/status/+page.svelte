@@ -441,7 +441,7 @@
 				{/if}
 			</h2>
 			{#if isDoneSync}
-				<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+				<div class="grid grid-cols-2 gap-3">
 					<div class="rounded-xl bg-slate-50 p-3">
 						<p class="text-xs text-slate-500">수신된 종료 건수</p>
 						<p class="mt-1 text-lg font-bold text-slate-900">
@@ -452,18 +452,6 @@
 						<p class="text-xs text-slate-500">신규 마킹</p>
 						<p class="mt-1 text-lg font-bold text-slate-900">
 							{(isDoneSync.lastResult?.markedDoneCount ?? 0).toLocaleString('ko-KR')}
-						</p>
-					</div>
-					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">복원된 건수</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
-							{(isDoneSync.lastResult?.revertedCount ?? 0).toLocaleString('ko-KR')}
-						</p>
-					</div>
-					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">스캔 행 수</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
-							{(isDoneSync.lastResult?.totalScanned ?? 0).toLocaleString('ko-KR')}
 						</p>
 					</div>
 				</div>

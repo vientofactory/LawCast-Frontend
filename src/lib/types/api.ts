@@ -174,8 +174,6 @@ export interface BatchProcessingStats {
 export interface IsDoneSyncResult {
 	fetchedDoneCount: number;
 	markedDoneCount: number;
-	revertedCount: number;
-	totalScanned: number;
 }
 
 export interface IsDoneSyncStatus {

@@ -28,9 +28,7 @@ const MOCK_STATS: SystemStats = {
 			lastRunAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
 			lastResult: {
 				fetchedDoneCount: 1248,
-				markedDoneCount: 3,
-				revertedCount: 1,
-				totalScanned: 84
+				markedDoneCount: 3
 			},
 			lastError: null
 		}
