@@ -483,14 +483,29 @@
 					<a
 						href={buildFilterLink({ fullText: fullText ? null : true })}
 						title="원문(제안이유) 전체 텍스트 포함 검색. 속도가 느려질 수 있습니다."
-						class={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-							fullText
-								? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-								: 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
-						}`}
+						role="switch"
+						aria-checked={fullText}
+						class="group inline-flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 focus:outline-none"
 					>
-						<FontAwesomeIcon icon={faFileText} class="h-3 w-3" />
-						원문(제안이유) 포함 검색
+						<span
+							class={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ${
+								fullText ? 'bg-indigo-500' : 'bg-gray-200'
+							}`}
+						>
+							<span
+								class={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+									fullText ? 'translate-x-4' : 'translate-x-0'
+								}`}
+							></span>
+						</span>
+						<span
+							class={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
+								fullText ? 'text-indigo-700' : 'text-gray-400'
+							}`}
+						>
+							<FontAwesomeIcon icon={faFileText} class="h-3 w-3" />
+							원문(제안이유) 포함 검색
+						</span>
 					</a>
 				</div>
 				{#if hasDateReversed}
