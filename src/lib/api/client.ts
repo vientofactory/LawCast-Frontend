@@ -171,6 +171,7 @@ export async function getArchivedNotices(
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
 		isDone?: boolean;
+		fullText?: boolean;
 	} = {},
 	customFetch?: Fetch
 ): Promise<ArchiveNoticeListResponse> {
@@ -203,6 +204,10 @@ export async function getArchivedNotices(
 
 		if (params.isDone !== undefined) {
 			query.set('isDone', String(params.isDone));
+		}
+
+		if (params.fullText === true) {
+			query.set('fullText', 'true');
 		}
 
 		const suffix = query.toString() ? `?${query.toString()}` : '';
