@@ -4,7 +4,6 @@
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
 	import { navigating, page } from '$app/stores';
-	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -45,12 +44,14 @@
 		const v = $page.url.searchParams.get('isDone');
 		return v === 'true' ? true : v === 'false' ? false : undefined;
 	})();
+	$: fullText = $page.url.searchParams.get('fullText') === 'true';
 	$: aiSummaryEnabled = archive?.aiSummaryEnabled !== false;
 	$: hasActiveFilters =
 		searchQuery.trim().length > 0 ||
 		startDate.trim().length > 0 ||
 		endDate.trim().length > 0 ||
-		isDoneFilter !== undefined;
+		isDoneFilter !== undefined ||
+		fullText;
 	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
 
 	$: canonicalUrl = (() => {
@@ -115,53 +116,48 @@
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
 		isDone?: boolean | null;
+		fullText?: boolean | null;
 	};
 
 	function buildQueryLink(overrides: QueryLinkOverrides = {}) {
-		// Always get the latest $page value for correct query params
-		const currentPageStore = get(page);
-		let searchParams = new SvelteURLSearchParams(currentPageStore.url.search);
-		if (overrides.page !== undefined) searchParams.set('page', String(overrides.page));
-		if (overrides.limit !== undefined) searchParams.set('limit', String(overrides.limit));
-		if (overrides.search !== undefined) searchParams.set('search', overrides.search.trim());
-		if (overrides.startDate !== undefined)
-			searchParams.set('startDate', overrides.startDate.trim());
-		if (overrides.endDate !== undefined) searchParams.set('endDate', overrides.endDate.trim());
-		if (overrides.sortOrder !== undefined) searchParams.set('sortOrder', overrides.sortOrder);
-		if ('isDone' in overrides) {
-			if (overrides.isDone === null || overrides.isDone === undefined) {
-				searchParams.delete('isDone');
-			} else {
-				searchParams.set('isDone', String(overrides.isDone));
-			}
-		}
-		// 기본값 보장
-		if (!searchParams.get('page')) searchParams.set('page', String(currentPage));
-		if (!searchParams.get('limit')) searchParams.set('limit', String(limit));
-		if (!searchParams.get('sortOrder')) searchParams.set('sortOrder', sortOrder);
-		return `/notices?${searchParams.toString()}`;
+		const pg = overrides.page !== undefined ? overrides.page : currentPage;
+		const lim = overrides.limit !== undefined ? overrides.limit : limit;
+		const q = (overrides.search !== undefined ? overrides.search : searchQuery).trim();
+		const sd = (overrides.startDate !== undefined ? overrides.startDate : startDate).trim();
+		const ed = (overrides.endDate !== undefined ? overrides.endDate : endDate).trim();
+		const so = overrides.sortOrder !== undefined ? overrides.sortOrder : sortOrder;
+		const id = 'isDone' in overrides ? overrides.isDone : isDoneFilter;
+		const ft = 'fullText' in overrides ? overrides.fullText : fullText ? true : null;
+
+		const params = new SvelteURLSearchParams();
+		params.set('page', String(pg));
+		params.set('limit', String(lim));
+		if (q) params.set('search', q);
+		if (sd) params.set('startDate', sd);
+		if (ed) params.set('endDate', ed);
+		params.set('sortOrder', so);
+		if (id !== null && id !== undefined) params.set('isDone', String(id));
+		if (ft) params.set('fullText', 'true');
+		return `/notices?${params.toString()}`;
 	}
 
-	function buildFilterLink(overrides: {
-		search?: string;
-		startDate?: string;
-		endDate?: string;
-		sortOrder?: 'asc' | 'desc';
-		isDone?: boolean | null;
-	}) {
-		return buildQueryLink({
-			page: 1,
-			search: overrides.search,
-			startDate: overrides.startDate,
-			endDate: overrides.endDate,
-			sortOrder: overrides.sortOrder,
-			...('isDone' in overrides ? { isDone: overrides.isDone } : {})
-		});
-	}
+	$: buildFilterLink = (
+		(_ft: boolean, _id: boolean | undefined) =>
+		(overrides: {
+			search?: string;
+			startDate?: string;
+			endDate?: string;
+			sortOrder?: 'asc' | 'desc';
+			isDone?: boolean | null;
+			fullText?: boolean | null;
+		}) =>
+			buildQueryLink({ page: 1, ...overrides })
+	)(fullText, isDoneFilter);
 
-	function buildPageLink(page: number) {
-		return buildQueryLink({ page });
-	}
+	$: buildPageLink = (
+		(_ft: boolean, _id: boolean | undefined) => (pg: number) =>
+			buildQueryLink({ page: pg })
+	)(fullText, isDoneFilter);
 
 	function getPaginationInfo() {
 		if (totalItems === 0) {
@@ -242,10 +238,15 @@
 		const startDate = (formData.get('startDate') || '').toString().trim();
 		const endDate = (formData.get('endDate') || '').toString().trim();
 		const sortOrder = (formData.get('sortOrder') || 'desc').toString();
+		const fullTextVal = formData.get('fullText') === 'true';
 		if (search) params.set('search', search);
 		if (startDate) params.set('startDate', startDate);
 		if (endDate) params.set('endDate', endDate);
 		if (sortOrder) params.set('sortOrder', sortOrder);
+		if (fullTextVal) params.set('fullText', 'true');
+		// isDone 필터는 링크 기반이므로 현재 URL에서 그대로 전달
+		const currentIsDone = $page.url.searchParams.get('isDone');
+		if (currentIsDone) params.set('isDone', currentIsDone);
 		goto(`/notices?${params.toString()}`);
 	}
 </script>
@@ -395,7 +396,7 @@
 						aria-label="입법예고 상태 필터"
 					>
 						<a
-							href={buildQueryLink({ page: 1, isDone: null })}
+							href={buildFilterLink({ isDone: null })}
 							class={`rounded-full px-3 py-1 transition-colors ${
 								isDoneFilter === undefined
 									? 'bg-white text-slate-800 shadow-sm'
@@ -405,7 +406,7 @@
 							전체
 						</a>
 						<a
-							href={buildQueryLink({ page: 1, isDone: false })}
+							href={buildFilterLink({ isDone: false })}
 							class={`rounded-full px-3 py-1 transition-colors ${
 								isDoneFilter === false
 									? 'bg-emerald-500 text-white shadow-sm'
@@ -415,7 +416,7 @@
 							진행 중
 						</a>
 						<a
-							href={buildQueryLink({ page: 1, isDone: isDoneFilter === true ? null : true })}
+							href={buildFilterLink({ isDone: isDoneFilter === true ? null : true })}
 							class={`rounded-full px-3 py-1 transition-colors ${
 								isDoneFilter === true
 									? 'bg-gray-400 text-white shadow-sm'
@@ -438,7 +439,9 @@
 							type="text"
 							name="search"
 							value={searchQuery}
-							placeholder="법률안명, 소관위원회, 원문 키워드 검색"
+							placeholder={fullText
+								? '법률안명, 소관위원회, 원문 키워드 검색'
+								: '법률안명, 소관위원회 검색'}
 							class="w-full rounded-lg border border-gray-200 bg-white py-2 pr-3 pl-10 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 						/>
 					</div>
@@ -474,6 +477,21 @@
 					</select>
 					<input type="hidden" name="page" value="1" />
 					<input type="hidden" name="limit" value={String(limit)} />
+					<input type="hidden" name="fullText" value={String(fullText)} />
+				</div>
+				<div class="mt-1.5 flex items-center">
+					<a
+						href={buildFilterLink({ fullText: fullText ? null : true })}
+						title="원문(제안이유) 전체 텍스트 포함 검색. 속도가 느려질 수 있습니다."
+						class={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+							fullText
+								? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+								: 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+						}`}
+					>
+						<FontAwesomeIcon icon={faFileText} class="h-3 w-3" />
+						원문(제안이유) 포함 검색
+					</a>
 				</div>
 				{#if hasDateReversed}
 					<p class="mt-2 text-xs font-medium text-amber-700">
@@ -523,9 +541,24 @@
 									진행 중인 입법예고만
 								{/if}
 								<a
-									href={buildQueryLink({ page: 1, isDone: null })}
+									href={buildFilterLink({ isDone: null })}
 									class="ml-1 opacity-60 hover:opacity-100"
 									aria-label="상태 필터 해제"
+								>
+									✕
+								</a>
+							</span>
+						{/if}
+						{#if fullText}
+							<span
+								class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-semibold text-indigo-700"
+							>
+								<FontAwesomeIcon icon={faFileText} class="h-2.5 w-2.5" />
+								원문 포함 검색
+								<a
+									href={buildFilterLink({ fullText: null })}
+									class="ml-1 opacity-60 hover:opacity-100"
+									aria-label="원문 포함 검색 해제"
 								>
 									✕
 								</a>

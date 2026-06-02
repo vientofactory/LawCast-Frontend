@@ -12,6 +12,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const sortOrder = url.searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
 	const isDoneParam = url.searchParams.get('isDone');
 	const isDone = isDoneParam === 'true' ? true : isDoneParam === 'false' ? false : undefined;
+	const fullText = url.searchParams.get('fullText') === 'true';
 
 	try {
 		const archive = await apiClient.getArchivedNotices(
@@ -22,7 +23,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				startDate,
 				endDate,
 				sortOrder,
-				isDone
+				isDone,
+				fullText
 			},
 			fetch
 		);
