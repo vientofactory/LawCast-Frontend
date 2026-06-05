@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
-	import { faGithub } from '@fortawesome/free-brands-svg-icons';
 	import { page } from '$app/state';
 	import {
 		faChartLine,
@@ -87,7 +86,7 @@
 	class="border-b border-slate-200/70 bg-linear-to-r from-white via-sky-50 to-indigo-50/80 shadow-lg shadow-sky-100/40"
 >
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-		<div class="flex flex-wrap items-center justify-between gap-4 py-5">
+		<div class="flex flex-wrap items-center gap-4 py-5">
 			<a
 				href="/"
 				class="text-decoration-none group flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
@@ -105,7 +104,7 @@
 			<!-- 햄버거/닫기 버튼 -->
 			<button
 				bind:this={menuButton}
-				class="inline-flex items-center justify-center rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2 text-slate-600 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:text-slate-800 md:hidden"
+				class="ml-auto inline-flex items-center justify-center rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2 text-slate-600 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:text-slate-800 md:hidden"
 				aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
 				on:click={toggleMobileMenu}
 				aria-expanded={mobileMenuOpen}
@@ -120,7 +119,7 @@
 
 			<!-- 데스크톱 메뉴 -->
 			<nav
-				class="hidden w-full rounded-2xl border border-slate-200/60 bg-white/95 p-2 shadow-sm md:block md:w-auto"
+				class="hidden w-full rounded-2xl border border-slate-200/60 bg-white/95 p-2 shadow-sm md:mx-auto md:block md:w-auto"
 				aria-label="주요 메뉴"
 			>
 				<ul class="flex flex-wrap items-center justify-center gap-1.5 text-sm font-semibold">
@@ -147,16 +146,6 @@
 					{/each}
 				</ul>
 			</nav>
-
-			<a
-				href="https://github.com/vientofactory/lawcast"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="hidden items-center justify-center rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2 text-slate-600 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:text-slate-800 md:inline-flex"
-				aria-label="GitHub 저장소 열기"
-			>
-				<FontAwesomeIcon icon={faGithub} class="h-5 w-5" />
-			</a>
 		</div>
 	</div>
 </header>
@@ -203,19 +192,6 @@
 						</a>
 					</li>
 				{/each}
-				<li>
-					<a
-						href="https://github.com/vientofactory/lawcast"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="inline-flex items-center gap-2 rounded-xl border border-slate-200/70 bg-white/70 px-3 py-3 text-slate-600 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:text-slate-800"
-						aria-label="GitHub 저장소 열기"
-						on:click={closeMobileMenu}
-					>
-						<FontAwesomeIcon icon={faGithub} class="h-5 w-5" />
-						<span>GitHub</span>
-					</a>
-				</li>
 			</ul>
 		</nav>
 	</div>
