@@ -767,7 +767,7 @@
 									on:click={(event) => handlePaginationClick(event, 1)}
 									aria-label="첫 페이지로 이동"
 									title="첫 페이지"
-									class="rounded-xl border-2 border-gray-200 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === 1}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -778,7 +778,7 @@
 							{:else}
 								<span
 									aria-hidden="true"
-									class="rounded-xl border-2 border-gray-200 bg-white/60 px-3 py-2 text-xs font-semibold text-gray-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-slate-200 bg-white/60 px-3 py-2 text-xs font-semibold text-slate-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
 								</span>
@@ -789,7 +789,7 @@
 									on:click={(event) => handlePaginationClick(event, currentPage - 1)}
 									aria-label="이전 페이지로 이동"
 									title="이전 페이지"
-									class="rounded-xl border-2 border-gray-200 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === currentPage - 1}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -800,7 +800,7 @@
 							{:else}
 								<span
 									aria-hidden="true"
-									class="rounded-xl border-2 border-gray-200 bg-white/60 px-3 py-2 text-xs font-semibold text-gray-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-slate-200 bg-white/60 px-3 py-2 text-xs font-semibold text-slate-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
 								</span>
@@ -813,8 +813,8 @@
 										on:click={(event) => handlePaginationClick(event, item)}
 										class={`rounded-xl px-3 py-2 text-xs font-bold shadow-sm transition-all duration-200 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm ${
 											currentPage === item
-												? 'scale-105 bg-linear-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50'
-												: 'border-2 border-gray-200 bg-white/90 text-gray-600 hover:border-blue-200 hover:bg-white hover:text-blue-600'
+												? 'scale-105 border border-sky-200 bg-linear-to-r from-sky-100 to-indigo-100 text-slate-800 shadow-sm shadow-sky-100/70'
+												: 'border-2 border-slate-200 bg-white/90 text-slate-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700'
 										}`}
 									>
 										{#if pendingPaginationPage === item}
@@ -824,7 +824,7 @@
 										{/if}
 									</a>
 								{:else}
-									<span class="px-1 text-xs font-semibold text-gray-400 sm:px-2 sm:text-sm"
+									<span class="px-1 text-xs font-semibold text-slate-400 sm:px-2 sm:text-sm"
 										>...</span
 									>
 								{/if}
@@ -835,7 +835,7 @@
 									on:click={(event) => handlePaginationClick(event, currentPage + 1)}
 									aria-label="다음 페이지로 이동"
 									title="다음 페이지"
-									class="rounded-xl border-2 border-gray-200 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === currentPage + 1}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -846,7 +846,7 @@
 							{:else}
 								<span
 									aria-hidden="true"
-									class="rounded-xl border-2 border-gray-200 bg-white/60 px-3 py-2 text-xs font-semibold text-gray-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-slate-200 bg-white/60 px-3 py-2 text-xs font-semibold text-slate-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
 								</span>
@@ -857,7 +857,7 @@
 									on:click={(event) => handlePaginationClick(event, totalPages)}
 									aria-label="마지막 페이지로 이동"
 									title="마지막 페이지"
-									class="rounded-xl border-2 border-gray-200 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition-all duration-200 hover:border-blue-200 hover:bg-white hover:text-blue-600 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === totalPages}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -868,7 +868,7 @@
 							{:else}
 								<span
 									aria-hidden="true"
-									class="rounded-xl border-2 border-gray-200 bg-white/60 px-3 py-2 text-xs font-semibold text-gray-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+									class="rounded-xl border-2 border-slate-200 bg-white/60 px-3 py-2 text-xs font-semibold text-slate-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
 								</span>
@@ -877,7 +877,7 @@
 
 						<div class="mt-6 text-center">
 							<span
-								class="inline-flex items-center rounded-full bg-linear-to-r from-gray-100 to-blue-100 px-4 py-2 text-sm font-semibold text-gray-700"
+								class="inline-flex items-center rounded-full bg-linear-to-r from-sky-50 to-indigo-100 px-4 py-2 text-sm font-semibold text-slate-700"
 							>
 								{getPaginationInfo()}
 							</span>

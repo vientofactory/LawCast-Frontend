@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import 'nprogress/nprogress.css';
+	import Footer from '$lib/components/Footer.svelte';
 	import NProgress from 'nprogress';
 	import { navigating } from '$app/state';
 	import '@fortawesome/fontawesome-svg-core/styles.css';
@@ -37,3 +38,4 @@
 	메인 콘텐츠로 건너뛰기
 </a>
 {@render children()}
+<Footer />
