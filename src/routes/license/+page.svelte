@@ -2,252 +2,19 @@
 	import Header from '$lib/components/Header.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faScaleBalanced, faServer, faDesktop } from '@fortawesome/free-solid-svg-icons';
+	import type { PageData } from './$types';
 
-	type Package = {
-		name: string;
-		version: string;
-		license: string;
-		url: string;
-		note?: string;
-	};
+	export let data: PageData;
 
-	const backendPackages: Package[] = [
-		{
-			name: '@nestjs/common',
-			version: '^11.0.0',
-			license: 'MIT',
-			url: 'https://github.com/nestjs/nest'
-		},
-		{
-			name: '@nestjs/config',
-			version: '^4.0.2',
-			license: 'MIT',
-			url: 'https://github.com/nestjs/config'
-		},
-		{
-			name: '@nestjs/core',
-			version: '^11.0.0',
-			license: 'MIT',
-			url: 'https://github.com/nestjs/nest'
-		},
-		{
-			name: '@nestjs/platform-express',
-			version: '^11.0.0',
-			license: 'MIT',
-			url: 'https://github.com/nestjs/nest'
-		},
-		{
-			name: '@nestjs/schedule',
-			version: '^6.0.1',
-			license: 'MIT',
-			url: 'https://github.com/nestjs/schedule'
-		},
-		{
-			name: '@nestjs/typeorm',
-			version: '^11.0.0',
-			license: 'MIT',
-			url: 'https://github.com/nestjs/typeorm'
-		},
-		{
-			name: '@nestjs/cache-manager',
-			version: '^3.0.1',
-			license: 'MIT',
-			url: 'https://github.com/nestjs/cache-manager'
-		},
-		{
-			name: '@keyv/redis',
-			version: '^5.1.4',
-			license: 'MIT',
-			url: 'https://github.com/jaredwray/keyv'
-		},
-		{
-			name: 'keyv',
-			version: '^5.5.4',
-			license: 'MIT',
-			url: 'https://github.com/jaredwray/keyv'
-		},
-		{
-			name: 'cache-manager',
-			version: '^7.2.5',
-			license: 'MIT',
-			url: 'https://github.com/jaredwray/cacheable'
-		},
-		{
-			name: 'typeorm',
-			version: '^0.3.27',
-			license: 'MIT',
-			url: 'https://github.com/typeorm/typeorm'
-		},
-		{
-			name: 'axios',
-			version: '^1.13.2',
-			license: 'MIT',
-			url: 'https://github.com/axios/axios'
-		},
-		{
-			name: 'class-transformer',
-			version: '^0.5.1',
-			license: 'MIT',
-			url: 'https://github.com/typestack/class-transformer'
-		},
-		{
-			name: 'class-validator',
-			version: '^0.15.0',
-			license: 'MIT',
-			url: 'https://github.com/typestack/class-validator'
-		},
-		{
-			name: 'cron',
-			version: '^4.3.4',
-			license: 'MIT',
-			url: 'https://github.com/kelektiv/node-cron'
-		},
-		{
-			name: 'discord-webhook-node',
-			version: '^1.1.8',
-			license: 'MIT',
-			url: 'https://github.com/matthew1232/discord-webhook-node'
-		},
-		{
-			name: 'discord.js',
-			version: '^14.26.3',
-			license: 'Apache-2.0',
-			url: 'https://github.com/discordjs/discord.js'
-		},
-		{
-			name: 'hashguard-client',
-			version: '^1.5.0',
-			license: 'MIT',
-			url: 'https://github.com/vientorepublic'
-		},
-		{
-			name: 'jszip',
-			version: '^3.10.1',
-			license: 'MIT',
-			url: 'https://github.com/Stuk/jszip'
-		},
-		{
-			name: 'node-cache',
-			version: '^5.1.2',
-			license: 'MIT',
-			url: 'https://github.com/node-cache/node-cache'
-		},
-		{
-			name: 'pal-crawl',
-			version: '^1.8.0',
-			license: 'MIT',
-			url: 'https://github.com/vientorepublic'
-		},
-		{
-			name: 'reflect-metadata',
-			version: '^0.2.0',
-			license: 'Apache-2.0',
-			url: 'https://github.com/rbuckton/reflect-metadata'
-		},
-		{
-			name: 'rxjs',
-			version: '^7.8.1',
-			license: 'Apache-2.0',
-			url: 'https://github.com/ReactiveX/rxjs'
-		},
-		{
-			name: 'sharp',
-			version: '^0.34.5',
-			license: 'Apache-2.0',
-			url: 'https://github.com/lovell/sharp'
-		},
-		{
-			name: 'sqlite3',
-			version: '^5.1.7',
-			license: 'BSD-3-Clause',
-			url: 'https://github.com/TryGhost/node-sqlite3'
-		}
-	];
-
-	const frontendPackages: Package[] = [
-		{
-			name: 'svelte',
-			version: '^5.41.0',
-			license: 'MIT',
-			url: 'https://github.com/sveltejs/svelte'
-		},
-		{
-			name: '@sveltejs/kit',
-			version: '^2.47.1',
-			license: 'MIT',
-			url: 'https://github.com/sveltejs/kit'
-		},
-		{
-			name: 'axios',
-			version: '^1.13.2',
-			license: 'MIT',
-			url: 'https://github.com/axios/axios'
-		},
-		{
-			name: 'nprogress',
-			version: '^0.2.0',
-			license: 'MIT',
-			url: 'https://github.com/rstacruz/nprogress'
-		},
-		{
-			name: 'hashguard-client',
-			version: '^1.5.0',
-			license: 'MIT',
-			url: 'https://github.com/vientorepublic'
-		},
-		{
-			name: '@fontsource/pretendard',
-			version: '^5.2.5',
-			license: 'SIL OFL 1.1',
-			url: 'https://github.com/orioncactus/pretendard',
-			note: '폰트 라이선스'
-		},
-		{
-			name: '@fortawesome/fontawesome-svg-core',
-			version: '^7.1.0',
-			license: 'MIT',
-			url: 'https://github.com/FortAwesome/Font-Awesome'
-		},
-		{
-			name: '@fortawesome/free-brands-svg-icons',
-			version: '^7.1.0',
-			license: 'CC BY 4.0 / SIL OFL 1.1 / MIT',
-			url: 'https://github.com/FortAwesome/Font-Awesome',
-			note: '아이콘: CC BY 4.0, 폰트: SIL OFL 1.1, 코드: MIT'
-		},
-		{
-			name: '@fortawesome/free-solid-svg-icons',
-			version: '^7.1.0',
-			license: 'CC BY 4.0 / SIL OFL 1.1 / MIT',
-			url: 'https://github.com/FortAwesome/Font-Awesome',
-			note: '아이콘: CC BY 4.0, 폰트: SIL OFL 1.1, 코드: MIT'
-		},
-		{
-			name: '@fortawesome/svelte-fontawesome',
-			version: '^0.2.4',
-			license: 'MIT',
-			url: 'https://github.com/FortAwesome/svelte-fontawesome'
-		},
-		{
-			name: 'tailwindcss',
-			version: '^4.1.14',
-			license: 'MIT',
-			url: 'https://github.com/tailwindlabs/tailwindcss'
-		},
-		{
-			name: 'vite',
-			version: '^7.1.10',
-			license: 'MIT',
-			url: 'https://github.com/vitejs/vite'
-		}
-	];
+	$: ({ backendPackages, frontendPackages } = data);
 
 	const licenseBadgeStyle: Record<string, string> = {
 		MIT: 'bg-emerald-100 text-emerald-700 border-emerald-200',
 		'Apache-2.0': 'bg-sky-100 text-sky-700 border-sky-200',
 		'BSD-3-Clause': 'bg-violet-100 text-violet-700 border-violet-200',
-		'SIL OFL 1.1': 'bg-amber-100 text-amber-700 border-amber-200',
-		'CC BY 4.0 / SIL OFL 1.1 / MIT': 'bg-orange-100 text-orange-700 border-orange-200'
+		'OFL-1.1': 'bg-amber-100 text-amber-700 border-amber-200',
+		'CC-BY-4.0 AND MIT': 'bg-orange-100 text-orange-700 border-orange-200',
+		'MIT OR GPL-3.0-or-later': 'bg-teal-100 text-teal-700 border-teal-200'
 	};
 
 	function badgeStyle(license: string): string {
@@ -348,12 +115,7 @@ SOFTWARE.</pre>
 							{#each backendPackages as pkg (pkg.name)}
 								<tr class="border-b border-slate-50 hover:bg-slate-50/70">
 									<td class="py-2 pr-4 font-mono text-xs text-slate-700">
-										<a
-											href={pkg.url}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-sky-600 hover:underline">{pkg.name}</a
-										>
+										{pkg.name}
 									</td>
 									<td class="py-2 pr-4 font-mono text-xs text-slate-400">{pkg.version}</td>
 									<td class="py-2">
@@ -394,12 +156,7 @@ SOFTWARE.</pre>
 							{#each frontendPackages as pkg (pkg.name)}
 								<tr class="border-b border-slate-50 hover:bg-slate-50/70">
 									<td class="py-2 pr-4 font-mono text-xs text-slate-700">
-										<a
-											href={pkg.url}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-sky-600 hover:underline">{pkg.name}</a
-										>
+										{pkg.name}
 									</td>
 									<td class="py-2 pr-4 font-mono text-xs text-slate-400">{pkg.version}</td>
 									<td class="py-2">
@@ -448,18 +205,23 @@ SOFTWARE.</pre>
 				<div class="flex items-center gap-2">
 					<span
 						class="rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 font-medium text-amber-700"
-						>SIL OFL 1.1</span
+						>OFL-1.1</span
 					>
 					<span class="text-slate-500">SIL Open Font License 1.1 — 폰트 전용 오픈 라이선스</span>
 				</div>
 				<div class="flex items-center gap-2">
 					<span
 						class="rounded-full border border-orange-200 bg-orange-100 px-2 py-0.5 font-medium text-orange-700"
-						>CC BY 4.0</span
+						>CC-BY-4.0 AND MIT</span
 					>
-					<span class="text-slate-500"
-						>Creative Commons Attribution 4.0 — 출처 표시 후 사용 가능</span
+					<span class="text-slate-500">Creative Commons BY 4.0 + MIT — 아이콘/코드 복합</span>
+				</div>
+				<div class="flex items-center gap-2">
+					<span
+						class="rounded-full border border-teal-200 bg-teal-100 px-2 py-0.5 font-medium text-teal-700"
+						>MIT OR GPL-3.0-or-later</span
 					>
+					<span class="text-slate-500">MIT 또는 GPL-3.0 선택 — 배포자가 라이선스 선택 가능</span>
 				</div>
 			</div>
 		</section>
