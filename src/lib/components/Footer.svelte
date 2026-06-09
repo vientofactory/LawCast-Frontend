@@ -22,6 +22,9 @@
 						class="text-sky-500 hover:text-sky-600">Vientorepublic</a
 					>.
 				</p>
+				<p class="text-sm text-slate-500">
+					<a href="/license" class="text-sky-500 hover:text-sky-600">오픈소스 라이선스</a>
+				</p>
 			</div>
 			<a
 				href="https://github.com/vientofactory/lawcast"
