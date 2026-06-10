@@ -259,10 +259,12 @@
 							<FontAwesomeIcon icon={faUser} class="mr-1.5 h-3.5 w-3.5" />
 							{detail.notice.proposerCategory}
 						</span>
-						<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1">
-							<FontAwesomeIcon icon={faBell} class="mr-1.5 h-3.5 w-3.5" />
-							{detail.notice.committee}
-						</span>
+						{#if detail.notice.committee}
+							<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1">
+								<FontAwesomeIcon icon={faBell} class="mr-1.5 h-3.5 w-3.5" />
+								{detail.notice.committee}
+							</span>
+						{/if}
 						<span
 							class="inline-flex items-center rounded-md bg-emerald-100 px-2 py-1 text-emerald-800"
 						>
@@ -329,12 +331,25 @@
 				<FontAwesomeIcon icon={faFileLines} class="h-5 w-5 text-indigo-600" />
 				<h2 class="text-lg font-bold text-gray-900">제안이유 및 주요내용 원문</h2>
 			</div>
-			<h3 class="mb-3 text-sm font-semibold text-gray-700">{detail.originalContent.title}</h3>
-			<div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
-				<p class="text-sm leading-7 whitespace-pre-line text-gray-800">
-					{detail.originalContent.proposalReason}
-				</p>
-			</div>
+			{#if detail.originalContent.proposalReason}
+				<h3 class="mb-3 text-sm font-semibold text-gray-700">{detail.originalContent.title}</h3>
+				<div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+					<p class="text-sm leading-7 whitespace-pre-line text-gray-800">
+						{detail.originalContent.proposalReason}
+					</p>
+				</div>
+			{:else}
+				<div class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+					<FontAwesomeIcon
+						icon={faTriangleExclamation}
+						class="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+					/>
+					<p class="text-sm text-amber-800">
+						원문 데이터를 웹사이트에서 확인하지 못했습니다. 국회 페이지에서 직접 확인하시기
+						바랍니다.
+					</p>
+				</div>
+			{/if}
 		</section>
 
 		<details

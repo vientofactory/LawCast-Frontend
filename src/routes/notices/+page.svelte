@@ -693,10 +693,12 @@
 												<FontAwesomeIcon icon={faCalendar} class="mr-1 h-4 w-4" />
 												제안자 구분: {notice.proposerCategory}
 											</div>
-											<div class="flex items-center">
-												<FontAwesomeIcon icon={faBell} class="mr-1 h-4 w-4" />
-												소관위원회: {notice.committee}
-											</div>
+											{#if notice.committee}
+												<div class="flex items-center">
+													<FontAwesomeIcon icon={faBell} class="mr-1 h-4 w-4" />
+													소관위원회: {notice.committee}
+												</div>
+											{/if}
 										</div>
 
 										{#if shouldShowAIBriefing(notice)}
