@@ -123,7 +123,7 @@
 	<ul class="mb-6 space-y-2 text-sm text-gray-600">
 		<li class="flex items-start">
 			<span class="mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
-			5분마다 자동으로 새로운 입법예고를 확인합니다
+			10분마다 자동으로 새로운 입법예고를 확인합니다
 		</li>
 		<li class="flex items-start">
 			<span class="mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
