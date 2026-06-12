@@ -161,6 +161,73 @@
 
 	let isArchiveMetaOpen = false;
 	let isScreenshotExpanded = false;
+	let isExportingArchive = false;
+	let exportArchiveError: string | null = null;
+
+	function getArchiveFileName(contentDisposition: string | null, noticeNum: number): string {
+		const fallbackName = `notice-${noticeNum}-archive.zip`;
+
+		if (!contentDisposition) {
+			return fallbackName;
+		}
+
+		const encodedNameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+		if (encodedNameMatch?.[1]) {
+			try {
+				return decodeURIComponent(encodedNameMatch[1]);
+			} catch {
+				return encodedNameMatch[1];
+			}
+		}
+
+		const plainNameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+		if (plainNameMatch?.[1]) {
+			return plainNameMatch[1];
+		}
+
+		return fallbackName;
+	}
+
+	async function downloadArchiveZip(): Promise<void> {
+		if (isExportingArchive) {
+			return;
+		}
+
+		isExportingArchive = true;
+		exportArchiveError = null;
+
+		try {
+			const response = await fetch(`/api/notices/${detail.notice.num}/export`, {
+				method: 'GET',
+				headers: {
+					Accept: 'application/zip'
+				}
+			});
+
+			if (!response.ok) {
+				throw new Error('ZIP 파일을 준비하지 못했습니다.');
+			}
+
+			const zipBlob = await response.blob();
+			const blobUrl = URL.createObjectURL(zipBlob);
+			const fileName = getArchiveFileName(
+				response.headers.get('content-disposition'),
+				detail.notice.num
+			);
+
+			const downloadLink = document.createElement('a');
+			downloadLink.href = blobUrl;
+			downloadLink.download = fileName;
+			document.body.appendChild(downloadLink);
+			downloadLink.click();
+			downloadLink.remove();
+			URL.revokeObjectURL(blobUrl);
+		} catch {
+			exportArchiveError = '자료 반출 다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.';
+		} finally {
+			isExportingArchive = false;
+		}
+	}
 
 	$: screenshotUrl = `/api/notices/${detail.notice.num}/screenshot`;
 	$: hasScreenshot = detail.screenshotMeta?.hasScreenshot ?? false;
@@ -389,14 +456,19 @@
 									{isScreenshotExpanded ? '미리보기 닫기' : '국회 페이지 미리보기'}
 								</button>
 							{/if}
-							<a
-								href={`/api/notices/${detail.notice.num}/export`}
-								class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+							<button
+								type="button"
+								on:click={downloadArchiveZip}
+								disabled={isExportingArchive}
+								class="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
 							>
 								<FontAwesomeIcon icon={faDownload} class="mr-1.5 h-3.5 w-3.5" />
-								자료 반출 요청(ZIP)
-							</a>
+								{isExportingArchive ? 'ZIP 준비 중...' : '자료 반출 요청(ZIP)'}
+							</button>
 						</div>
+						{#if exportArchiveError}
+							<p class="mb-3 text-right text-xs text-rose-600">{exportArchiveError}</p>
+						{/if}
 
 						{#if hasScreenshot && isScreenshotExpanded}
 							<div
