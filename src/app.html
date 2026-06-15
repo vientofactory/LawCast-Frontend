@@ -1,10 +1,28 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="theme-color" content="#3b82f6" />
+		<script>
+			(() => {
+				const storageKey = 'lawcast-theme';
+				const root = document.documentElement;
+				const savedTheme = window.localStorage.getItem(storageKey);
+				const preferredTheme =
+					savedTheme === 'light' || savedTheme === 'dark'
+						? savedTheme
+						: window.matchMedia('(prefers-color-scheme: dark)').matches
+							? 'dark'
+							: 'light';
+
+				root.dataset.theme = preferredTheme;
+				root.style.colorScheme = preferredTheme;
+				const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+				metaThemeColor?.setAttribute('content', preferredTheme === 'dark' ? '#08111f' : '#3b82f6');
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover" class="%sveltekit.theme%">

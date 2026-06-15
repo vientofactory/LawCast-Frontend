@@ -111,16 +111,16 @@
 </script>
 
 <div
-	class="rounded-2xl border border-white/50 bg-white/80 p-6 shadow-lg shadow-blue-100/50 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-blue-100/60"
+	class="lc-panel-card rounded-2xl border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
 >
-	<h2 class="mb-6 flex items-center text-xl font-bold tracking-tight text-gray-800">
+	<h2 class="lc-text-primary mb-6 flex items-center text-xl font-bold tracking-tight">
 		<div class="mr-3 rounded-lg bg-linear-to-r from-blue-500 to-indigo-500 p-2">
 			<FontAwesomeIcon icon={faPlus} class="h-5 w-5 text-white" />
 		</div>
 		웹훅 등록
 	</h2>
 
-	<ul class="mb-6 space-y-2 text-sm text-gray-600">
+	<ul class="lc-text-secondary mb-6 space-y-2 text-sm">
 		<li class="flex items-start">
 			<span class="mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
 			10분마다 자동으로 새로운 입법예고를 확인합니다
@@ -143,7 +143,7 @@
 
 	<form on:submit|preventDefault={addWebhook} class="space-y-4">
 		<div>
-			<label for="webhook-url" class="mb-2 block text-sm font-medium text-gray-700">
+			<label for="webhook-url" class="lc-text-secondary mb-2 block text-sm font-medium">
 				Discord 웹훅 URL *
 			</label>
 			<input
@@ -151,7 +151,7 @@
 				type="url"
 				bind:value={newWebhookUrl}
 				placeholder="https://discord.com/api/webhooks/..."
-				class="w-full rounded-xl border-2 border-gray-200 bg-gray-50/50 px-4 py-3 text-gray-700 shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 focus:outline-none"
+				class="lc-input w-full rounded-xl border-2 px-4 py-3 shadow-sm transition-all duration-200 focus:border-blue-400 focus:bg-[var(--lc-surface-primary)] focus:ring-4 focus:ring-blue-100 focus:outline-none"
 				maxlength="500"
 				autocomplete="off"
 				spellcheck="false"
@@ -181,12 +181,12 @@
 			{/if}
 		</button>
 		{#if isSolvingPoW}
-			<p class="animate-pulse text-center text-xs text-gray-500">
+			<p class="lc-text-muted animate-pulse text-center text-xs">
 				{powStatusMessage ||
 					'잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.'}
 			</p>
 			{#if powEstimatedRemainingMs !== null || powHashRate !== null || powDifficultyBits !== null}
-				<div class="flex items-center justify-center gap-2 text-[11px] text-gray-400">
+				<div class="lc-text-dim flex items-center justify-center gap-2 text-[11px]">
 					{#if powEstimatedRemainingMs !== null}
 						<span class="font-medium text-blue-500"
 							>{formatRemainingTime(powEstimatedRemainingMs)}</span

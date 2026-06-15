@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	import { page } from '$app/state';
+	import { theme } from '$lib/theme';
 	import {
 		faChartLine,
 		faFileLines,
 		faHouse,
 		faBars,
-		faLink
+		faLink,
+		faMoon,
+		faSun
 	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
@@ -39,6 +42,8 @@
 		mobileMenuOpen = false;
 		menuButton?.focus();
 	}
+
+	$: isDarkTheme = $theme === 'dark';
 
 	function trapFocus(node: HTMLElement) {
 		const focusableSelectors = [
@@ -82,29 +87,51 @@
 	}
 </script>
 
-<header
-	class="border-b border-slate-200/70 bg-linear-to-r from-white via-sky-50 to-indigo-50/80 shadow-lg shadow-sky-100/40"
->
+<header class="lc-header-shell border-b shadow-lg">
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-		<div class="flex flex-wrap items-center gap-4 py-5">
+		<div class="relative flex flex-wrap items-center gap-4 py-5 md:flex-nowrap md:gap-6">
 			<a
 				href="/"
 				class="text-decoration-none group flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
 			>
 				<div>
 					<span
-						class="bg-linear-to-r from-slate-800 via-sky-700 to-indigo-700 bg-clip-text text-3xl font-bold tracking-tight text-transparent"
+						class="lc-brand-gradient bg-clip-text text-3xl font-bold tracking-tight text-transparent"
 					>
 						LawCast
 					</span>
-					<p class="mt-1 text-sm font-medium text-slate-600">국회 입법예고 스냅샷 아카이브</p>
+					<p class="mt-1 text-sm font-medium text-[var(--lc-text-secondary)]">
+						국회 입법예고 스냅샷 아카이브
+					</p>
 				</div>
 			</a>
+
+			<div class="hidden items-center md:ml-auto md:flex">
+				<button
+					type="button"
+					on:click={() => theme.toggle()}
+					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full border p-1 transition-all duration-200"
+					role="switch"
+					aria-checked={isDarkTheme}
+					aria-label={isDarkTheme ? '라이트 테마로 전환' : '다크 테마로 전환'}
+					title={isDarkTheme ? '라이트 테마' : '다크 테마'}
+				>
+					<span class={`lc-theme-switch-track ${isDarkTheme ? 'is-dark' : ''}`} aria-hidden="true">
+						<span class={`lc-theme-switch-thumb ${isDarkTheme ? 'is-dark' : ''}`}>
+							{#if isDarkTheme}
+								<FontAwesomeIcon icon={faMoon} class="h-3 w-3" />
+							{:else}
+								<FontAwesomeIcon icon={faSun} class="h-3 w-3" />
+							{/if}
+						</span>
+					</span>
+				</button>
+			</div>
 
 			<!-- 햄버거/닫기 버튼 -->
 			<button
 				bind:this={menuButton}
-				class="ml-auto inline-flex items-center justify-center rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2 text-slate-600 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:text-slate-800 md:hidden"
+				class="ml-auto inline-flex items-center justify-center rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-[var(--lc-text-secondary)] shadow-sm transition-all duration-200 hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] md:hidden"
 				aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
 				on:click={toggleMobileMenu}
 				aria-expanded={mobileMenuOpen}
@@ -119,7 +146,7 @@
 
 			<!-- 데스크톱 메뉴 -->
 			<nav
-				class="hidden w-full rounded-2xl border border-slate-200/60 bg-white/95 p-2 shadow-sm md:mx-auto md:block md:w-auto"
+				class="hidden w-full rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-2 shadow-sm md:absolute md:top-1/2 md:left-1/2 md:block md:w-auto md:-translate-x-1/2 md:-translate-y-1/2"
 				aria-label="주요 메뉴"
 			>
 				<ul class="flex flex-wrap items-center justify-center gap-1.5 text-sm font-semibold">
@@ -130,13 +157,13 @@
 								aria-current={isActive(item.href) ? 'page' : undefined}
 								class={`group/menu inline-flex items-center gap-2 rounded-xl px-3 py-3 transition-all duration-200 ${
 									isActive(item.href)
-										? 'border border-sky-200 bg-linear-to-r from-sky-100 to-indigo-100 text-slate-800 shadow-sm shadow-sky-100/70'
-										: 'text-slate-700 hover:bg-sky-50 hover:text-sky-700'
+										? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)] shadow-sm'
+										: 'text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-accent)]'
 								}`}
 								style="min-height:44px"
 							>
 								<span
-									class={`inline-flex h-6 w-6 items-center justify-center rounded-lg ${isActive(item.href) ? 'bg-white/70 text-sky-800' : 'bg-sky-100 text-sky-700 group-hover/menu:bg-sky-200'}`}
+									class={`inline-flex h-6 w-6 items-center justify-center rounded-lg ${isActive(item.href) ? 'bg-[var(--lc-surface-primary)] text-[var(--lc-text-accent)]' : 'bg-[var(--lc-surface-muted)] text-[var(--lc-text-accent)] group-hover/menu:bg-[var(--lc-surface-accent)]'}`}
 								>
 									<FontAwesomeIcon icon={item.icon} class="h-3.5 w-3.5" />
 								</span>
@@ -156,7 +183,7 @@
 		<!-- 오버레이 -->
 		<button
 			type="button"
-			class="absolute inset-0 cursor-default bg-black/10"
+			class="absolute inset-0 cursor-default bg-slate-950/35 backdrop-blur-[2px]"
 			aria-label="메뉴 닫기"
 			tabindex="-1"
 			on:click={closeMobileMenu}
@@ -165,10 +192,30 @@
 		<nav
 			id="mobile-menu-panel"
 			use:trapFocus
-			class="relative z-10 w-full rounded-b-2xl border-b border-slate-200/70 bg-white/95 p-4 pt-6 shadow-lg"
+			class="relative z-10 w-full rounded-b-2xl border-b border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4 pt-6 shadow-lg"
 			aria-label="모바일 메뉴"
 			transition:fly={{ y: -16, duration: 180, opacity: 0 }}
 		>
+			<div class="mb-4 flex items-center justify-end">
+				<button
+					type="button"
+					on:click={() => theme.toggle()}
+					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full border p-1 transition-all duration-200"
+					role="switch"
+					aria-checked={isDarkTheme}
+					aria-label={isDarkTheme ? '라이트 테마로 전환' : '다크 테마로 전환'}
+				>
+					<span class={`lc-theme-switch-track ${isDarkTheme ? 'is-dark' : ''}`} aria-hidden="true">
+						<span class={`lc-theme-switch-thumb ${isDarkTheme ? 'is-dark' : ''}`}>
+							{#if isDarkTheme}
+								<FontAwesomeIcon icon={faMoon} class="h-3 w-3" />
+							{:else}
+								<FontAwesomeIcon icon={faSun} class="h-3 w-3" />
+							{/if}
+						</span>
+					</span>
+				</button>
+			</div>
 			<ul class="flex flex-col gap-2 text-base font-semibold">
 				{#each menuItems as item (item.href)}
 					<li>
@@ -177,14 +224,14 @@
 							aria-current={isActive(item.href) ? 'page' : undefined}
 							class={`group/menu inline-flex items-center gap-2 rounded-xl px-3 py-3 transition-all duration-200 ${
 								isActive(item.href)
-									? 'border border-sky-200 bg-linear-to-r from-sky-100 to-indigo-100 text-slate-800 shadow-sm shadow-sky-100/70'
-									: 'text-slate-700 hover:bg-sky-50 hover:text-sky-700'
+									? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)] shadow-sm'
+									: 'text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-accent)]'
 							}`}
 							style="min-height:44px"
 							on:click={closeMobileMenu}
 						>
 							<span
-								class={`inline-flex h-6 w-6 items-center justify-center rounded-lg ${isActive(item.href) ? 'bg-white/70 text-sky-800' : 'bg-sky-100 text-sky-700 group-hover/menu:bg-sky-200'}`}
+								class={`inline-flex h-6 w-6 items-center justify-center rounded-lg ${isActive(item.href) ? 'bg-[var(--lc-surface-primary)] text-[var(--lc-text-accent)]' : 'bg-[var(--lc-surface-muted)] text-[var(--lc-text-accent)] group-hover/menu:bg-[var(--lc-surface-accent)]'}`}
 							>
 								<FontAwesomeIcon icon={item.icon} class="h-3.5 w-3.5" />
 							</span>
@@ -204,5 +251,65 @@
 	}
 	a:hover {
 		color: inherit;
+	}
+
+	.lc-header-shell {
+		background: var(--lc-header-gradient);
+		border-color: var(--lc-border-soft);
+		box-shadow: var(--lc-shadow-soft);
+	}
+
+	.lc-brand-gradient {
+		background-image: var(--lc-brand-gradient);
+	}
+
+	.lc-theme-switch {
+		background: var(--lc-surface-primary);
+		border-color: var(--lc-border-soft);
+		color: var(--lc-text-secondary);
+		box-shadow: var(--lc-shadow-soft);
+	}
+
+	.lc-theme-switch:hover {
+		background: var(--lc-surface-hover);
+		color: var(--lc-text-primary);
+	}
+
+	.lc-theme-switch-track {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		width: 2.9rem;
+		height: 1.6rem;
+		padding: 0.12rem;
+		border-radius: 9999px;
+		background: rgba(148, 163, 184, 0.32);
+		transition: background-color 180ms ease;
+	}
+
+	.lc-theme-switch-track.is-dark {
+		background: linear-gradient(135deg, #0891b2, #4338ca);
+	}
+
+	.lc-theme-switch-thumb {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.35rem;
+		height: 1.35rem;
+		border-radius: 9999px;
+		background: var(--lc-surface-primary);
+		color: #f59e0b;
+		box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+		transform: translateX(0);
+		transition:
+			transform 180ms ease,
+			background-color 180ms ease,
+			color 180ms ease;
+	}
+
+	.lc-theme-switch-thumb.is-dark {
+		transform: translateX(1.28rem);
+		color: #a5f3fc;
 	}
 </style>

@@ -24,35 +24,35 @@
 	const typeConfig = {
 		error: {
 			icon: faTriangleExclamation,
-			containerClass: 'border-red-200/60 bg-gradient-to-r from-red-50 to-rose-50',
+			containerClass: 'lc-alert-error',
 			iconClass: 'text-red-500',
 			textClass: 'text-red-700',
 			buttonClass: 'text-red-600 hover:text-red-800',
-			customButtonClass: 'bg-red-100 hover:bg-red-200 text-red-700'
+			customButtonClass: 'lc-alert-action lc-alert-action-error'
 		},
 		success: {
 			icon: faCircleCheck,
-			containerClass: 'border-green-200/60 bg-gradient-to-r from-green-50 to-emerald-50',
+			containerClass: 'lc-alert-success',
 			iconClass: 'text-green-500',
 			textClass: 'text-green-700',
 			buttonClass: 'text-green-600 hover:text-green-800',
-			customButtonClass: 'bg-green-100 hover:bg-green-200 text-green-700'
+			customButtonClass: 'lc-alert-action lc-alert-action-success'
 		},
 		warning: {
 			icon: faTriangleExclamation,
-			containerClass: 'border-yellow-200/60 bg-gradient-to-r from-yellow-50 to-amber-50',
+			containerClass: 'lc-alert-warning',
 			iconClass: 'text-yellow-500',
 			textClass: 'text-yellow-700',
 			buttonClass: 'text-yellow-600 hover:text-yellow-800',
-			customButtonClass: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700'
+			customButtonClass: 'lc-alert-action lc-alert-action-warning'
 		},
 		info: {
 			icon: faInfo,
-			containerClass: 'border-blue-200/60 bg-gradient-to-r from-blue-50 to-indigo-50',
+			containerClass: 'lc-alert-info',
 			iconClass: 'text-blue-500',
 			textClass: 'text-blue-700',
 			buttonClass: 'text-blue-600 hover:text-blue-800',
-			customButtonClass: 'bg-blue-100 hover:bg-blue-200 text-blue-700'
+			customButtonClass: 'lc-alert-action lc-alert-action-info'
 		}
 	};
 
@@ -98,7 +98,7 @@
 
 {#if visible}
 	<div
-		class="rounded-xl border {config.containerClass} mb-6 p-4 shadow-sm transition-all duration-300 ease-out"
+		class="lc-alert {config.containerClass} mb-6 rounded-xl border p-4 shadow-sm transition-all duration-300 ease-out"
 		class:animate-fade-in={visible}
 		class:opacity-0={!visible}
 		class:transform={true}

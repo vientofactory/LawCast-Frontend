@@ -19,21 +19,18 @@
 </script>
 
 <section
-	class="rounded-2xl border border-white/50 bg-white p-6 shadow-lg shadow-green-100/50 transition-all duration-300 hover:shadow-xl hover:shadow-green-100/60"
+	class="lc-panel-card rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl"
 	aria-label="최근 입법예고"
 >
 	<div class="mb-6 flex items-center justify-between">
-		<h2 class="flex items-center text-xl font-bold tracking-tight text-gray-800">
+		<h2 class="lc-text-primary flex items-center text-xl font-bold tracking-tight">
 			<div class="mr-3 rounded-lg bg-linear-to-r from-green-500 to-emerald-500 p-2">
 				<FontAwesomeIcon icon={faBell} class="h-5 w-5 text-white" />
 			</div>
 			최근 입법예고
 		</h2>
 		{#if notices.length > 0}
-			<a
-				href="./notices"
-				class="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
-			>
+			<a href="./notices" class="lc-link flex items-center text-sm font-medium">
 				전체 입법예고 보기
 				<FontAwesomeIcon icon={faExternalLink} class="ml-1 h-4 w-4" />
 			</a>
@@ -42,12 +39,12 @@
 
 	{#if stats}
 		<div
-			class="mb-4 flex flex-wrap gap-4 rounded-lg bg-gray-50/50 text-xs font-medium text-gray-500"
+			class="lc-panel-inset lc-text-muted mb-4 flex flex-wrap gap-4 rounded-lg border px-3 py-2 text-xs font-medium"
 		>
 			<div class="flex items-center">
 				<FontAwesomeIcon icon={faDatabase} class="mr-1.5 h-3 w-3 text-green-600" />
 				<span
-					>수집된 입법예고: <span class="text-gray-700"
+					>수집된 입법예고: <span class="lc-text-secondary"
 						>{stats.archive.count.toLocaleString('ko-KR')}개</span
 					></span
 				>
@@ -55,7 +52,7 @@
 			<div class="flex items-center">
 				<FontAwesomeIcon icon={faClock} class="mr-1.5 h-3 w-3 text-blue-600" />
 				<span
-					>마지막 업데이트: <span class="text-gray-700"
+					>마지막 업데이트: <span class="lc-text-secondary"
 						>{stats.cache.lastUpdated ? formatDate(stats.cache.lastUpdated) : 'N/A'}</span
 					></span
 				>
@@ -66,7 +63,7 @@
 	{#if notices.length > 0 && aiSummaryEnabled}
 		<a
 			href="./notices"
-			class="group/ai mb-4 block rounded-xl border border-cyan-200/70 bg-linear-to-r from-cyan-50 via-sky-50 to-indigo-50 p-3 shadow-sm transition-all duration-200 hover:shadow-md"
+			class="lc-ai-panel group/ai mb-4 block rounded-xl border p-3 shadow-sm transition-all duration-200 hover:shadow-md"
 		>
 			<div class="flex items-center justify-between gap-3">
 				<div class="min-w-0">
@@ -74,12 +71,12 @@
 						<FontAwesomeIcon icon={faRobot} class="mr-1.5 h-3.5 w-3.5" />
 						AI 에이전트 브리핑
 					</p>
-					<p class="mt-1 text-sm font-medium text-slate-700">
+					<p class="lc-text-secondary mt-1 text-sm font-medium">
 						전체 입법예고 페이지에서 각 법률안의 AI 요약을 확인할 수 있습니다!
 					</p>
 				</div>
 				<span
-					class="inline-flex shrink-0 items-center rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-semibold text-cyan-700 transition-colors group-hover/ai:bg-cyan-200"
+					class="lc-ai-badge inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-colors group-hover/ai:bg-cyan-200/80"
 				>
 					보러가기
 					<FontAwesomeIcon icon={faExternalLink} class="ml-1.5 h-3 w-3" />
@@ -90,23 +87,23 @@
 
 	{#if notices.length === 0}
 		<div class="py-8 text-center">
-			<div class="mb-2 text-gray-400">
+			<div class="lc-text-dim mb-2">
 				<FontAwesomeIcon icon={faBell} class="mx-auto h-8 w-8" />
 			</div>
-			<p class="text-gray-500">아직 수집된 입법예고가 없습니다.</p>
+			<p class="lc-text-muted">아직 수집된 입법예고가 없습니다.</p>
 		</div>
 	{:else}
 		<div class="space-y-3">
 			{#each notices.slice(0, 5) as notice (notice.num)}
 				<article
 					aria-labelledby="recent-notice-{notice.num}"
-					class="group rounded-xl border border-gray-100 bg-linear-to-r from-gray-50/50 to-blue-50/30 p-4 transition-all duration-200 hover:from-blue-50/60 hover:to-indigo-50/40 hover:shadow-md"
+					class="lc-panel-inset group rounded-xl border p-4 transition-all duration-200 hover:shadow-md"
 				>
 					<div class="mb-3 flex items-start justify-between">
 						<a
 							id="recent-notice-{notice.num}"
 							href="/notices/{notice.num}"
-							class="line-clamp-2 text-sm leading-relaxed font-semibold text-gray-800 no-underline transition-colors duration-150 group-hover:text-gray-900 hover:text-blue-600"
+							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150 group-hover:text-[var(--lc-text-primary)] hover:text-blue-600"
 						>
 							{notice.subject}
 						</a>
@@ -118,7 +115,7 @@
 										<button
 											on:click={() => downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
 											aria-label="PDF 다운로드"
-											class="cursor-pointer rounded-md bg-red-50/90 p-1.5 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
+											class="lc-action-chip-red cursor-pointer rounded-md p-1.5 transition-colors"
 										>
 											<FontAwesomeIcon icon={faFileText} class="h-3.5 w-3.5" />
 										</button>
@@ -127,28 +124,28 @@
 										<button
 											on:click={() => downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
 											aria-label="HWP 다운로드"
-											class="cursor-pointer rounded-md bg-blue-50/90 p-1.5 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
+											class="lc-action-chip-blue cursor-pointer rounded-md p-1.5 transition-colors"
 										>
 											<FontAwesomeIcon icon={faFileDownload} class="h-3.5 w-3.5" />
 										</button>
 									{/if}
 								</div>
-								<div class="h-4 w-px bg-gray-200"></div>
+								<div class="h-4 w-px bg-[var(--lc-border-soft)]"></div>
 							{/if}
 							<!-- 상세보기 버튼 -->
 							<button
 								on:click={() => openExternalLink(notice.link)}
 								aria-label="온라인 원문 보기 (새 탭)"
-								class="cursor-pointer rounded-md bg-gray-50/90 p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700"
+								class="lc-button-neutral cursor-pointer rounded-md p-1.5 transition-colors"
 							>
 								<FontAwesomeIcon icon={faExternalLink} class="h-3.5 w-3.5" />
 							</button>
 						</div>
 					</div>
-					<div class="flex items-center justify-between text-xs text-gray-500">
+					<div class="lc-text-muted flex items-center justify-between text-xs">
 						<span>{notice.proposerCategory}{notice.committee ? ` | ${notice.committee}` : ''}</span>
 					</div>
-					<div class="mt-1 text-xs text-gray-400">
+					<div class="lc-text-dim mt-1 text-xs">
 						<span>의안번호: {notice.num}</span>
 					</div>
 				</article>
@@ -157,10 +154,7 @@
 
 		{#if notices.length > 5}
 			<div class="mt-4 text-center">
-				<a
-					href="./notices"
-					class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
-				>
+				<a href="./notices" class="lc-link inline-flex items-center text-sm">
 					<FontAwesomeIcon icon={faPlus} class="mr-1 h-4 w-4" />
 					더 보기
 				</a>
