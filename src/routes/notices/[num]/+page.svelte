@@ -254,34 +254,34 @@
 	{@html `<script type="application/ld+json">${articleJsonLd}<` + `/script>`}
 </svelte:head>
 
-<div class="min-h-screen bg-linear-to-br from-slate-50 via-sky-50/30 to-indigo-50/20">
+<div class="page-shell">
 	<Header />
 
 	<main id="main-content" class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
 		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
 			<a
 				href={backLink}
-				class="flex items-center rounded-lg border border-gray-200/50 bg-white/90 px-3 py-2 text-gray-600 shadow-sm transition-all duration-200 hover:bg-white hover:text-gray-800"
+				class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 transition-all duration-200"
 			>
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
 				전체 입법예고
 			</a>
-			<span class="text-gray-400" aria-hidden="true">/</span>
-			<span class="font-semibold text-gray-700">법률안 원문 조회</span>
+			<span class="lc-text-dim" aria-hidden="true">/</span>
+			<span class="lc-text-secondary font-semibold">법률안 원문 조회</span>
 		</nav>
 
 		{#if detail.notice.isDone}
 			<div
-				class="mb-6 flex items-start gap-3 rounded-xl border border-gray-300 bg-gray-100 px-5 py-4 shadow-sm"
+				class="lc-banner-muted mb-6 flex items-start gap-3 rounded-xl border px-5 py-4 shadow-sm"
 				role="status"
 				aria-label="입법예고 종료 안내"
 			>
-				<div class="mt-0.5 rounded-full bg-gray-300 p-1.5 text-gray-600">
+				<div class="lc-chip-muted mt-0.5 rounded-full p-1.5">
 					<FontAwesomeIcon icon={faLock} class="h-4 w-4" />
 				</div>
 				<div>
-					<p class="text-sm font-semibold text-gray-700">입법예고 종료</p>
-					<p class="mt-0.5 text-sm text-gray-500">
+					<p class="lc-text-secondary text-sm font-semibold">입법예고 종료</p>
+					<p class="lc-text-muted mt-0.5 text-sm">
 						이 법률안의 입법예고 기간이 종료되었습니다. 내용은 참고용으로만 확인하시기 바랍니다.
 					</p>
 				</div>
@@ -289,27 +289,27 @@
 		{/if}
 
 		<section
-			class={`mb-6 rounded-2xl border p-6 shadow-lg ${detail.notice.isDone ? 'border-gray-200 bg-gray-50/90' : 'border-white/50 bg-white/90'}`}
+			class={`mb-6 rounded-2xl border p-6 shadow-lg ${detail.notice.isDone ? 'lc-panel-subtle' : 'lc-panel-card'}`}
 		>
 			<div class="mb-4 flex flex-wrap items-start justify-between gap-3">
 				<div>
 					<div class="mb-2 flex flex-wrap items-center gap-2">
 						<div
-							class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700"
+							class="lc-chip-blue inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
 						>
 							<FontAwesomeIcon icon={faScaleBalanced} class="mr-1.5 h-3.5 w-3.5" />
 							의안번호 {detail.notice.num}
 						</div>
 						{#if detail.notice.isDone}
 							<div
-								class="inline-flex items-center gap-1 rounded-full bg-gray-200 px-3 py-1 text-xs font-semibold text-gray-600"
+								class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
 							>
 								<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
 								종료됨
 							</div>
 						{:else}
 							<div
-								class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
+								class="lc-chip-success inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
 							>
 								<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
 								진행 중
@@ -317,24 +317,22 @@
 						{/if}
 					</div>
 					<h1
-						class={`text-2xl leading-snug font-bold ${detail.notice.isDone ? 'text-gray-500' : 'text-gray-900'}`}
+						class={`text-2xl leading-snug font-bold ${detail.notice.isDone ? 'lc-text-muted' : 'lc-text-primary'}`}
 					>
 						{detail.notice.subject}
 					</h1>
-					<div class="mt-3 flex flex-wrap gap-3 text-sm text-gray-600">
-						<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1">
+					<div class="lc-text-secondary mt-3 flex flex-wrap gap-3 text-sm">
+						<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
 							<FontAwesomeIcon icon={faUser} class="mr-1.5 h-3.5 w-3.5" />
 							{detail.notice.proposerCategory}
 						</span>
 						{#if detail.notice.committee}
-							<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1">
+							<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
 								<FontAwesomeIcon icon={faBell} class="mr-1.5 h-3.5 w-3.5" />
 								{detail.notice.committee}
 							</span>
 						{/if}
-						<span
-							class="inline-flex items-center rounded-md bg-emerald-100 px-2 py-1 text-emerald-800"
-						>
+						<span class="lc-chip-success inline-flex items-center rounded-md px-2 py-1">
 							<FontAwesomeIcon icon={faClock} class="mr-1.5 h-3.5 w-3.5" />
 							아카이브: {formatDateTime(detail.archiveMetadata.archivedAt)}
 						</span>
@@ -342,7 +340,7 @@
 				</div>
 				<button
 					on:click={() => openExternalLink(detail.notice.link)}
-					class="inline-flex cursor-pointer items-center rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
+					class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold"
 				>
 					<FontAwesomeIcon icon={faExternalLink} class="mr-2 h-4 w-4" />
 					국회 페이지 열기
@@ -358,16 +356,14 @@
 		</section>
 
 		{#if aiSummaryEnabled}
-			<section
-				class="mb-6 rounded-xl border border-amber-200/80 bg-linear-to-r from-amber-50 to-orange-50 p-4 shadow-sm"
-			>
+			<section class="lc-banner-warning mb-6 rounded-xl border p-4 shadow-sm">
 				<div class="flex items-start gap-3">
-					<div class="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
+					<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
 						<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
 					</div>
 					<div>
-						<p class="text-sm font-semibold text-amber-900">안내</p>
-						<p class="mt-1 text-sm leading-relaxed text-amber-800/90">
+						<p class="text-sm font-semibold">안내</p>
+						<p class="mt-1 text-sm leading-relaxed">
 							AI 요약은 참고용이며 오류가 있을 수 있습니다. 아래 원문(제안이유 및 주요내용)을 최종
 							기준으로 확인해주세요.
 						</p>
@@ -377,41 +373,41 @@
 		{/if}
 
 		{#if contentFacts.length > 0}
-			<section class="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+			<section class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm">
 				<div class="mb-4 flex items-center gap-2">
 					<FontAwesomeIcon icon={faScaleBalanced} class="h-5 w-5 text-blue-600" />
-					<h2 class="text-lg font-bold text-gray-900">입법예고 정보</h2>
+					<h2 class="lc-text-primary text-lg font-bold">입법예고 정보</h2>
 				</div>
 				<dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
 					{#each contentFacts as fact (fact.label)}
-						<div class="rounded-lg border border-gray-200 bg-white px-3 py-2">
-							<dt class="text-xs font-semibold text-gray-500">{fact.label}</dt>
-							<dd class="mt-1 text-sm font-medium text-gray-800">{fact.value}</dd>
+						<div class="lc-panel-inset rounded-lg border px-3 py-2">
+							<dt class="lc-text-muted text-xs font-semibold">{fact.label}</dt>
+							<dd class="lc-text-primary mt-1 text-sm font-medium">{fact.value}</dd>
 						</div>
 					{/each}
 				</dl>
 			</section>
 		{/if}
 
-		<section class="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+		<section class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm">
 			<div class="mb-4 flex items-center gap-2">
 				<FontAwesomeIcon icon={faFileLines} class="h-5 w-5 text-indigo-600" />
-				<h2 class="text-lg font-bold text-gray-900">제안이유 및 주요내용 원문</h2>
+				<h2 class="lc-text-primary text-lg font-bold">제안이유 및 주요내용 원문</h2>
 			</div>
 			{#if detail.originalContent.proposalReason}
-				<h3 class="mb-3 text-sm font-semibold text-gray-700">{detail.originalContent.title}</h3>
-				<div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
-					<p class="text-sm leading-7 whitespace-pre-line text-gray-800">
+				<h3 class="lc-text-secondary mb-3 text-sm font-semibold">{detail.originalContent.title}</h3>
+				<div class="lc-code-block rounded-lg border p-4">
+					<p class="lc-text-primary text-sm leading-7 whitespace-pre-line">
 						{detail.originalContent.proposalReason}
 					</p>
 				</div>
 			{:else}
-				<div class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+				<div class="lc-banner-warning flex items-start gap-3 rounded-lg border p-4">
 					<FontAwesomeIcon
 						icon={faTriangleExclamation}
 						class="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
 					/>
-					<p class="text-sm text-amber-800">
+					<p class="text-sm">
 						원문 데이터를 웹사이트에서 확인하지 못했습니다. 국회 페이지에서 직접 확인하시기
 						바랍니다.
 					</p>
@@ -421,17 +417,17 @@
 
 		<details
 			bind:open={isArchiveMetaOpen}
-			class="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+			class="lc-panel-card group rounded-2xl border p-6 shadow-sm"
 		>
 			<summary
-				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-slate-50"
+				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-[var(--lc-surface-hover)]"
 			>
 				<span class="flex items-center gap-2">
 					<FontAwesomeIcon icon={faShieldHalved} class="h-5 w-5 text-emerald-600" />
-					<h2 class="text-lg font-bold text-gray-900">아카이브 상세정보</h2>
+					<h2 class="lc-text-primary text-lg font-bold">아카이브 상세정보</h2>
 				</span>
 				<span
-					class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition-all duration-200 hover:bg-slate-100 hover:text-slate-800"
+					class="lc-button-neutral inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200"
 				>
 					<span
 						class="inline-flex transition-transform duration-200"
@@ -449,7 +445,7 @@
 							{#if hasScreenshot}
 								<button
 									on:click={() => (isScreenshotExpanded = !isScreenshotExpanded)}
-									class="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+									class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-xs font-semibold transition-colors"
 									aria-expanded={isScreenshotExpanded}
 								>
 									<FontAwesomeIcon icon={faImage} class="mr-1.5 h-3.5 w-3.5" />
@@ -460,7 +456,7 @@
 								type="button"
 								on:click={downloadArchiveZip}
 								disabled={isExportingArchive}
-								class="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+								class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 							>
 								<FontAwesomeIcon icon={faDownload} class="mr-1.5 h-3.5 w-3.5" />
 								{isExportingArchive ? 'ZIP 준비 중...' : '자료 반출 요청(ZIP)'}
@@ -472,21 +468,21 @@
 
 						{#if hasScreenshot && isScreenshotExpanded}
 							<div
-								class="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+								class="lc-panel-inset mb-4 overflow-hidden rounded-xl border"
 								in:slide={{ duration: 220 }}
 								out:slide={{ duration: 160 }}
 							>
 								<div
-									class="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2.5"
+									class="flex items-center justify-between border-b border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-4 py-2.5"
 								>
-									<span class="flex items-center gap-2 text-xs font-semibold text-slate-600">
+									<span class="lc-text-secondary flex items-center gap-2 text-xs font-semibold">
 										<FontAwesomeIcon icon={faImage} class="h-3.5 w-3.5" />
 										국회 입법예고 페이지 스크린샷
 									</span>
 									<a
 										href={screenshotUrl}
 										download={`notice-${detail.notice.num}-screenshot.${detail.screenshotMeta.format ?? 'jpeg'}`}
-										class="inline-flex items-center gap-1.5 rounded-md bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-slate-700"
+										class="lc-button-primary inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors"
 									>
 										<FontAwesomeIcon icon={faDownload} class="h-3 w-3" />
 										다운로드
@@ -496,46 +492,46 @@
 									<img
 										src={screenshotUrl}
 										alt="의안번호 {detail.notice.num} 국회 입법예고 페이지 스크린샷"
-										class="w-full rounded-lg border border-slate-200 shadow-sm"
+										class="w-full rounded-lg border border-[var(--lc-border-soft)] shadow-sm"
 										loading="lazy"
 									/>
 								</div>
 							</div>
 						{/if}
 						<dl class="grid gap-3 text-sm sm:grid-cols-2">
-							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-								<dt class="text-xs font-semibold text-slate-500">아카이브 시각</dt>
-								<dd class="mt-1 font-medium text-slate-800">
-									<FontAwesomeIcon icon={faClock} class="mr-1 h-3.5 w-3.5 text-slate-500" />
+							<div class="lc-stat-tile rounded-lg border px-3 py-2">
+								<dt class="lc-text-muted text-xs font-semibold">아카이브 시각</dt>
+								<dd class="lc-text-primary mt-1 font-medium">
+									<FontAwesomeIcon icon={faClock} class="lc-text-muted mr-1 h-3.5 w-3.5" />
 									{formatDateTime(detail.archiveMetadata.archivedAt)}
 								</dd>
 							</div>
-							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-								<dt class="text-xs font-semibold text-slate-500">무결성 검증</dt>
-								<dd class="mt-1 font-medium text-slate-800">{integrityStatusLabel}</dd>
-								<p class="mt-1 text-xs text-slate-600">
+							<div class="lc-stat-tile rounded-lg border px-3 py-2">
+								<dt class="lc-text-muted text-xs font-semibold">무결성 검증</dt>
+								<dd class="lc-text-primary mt-1 font-medium">{integrityStatusLabel}</dd>
+								<p class="lc-text-secondary mt-1 text-xs">
 									검증 시각: {formatDateTime(detail.archiveMetadata.integrity.checkedAt)}
 								</p>
 							</div>
-							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2">
-								<dt class="text-xs font-semibold text-slate-500">SHA256 지문</dt>
-								<dd class="mt-1 font-mono text-xs break-all text-slate-800">
-									<FontAwesomeIcon icon={faFingerprint} class="h-3.5 w-3.5 text-slate-500" />
+							<div class="lc-stat-tile rounded-lg border px-3 py-2 sm:col-span-2">
+								<dt class="lc-text-muted text-xs font-semibold">SHA256 지문</dt>
+								<dd class="lc-text-primary mt-1 font-mono text-xs break-all">
+									<FontAwesomeIcon icon={faFingerprint} class="lc-text-muted h-3.5 w-3.5" />
 									{detail.archiveMetadata.sourceHtmlSha256 || 'N/A'}
 								</dd>
-								<p class="mt-1 text-xs text-slate-600">
+								<p class="lc-text-secondary mt-1 text-xs">
 									원문 HTML 크기: {detail.archiveMetadata.sourceHtmlSize.toLocaleString('ko-KR')} bytes
 								</p>
 							</div>
-							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-								<dt class="text-xs font-semibold text-slate-500">HTTP 상태 코드</dt>
-								<dd class="mt-1 font-medium text-slate-800">
+							<div class="lc-stat-tile rounded-lg border px-3 py-2">
+								<dt class="lc-text-muted text-xs font-semibold">HTTP 상태 코드</dt>
+								<dd class="lc-text-primary mt-1 font-medium">
 									{detail.archiveMetadata.http.statusCode ?? 'N/A'}
 								</dd>
 							</div>
-							<div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-								<dt class="text-xs font-semibold text-slate-500">HTTP 수집 시각</dt>
-								<dd class="mt-1 font-medium text-slate-800">
+							<div class="lc-stat-tile rounded-lg border px-3 py-2">
+								<dt class="lc-text-muted text-xs font-semibold">HTTP 수집 시각</dt>
+								<dd class="lc-text-primary mt-1 font-medium">
 									{formatDateTime(detail.archiveMetadata.http.fetchedAt)}
 								</dd>
 							</div>

@@ -41,13 +41,13 @@
 	function isDoneSyncBadgeStyle(status: IsDoneSyncStatus['status'] | undefined) {
 		switch (status) {
 			case 'idle':
-				return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+				return 'lc-chip-success';
 			case 'running':
-				return 'bg-blue-100 text-blue-700 border-blue-200';
+				return 'lc-chip-blue';
 			case 'failed':
-				return 'bg-red-100 text-red-700 border-red-200';
+				return 'lc-chip-danger';
 			default:
-				return 'bg-slate-100 text-slate-500 border-slate-200';
+				return 'lc-chip-muted';
 		}
 	}
 
@@ -89,32 +89,32 @@
 		switch (status) {
 			case 'healthy':
 				return {
-					badge: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+					badge: 'lc-chip-success',
 					icon: faSquareCheck
 				};
 			case 'degraded':
 				return {
-					badge: 'bg-amber-100 text-amber-800 border-amber-200',
+					badge: 'lc-chip-warning',
 					icon: faTriangleExclamation
 				};
 			case 'unhealthy':
 				return {
-					badge: 'bg-red-100 text-red-800 border-red-200',
+					badge: 'lc-chip-danger',
 					icon: faXmarkCircle
 				};
 			case 'misconfigured':
 				return {
-					badge: 'bg-orange-100 text-orange-800 border-orange-200',
+					badge: 'lc-chip-warning',
 					icon: faTriangleExclamation
 				};
 			case 'disabled':
 				return {
-					badge: 'bg-slate-100 text-slate-700 border-slate-200',
+					badge: 'lc-chip-muted',
 					icon: faCloud
 				};
 			default:
 				return {
-					badge: 'bg-gray-100 text-gray-700 border-gray-200',
+					badge: 'lc-chip-muted',
 					icon: faClock
 				};
 		}
@@ -132,13 +132,13 @@
 	function batchStatusStyle(status: BatchRunRecord['status']) {
 		switch (status) {
 			case 'completed':
-				return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+				return 'lc-chip-success';
 			case 'failed':
-				return 'bg-red-100 text-red-700 border-red-200';
+				return 'lc-chip-danger';
 			case 'running':
-				return 'bg-blue-100 text-blue-700 border-blue-200';
+				return 'lc-chip-blue';
 			default:
-				return 'bg-slate-100 text-slate-600 border-slate-200';
+				return 'lc-chip-muted';
 		}
 	}
 
@@ -187,17 +187,17 @@
 	/>
 </svelte:head>
 
-<div class="min-h-screen bg-linear-to-br from-slate-50 via-cyan-50/30 to-emerald-50/30">
+<div class="page-shell">
 	<Header />
 
 	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-		<div class="mb-6 rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm">
+		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
 					<p class="text-xs font-semibold tracking-wide text-cyan-700">SYSTEM STATUS</p>
-					<h1 class="mt-1 text-2xl font-bold text-slate-900">LawCast 시스템 상태</h1>
-					<p class="mt-1 text-sm text-slate-600">
-						마지막 조회: <span class="font-semibold text-slate-700"
+					<h1 class="lc-text-primary mt-1 text-2xl font-bold">LawCast 시스템 상태</h1>
+					<p class="lc-text-secondary mt-1 text-sm">
+						마지막 조회: <span class="lc-text-primary font-semibold"
 							>{formatDateTime(fetchedAt)}</span
 						>
 					</p>
@@ -212,7 +212,7 @@
 					<button
 						on:click={refreshStatus}
 						disabled={isRefreshing}
-						class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+						class="lc-chip-cyan inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 					>
 						<FontAwesomeIcon
 							icon={faArrowsRotate}
@@ -229,12 +229,12 @@
 		{/if}
 
 		<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-			<section class="rounded-2xl border border-emerald-100 bg-white/90 p-4 shadow-sm">
-				<h2 class="mb-3 flex items-center text-sm font-bold text-slate-900">
+			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
+				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faLink} class="mr-2 h-4 w-4 text-emerald-600" />
 					웹훅 상태
 				</h2>
-				<div class="space-y-1 text-sm text-slate-700">
+				<div class="lc-text-secondary space-y-1 text-sm">
 					<p>
 						전체: <span class="font-semibold">{stats.webhooks.total.toLocaleString('ko-KR')}개</span
 						>
@@ -254,12 +254,12 @@
 				</div>
 			</section>
 
-			<section class="rounded-2xl border border-blue-100 bg-white/90 p-4 shadow-sm">
-				<h2 class="mb-3 flex items-center text-sm font-bold text-slate-900">
+			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
+				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faDatabase} class="mr-2 h-4 w-4 text-blue-600" />
 					캐시 상태
 				</h2>
-				<div class="space-y-1 text-sm text-slate-700">
+				<div class="lc-text-secondary space-y-1 text-sm">
 					<p>
 						캐시 크기: <span class="font-semibold">{stats.cache.size.toLocaleString('ko-KR')}</span>
 					</p>
@@ -278,12 +278,12 @@
 				</div>
 			</section>
 
-			<section class="rounded-2xl border border-violet-100 bg-white/90 p-4 shadow-sm">
-				<h2 class="mb-3 flex items-center text-sm font-bold text-slate-900">
+			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
+				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faGear} class="mr-2 h-4 w-4 text-violet-600" />
 					배치 처리
 				</h2>
-				<div class="space-y-1 text-sm text-slate-700">
+				<div class="lc-text-secondary space-y-1 text-sm">
 					<p>
 						실행 중 작업:
 						<span class="font-semibold"
@@ -301,12 +301,12 @@
 				</div>
 			</section>
 
-			<section class="rounded-2xl border border-cyan-100 bg-white/90 p-4 shadow-sm">
-				<h2 class="mb-3 flex items-center text-sm font-bold text-slate-900">
+			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
+				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faRobot} class="mr-2 h-4 w-4 text-cyan-600" />
 					AI 요약
 				</h2>
-				<div class="space-y-1 text-sm text-slate-700">
+				<div class="lc-text-secondary space-y-1 text-sm">
 					<p>활성화: <span class="font-semibold">{stats.ollama?.enabled ? 'ON' : 'OFF'}</span></p>
 					<p>
 						설정됨: <span class="font-semibold">{stats.ollama?.configured ? 'YES' : 'NO'}</span>
@@ -325,68 +325,68 @@
 		</div>
 
 		<div class="mt-4 grid gap-4 lg:grid-cols-2">
-			<section class="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
-				<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
+			<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
+				<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
 					<FontAwesomeIcon icon={faBolt} class="mr-2 h-4 w-4 text-amber-500" />
 					요약 지표
 				</h2>
 				<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-					<div class="rounded-xl bg-slate-50 p-3">
-						<dt class="text-xs text-slate-500">아카이브 수</dt>
-						<dd class="mt-1 text-lg font-bold text-slate-900">
+					<div class="lc-stat-tile rounded-xl border p-3">
+						<dt class="lc-text-muted text-xs">아카이브 수</dt>
+						<dd class="lc-text-primary mt-1 text-lg font-bold">
 							{stats.archive.count.toLocaleString('ko-KR')}
 						</dd>
 					</div>
-					<div class="rounded-xl bg-slate-50 p-3">
-						<dt class="text-xs text-slate-500">AI 요약 시도</dt>
-						<dd class="mt-1 text-lg font-bold text-slate-900">
+					<div class="lc-stat-tile rounded-xl border p-3">
+						<dt class="lc-text-muted text-xs">AI 요약 시도</dt>
+						<dd class="lc-text-primary mt-1 text-lg font-bold">
 							{(stats.ollama?.summary.total ?? 0).toLocaleString('ko-KR')}
 						</dd>
 					</div>
-					<div class="rounded-xl bg-slate-50 p-3">
-						<dt class="text-xs text-slate-500">AI 성공률</dt>
-						<dd class="mt-1 text-lg font-bold text-slate-900">
+					<div class="lc-stat-tile rounded-xl border p-3">
+						<dt class="lc-text-muted text-xs">AI 성공률</dt>
+						<dd class="lc-text-primary mt-1 text-lg font-bold">
 							{(stats.ollama?.summary.successRate ?? 0).toLocaleString('ko-KR')}%
 						</dd>
 					</div>
-					<div class="rounded-xl bg-slate-50 p-3">
-						<dt class="text-xs text-slate-500">AI 실패</dt>
-						<dd class="mt-1 text-lg font-bold text-slate-900">
+					<div class="lc-stat-tile rounded-xl border p-3">
+						<dt class="lc-text-muted text-xs">AI 실패</dt>
+						<dd class="lc-text-primary mt-1 text-lg font-bold">
 							{(stats.ollama?.summary.failed ?? 0).toLocaleString('ko-KR')}
 						</dd>
 					</div>
-					<div class="rounded-xl bg-slate-50 p-3">
-						<dt class="text-xs text-slate-500">AI 스킵</dt>
-						<dd class="mt-1 text-lg font-bold text-slate-900">
+					<div class="lc-stat-tile rounded-xl border p-3">
+						<dt class="lc-text-muted text-xs">AI 스킵</dt>
+						<dd class="lc-text-primary mt-1 text-lg font-bold">
 							{(stats.ollama?.summary.skipped ?? 0).toLocaleString('ko-KR')}
 						</dd>
 					</div>
-					<div class="rounded-xl bg-slate-50 p-3">
-						<dt class="text-xs text-slate-500">작업 대기</dt>
-						<dd class="mt-1 text-lg font-bold text-slate-900">
+					<div class="lc-stat-tile rounded-xl border p-3">
+						<dt class="lc-text-muted text-xs">작업 대기</dt>
+						<dd class="lc-text-primary mt-1 text-lg font-bold">
 							{(stats.batchProcessing?.jobCount ?? 0).toLocaleString('ko-KR')}
 						</dd>
 					</div>
 				</dl>
 			</section>
 
-			<section class="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
-				<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
+			<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
+				<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
 					<FontAwesomeIcon icon={faMicrochip} class="mr-2 h-4 w-4 text-sky-600" />
 					세부 상태
 				</h2>
-				<ul class="space-y-2 text-sm text-slate-700">
-					<li class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+				<ul class="lc-text-secondary space-y-2 text-sm">
+					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
 						<span>AI 요약 기능</span>
 						<span class="font-semibold"
 							>{stats.aiSummaryEnabled !== false ? '사용 중' : '비활성'}</span
 						>
 					</li>
-					<li class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
 						<span>마지막 점검</span>
 						<span class="font-semibold">{formatDateTime(stats.ollama?.health.lastCheckedAt)}</span>
 					</li>
-					<li class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
 						<span>지연 시간</span>
 						<span class="font-semibold"
 							>{stats.ollama?.health.lastLatencyMs !== null &&
@@ -395,7 +395,7 @@
 								: 'N/A'}</span
 						>
 					</li>
-					<li class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
 						<span>최근 배치 이력</span>
 						<span class="font-semibold">{recentJobs.length.toLocaleString('ko-KR')}건</span>
 					</li>
@@ -404,12 +404,12 @@
 		</div>
 
 		{#if hasBatchBacklog || hasCacheIssue || hasOllamaIssue}
-			<section class="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
-				<h2 class="mb-2 flex items-center text-sm font-bold text-amber-900">
+			<section class="lc-banner-warning mt-4 rounded-2xl border p-4">
+				<h2 class="mb-2 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-4 w-4" />
 					안내
 				</h2>
-				<div class="space-y-1 text-sm text-amber-900">
+				<div class="space-y-1 text-sm">
 					{#if hasCacheIssue}
 						<p>캐시가 초기화되지 않았습니다. 크롤링/Redis 상태를 확인하세요.</p>
 					{/if}
@@ -428,8 +428,8 @@
 			</section>
 		{/if}
 
-		<section class="mt-4 rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
-			<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
+		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
+			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
 				<FontAwesomeIcon icon={faArrowsRotate} class="mr-2 h-4 w-4 text-teal-600" />
 				종료 마커 동기화
 				{#if isDoneSync}
@@ -442,51 +442,49 @@
 			</h2>
 			{#if isDoneSync}
 				<div class="grid grid-cols-2 gap-3">
-					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">수신된 종료 건수</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
+					<div class="lc-stat-tile rounded-xl border p-3">
+						<p class="lc-text-muted text-xs">수신된 종료 건수</p>
+						<p class="lc-text-primary mt-1 text-lg font-bold">
 							{(isDoneSync.lastResult?.fetchedDoneCount ?? 0).toLocaleString('ko-KR')}
 						</p>
 					</div>
-					<div class="rounded-xl bg-slate-50 p-3">
-						<p class="text-xs text-slate-500">신규 마킹</p>
-						<p class="mt-1 text-lg font-bold text-slate-900">
+					<div class="lc-stat-tile rounded-xl border p-3">
+						<p class="lc-text-muted text-xs">신규 마킹</p>
+						<p class="lc-text-primary mt-1 text-lg font-bold">
 							{(isDoneSync.lastResult?.markedDoneCount ?? 0).toLocaleString('ko-KR')}
 						</p>
 					</div>
 				</div>
-				<ul class="mt-3 space-y-1.5 text-sm text-slate-700">
-					<li class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+				<ul class="lc-text-secondary mt-3 space-y-1.5 text-sm">
+					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
 						<span>마지막 실행</span>
 						<span class="font-semibold">{formatDateTime(isDoneSync.lastRunAt)}</span>
 					</li>
 					{#if isDoneSync.status === 'failed' && isDoneSync.lastError}
-						<li class="rounded-lg bg-red-50 px-3 py-2 text-red-700">
+						<li class="lc-banner-error-soft rounded-lg border px-3 py-2">
 							<span class="font-semibold">오류: </span>{isDoneSync.lastError}
 						</li>
 					{/if}
 				</ul>
 			{:else}
-				<p class="text-sm text-slate-500">동기화 이력이 없습니다. (서버 재시작 후 자동 실행)</p>
+				<p class="lc-text-muted text-sm">동기화 이력이 없습니다. (서버 재시작 후 자동 실행)</p>
 			{/if}
 		</section>
 
-		<section class="mt-4 rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
-			<h2 class="mb-3 flex items-center text-base font-bold text-slate-900">
+		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
+			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
 				<FontAwesomeIcon icon={faBoxArchive} class="mr-2 h-4 w-4 text-indigo-600" />
 				최근 배치 작업 이력
 				{#if recentJobs.length > 0}
-					<span
-						class="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-600"
-					>
+					<span class="lc-chip-purple ml-2 rounded-full px-2 py-0.5 text-xs font-semibold">
 						{recentJobs.length}건
 					</span>
 				{/if}
 			</h2>
 			{#if recentJobs.length === 0}
-				<p class="text-sm text-slate-500">기록된 배치 작업이 없습니다.</p>
+				<p class="lc-text-muted text-sm">기록된 배치 작업이 없습니다.</p>
 			{:else}
-				<p class="mb-2 text-xs text-slate-400 sm:hidden">
+				<p class="lc-text-dim mb-2 text-xs sm:hidden">
 					<FontAwesomeIcon icon={faArrowLeft} class="mr-1" />
 					좌우로 스크롤하여 전체 내용을 확인할 수 있습니다
 					<FontAwesomeIcon icon={faArrowRight} class="ml-1" />
@@ -494,7 +492,9 @@
 				<div class="overflow-x-auto">
 					<table class="w-full min-w-140 text-sm">
 						<thead>
-							<tr class="border-b border-slate-100 text-left text-xs font-semibold text-slate-500">
+							<tr
+								class="lc-text-muted border-b border-[var(--lc-border-soft)] text-left text-xs font-semibold"
+							>
 								<th class="pr-4 pb-2">ID</th>
 								<th class="pr-4 pb-2">시작 시간</th>
 								<th class="pr-4 pb-2">상태</th>
@@ -504,18 +504,18 @@
 								<th class="pb-2 text-right">소요</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-slate-50">
+						<tbody class="divide-y divide-[var(--lc-border-soft)]">
 							{#each recentJobs as job (job.id)}
-								<tr class="text-slate-700 hover:bg-slate-50/60">
+								<tr class="lc-table-row lc-text-secondary">
 									<td class="py-2 pr-4">
 										<span
-											class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600"
+											class="lc-chip-muted rounded px-1.5 py-0.5 font-mono text-xs"
 											title={job.id}
 										>
 											{job.id.slice(-12)}
 										</span>
 									</td>
-									<td class="py-2 pr-4 text-xs text-slate-500">{formatDateTime(job.startedAt)}</td>
+									<td class="lc-text-muted py-2 pr-4 text-xs">{formatDateTime(job.startedAt)}</td>
 									<td class="py-2 pr-4">
 										<span
 											class={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${batchStatusStyle(job.status)}`}
@@ -533,11 +533,11 @@
 									<td
 										class="py-2 pr-4 text-right font-semibold {job.failedCount > 0
 											? 'text-red-500'
-											: 'text-slate-400'}"
+											: 'lc-text-dim'}"
 									>
 										{job.status === 'running' ? '-' : job.failedCount}
 									</td>
-									<td class="py-2 text-right text-xs text-slate-500"
+									<td class="lc-text-muted py-2 text-right text-xs"
 										>{formatDuration(job.duration)}</td
 									>
 								</tr>

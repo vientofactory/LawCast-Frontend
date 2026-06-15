@@ -9,16 +9,16 @@
 	$: ({ backendPackages, frontendPackages } = data);
 
 	const licenseBadgeStyle: Record<string, string> = {
-		MIT: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-		'Apache-2.0': 'bg-sky-100 text-sky-700 border-sky-200',
-		'BSD-3-Clause': 'bg-violet-100 text-violet-700 border-violet-200',
-		'OFL-1.1': 'bg-amber-100 text-amber-700 border-amber-200',
-		'CC-BY-4.0 AND MIT': 'bg-orange-100 text-orange-700 border-orange-200',
-		'MIT OR GPL-3.0-or-later': 'bg-teal-100 text-teal-700 border-teal-200'
+		MIT: 'lc-chip-success',
+		'Apache-2.0': 'lc-chip-info',
+		'BSD-3-Clause': 'lc-chip-purple',
+		'OFL-1.1': 'lc-chip-warning',
+		'CC-BY-4.0 AND MIT': 'lc-chip-warning',
+		'MIT OR GPL-3.0-or-later': 'lc-chip-teal'
 	};
 
 	function badgeStyle(license: string): string {
-		return licenseBadgeStyle[license] ?? 'bg-slate-100 text-slate-600 border-slate-200';
+		return licenseBadgeStyle[license] ?? 'lc-chip-muted';
 	}
 </script>
 
@@ -41,30 +41,30 @@
 	/>
 </svelte:head>
 
-<div class="min-h-screen bg-linear-to-br from-slate-50 via-violet-50/20 to-indigo-50/20">
+<div class="page-shell">
 	<Header />
 
 	<main id="main-content" class="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
 		<!-- 페이지 헤더 -->
-		<div class="mb-6 rounded-2xl border border-white/60 bg-white/85 p-5 shadow-sm">
+		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
 			<p class="text-xs font-semibold tracking-wide text-violet-700">LICENSE</p>
-			<h1 class="mt-1 flex items-center gap-2 text-2xl font-bold text-slate-900">
+			<h1 class="lc-text-primary mt-1 flex items-center gap-2 text-2xl font-bold">
 				<FontAwesomeIcon icon={faScaleBalanced} class="h-6 w-6 text-violet-600" />
 				라이선스 고지
 			</h1>
-			<p class="mt-1 text-sm text-slate-500">
+			<p class="lc-text-secondary mt-1 text-sm">
 				LawCast 프로젝트의 라이선스 및 사용된 오픈소스 패키지의 라이선스 고지입니다.
 			</p>
 		</div>
 
 		<!-- LawCast 프로젝트 라이선스 -->
-		<section class="mb-6 rounded-2xl border border-violet-100 bg-white/90 p-5 shadow-sm">
-			<h2 class="mb-3 text-base font-bold text-slate-900">LawCast 프로젝트 라이선스</h2>
-			<p class="mb-3 text-sm text-slate-600">
+		<section class="lc-panel-card mb-6 rounded-2xl border p-5">
+			<h2 class="lc-text-primary mb-3 text-base font-bold">LawCast 프로젝트 라이선스</h2>
+			<p class="lc-text-secondary mb-3 text-sm">
 				LawCast는 <span class="font-semibold text-violet-700">MIT License</span> 하에 배포됩니다.
 			</p>
 			<pre
-				class="overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-slate-700">MIT License
+				class="lc-code-block overflow-x-auto rounded-xl border p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap">MIT License
 
 Copyright (c) 2025 Viento
 
@@ -88,24 +88,24 @@ SOFTWARE.</pre>
 		</section>
 
 		<!-- 오픈소스 라이선스 고지 -->
-		<section class="mb-6 rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
-			<h2 class="mb-1 text-base font-bold text-slate-900">오픈소스 라이선스 고지</h2>
-			<p class="mb-5 text-sm text-slate-500">
+		<section class="lc-panel-card mb-6 rounded-2xl border p-5">
+			<h2 class="lc-text-primary mb-1 text-base font-bold">오픈소스 라이선스 고지</h2>
+			<p class="lc-text-muted mb-5 text-sm">
 				이 소프트웨어는 아래 오픈소스 패키지를 사용합니다. 각 패키지의 라이선스 조건을 준수합니다.
 			</p>
 
 			<!-- 백엔드 -->
 			<div class="mb-6">
 				<h3
-					class="mb-3 flex items-center gap-2 border-b border-slate-100 pb-2 text-sm font-bold text-slate-800"
+					class="lc-text-primary mb-3 flex items-center gap-2 border-b border-[var(--lc-border-soft)] pb-2 text-sm font-bold"
 				>
-					<FontAwesomeIcon icon={faServer} class="h-3.5 w-3.5 text-slate-500" />
+					<FontAwesomeIcon icon={faServer} class="lc-text-muted h-3.5 w-3.5" />
 					백엔드 (NestJS)
 				</h3>
 				<div class="overflow-x-auto">
 					<table class="w-full min-w-120 border-collapse text-sm">
 						<thead>
-							<tr class="border-b border-slate-100 text-xs text-slate-500">
+							<tr class="lc-text-muted border-b border-[var(--lc-border-soft)] text-xs">
 								<th class="py-2 pr-4 text-left font-semibold">패키지</th>
 								<th class="py-2 pr-4 text-left font-semibold">버전</th>
 								<th class="py-2 text-left font-semibold">라이선스</th>
@@ -113,11 +113,11 @@ SOFTWARE.</pre>
 						</thead>
 						<tbody>
 							{#each backendPackages as pkg (pkg.name)}
-								<tr class="border-b border-slate-50 hover:bg-slate-50/70">
-									<td class="py-2 pr-4 font-mono text-xs text-slate-700">
+								<tr class="lc-table-row border-b">
+									<td class="lc-text-secondary py-2 pr-4 font-mono text-xs">
 										{pkg.name}
 									</td>
-									<td class="py-2 pr-4 font-mono text-xs text-slate-400">{pkg.version}</td>
+									<td class="lc-text-dim py-2 pr-4 font-mono text-xs">{pkg.version}</td>
 									<td class="py-2">
 										<span
 											class={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${badgeStyle(pkg.license)}`}
@@ -125,7 +125,7 @@ SOFTWARE.</pre>
 											{pkg.license}
 										</span>
 										{#if pkg.note}
-											<span class="ml-2 text-xs text-slate-400">{pkg.note}</span>
+											<span class="lc-text-dim ml-2 text-xs">{pkg.note}</span>
 										{/if}
 									</td>
 								</tr>
@@ -138,15 +138,15 @@ SOFTWARE.</pre>
 			<!-- 프론트엔드 -->
 			<div>
 				<h3
-					class="mb-3 flex items-center gap-2 border-b border-slate-100 pb-2 text-sm font-bold text-slate-800"
+					class="lc-text-primary mb-3 flex items-center gap-2 border-b border-[var(--lc-border-soft)] pb-2 text-sm font-bold"
 				>
-					<FontAwesomeIcon icon={faDesktop} class="h-3.5 w-3.5 text-slate-500" />
+					<FontAwesomeIcon icon={faDesktop} class="lc-text-muted h-3.5 w-3.5" />
 					프론트엔드 (SvelteKit)
 				</h3>
 				<div class="overflow-x-auto">
 					<table class="w-full min-w-120 border-collapse text-sm">
 						<thead>
-							<tr class="border-b border-slate-100 text-xs text-slate-500">
+							<tr class="lc-text-muted border-b border-[var(--lc-border-soft)] text-xs">
 								<th class="py-2 pr-4 text-left font-semibold">패키지</th>
 								<th class="py-2 pr-4 text-left font-semibold">버전</th>
 								<th class="py-2 text-left font-semibold">라이선스</th>
@@ -154,11 +154,11 @@ SOFTWARE.</pre>
 						</thead>
 						<tbody>
 							{#each frontendPackages as pkg (pkg.name)}
-								<tr class="border-b border-slate-50 hover:bg-slate-50/70">
-									<td class="py-2 pr-4 font-mono text-xs text-slate-700">
+								<tr class="lc-table-row border-b">
+									<td class="lc-text-secondary py-2 pr-4 font-mono text-xs">
 										{pkg.name}
 									</td>
-									<td class="py-2 pr-4 font-mono text-xs text-slate-400">{pkg.version}</td>
+									<td class="lc-text-dim py-2 pr-4 font-mono text-xs">{pkg.version}</td>
 									<td class="py-2">
 										<span
 											class={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${badgeStyle(pkg.license)}`}
@@ -166,7 +166,7 @@ SOFTWARE.</pre>
 											{pkg.license}
 										</span>
 										{#if pkg.note}
-											<span class="ml-2 text-xs text-slate-400">{pkg.note}</span>
+											<span class="lc-text-dim ml-2 text-xs">{pkg.note}</span>
 										{/if}
 									</td>
 								</tr>
@@ -178,50 +178,50 @@ SOFTWARE.</pre>
 		</section>
 
 		<!-- 라이선스 범례 -->
-		<section class="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-sm">
-			<h2 class="mb-3 text-base font-bold text-slate-900">라이선스 유형 안내</h2>
+		<section class="lc-panel-card rounded-2xl border p-5">
+			<h2 class="lc-text-primary mb-3 text-base font-bold">라이선스 유형 안내</h2>
 			<div class="flex flex-wrap gap-3 text-xs">
 				<div class="flex items-center gap-2">
 					<span
 						class="rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700"
 						>MIT</span
 					>
-					<span class="text-slate-500">MIT License — 자유로운 사용·수정·배포 허용</span>
+					<span class="lc-text-muted">MIT License — 자유로운 사용·수정·배포 허용</span>
 				</div>
 				<div class="flex items-center gap-2">
 					<span
 						class="rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 font-medium text-sky-700"
 						>Apache-2.0</span
 					>
-					<span class="text-slate-500">Apache License 2.0 — 특허권 명시적 허여 포함</span>
+					<span class="lc-text-muted">Apache License 2.0 — 특허권 명시적 허여 포함</span>
 				</div>
 				<div class="flex items-center gap-2">
 					<span
 						class="rounded-full border border-violet-200 bg-violet-100 px-2 py-0.5 font-medium text-violet-700"
 						>BSD-3-Clause</span
 					>
-					<span class="text-slate-500">BSD 3-Clause License — 광고 조항 없는 BSD</span>
+					<span class="lc-text-muted">BSD 3-Clause License — 광고 조항 없는 BSD</span>
 				</div>
 				<div class="flex items-center gap-2">
 					<span
 						class="rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 font-medium text-amber-700"
 						>OFL-1.1</span
 					>
-					<span class="text-slate-500">SIL Open Font License 1.1 — 폰트 전용 오픈 라이선스</span>
+					<span class="lc-text-muted">SIL Open Font License 1.1 — 폰트 전용 오픈 라이선스</span>
 				</div>
 				<div class="flex items-center gap-2">
 					<span
 						class="rounded-full border border-orange-200 bg-orange-100 px-2 py-0.5 font-medium text-orange-700"
 						>CC-BY-4.0 AND MIT</span
 					>
-					<span class="text-slate-500">Creative Commons BY 4.0 + MIT — 아이콘/코드 복합</span>
+					<span class="lc-text-muted">Creative Commons BY 4.0 + MIT — 아이콘/코드 복합</span>
 				</div>
 				<div class="flex items-center gap-2">
 					<span
 						class="rounded-full border border-teal-200 bg-teal-100 px-2 py-0.5 font-medium text-teal-700"
 						>MIT OR GPL-3.0-or-later</span
 					>
-					<span class="text-slate-500">MIT 또는 GPL-3.0 선택 — 배포자가 라이선스 선택 가능</span>
+					<span class="lc-text-muted">MIT 또는 GPL-3.0 선택 — 배포자가 라이선스 선택 가능</span>
 				</div>
 			</div>
 		</section>

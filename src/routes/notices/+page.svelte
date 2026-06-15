@@ -280,33 +280,31 @@
 	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
 
-<div class="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+<div class="page-shell">
 	<Header />
 
 	<main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
 			<a
 				href="../"
-				class="flex items-center rounded-lg border border-gray-200/50 bg-white/90 px-3 py-2 text-gray-600 shadow-sm transition-all duration-200 hover:bg-white hover:text-gray-800"
+				class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 transition-all duration-200"
 			>
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
 				메인으로
 			</a>
-			<span class="text-gray-400" aria-hidden="true">/</span>
-			<span class="font-semibold text-gray-700">전체 입법예고</span>
+			<span class="lc-text-dim" aria-hidden="true">/</span>
+			<span class="lc-text-secondary font-semibold">전체 입법예고</span>
 		</nav>
 
 		{#if aiSummaryEnabled}
-			<div
-				class="mb-6 rounded-xl border border-amber-200/80 bg-linear-to-r from-amber-50 to-orange-50 p-4 shadow-sm"
-			>
+			<div class="lc-banner-warning mb-6 rounded-xl border p-4 shadow-sm">
 				<div class="flex items-start gap-3">
-					<div class="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
+					<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
 						<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
 					</div>
 					<div>
-						<p class="text-sm font-semibold text-amber-900">안내</p>
-						<p class="mt-1 text-sm leading-relaxed text-amber-800/90">
+						<p class="text-sm font-semibold">안내</p>
+						<p class="mt-1 text-sm leading-relaxed">
 							AI 요약은 참고용으로 제공되며 해석상 오류가 있을 수 있습니다. 중요 판단 전 반드시 각
 							법률안의 원문(제안이유 및 주요내용)을 함께 확인해주세요.
 						</p>
@@ -316,17 +314,17 @@
 		{/if}
 
 		<div
-			class="mb-6 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+			class="lc-panel-card mb-6 flex items-center justify-between rounded-xl border px-4 py-3 shadow-sm"
 			role="status"
 			aria-live="polite"
 		>
-			<p class="text-sm font-medium text-slate-600">
+			<p class="lc-text-secondary text-sm font-medium">
 				{hasActiveFilters ? '현재 검색 결과' : '입법예고 아카이브 건수'}
 			</p>
-			<p class="text-lg font-bold text-slate-900">
+			<p class="lc-text-primary text-lg font-bold">
 				{#if hasActiveFilters}
 					{totalItems.toLocaleString('ko-KR')}건
-					<span class="ml-1 text-sm font-medium text-slate-500"
+					<span class="lc-text-muted ml-1 text-sm font-medium"
 						>/ 전체 {archiveCount.toLocaleString('ko-KR')}건</span
 					>
 				{:else}
@@ -348,13 +346,11 @@
 				on:submit|preventDefault={handleFilterSubmit}
 			>
 				<div class="mb-2 flex flex-wrap items-center gap-2">
-					<span class="text-xs font-semibold text-slate-500">빠른 기간</span>
+					<span class="lc-text-muted text-xs font-semibold">빠른 기간</span>
 					<a
 						href={buildFilterLink({ startDate: quickStart7Days, endDate: todayInputDate })}
 						class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-							isQuick7DaysActive
-								? 'border-blue-300 bg-blue-50 text-blue-700'
-								: 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+							isQuick7DaysActive ? 'lc-chip-blue' : 'lc-button-neutral'
 						}`}
 					>
 						최근 7일
@@ -362,9 +358,7 @@
 					<a
 						href={buildFilterLink({ startDate: quickStart30Days, endDate: todayInputDate })}
 						class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-							isQuick30DaysActive
-								? 'border-blue-300 bg-blue-50 text-blue-700'
-								: 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+							isQuick30DaysActive ? 'lc-chip-blue' : 'lc-button-neutral'
 						}`}
 					>
 						최근 30일
@@ -372,9 +366,7 @@
 					<a
 						href={buildFilterLink({ startDate: quickMonthStart, endDate: todayInputDate })}
 						class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-							isQuickThisMonthActive
-								? 'border-blue-300 bg-blue-50 text-blue-700'
-								: 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+							isQuickThisMonthActive ? 'lc-chip-blue' : 'lc-button-neutral'
 						}`}
 					>
 						이번 달
@@ -382,16 +374,14 @@
 					<a
 						href={buildFilterLink({ startDate: '', endDate: '' })}
 						class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-							isQuickClearRangeActive
-								? 'border-blue-300 bg-blue-50 text-blue-700'
-								: 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+							isQuickClearRangeActive ? 'lc-chip-blue' : 'lc-button-neutral'
 						}`}
 					>
 						기간 해제
 					</a>
-					<span class="hidden h-4 w-px bg-slate-200 sm:block"></span>
+					<span class="hidden h-4 w-px bg-[var(--lc-border-soft)] sm:block"></span>
 					<div
-						class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold"
+						class="lc-chip-group inline-flex items-center rounded-full border p-0.5 text-xs font-semibold"
 						role="group"
 						aria-label="입법예고 상태 필터"
 					>
@@ -399,8 +389,8 @@
 							href={buildFilterLink({ isDone: null })}
 							class={`rounded-full px-3 py-1 transition-colors ${
 								isDoneFilter === undefined
-									? 'bg-white text-slate-800 shadow-sm'
-									: 'text-slate-500 hover:text-slate-700'
+									? 'bg-[var(--lc-surface-primary)] text-[var(--lc-text-primary)] shadow-sm'
+									: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
 							}`}
 						>
 							전체
@@ -409,8 +399,8 @@
 							href={buildFilterLink({ isDone: false })}
 							class={`rounded-full px-3 py-1 transition-colors ${
 								isDoneFilter === false
-									? 'bg-emerald-500 text-white shadow-sm'
-									: 'text-slate-500 hover:text-slate-700'
+									? 'lc-chip-success shadow-sm'
+									: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
 							}`}
 						>
 							진행 중
@@ -419,8 +409,8 @@
 							href={buildFilterLink({ isDone: isDoneFilter === true ? null : true })}
 							class={`rounded-full px-3 py-1 transition-colors ${
 								isDoneFilter === true
-									? 'bg-gray-400 text-white shadow-sm'
-									: 'text-slate-500 hover:text-slate-700'
+									? 'lc-chip-muted shadow-sm'
+									: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
 							}`}
 						>
 							종료된
@@ -432,7 +422,7 @@
 						<label for="archive-search" class="sr-only">검색어</label>
 						<FontAwesomeIcon
 							icon={faMagnifyingGlass}
-							class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+							class="lc-text-dim pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
 						/>
 						<input
 							id="archive-search"
@@ -442,7 +432,7 @@
 							placeholder={fullText
 								? '법률안명, 소관위원회, 원문 키워드 검색'
 								: '법률안명, 소관위원회 검색'}
-							class="w-full rounded-lg border border-gray-200 bg-white py-2 pr-3 pl-10 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+							class="lc-input w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 						/>
 					</div>
 					<label for="archive-start-date" class="sr-only">시작일</label>
@@ -452,7 +442,7 @@
 						name="startDate"
 						value={startDate}
 						max={endDate || undefined}
-						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+						class="lc-input rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 						title="시작일"
 					/>
 					<label for="archive-end-date" class="sr-only">종료일</label>
@@ -462,7 +452,7 @@
 						name="endDate"
 						value={endDate}
 						min={startDate || undefined}
-						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+						class="lc-input rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 						title="종료일"
 					/>
 					<label for="archive-sort-order" class="sr-only">정렬</label>
@@ -470,7 +460,7 @@
 						id="archive-sort-order"
 						name="sortOrder"
 						value={sortOrder}
-						class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+						class="lc-input rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
 					>
 						<option value="desc">내림차순</option>
 						<option value="asc">오름차순</option>
@@ -489,18 +479,18 @@
 					>
 						<span
 							class={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ${
-								fullText ? 'bg-indigo-500' : 'bg-gray-200'
+								fullText ? 'lc-toggle-track-on' : 'lc-toggle-track-off'
 							}`}
 						>
 							<span
-								class={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+								class={`inline-block h-4 w-4 rounded-full bg-[var(--lc-surface-primary)] shadow-sm transition-transform duration-200 ${
 									fullText ? 'translate-x-4' : 'translate-x-0'
 								}`}
 							></span>
 						</span>
 						<span
 							class={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
-								fullText ? 'text-indigo-700' : 'text-gray-400'
+								fullText ? 'lc-chip-purple' : 'lc-text-dim'
 							}`}
 						>
 							<FontAwesomeIcon icon={faFileText} class="h-3 w-3" />
@@ -515,15 +505,15 @@
 				{/if}
 				{#if hasActiveFilters}
 					<div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-						<span class="font-semibold text-slate-500">적용된 필터</span>
+						<span class="lc-text-muted font-semibold">적용된 필터</span>
 						{#if searchQuery.trim()}
 							<span
-								class="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 font-semibold text-blue-700"
+								class="lc-chip-blue inline-flex items-center rounded-full px-2 py-1 font-semibold"
 							>
 								키워드: {searchQuery.trim()}
 								<a
 									href={buildFilterLink({ search: '' })}
-									class="ml-2 text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-800"
+									class="lc-link ml-2 underline decoration-blue-300 underline-offset-2"
 								>
 									해제
 								</a>
@@ -531,12 +521,12 @@
 						{/if}
 						{#if startDate.trim() || endDate.trim()}
 							<span
-								class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700"
+								class="lc-chip-success inline-flex items-center rounded-full px-2 py-1 font-semibold"
 							>
 								기간: {startDate || '처음'} ~ {endDate || '현재'}
 								<a
 									href={buildFilterLink({ startDate: '', endDate: '' })}
-									class="ml-2 text-emerald-700 underline decoration-emerald-400 underline-offset-2 hover:text-emerald-900"
+									class="ml-2 underline decoration-emerald-400 underline-offset-2"
 								>
 									해제
 								</a>
@@ -545,7 +535,7 @@
 						{#if isDoneFilter !== undefined}
 							<span
 								class={`inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ${
-									isDoneFilter ? 'bg-gray-200 text-gray-700' : 'bg-emerald-50 text-emerald-700'
+									isDoneFilter ? 'lc-chip-muted' : 'lc-chip-success'
 								}`}
 							>
 								{#if isDoneFilter}
@@ -566,7 +556,7 @@
 						{/if}
 						{#if fullText}
 							<span
-								class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-semibold text-indigo-700"
+								class="lc-chip-purple inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold"
 							>
 								<FontAwesomeIcon icon={faFileText} class="h-2.5 w-2.5" />
 								원문 포함 검색
@@ -580,13 +570,13 @@
 							</span>
 						{/if}
 						<span
-							class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700"
+							class="lc-chip-muted inline-flex items-center rounded-full px-2 py-1 font-semibold"
 						>
 							정렬: {sortOrder === 'asc' ? '오름차순' : '내림차순'}
 							{#if sortOrder !== 'desc'}
 								<a
 									href={buildFilterLink({ sortOrder: 'desc' })}
-									class="ml-2 text-slate-600 underline decoration-slate-300 underline-offset-2 hover:text-slate-900"
+									class="lc-link ml-2 underline decoration-slate-300 underline-offset-2"
 								>
 									기본값
 								</a>
@@ -598,7 +588,7 @@
 					<button
 						type="submit"
 						disabled={isServerLoading}
-						class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+						class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold"
 					>
 						{#if isServerLoading}
 							<FontAwesomeIcon icon={faSpinner} class="mr-2 h-4 w-4 animate-spin" />
@@ -609,7 +599,7 @@
 					</button>
 					<a
 						href="/notices"
-						class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
+						class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
 					>
 						필터 초기화
 					</a>
@@ -628,19 +618,15 @@
 
 			<div class="relative">
 				{#if notices.length === 0}
-					<div
-						class="rounded-2xl border border-gray-200/50 bg-linear-to-br from-gray-50 to-blue-50/30 p-16 text-center shadow-xl"
-					>
-						<div
-							class="mb-6 inline-block rounded-full bg-linear-to-r from-gray-200 to-blue-200 p-6"
-						>
-							<FontAwesomeIcon icon={faBell} class="h-16 w-16 text-gray-400" />
+					<div class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl">
+						<div class="lc-empty-state-icon mb-6 inline-block rounded-full p-6">
+							<FontAwesomeIcon icon={faBell} class="lc-text-dim h-16 w-16" />
 						</div>
-						<h3 class="mb-3 text-2xl font-bold text-gray-800">
+						<h3 class="lc-text-primary mb-3 text-2xl font-bold">
 							{hasActiveFilters ? '검색 결과가 없습니다' : '입법예고가 없습니다'}
 						</h3>
 						{#if hasActiveFilters}
-							<p class="text-sm text-gray-600">다른 키워드로 다시 검색해보세요.</p>
+							<p class="lc-text-secondary text-sm">다른 키워드로 다시 검색해보세요.</p>
 						{/if}
 					</div>
 				{:else}
@@ -648,28 +634,28 @@
 						{#each notices as notice (notice.num)}
 							<article
 								aria-labelledby="notice-heading-{notice.num}"
-								class={`rounded-lg border-l-4 bg-white p-4 shadow transition-shadow hover:shadow-md sm:p-6 ${
-									notice.isDone ? 'border-l-gray-300 bg-gray-50/60' : 'border-l-emerald-400'
+								class={`lc-notice-card rounded-lg border-l-4 p-4 shadow transition-shadow hover:shadow-md sm:p-6 ${
+									notice.isDone ? 'lc-notice-card-done border-l-gray-300' : 'border-l-emerald-400'
 								}`}
 							>
 								<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 									<div class="min-w-0 flex-1">
 										<div class="mb-3 flex flex-wrap items-center gap-2">
 											<span
-												class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+												class="lc-chip-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-medium"
 											>
 												의안번호 {notice.num}
 											</span>
 											{#if notice.isDone}
 												<span
-													class="inline-flex items-center gap-1 rounded-md bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-600"
+													class="lc-chip-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
 												>
 													<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
 													입법예고 종료
 												</span>
 											{:else}
 												<span
-													class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700"
+													class="lc-chip-success inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
 												>
 													<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
 													진행 중
@@ -678,17 +664,17 @@
 										</div>
 
 										<h3
-											class={`mb-3 text-lg leading-tight font-semibold wrap-break-word ${notice.isDone ? 'text-gray-500' : 'text-gray-900'}`}
+											class={`mb-3 text-lg leading-tight font-semibold wrap-break-word ${notice.isDone ? 'lc-text-muted' : 'lc-text-primary'}`}
 										>
 											<a
 												href={`/notices/${notice.num}?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&sortOrder=${sortOrder}`}
-												class={`no-underline transition-colors duration-150 ${notice.isDone ? 'hover:text-gray-600' : 'hover:text-blue-600'}`}
+												class={`no-underline transition-colors duration-150 ${notice.isDone ? 'hover:text-[var(--lc-text-secondary)]' : 'hover:text-blue-600'}`}
 											>
 												{notice.subject}
 											</a>
 										</h3>
 
-										<div class="flex flex-wrap gap-4 text-sm text-gray-600">
+										<div class="lc-text-secondary flex flex-wrap gap-4 text-sm">
 											<div class="flex items-center">
 												<FontAwesomeIcon icon={faCalendar} class="mr-1 h-4 w-4" />
 												제안자 구분: {notice.proposerCategory}
@@ -714,7 +700,7 @@
 									>
 										<a
 											href={`/notices/${notice.num}?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&sortOrder=${sortOrder}`}
-											class="inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 hover:text-cyan-800"
+											class="lc-chip-cyan inline-flex items-center rounded-md px-2.5 py-2 text-xs font-semibold transition-colors"
 											title="제안이유 및 주요내용 원문 조회"
 										>
 											원문 조회
@@ -727,7 +713,7 @@
 														on:click={() =>
 															downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
 														aria-label="PDF 다운로드"
-														class="cursor-pointer rounded-md bg-red-50 p-2.5 text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
+														class="lc-action-chip-red cursor-pointer rounded-md p-2.5 transition-colors"
 													>
 														<FontAwesomeIcon icon={faFileText} class="h-5 w-5" />
 													</button>
@@ -737,18 +723,18 @@
 														on:click={() =>
 															downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
 														aria-label="HWP 다운로드"
-														class="cursor-pointer rounded-md bg-blue-50 p-2.5 text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-700"
+														class="lc-action-chip-blue cursor-pointer rounded-md p-2.5 transition-colors"
 													>
 														<FontAwesomeIcon icon={faFileDownload} class="h-5 w-5" />
 													</button>
 												{/if}
-												<div class="hidden h-6 w-px bg-gray-200 sm:block"></div>
+												<div class="hidden h-6 w-px bg-[var(--lc-border-soft)] sm:block"></div>
 											</div>
 										{/if}
 										<button
 											on:click={() => openExternalLink(notice.link)}
 											aria-label="자세히 보기 (새 탭)"
-											class="cursor-pointer rounded-md bg-gray-50 p-2.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700"
+											class="lc-button-neutral cursor-pointer rounded-md p-2.5 transition-colors"
 										>
 											<FontAwesomeIcon icon={faExternalLink} class="h-5 w-5" />
 										</button>
@@ -769,7 +755,7 @@
 									on:click={(event) => handlePaginationClick(event, 1)}
 									aria-label="첫 페이지로 이동"
 									title="첫 페이지"
-									class="rounded-xl border-2 border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === 1}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -780,7 +766,7 @@
 							{:else}
 								<span
 									aria-hidden="true"
-									class="rounded-xl border-2 border-slate-200 bg-white/60 px-3 py-2 text-xs font-semibold text-slate-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+									class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
 								</span>
@@ -791,7 +777,7 @@
 									on:click={(event) => handlePaginationClick(event, currentPage - 1)}
 									aria-label="이전 페이지로 이동"
 									title="이전 페이지"
-									class="rounded-xl border-2 border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === currentPage - 1}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -802,7 +788,7 @@
 							{:else}
 								<span
 									aria-hidden="true"
-									class="rounded-xl border-2 border-slate-200 bg-white/60 px-3 py-2 text-xs font-semibold text-slate-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+									class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
 								</span>
@@ -815,8 +801,8 @@
 										on:click={(event) => handlePaginationClick(event, item)}
 										class={`rounded-xl px-3 py-2 text-xs font-bold shadow-sm transition-all duration-200 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm ${
 											currentPage === item
-												? 'scale-105 border border-sky-200 bg-linear-to-r from-sky-100 to-indigo-100 text-slate-800 shadow-sm shadow-sky-100/70'
-												: 'border-2 border-slate-200 bg-white/90 text-slate-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700'
+												? 'lc-pagination-active scale-105 border'
+												: 'lc-pagination-btn border-2'
 										}`}
 									>
 										{#if pendingPaginationPage === item}
@@ -826,9 +812,7 @@
 										{/if}
 									</a>
 								{:else}
-									<span class="px-1 text-xs font-semibold text-slate-400 sm:px-2 sm:text-sm"
-										>...</span
-									>
+									<span class="lc-text-dim px-1 text-xs font-semibold sm:px-2 sm:text-sm">...</span>
 								{/if}
 							{/each}
 							{#if currentPage < totalPages}
@@ -837,7 +821,7 @@
 									on:click={(event) => handlePaginationClick(event, currentPage + 1)}
 									aria-label="다음 페이지로 이동"
 									title="다음 페이지"
-									class="rounded-xl border-2 border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === currentPage + 1}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -848,7 +832,7 @@
 							{:else}
 								<span
 									aria-hidden="true"
-									class="rounded-xl border-2 border-slate-200 bg-white/60 px-3 py-2 text-xs font-semibold text-slate-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+									class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
 								</span>
@@ -859,7 +843,7 @@
 									on:click={(event) => handlePaginationClick(event, totalPages)}
 									aria-label="마지막 페이지로 이동"
 									title="마지막 페이지"
-									class="rounded-xl border-2 border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all duration-200 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm"
+									class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									{#if pendingPaginationPage === totalPages}
 										<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -870,7 +854,7 @@
 							{:else}
 								<span
 									aria-hidden="true"
-									class="rounded-xl border-2 border-slate-200 bg-white/60 px-3 py-2 text-xs font-semibold text-slate-400 opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+									class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
 								>
 									<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
 								</span>
@@ -879,7 +863,7 @@
 
 						<div class="mt-6 text-center">
 							<span
-								class="inline-flex items-center rounded-full bg-linear-to-r from-sky-50 to-indigo-100 px-4 py-2 text-sm font-semibold text-slate-700"
+								class="lc-page-count inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold"
 							>
 								{getPaginationInfo()}
 							</span>
@@ -888,21 +872,21 @@
 				{/if}
 
 				{#if isServerLoading}
-					<div class="pointer-events-none absolute inset-0 z-10 rounded-2xl bg-white/35"></div>
+					<div
+						class="lc-loading-overlay pointer-events-none absolute inset-0 z-10 rounded-2xl"
+					></div>
 					<div
 						class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
 						role="status"
 						aria-live="polite"
 					>
 						<div
-							class="flex flex-col items-center gap-3 rounded-2xl border border-blue-100 bg-white/95 px-8 py-6 shadow-2xl shadow-blue-100/60 backdrop-blur-sm"
+							class="lc-panel-hero flex flex-col items-center gap-3 rounded-2xl border px-8 py-6 shadow-2xl backdrop-blur-sm"
 						>
 							<div class="relative flex items-center justify-center">
-								<div
-									class="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-500"
-								></div>
+								<div class="lc-spinner-ring h-10 w-10 animate-spin rounded-full border-4"></div>
 							</div>
-							<p class="text-sm font-semibold text-slate-700">불러오는 중...</p>
+							<p class="lc-text-secondary text-sm font-semibold">불러오는 중...</p>
 						</div>
 					</div>
 				{/if}

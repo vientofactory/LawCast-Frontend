@@ -16,8 +16,8 @@
 	<div class="text-center">
 		<FontAwesomeIcon
 			icon={faSpinner}
-			class="mx-auto mb-4 {sizeClasses[size]} animate-spin text-blue-600"
+			class="lc-text-accent mx-auto mb-4 {sizeClasses[size]} animate-spin"
 		/>
-		<p class="text-gray-600">{message}</p>
+		<p class="lc-text-secondary">{message}</p>
 	</div>
 </div>
