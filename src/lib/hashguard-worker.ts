@@ -1,9 +1,9 @@
 import { browser } from '$app/environment';
-import { PUBLIC_HASHGUARD_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import HashGuardPowWorker from '$lib/workers/hashguardPow.worker?worker';
 import type { Challenge } from 'hashguard-client';
 
-const HASHGUARD_URL = PUBLIC_HASHGUARD_URL || 'https://hashguard.viento.me';
+const HASHGUARD_URL = env.PUBLIC_HASHGUARD_URL || 'https://hashguard.viento.me';
 
 type WarmupRequest = {
 	requestId: number;
