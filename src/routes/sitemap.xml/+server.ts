@@ -1,8 +1,8 @@
-import { API_BASE_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import type { Notice, ArchiveNoticeListResponse } from '$lib/types/api';
 
-const BACKEND_URL = API_BASE_URL || 'http://localhost:3001/api';
+const BACKEND_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 const BATCH_SIZE = 100;
 const MAX_NOTICES = 5000; // Google 권장 상한 50,000 이내
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간

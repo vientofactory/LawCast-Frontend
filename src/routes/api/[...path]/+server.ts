@@ -1,8 +1,8 @@
-import { API_BASE_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
 
-const BASE_URL = API_BASE_URL || 'http://localhost:3001/api';
+const BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 
 async function forwardRequest(
 	method: string,
