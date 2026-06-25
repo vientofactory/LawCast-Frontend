@@ -87,6 +87,7 @@
 					class:opacity-80={isQuickSearchLoading}
 					aria-busy={isQuickSearchLoading}
 				>
+					<input type="hidden" name="fullText" value="true" />
 					<label for="quick-search" class="sr-only">법률안 검색</label>
 					<input
 						id="quick-search"
