@@ -9,46 +9,47 @@
 	$: isReady = status === 'ready' && !!summary?.trim();
 </script>
 
-<div
-	class="agent-summary-card agent-scanline lc-ai-panel relative mt-4 overflow-hidden rounded-xl border p-4 shadow-md"
->
+{#if isReady}
 	<div
-		class="pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full bg-cyan-300/20 blur-2xl"
-	></div>
-	<div
-		class="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-indigo-300/20 blur-2xl"
-	></div>
-
-	<div class="relative z-10 flex items-center justify-between gap-2">
+		class="agent-summary-card agent-scanline lc-ai-panel relative mt-4 overflow-hidden rounded-xl border p-4 shadow-md"
+	>
 		<div
-			class="lc-ai-badge inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
-		>
-			<FontAwesomeIcon icon={faRobot} class="mr-1.5 h-3.5 w-3.5" />
-			AI 에이전트 브리핑
+			class="pointer-events-none absolute -top-8 -right-8 h-24 w-24 rounded-full bg-cyan-300/20 blur-2xl"
+		></div>
+		<div
+			class="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-indigo-300/20 blur-2xl"
+		></div>
+
+		<div class="relative z-10 flex items-center justify-between gap-2">
+			<div
+				class="lc-ai-badge inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
+			>
+				<FontAwesomeIcon icon={faRobot} class="mr-1.5 h-3.5 w-3.5" />
+				AI 에이전트 브리핑
+			</div>
 		</div>
-	</div>
 
-	<p class="lc-ai-title relative z-10 mt-2 text-xs font-semibold tracking-[0.12em] wrap-break-word">
-		{title}
-	</p>
-
-	{#if isReady}
+		<p
+			class="lc-ai-title relative z-10 mt-2 text-xs font-semibold tracking-[0.12em] wrap-break-word"
+		>
+			{title}
+		</p>
 		<p class="lc-text-primary relative z-10 mt-1.5 text-sm leading-relaxed wrap-break-word">
 			{summary}
 		</p>
-	{:else}
-		<div class="lc-ai-warning relative z-10 mt-2 rounded-lg border p-3">
-			<p class="lc-ai-warning-title flex items-center text-xs font-semibold">
-				<FontAwesomeIcon icon={faTriangleExclamation} class="mr-1.5 h-3.5 w-3.5" />
-				AI 요약 생성이 일시적으로 지연되었거나 실패했습니다.
-			</p>
-			<p class="lc-ai-warning-body mt-1 text-xs leading-relaxed wrap-break-word">
-				원문(제안이유 및 주요내용)을 기준으로 먼저 확인해주세요. 이후 재시도 시 요약이 표시될 수
-				있습니다.
-			</p>
-		</div>
-	{/if}
-</div>
+	</div>
+{:else}
+	<div class="lc-ai-warning relative z-10 mt-2 rounded-lg border p-3">
+		<p class="lc-ai-warning-title flex items-center text-xs font-semibold">
+			<FontAwesomeIcon icon={faTriangleExclamation} class="mr-1.5 h-3.5 w-3.5" />
+			AI 요약 생성이 일시적으로 지연되었거나 실패했습니다.
+		</p>
+		<p class="lc-ai-warning-body mt-1 text-xs leading-relaxed wrap-break-word">
+			원문(제안이유 및 주요내용)을 기준으로 먼저 확인해주세요. 이후 재시도 시 요약이 표시될 수
+			있습니다.
+		</p>
+	</div>
+{/if}
 
 <style>
 	.agent-summary-card {
