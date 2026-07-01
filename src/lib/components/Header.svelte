@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 	import { theme } from '$lib/theme';
 	import {
-		faChartLine,
 		faFileLines,
 		faHouse,
 		faBars,
@@ -22,8 +21,7 @@
 	const menuItems: HeaderMenuItem[] = [
 		{ href: '/', label: '홈', icon: faHouse },
 		{ href: '/notices', label: '입법예고', icon: faFileLines },
-		{ href: '/webhook', label: '웹훅 등록', icon: faLink },
-		{ href: '/status', label: '시스템 상태', icon: faChartLine }
+		{ href: '/webhook', label: '웹훅 등록', icon: faLink }
 	];
 
 	function isActive(href: string): boolean {
@@ -257,13 +255,6 @@
 
 	.lc-brand-wordmark {
 		color: var(--lc-text-primary);
-	}
-
-	html:not([data-theme='dark']) .lc-brand-wordmark {
-		background-image: linear-gradient(105deg, #0f172a 0%, #334155 50%, #1d4ed8 100%);
-		-webkit-background-clip: text;
-		background-clip: text;
-		color: transparent;
 	}
 
 	.lc-theme-switch {
