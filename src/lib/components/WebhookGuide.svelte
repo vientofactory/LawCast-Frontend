@@ -10,7 +10,7 @@
 	<button
 		type="button"
 		on:click={() => (isExpanded = !isExpanded)}
-		class="lc-panel-inset group flex w-full cursor-pointer items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-300 hover:bg-[var(--lc-surface-hover)] hover:shadow-sm focus:ring-2 focus:ring-blue-200 focus:ring-offset-2 focus:outline-none"
+		class="lc-panel-inset group flex w-full cursor-pointer items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-300 hover:bg-[var(--lc-surface-hover)] hover:shadow-sm focus:ring-2 focus:ring-[var(--lc-border-strong)] focus:ring-offset-2 focus:outline-none"
 	>
 		<div class="flex items-center">
 			<div class="lc-chip-blue mr-2 rounded-md p-1 transition-colors duration-200">
@@ -40,7 +40,7 @@
 			<ol class="lc-text-secondary space-y-2 text-sm">
 				<li class="flex items-start">
 					<span
-						class="mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white"
+						class="lc-step-chip mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
 					>
 						1
 					</span>
@@ -51,7 +51,7 @@
 				</li>
 				<li class="flex items-start">
 					<span
-						class="mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white"
+						class="lc-step-chip mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
 					>
 						2
 					</span>
@@ -62,7 +62,7 @@
 				</li>
 				<li class="flex items-start">
 					<span
-						class="mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white"
+						class="lc-step-chip mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
 					>
 						3
 					</span>
@@ -73,7 +73,7 @@
 				</li>
 				<li class="flex items-start">
 					<span
-						class="mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white"
+						class="lc-step-chip mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
 					>
 						4
 					</span>
@@ -84,7 +84,7 @@
 				</li>
 				<li class="flex items-start">
 					<span
-						class="mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white"
+						class="lc-step-chip mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
 					>
 						5
 					</span>
@@ -95,7 +95,7 @@
 				</li>
 				<li class="flex items-start">
 					<span
-						class="mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white"
+						class="lc-step-chip-success mt-0.5 mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold"
 					>
 						✓
 					</span>
@@ -109,14 +109,16 @@
 			<div class="lc-banner-warning mt-4 rounded-md border p-3">
 				<div class="flex items-start">
 					<div class="mt-0.5 mr-2">
-						<div class="h-1.5 w-1.5 rounded-full bg-amber-500"></div>
+						<div class="lc-dot-warning h-1.5 w-1.5 rounded-full"></div>
 					</div>
 					<div class="text-xs">
 						<strong>참고:</strong>
 						웹훅 URL은
-						<code class="rounded bg-black/8 px-1 py-0.5"> https://discord.com/api/webhooks/ </code>
+						<code class="lc-inline-code rounded px-1 py-0.5">
+							https://discord.com/api/webhooks/
+						</code>
 						또는
-						<code class="rounded bg-black/8 px-1 py-0.5">
+						<code class="lc-inline-code rounded px-1 py-0.5">
 							https://discordapp.com/api/webhooks/
 						</code>
 						로 시작해야 합니다.

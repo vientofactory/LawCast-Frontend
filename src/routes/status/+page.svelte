@@ -194,7 +194,7 @@
 		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
-					<p class="text-xs font-semibold tracking-wide text-cyan-700">SYSTEM STATUS</p>
+					<p class="lc-text-info text-xs font-semibold tracking-wide">SYSTEM STATUS</p>
 					<h1 class="lc-text-primary mt-1 text-2xl font-bold">LawCast 시스템 상태</h1>
 					<p class="lc-text-secondary mt-1 text-sm">
 						마지막 조회: <span class="lc-text-primary font-semibold"
@@ -231,7 +231,7 @@
 		<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
-					<FontAwesomeIcon icon={faLink} class="mr-2 h-4 w-4 text-emerald-600" />
+					<FontAwesomeIcon icon={faLink} class="lc-text-success mr-2 h-4 w-4" />
 					웹훅 상태
 				</h2>
 				<div class="lc-text-secondary space-y-1 text-sm">
@@ -256,7 +256,7 @@
 
 			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
-					<FontAwesomeIcon icon={faDatabase} class="mr-2 h-4 w-4 text-blue-600" />
+					<FontAwesomeIcon icon={faDatabase} class="lc-text-accent mr-2 h-4 w-4" />
 					캐시 상태
 				</h2>
 				<div class="lc-text-secondary space-y-1 text-sm">
@@ -280,7 +280,7 @@
 
 			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
-					<FontAwesomeIcon icon={faGear} class="mr-2 h-4 w-4 text-violet-600" />
+					<FontAwesomeIcon icon={faGear} class="lc-text-purple mr-2 h-4 w-4" />
 					배치 처리
 				</h2>
 				<div class="lc-text-secondary space-y-1 text-sm">
@@ -303,7 +303,7 @@
 
 			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
-					<FontAwesomeIcon icon={faRobot} class="mr-2 h-4 w-4 text-cyan-600" />
+					<FontAwesomeIcon icon={faRobot} class="lc-text-info mr-2 h-4 w-4" />
 					AI 요약
 				</h2>
 				<div class="lc-text-secondary space-y-1 text-sm">
@@ -327,7 +327,7 @@
 		<div class="mt-4 grid gap-4 lg:grid-cols-2">
 			<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
 				<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
-					<FontAwesomeIcon icon={faBolt} class="mr-2 h-4 w-4 text-amber-500" />
+					<FontAwesomeIcon icon={faBolt} class="lc-text-warning mr-2 h-4 w-4" />
 					요약 지표
 				</h2>
 				<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -372,7 +372,7 @@
 
 			<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
 				<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
-					<FontAwesomeIcon icon={faMicrochip} class="mr-2 h-4 w-4 text-sky-600" />
+					<FontAwesomeIcon icon={faMicrochip} class="lc-text-info mr-2 h-4 w-4" />
 					세부 상태
 				</h2>
 				<ul class="lc-text-secondary space-y-2 text-sm">
@@ -430,7 +430,7 @@
 
 		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
-				<FontAwesomeIcon icon={faArrowsRotate} class="mr-2 h-4 w-4 text-teal-600" />
+				<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
 				종료 마커 동기화
 				{#if isDoneSync}
 					<span
@@ -473,7 +473,7 @@
 
 		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
-				<FontAwesomeIcon icon={faBoxArchive} class="mr-2 h-4 w-4 text-indigo-600" />
+				<FontAwesomeIcon icon={faBoxArchive} class="lc-text-purple mr-2 h-4 w-4" />
 				최근 배치 작업 이력
 				{#if recentJobs.length > 0}
 					<span class="lc-chip-purple ml-2 rounded-full px-2 py-0.5 text-xs font-semibold">
@@ -523,16 +523,16 @@
 											{batchStatusLabel(job.status)}
 										</span>
 										{#if job.status === 'failed' && job.error}
-											<span class="ml-1 text-xs text-red-500" title={job.error}>(!)</span>
+											<span class="lc-text-danger ml-1 text-xs" title={job.error}>(!)</span>
 										{/if}
 									</td>
 									<td class="py-2 pr-4 text-right font-semibold">{job.totalJobs}</td>
-									<td class="py-2 pr-4 text-right font-semibold text-emerald-600">
+									<td class="lc-text-success py-2 pr-4 text-right font-semibold">
 										{job.status === 'running' ? '-' : job.successCount}
 									</td>
 									<td
 										class="py-2 pr-4 text-right font-semibold {job.failedCount > 0
-											? 'text-red-500'
+											? 'lc-text-danger'
 											: 'lc-text-dim'}"
 									>
 										{job.status === 'running' ? '-' : job.failedCount}

@@ -432,7 +432,7 @@
 							placeholder={fullText
 								? '법률안명, 소관위원회, 원문 키워드 검색'
 								: '법률안명, 소관위원회 검색'}
-							class="lc-input w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+							class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
 						/>
 					</div>
 					<label for="archive-start-date" class="sr-only">시작일</label>
@@ -442,7 +442,7 @@
 						name="startDate"
 						value={startDate}
 						max={endDate || undefined}
-						class="lc-input rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+						class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
 						title="시작일"
 					/>
 					<label for="archive-end-date" class="sr-only">종료일</label>
@@ -452,7 +452,7 @@
 						name="endDate"
 						value={endDate}
 						min={startDate || undefined}
-						class="lc-input rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+						class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
 						title="종료일"
 					/>
 					<label for="archive-sort-order" class="sr-only">정렬</label>
@@ -460,7 +460,7 @@
 						id="archive-sort-order"
 						name="sortOrder"
 						value={sortOrder}
-						class="lc-input rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+						class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
 					>
 						<option value="desc">내림차순</option>
 						<option value="asc">오름차순</option>
@@ -475,7 +475,7 @@
 						title="원문(제안이유) 전체 텍스트 포함 검색. 속도가 느려질 수 있습니다."
 						role="switch"
 						aria-checked={fullText}
-						class="group inline-flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 focus:outline-none"
+						class="group inline-flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 focus:ring-2 focus:ring-[var(--lc-border-strong)] focus:ring-offset-1 focus:outline-none"
 					>
 						<span
 							class={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ${
@@ -499,7 +499,7 @@
 					</a>
 				</div>
 				{#if hasDateReversed}
-					<p class="mt-2 text-xs font-medium text-amber-700">
+					<p class="lc-text-warning mt-2 text-xs font-medium">
 						시작일이 종료일보다 늦습니다. 검색 시 서버에서 자동으로 범위를 보정합니다.
 					</p>
 				{/if}
@@ -513,7 +513,7 @@
 								키워드: {searchQuery.trim()}
 								<a
 									href={buildFilterLink({ search: '' })}
-									class="lc-link ml-2 underline decoration-blue-300 underline-offset-2"
+									class="lc-link ml-2 underline underline-offset-2"
 								>
 									해제
 								</a>
@@ -526,7 +526,7 @@
 								기간: {startDate || '처음'} ~ {endDate || '현재'}
 								<a
 									href={buildFilterLink({ startDate: '', endDate: '' })}
-									class="ml-2 underline decoration-emerald-400 underline-offset-2"
+									class="lc-link ml-2 underline underline-offset-2"
 								>
 									해제
 								</a>
@@ -542,7 +542,7 @@
 									<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
 									종료된 입법예고만
 								{:else}
-									<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+									<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
 									진행 중인 입법예고만
 								{/if}
 								<a
@@ -576,7 +576,7 @@
 							{#if sortOrder !== 'desc'}
 								<a
 									href={buildFilterLink({ sortOrder: 'desc' })}
-									class="lc-link ml-2 underline decoration-slate-300 underline-offset-2"
+									class="lc-link ml-2 underline underline-offset-2"
 								>
 									기본값
 								</a>
@@ -606,12 +606,12 @@
 				</div>
 				{#if isServerLoading}
 					<div
-						class="mt-3 h-1 w-full overflow-hidden rounded-full bg-blue-100"
+						class="lc-loading-track mt-3 h-1 w-full overflow-hidden rounded-full"
 						role="status"
 						aria-live="polite"
 					>
 						<span class="sr-only">불러오는 중...</span>
-						<div class="loading-slide h-full w-1/3 rounded-full bg-blue-500"></div>
+						<div class="lc-loading-fill loading-slide h-full w-1/3 rounded-full"></div>
 					</div>
 				{/if}
 			</form>
@@ -635,7 +635,9 @@
 							<article
 								aria-labelledby="notice-heading-{notice.num}"
 								class={`lc-notice-card rounded-lg border-l-4 p-4 shadow transition-shadow hover:shadow-md sm:p-6 ${
-									notice.isDone ? 'lc-notice-card-done border-l-gray-300' : 'border-l-emerald-400'
+									notice.isDone
+										? 'lc-notice-card-done lc-notice-border-done'
+										: 'lc-notice-border-active'
 								}`}
 							>
 								<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -657,7 +659,7 @@
 												<span
 													class="lc-chip-success inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
 												>
-													<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+													<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
 													진행 중
 												</span>
 											{/if}
@@ -668,7 +670,7 @@
 										>
 											<a
 												href={`/notices/${notice.num}?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&sortOrder=${sortOrder}`}
-												class={`no-underline transition-colors duration-150 ${notice.isDone ? 'hover:text-[var(--lc-text-secondary)]' : 'hover:text-blue-600'}`}
+												class={`no-underline transition-colors duration-150 ${notice.isDone ? 'hover:text-[var(--lc-text-secondary)]' : 'hover:text-[var(--lc-text-accent)]'}`}
 											>
 												{notice.subject}
 											</a>

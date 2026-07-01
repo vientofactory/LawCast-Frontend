@@ -24,8 +24,8 @@
 >
 	<div class="mb-6 flex items-center justify-between">
 		<h2 class="lc-text-primary flex items-center text-xl font-bold tracking-tight">
-			<div class="mr-3 rounded-lg bg-linear-to-r from-green-500 to-emerald-500 p-2">
-				<FontAwesomeIcon icon={faBell} class="h-5 w-5 text-white" />
+			<div class="lc-icon-accent-success mr-3 rounded-lg p-2">
+				<FontAwesomeIcon icon={faBell} class="lc-text-on-accent h-5 w-5" />
 			</div>
 			최근 입법예고
 		</h2>
@@ -42,7 +42,7 @@
 			class="lc-panel-inset lc-text-muted mb-4 flex flex-wrap gap-4 rounded-lg border px-3 py-2 text-xs font-medium"
 		>
 			<div class="flex items-center">
-				<FontAwesomeIcon icon={faDatabase} class="mr-1.5 h-3 w-3 text-green-600" />
+				<FontAwesomeIcon icon={faDatabase} class="lc-text-success mr-1.5 h-3 w-3" />
 				<span
 					>수집된 입법예고: <span class="lc-text-secondary"
 						>{stats.archive.count.toLocaleString('ko-KR')}개</span
@@ -50,7 +50,7 @@
 				>
 			</div>
 			<div class="flex items-center">
-				<FontAwesomeIcon icon={faClock} class="mr-1.5 h-3 w-3 text-blue-600" />
+				<FontAwesomeIcon icon={faClock} class="lc-text-accent mr-1.5 h-3 w-3" />
 				<span
 					>마지막 업데이트: <span class="lc-text-secondary"
 						>{stats.cache.lastUpdated ? formatDate(stats.cache.lastUpdated) : 'N/A'}</span
@@ -67,7 +67,7 @@
 		>
 			<div class="flex items-center justify-between gap-3">
 				<div class="min-w-0">
-					<p class="inline-flex items-center text-xs font-bold tracking-wide text-cyan-700">
+					<p class="lc-ai-title inline-flex items-center text-xs font-bold tracking-wide">
 						<FontAwesomeIcon icon={faRobot} class="mr-1.5 h-3.5 w-3.5" />
 						AI 에이전트 브리핑
 					</p>
@@ -76,7 +76,7 @@
 					</p>
 				</div>
 				<span
-					class="lc-ai-badge inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-colors group-hover/ai:bg-cyan-200/80"
+					class="lc-ai-badge lc-ai-badge-hoverable inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-colors"
 				>
 					보러가기
 					<FontAwesomeIcon icon={faExternalLink} class="ml-1.5 h-3 w-3" />
@@ -103,7 +103,7 @@
 						<a
 							id="recent-notice-{notice.num}"
 							href="/notices/{notice.num}"
-							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150 group-hover:text-[var(--lc-text-primary)] hover:text-blue-600"
+							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150"
 						>
 							{notice.subject}
 						</a>
@@ -130,7 +130,7 @@
 										</button>
 									{/if}
 								</div>
-								<div class="h-4 w-px bg-[var(--lc-border-soft)]"></div>
+								<div class="lc-divider-soft h-4 w-px"></div>
 							{/if}
 							<!-- 상세보기 버튼 -->
 							<button

@@ -47,9 +47,9 @@
 	<main id="main-content" class="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
 		<!-- 페이지 헤더 -->
 		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
-			<p class="text-xs font-semibold tracking-wide text-violet-700">LICENSE</p>
+			<p class="lc-text-purple text-xs font-semibold tracking-wide">LICENSE</p>
 			<h1 class="lc-text-primary mt-1 flex items-center gap-2 text-2xl font-bold">
-				<FontAwesomeIcon icon={faScaleBalanced} class="h-6 w-6 text-violet-600" />
+				<FontAwesomeIcon icon={faScaleBalanced} class="lc-text-purple h-6 w-6" />
 				라이선스 고지
 			</h1>
 			<p class="lc-text-secondary mt-1 text-sm">
@@ -61,7 +61,7 @@
 		<section class="lc-panel-card mb-6 rounded-2xl border p-5">
 			<h2 class="lc-text-primary mb-3 text-base font-bold">LawCast 프로젝트 라이선스</h2>
 			<p class="lc-text-secondary mb-3 text-sm">
-				LawCast는 <span class="font-semibold text-violet-700">MIT License</span> 하에 배포됩니다.
+				LawCast는 <span class="lc-text-purple font-semibold">MIT License</span> 하에 배포됩니다.
 			</p>
 			<pre
 				class="lc-code-block overflow-x-auto rounded-xl border p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap">MIT License
@@ -182,43 +182,31 @@ SOFTWARE.</pre>
 			<h2 class="lc-text-primary mb-3 text-base font-bold">라이선스 유형 안내</h2>
 			<div class="flex flex-wrap gap-3 text-xs">
 				<div class="flex items-center gap-2">
-					<span
-						class="rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700"
-						>MIT</span
-					>
+					<span class="lc-chip-success rounded-full border px-2 py-0.5 font-medium">MIT</span>
 					<span class="lc-text-muted">MIT License — 자유로운 사용·수정·배포 허용</span>
 				</div>
 				<div class="flex items-center gap-2">
-					<span
-						class="rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 font-medium text-sky-700"
-						>Apache-2.0</span
-					>
+					<span class="lc-chip-info rounded-full border px-2 py-0.5 font-medium">Apache-2.0</span>
 					<span class="lc-text-muted">Apache License 2.0 — 특허권 명시적 허여 포함</span>
 				</div>
 				<div class="flex items-center gap-2">
-					<span
-						class="rounded-full border border-violet-200 bg-violet-100 px-2 py-0.5 font-medium text-violet-700"
+					<span class="lc-chip-purple rounded-full border px-2 py-0.5 font-medium"
 						>BSD-3-Clause</span
 					>
 					<span class="lc-text-muted">BSD 3-Clause License — 광고 조항 없는 BSD</span>
 				</div>
 				<div class="flex items-center gap-2">
-					<span
-						class="rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 font-medium text-amber-700"
-						>OFL-1.1</span
-					>
+					<span class="lc-chip-warning rounded-full border px-2 py-0.5 font-medium">OFL-1.1</span>
 					<span class="lc-text-muted">SIL Open Font License 1.1 — 폰트 전용 오픈 라이선스</span>
 				</div>
 				<div class="flex items-center gap-2">
-					<span
-						class="rounded-full border border-orange-200 bg-orange-100 px-2 py-0.5 font-medium text-orange-700"
+					<span class="lc-chip-warning rounded-full border px-2 py-0.5 font-medium"
 						>CC-BY-4.0 AND MIT</span
 					>
 					<span class="lc-text-muted">Creative Commons BY 4.0 + MIT — 아이콘/코드 복합</span>
 				</div>
 				<div class="flex items-center gap-2">
-					<span
-						class="rounded-full border border-teal-200 bg-teal-100 px-2 py-0.5 font-medium text-teal-700"
+					<span class="lc-chip-teal rounded-full border px-2 py-0.5 font-medium"
 						>MIT OR GPL-3.0-or-later</span
 					>
 					<span class="lc-text-muted">MIT 또는 GPL-3.0 선택 — 배포자가 라이선스 선택 가능</span>
