@@ -116,13 +116,6 @@
 							</p>
 						</div>
 
-						<div class="lc-home-proof-note rounded-2xl px-4 py-3 text-sm leading-6">
-							최초 수집 시점의 상태 보존, 무결성 해시 기록, 검증 시각 메타데이터를 함께 축적해
-							<span class="lc-text-primary font-semibold"
-								>사후 부인 가능성을 낮추는 아카이브 흐름</span
-							>을 제공합니다.
-						</div>
-
 						<div
 							class="lc-home-meta flex flex-wrap items-center justify-center gap-3 lg:justify-start"
 						>
