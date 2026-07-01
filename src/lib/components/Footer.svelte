@@ -26,6 +26,10 @@
 				<p class="lc-text-secondary text-sm">
 					<a href="/license" class="lc-link">오픈소스 라이선스</a>
 				</p>
+				<div class="hidden h-4 w-px bg-[var(--lc-border-soft)] sm:block"></div>
+				<p class="lc-text-secondary text-sm">
+					<a href="/status" class="lc-link">시스템 상태</a>
+				</p>
 			</div>
 			<a
 				href="https://github.com/vientofactory/lawcast"
