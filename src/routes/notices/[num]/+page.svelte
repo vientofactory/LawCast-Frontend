@@ -311,7 +311,7 @@
 							<div
 								class="lc-chip-success inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
 							>
-								<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+								<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
 								진행 중
 							</div>
 						{/if}
@@ -375,7 +375,7 @@
 		{#if contentFacts.length > 0}
 			<section class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm">
 				<div class="mb-4 flex items-center gap-2">
-					<FontAwesomeIcon icon={faScaleBalanced} class="h-5 w-5 text-blue-600" />
+					<FontAwesomeIcon icon={faScaleBalanced} class="lc-text-accent h-5 w-5" />
 					<h2 class="lc-text-primary text-lg font-bold">입법예고 정보</h2>
 				</div>
 				<dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -391,7 +391,7 @@
 
 		<section class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm">
 			<div class="mb-4 flex items-center gap-2">
-				<FontAwesomeIcon icon={faFileLines} class="h-5 w-5 text-indigo-600" />
+				<FontAwesomeIcon icon={faFileLines} class="lc-text-purple h-5 w-5" />
 				<h2 class="lc-text-primary text-lg font-bold">제안이유 및 주요내용 원문</h2>
 			</div>
 			{#if detail.originalContent.proposalReason}
@@ -405,7 +405,7 @@
 				<div class="lc-banner-warning flex items-start gap-3 rounded-lg border p-4">
 					<FontAwesomeIcon
 						icon={faTriangleExclamation}
-						class="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+						class="lc-text-warning mt-0.5 h-4 w-4 shrink-0"
 					/>
 					<p class="text-sm">
 						원문 데이터를 웹사이트에서 확인하지 못했습니다. 국회 페이지에서 직접 확인하시기
@@ -423,7 +423,7 @@
 				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-[var(--lc-surface-hover)]"
 			>
 				<span class="flex items-center gap-2">
-					<FontAwesomeIcon icon={faShieldHalved} class="h-5 w-5 text-emerald-600" />
+					<FontAwesomeIcon icon={faShieldHalved} class="lc-text-success h-5 w-5" />
 					<h2 class="lc-text-primary text-lg font-bold">아카이브 상세정보</h2>
 				</span>
 				<span
@@ -463,7 +463,7 @@
 							</button>
 						</div>
 						{#if exportArchiveError}
-							<p class="mb-3 text-right text-xs text-rose-600">{exportArchiveError}</p>
+							<p class="lc-text-danger mb-3 text-right text-xs">{exportArchiveError}</p>
 						{/if}
 
 						{#if hasScreenshot && isScreenshotExpanded}

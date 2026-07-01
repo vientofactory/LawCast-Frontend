@@ -25,33 +25,33 @@
 		error: {
 			icon: faTriangleExclamation,
 			containerClass: 'lc-alert-error',
-			iconClass: 'text-red-500',
-			textClass: 'text-red-700',
-			buttonClass: 'text-red-600 hover:text-red-800',
+			iconClass: 'lc-text-danger',
+			textClass: 'lc-text-danger',
+			buttonClass: 'lc-text-danger',
 			customButtonClass: 'lc-alert-action lc-alert-action-error'
 		},
 		success: {
 			icon: faCircleCheck,
 			containerClass: 'lc-alert-success',
-			iconClass: 'text-green-500',
-			textClass: 'text-green-700',
-			buttonClass: 'text-green-600 hover:text-green-800',
+			iconClass: 'lc-text-success',
+			textClass: 'lc-text-success',
+			buttonClass: 'lc-text-success',
 			customButtonClass: 'lc-alert-action lc-alert-action-success'
 		},
 		warning: {
 			icon: faTriangleExclamation,
 			containerClass: 'lc-alert-warning',
-			iconClass: 'text-yellow-500',
-			textClass: 'text-yellow-700',
-			buttonClass: 'text-yellow-600 hover:text-yellow-800',
+			iconClass: 'lc-text-warning',
+			textClass: 'lc-text-warning',
+			buttonClass: 'lc-text-warning',
 			customButtonClass: 'lc-alert-action lc-alert-action-warning'
 		},
 		info: {
 			icon: faInfo,
 			containerClass: 'lc-alert-info',
-			iconClass: 'text-blue-500',
-			textClass: 'text-blue-700',
-			buttonClass: 'text-blue-600 hover:text-blue-800',
+			iconClass: 'lc-text-accent',
+			textClass: 'lc-text-accent',
+			buttonClass: 'lc-text-accent',
 			customButtonClass: 'lc-alert-action lc-alert-action-info'
 		}
 	};
@@ -137,7 +137,7 @@
 				{#if dismissible}
 					<button
 						on:click={handleDismiss}
-						class="rounded-full p-1 {config.buttonClass} cursor-pointer transition-all duration-200 hover:scale-110 hover:bg-black/5 focus:ring-2 focus:ring-offset-2 focus:outline-none"
+						class="lc-hover-subtle-bg rounded-full p-1 {config.buttonClass} cursor-pointer transition-all duration-200 hover:scale-110 focus:ring-2 focus:ring-offset-2 focus:outline-none"
 						aria-label="알림 닫기"
 						title="닫기"
 					>

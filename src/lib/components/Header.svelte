@@ -95,11 +95,7 @@
 				class="text-decoration-none group flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
 			>
 				<div>
-					<span
-						class="lc-brand-gradient bg-clip-text text-3xl font-bold tracking-tight text-transparent"
-					>
-						LawCast
-					</span>
+					<span class="lc-brand-wordmark text-3xl font-bold tracking-tight"> LawCast </span>
 					<p class="mt-1 text-sm font-medium text-[var(--lc-text-secondary)]">
 						국회 입법예고 스냅샷 아카이브
 					</p>
@@ -183,7 +179,7 @@
 		<!-- 오버레이 -->
 		<button
 			type="button"
-			class="absolute inset-0 cursor-default bg-slate-950/35 backdrop-blur-[2px]"
+			class="lc-overlay-backdrop absolute inset-0 cursor-default backdrop-blur-[2px]"
 			aria-label="메뉴 닫기"
 			tabindex="-1"
 			on:click={closeMobileMenu}
@@ -259,8 +255,15 @@
 		box-shadow: var(--lc-shadow-soft);
 	}
 
-	.lc-brand-gradient {
-		background-image: var(--lc-brand-gradient);
+	.lc-brand-wordmark {
+		color: var(--lc-text-primary);
+	}
+
+	html:not([data-theme='dark']) .lc-brand-wordmark {
+		background-image: linear-gradient(105deg, #0f172a 0%, #334155 50%, #1d4ed8 100%);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
 	}
 
 	.lc-theme-switch {
@@ -288,7 +291,7 @@
 	}
 
 	.lc-theme-switch-track.is-dark {
-		background: linear-gradient(135deg, #0891b2, #4338ca);
+		background: #2563eb;
 	}
 
 	.lc-theme-switch-thumb {

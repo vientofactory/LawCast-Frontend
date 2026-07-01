@@ -4,7 +4,7 @@
 	import { validateDiscordWebhookUrl, normalizeWebhookUrl } from '$lib/utils/helpers';
 	import WebhookGuide from './WebhookGuide.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { faPlus, faSpinner, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
+	import { faSpinner, faShieldHalved, faLink, faPlus } from '@fortawesome/free-solid-svg-icons';
 	import type { SystemStats } from '$lib/types/api';
 
 	// Props
@@ -114,28 +114,28 @@
 	class="lc-panel-card rounded-2xl border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
 >
 	<h2 class="lc-text-primary mb-6 flex items-center text-xl font-bold tracking-tight">
-		<div class="mr-3 rounded-lg bg-linear-to-r from-blue-500 to-indigo-500 p-2">
-			<FontAwesomeIcon icon={faPlus} class="h-5 w-5 text-white" />
+		<div class="lc-icon-accent-primary mr-3 rounded-lg p-2">
+			<FontAwesomeIcon icon={faLink} class="lc-text-on-accent h-5 w-5" />
 		</div>
 		웹훅 등록
 	</h2>
 
 	<ul class="lc-text-secondary mb-6 space-y-2 text-sm">
 		<li class="flex items-start">
-			<span class="mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
+			<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
 			10분마다 자동으로 새로운 입법예고를 확인합니다
 		</li>
 		<li class="flex items-start">
-			<span class="mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
+			<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
 			새로운 입법예고 발견 시 Discord 웹훅으로 알림을 전송합니다
 		</li>
 		<li class="flex items-start">
-			<span class="mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span>
+			<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
 			로그인 없이 간단하게 Discord 웹훅 URL만 등록하면 됩니다
 		</li>
 		{#if stats}
-			<li class="flex items-start font-medium text-blue-700">
-				<span class="mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600"></span>
+			<li class="lc-text-accent flex items-start font-medium">
+				<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
 				현재 {stats.webhooks.active.toLocaleString('ko-KR')}개의 채널에 알림을 전송하고 있습니다
 			</li>
 		{/if}
@@ -151,14 +151,14 @@
 				type="url"
 				bind:value={newWebhookUrl}
 				placeholder="https://discord.com/api/webhooks/..."
-				class="lc-input w-full rounded-xl border-2 px-4 py-3 shadow-sm transition-all duration-200 focus:border-blue-400 focus:bg-[var(--lc-surface-primary)] focus:ring-4 focus:ring-blue-100 focus:outline-none"
+				class="lc-input lc-input-focus w-full rounded-xl border-2 px-4 py-3 shadow-sm transition-all duration-200"
 				maxlength="500"
 				autocomplete="off"
 				spellcheck="false"
 				required
 			/>
 			{#if newWebhookUrl && !validateDiscordWebhookUrl(newWebhookUrl).isValid}
-				<p class="mt-1 text-sm text-red-600">
+				<p class="lc-text-danger mt-1 text-sm">
 					{validateDiscordWebhookUrl(newWebhookUrl).message}
 				</p>
 			{/if}
@@ -188,7 +188,7 @@
 			{#if powEstimatedRemainingMs !== null || powHashRate !== null || powDifficultyBits !== null}
 				<div class="lc-text-dim flex items-center justify-center gap-2 text-[11px]">
 					{#if powEstimatedRemainingMs !== null}
-						<span class="font-medium text-blue-500"
+						<span class="lc-text-accent font-medium"
 							>{formatRemainingTime(powEstimatedRemainingMs)}</span
 						>
 						<span>·</span>
