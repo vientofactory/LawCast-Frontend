@@ -62,6 +62,61 @@ export interface NoticeDetail {
 	aiSummaryEnabled?: boolean;
 }
 
+export type ChangeEventType = 'created' | 'updated' | 'redacted' | 'invalidated';
+export type ChangeDetailType = 'added' | 'removed' | 'modified';
+
+export interface NoticeChangeDetail {
+	id: number;
+	fieldPath: string;
+	changeType: ChangeDetailType;
+	beforeValue: string | null;
+	afterValue: string | null;
+	beforeHash: string | null;
+	afterHash: string | null;
+}
+
+export interface NoticeChangeEventItem {
+	id: number;
+	noticeNum: number;
+	detectedAt: string;
+	eventType: ChangeEventType;
+	source: string | null;
+	eventHeight: number;
+	prevEventHash: string | null;
+	eventHash: string;
+	changedFieldCount: number;
+	hashAlgo: string;
+	canonVersion: number;
+	diffSummary: Record<string, unknown> | null;
+	details: NoticeChangeDetail[];
+}
+
+export interface NoticeChangeTimelineResponse {
+	noticeNum: number;
+	items: NoticeChangeEventItem[];
+	count: number;
+}
+
+export interface RecentNoticeChangeItem {
+	id: number;
+	noticeNum: number;
+	detectedAt: string;
+	eventType: ChangeEventType;
+	source: string | null;
+	eventHeight: number;
+	eventHash: string;
+	changedFieldCount: number;
+	diffSummary: Record<string, unknown> | null;
+}
+
+export interface RecentNoticeChangesResponse {
+	items: RecentNoticeChangeItem[];
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+}
+
 export interface ArchiveNoticeListResponse {
 	items: Notice[];
 	page: number;

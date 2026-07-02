@@ -3,6 +3,9 @@ import NProgress from 'nprogress';
 import type {
 	Notice,
 	NoticeDetail,
+	NoticeChangeTimelineResponse,
+	RecentNoticeChangesResponse,
+	ChangeEventType,
 	ArchiveNoticeListResponse,
 	SearchNoticesResult,
 	SystemStats,
@@ -271,6 +274,61 @@ export async function getNoticeDetail(
 }
 
 /**
+ * 의안번호별 변경 추적 타임라인 조회
+ */
+export async function getNoticeChanges(
+	noticeNum: number,
+	params: { limit?: number } = {},
+	customFetch?: Fetch
+): Promise<NoticeChangeTimelineResponse> {
+	try {
+		const query = new URLSearchParams();
+		if (params.limit && params.limit > 0) {
+			query.set('limit', String(params.limit));
+		}
+
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<NoticeChangeTimelineResponse>(
+			`/notices/${noticeNum}/changes${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error(`Failed to load notice changes (${noticeNum}):`, error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 전체 의안 변경 이벤트 목록 조회
+ */
+export async function getRecentNoticeChanges(
+	params: {
+		page?: number;
+		limit?: number;
+		eventType?: ChangeEventType;
+	} = {},
+	customFetch?: Fetch
+): Promise<RecentNoticeChangesResponse> {
+	try {
+		const query = new URLSearchParams();
+		if (params.page && params.page > 0) query.set('page', String(params.page));
+		if (params.limit && params.limit > 0) query.set('limit', String(params.limit));
+		if (params.eventType) query.set('eventType', params.eventType);
+
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<RecentNoticeChangesResponse>(
+			`/notices/changes${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load recent notice changes:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
  * 시스템 통계 조회
  */
 export async function getSystemStats(customFetch?: Fetch): Promise<SystemStats> {
@@ -335,6 +393,8 @@ export const apiClient = {
 	getArchivedNotices,
 	searchNotices,
 	getNoticeDetail,
+	getNoticeChanges,
+	getRecentNoticeChanges,
 	getSystemStats,
 	getSystemHealth,
 	registerWebhook

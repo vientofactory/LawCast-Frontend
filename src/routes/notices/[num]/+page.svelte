@@ -3,6 +3,7 @@
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
 	import { page } from '$app/stores';
+	import { onMount, tick } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -10,10 +11,13 @@
 		faBell,
 		faChevronDown,
 		faClock,
+		faCodeCompare,
 		faDownload,
 		faFingerprint,
 		faExternalLink,
+		faListCheck,
 		faFileLines,
+		faRotate,
 		faImage,
 		faLock,
 		faScaleBalanced,
@@ -21,12 +25,16 @@
 		faTriangleExclamation,
 		faUser
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { NoticeDetail } from '$lib/types/api';
+	import type { NoticeDetail, NoticeChangeTimelineResponse } from '$lib/types/api';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 
-	export let data: { detail: NoticeDetail };
+	export let data: {
+		detail: NoticeDetail;
+		changes: NoticeChangeTimelineResponse;
+	};
 
 	$: detail = data.detail;
+	$: changes = data.changes;
 	$: aiSummaryEnabled = detail.aiSummaryEnabled !== false;
 
 	function buildExcerpt(content: string, maxLength = 180): string {
@@ -164,6 +172,23 @@
 	let isExportingArchive = false;
 	let exportArchiveError: string | null = null;
 
+	function parseBooleanParam(value: string | null): boolean | null {
+		if (!value) {
+			return null;
+		}
+
+		const normalized = value.trim().toLowerCase();
+		if (['1', 'true', 'yes', 'on', 'open'].includes(normalized)) {
+			return true;
+		}
+
+		if (['0', 'false', 'no', 'off', 'close', 'closed'].includes(normalized)) {
+			return false;
+		}
+
+		return null;
+	}
+
 	function getArchiveFileName(contentDisposition: string | null, noticeNum: number): string {
 		const fallbackName = `notice-${noticeNum}-archive.zip`;
 
@@ -231,6 +256,142 @@
 
 	$: screenshotUrl = `/api/notices/${detail.notice.num}/screenshot`;
 	$: hasScreenshot = detail.screenshotMeta?.hasScreenshot ?? false;
+
+	let isChangeTimelineOpen = false;
+	let changeTimelineSection: HTMLDetailsElement | null = null;
+	let hasAutoScrolledToTimeline = false;
+	$: shouldAutoScrollToTimeline =
+		parseBooleanParam($page.url.searchParams.get('timeline')) === true;
+
+	$: {
+		const timelineFromQuery = parseBooleanParam($page.url.searchParams.get('timeline'));
+		if (timelineFromQuery !== null) {
+			isChangeTimelineOpen = timelineFromQuery;
+		}
+
+		const archiveFromQuery = parseBooleanParam($page.url.searchParams.get('archive'));
+		if (archiveFromQuery !== null) {
+			isArchiveMetaOpen = archiveFromQuery;
+		}
+
+		const screenshotFromQuery = parseBooleanParam($page.url.searchParams.get('screenshot'));
+		if (screenshotFromQuery !== null && hasScreenshot) {
+			isScreenshotExpanded = screenshotFromQuery;
+		}
+	}
+
+	async function scrollToTimelineOnLoad(): Promise<void> {
+		if (!shouldAutoScrollToTimeline || hasAutoScrolledToTimeline) {
+			return;
+		}
+
+		await tick();
+		if (!changeTimelineSection) {
+			return;
+		}
+
+		changeTimelineSection.scrollIntoView({
+			block: 'start',
+			behavior: 'auto'
+		});
+		hasAutoScrolledToTimeline = true;
+	}
+
+	onMount(() => {
+		void scrollToTimelineOnLoad();
+	});
+
+	function handleTimelineToggle(): void {
+		if (isChangeTimelineOpen) {
+			void scrollToTimelineOnLoad();
+		}
+	}
+
+	function changeTypeLabel(changeType: string): string {
+		switch (changeType) {
+			case 'added':
+				return '추가됨';
+			case 'removed':
+				return '삭제됨';
+			case 'modified':
+				return '수정됨';
+			default:
+				return changeType;
+		}
+	}
+
+	function eventTypeLabel(eventType: string): string {
+		switch (eventType) {
+			case 'created':
+				return '문서 생성';
+			case 'updated':
+				return '문서 갱신';
+			case 'redacted':
+				return '내용 가림';
+			case 'invalidated':
+				return '문서 무효화';
+			default:
+				return eventType;
+		}
+	}
+
+	const CHANGE_FIELD_LABELS: Record<string, string> = {
+		num: '의안번호',
+		subject: '법률안명',
+		proposerCategory: '제안자 구분',
+		committee: '소관위원회',
+		proposalReason: '제안이유',
+		billNumber: '입법예고 의안번호',
+		proposer: '입법예고 제안자',
+		proposalDate: '입법예고 제안일',
+		contentCommittee: '입법예고 소관위원회',
+		referralDate: '입법예고 회부일',
+		noticePeriod: '입법예고 기간',
+		proposalSession: '입법예고 제안회기',
+		isDone: '처리 상태'
+	};
+
+	function toReadableSourceLabel(source: string | null): string {
+		if (!source) {
+			return '시스템';
+		}
+
+		if (source.includes('archive:upsert')) return '아카이브 저장';
+		if (source.includes('archive:updateSourceHtml')) return '원문 HTML 갱신';
+		if (source.includes('archive:updateNsmHtmlAndDetail')) return '국회 원문/상세 동기화';
+		if (source.includes('nsm')) return '국회 연계 동기화';
+
+		return source;
+	}
+
+	function toReadableFieldLabel(fieldPath: string): string {
+		return CHANGE_FIELD_LABELS[fieldPath] ?? fieldPath;
+	}
+
+	function toValuePreview(value: string | null): string {
+		if (value === null || value === '') {
+			return '(비어 있음)';
+		}
+
+		const normalized = value.replace(/\s+/g, ' ').trim();
+		if (normalized.length <= 80) {
+			return normalized;
+		}
+
+		return `${normalized.slice(0, 80)}...`;
+	}
+
+	function shortenHash(hash: string): string {
+		if (!hash) {
+			return 'N/A';
+		}
+
+		if (hash.length <= 20) {
+			return hash;
+		}
+
+		return `${hash.slice(0, 10)}...${hash.slice(-10)}`;
+	}
 </script>
 
 <svelte:head>
@@ -414,6 +575,145 @@
 				</div>
 			{/if}
 		</section>
+
+		<details
+			bind:this={changeTimelineSection}
+			bind:open={isChangeTimelineOpen}
+			on:toggle={handleTimelineToggle}
+			class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm"
+		>
+			<summary
+				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-[var(--lc-surface-hover)]"
+			>
+				<span class="flex items-center gap-2">
+					<FontAwesomeIcon icon={faCodeCompare} class="lc-text-accent h-5 w-5" />
+					<h2 class="lc-text-primary text-lg font-bold">변경 추적 타임라인</h2>
+				</span>
+				<span
+					class="lc-button-neutral inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200"
+				>
+					<span
+						class="inline-flex transition-transform duration-200"
+						class:rotate-180={isChangeTimelineOpen}
+					>
+						<FontAwesomeIcon icon={faChevronDown} class="h-4 w-4" />
+					</span>
+				</span>
+			</summary>
+
+			{#if isChangeTimelineOpen}
+				<div class="mt-4" in:slide={{ duration: 220 }} out:slide={{ duration: 160 }}>
+					{#if changes.items.length === 0}
+						<div class="lc-panel-inset rounded-lg border px-4 py-5 text-sm">
+							아직 기록된 변경 이벤트가 없습니다.
+						</div>
+					{:else}
+						<div class="space-y-3">
+							{#each changes.items as event, eventIndex (event.id)}
+								<details class="lc-panel-inset rounded-xl border" open={eventIndex === 0}>
+									<summary
+										class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3"
+									>
+										<div class="min-w-0 space-y-1">
+											<div class="flex flex-wrap items-center gap-2">
+												<span
+													class="lc-chip-blue inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+												>
+													<FontAwesomeIcon icon={faRotate} class="mr-1.5 h-3 w-3" />
+													리비전 #{event.eventHeight}
+												</span>
+												<span
+													class="lc-chip-muted inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+												>
+													{eventTypeLabel(event.eventType)}
+												</span>
+											</div>
+											<p class="lc-text-secondary truncate text-xs">
+												{formatDateTime(event.detectedAt)} · {toReadableSourceLabel(event.source)}
+											</p>
+										</div>
+										<div class="lc-text-secondary text-xs">
+											필드 {event.changedFieldCount}개 변경
+										</div>
+									</summary>
+
+									<div
+										class="space-y-3 border-t border-[var(--lc-border-soft)] px-4 py-3"
+										in:fade={{ duration: 120 }}
+										out:fade={{ duration: 90 }}
+									>
+										<div class="mb-1 grid gap-2 text-xs sm:grid-cols-2">
+											<div class="lc-stat-tile rounded-lg border px-3 py-2">
+												<p class="lc-text-muted">이벤트 해시</p>
+												<p class="lc-text-primary mt-1 font-mono font-semibold">
+													{shortenHash(event.eventHash)}
+												</p>
+											</div>
+											<div class="lc-stat-tile rounded-lg border px-3 py-2">
+												<p class="lc-text-muted">변경 시각</p>
+												<p class="lc-text-primary mt-1 font-semibold">
+													{formatDateTime(event.detectedAt)}
+												</p>
+											</div>
+										</div>
+
+										{#if event.details.length > 0}
+											<div class="space-y-2">
+												<p class="lc-text-secondary flex items-center gap-2 text-xs font-semibold">
+													<FontAwesomeIcon icon={faListCheck} class="h-3.5 w-3.5" />
+													리비전 변경 내역
+												</p>
+												<div class="space-y-2">
+													{#each event.details as detailItem (detailItem.id)}
+														<div
+															class="lc-code-block space-y-2 rounded-md border px-3 py-2 text-xs"
+														>
+															<div class="flex flex-wrap items-center gap-2">
+																<span class="lc-chip-muted rounded-full px-2 py-0.5 font-semibold"
+																	>{changeTypeLabel(detailItem.changeType)}</span
+																>
+																<span class="lc-text-primary font-semibold"
+																	>{toReadableFieldLabel(detailItem.fieldPath)}</span
+																>
+															</div>
+															{#if detailItem.changeType !== 'added'}
+																<div class="grid gap-1">
+																	<p class="lc-text-muted">이전</p>
+																	<p
+																		class="lc-text-primary rounded border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-2 py-1"
+																	>
+																		{toValuePreview(detailItem.beforeValue)}
+																	</p>
+																</div>
+															{/if}
+															{#if detailItem.changeType === 'modified'}
+																<p class="lc-text-muted text-center">→</p>
+															{/if}
+															{#if detailItem.changeType !== 'removed'}
+																<div class="grid gap-1">
+																	<p class="lc-text-muted">현재</p>
+																	<p
+																		class="lc-text-primary rounded border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-2 py-1"
+																	>
+																		{toValuePreview(detailItem.afterValue)}
+																	</p>
+																</div>
+															{/if}
+														</div>
+													{/each}
+												</div>
+											</div>
+										{:else}
+											<p class="lc-text-secondary text-xs">상세 필드 변경 데이터가 없습니다.</p>
+										{/if}
+									</div>
+								</details>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{/if}
+		</details>
 
 		<details
 			bind:open={isArchiveMetaOpen}
