@@ -6,16 +6,27 @@
 		faExternalLink,
 		faFileDownload,
 		faFileText,
+		faLock,
 		faPlus,
 		faClock,
 		faDatabase,
-		faRobot
+		faRobot,
+		faRotate,
+		faTriangleExclamation
 	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
 	export let notices: Notice[] = [];
 	export let stats: SystemStats | undefined = undefined;
 	$: aiSummaryEnabled = stats?.aiSummaryEnabled !== false;
+
+	function isSourceDeleted(notice: Notice): boolean {
+		return notice.lifecycleStatus === 'source_deleted';
+	}
+
+	function isRenumbered(notice: Notice): boolean {
+		return notice.lifecycleStatus === 'renumbered';
+	}
 </script>
 
 <section
@@ -146,7 +157,32 @@
 						<span>{notice.proposerCategory}{notice.committee ? ` | ${notice.committee}` : ''}</span>
 					</div>
 					<div class="lc-text-dim mt-1 text-xs">
-						<span>의안번호: {notice.num}</span>
+						<div class="flex flex-wrap items-center gap-1.5">
+							<span>의안번호: {notice.num}</span>
+							{#if notice.isDone}
+								<span
+									class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+								>
+									<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
+									종료
+								</span>
+							{/if}
+							{#if isSourceDeleted(notice)}
+								<span
+									class="lc-chip-warning inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+								>
+									<FontAwesomeIcon icon={faTriangleExclamation} class="h-2.5 w-2.5" />
+									보존
+								</span>
+							{:else if isRenumbered(notice)}
+								<span
+									class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+								>
+									<FontAwesomeIcon icon={faRotate} class="h-2.5 w-2.5" />
+									번호변경
+								</span>
+							{/if}
+						</div>
 					</div>
 				</article>
 			{/each}

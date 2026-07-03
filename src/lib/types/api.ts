@@ -1,4 +1,5 @@
 export type AISummaryStatus = 'ready' | 'unavailable' | 'not_supported' | 'not_requested';
+export type NoticeLifecycleStatus = 'active' | 'source_deleted' | 'renumbered';
 
 export interface Notice {
 	num: number;
@@ -11,6 +12,8 @@ export interface Notice {
 	lastUpdatedAt?: string;
 	aiSummary?: string | null;
 	aiSummaryStatus?: AISummaryStatus;
+	lifecycleStatus?: NoticeLifecycleStatus;
+	sourceDeletedAt?: string | null;
 	contentId?: string | null;
 	attachments: {
 		pdfFile: string;
@@ -155,6 +158,8 @@ export interface SearchNoticesItem {
 	isArchived: boolean;
 	aiSummary: string | null;
 	aiSummaryStatus: AISummaryStatus;
+	lifecycleStatus?: NoticeLifecycleStatus;
+	sourceDeletedAt?: string | null;
 	attachments: { pdfFile: string; hwpFile: string };
 	archiveStartedAt: string | null;
 	lastUpdatedAt: string | null;

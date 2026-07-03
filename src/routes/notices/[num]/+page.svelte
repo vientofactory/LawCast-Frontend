@@ -21,6 +21,7 @@
 		faLock,
 		faScaleBalanced,
 		faShieldHalved,
+		faRotate,
 		faTriangleExclamation,
 		faUser
 	} from '@fortawesome/free-solid-svg-icons';
@@ -141,6 +142,9 @@
 			: detail.archiveMetadata.integrity.passed === false
 				? '검증 실패'
 				: '검증 대기';
+	$: lifecycleStatus = detail.notice.lifecycleStatus ?? 'active';
+	$: isSourceDeleted = lifecycleStatus === 'source_deleted';
+	$: isRenumbered = lifecycleStatus === 'renumbered';
 
 	$: contentFacts = [
 		{ label: '의안번호', value: detail.originalContent.billNumber },
@@ -334,7 +338,9 @@
 		referralDate: '입법예고 회부일',
 		noticePeriod: '입법예고 기간',
 		proposalSession: '입법예고 제안회기',
-		isDone: '처리 상태'
+		isDone: '처리 상태',
+		lifecycleStatus: '보존 상태',
+		sourceDeletedAt: '소스 삭제 감지 시각'
 	};
 
 	function toReadableFieldLabel(fieldPath: string): string {
@@ -564,6 +570,44 @@
 			</div>
 		{/if}
 
+		{#if isSourceDeleted}
+			<div
+				class="lc-banner-warning mb-6 flex items-start gap-3 rounded-xl border px-5 py-4 shadow-sm"
+				role="status"
+				aria-label="소스 삭제 감지 안내"
+			>
+				<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
+					<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
+				</div>
+				<div>
+					<p class="text-sm font-semibold">소스 미존재로 보존 전환됨</p>
+					<p class="mt-0.5 text-sm">
+						원본 소스에서 현재 확인되지 않아 삭제하지 않고 보존 상태로 전환되었습니다.
+						{#if detail.notice.sourceDeletedAt}
+							(감지 시각: {formatDateTime(detail.notice.sourceDeletedAt)})
+						{/if}
+					</p>
+				</div>
+			</div>
+		{:else if isRenumbered}
+			<div
+				class="lc-banner-muted mb-6 flex items-start gap-3 rounded-xl border px-5 py-4 shadow-sm"
+				role="status"
+				aria-label="의안번호 변경 안내"
+			>
+				<div class="lc-chip-muted mt-0.5 rounded-full p-1.5">
+					<FontAwesomeIcon icon={faRotate} class="h-4 w-4" />
+				</div>
+				<div>
+					<p class="lc-text-secondary text-sm font-semibold">의안번호 변경 이력</p>
+					<p class="lc-text-muted mt-0.5 text-sm">
+						기존 번호 기준 체인은 무효화(invalidated) 이벤트로 보존되며, 현재 번호에서 이력이
+						이어집니다.
+					</p>
+				</div>
+			</div>
+		{/if}
+
 		<section
 			class={`mb-6 rounded-2xl border p-6 shadow-lg ${detail.notice.isDone ? 'lc-panel-subtle' : 'lc-panel-card'}`}
 		>
@@ -589,6 +633,19 @@
 							>
 								<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
 								진행 중
+							</div>
+						{/if}
+						{#if isSourceDeleted}
+							<div
+								class="lc-chip-warning inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+							>
+								소스 미존재(보존)
+							</div>
+						{:else if isRenumbered}
+							<div
+								class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+							>
+								번호 변경 이력
 							</div>
 						{/if}
 					</div>

@@ -43,12 +43,33 @@
 		}
 	}
 
+	function eventTypeChipClass(eventType: string): string {
+		switch (eventType) {
+			case 'created':
+				return 'lc-chip-blue';
+			case 'updated':
+				return 'lc-chip-success';
+			case 'invalidated':
+				return 'lc-chip-warning';
+			case 'redacted':
+				return 'lc-chip-muted';
+			default:
+				return 'lc-chip-muted';
+		}
+	}
+
+	function isEmphasisEvent(eventType: string): boolean {
+		return eventType === 'invalidated' || eventType === 'redacted';
+	}
+
 	function toReadableSourceLabel(source: string | null): string {
 		if (!source) {
 			return '시스템';
 		}
 
 		if (source.includes('archive:upsert')) return '아카이브 저장';
+		if (source.includes('archive:renumbered')) return '의안번호 변경(기존 번호 무효화)';
+		if (source.includes('archive:source-missing')) return '소스 미존재 처리(보존)';
 		if (source.includes('archive:updateSourceHtml')) return '원문 HTML 갱신';
 		if (source.includes('archive:updateNsmHtmlAndDetail')) return '국회 원문/상세 동기화';
 		if (source.includes('nsm')) return '국회 연계 동기화';
@@ -105,7 +126,9 @@
 			{:else}
 				<div class="space-y-3">
 					{#each changes.items as event (event.id)}
-						<div class="lc-panel-inset overflow-hidden rounded-xl border px-4 py-3">
+						<div
+							class={`lc-panel-inset overflow-hidden rounded-xl border px-4 py-3 ${isEmphasisEvent(event.eventType) ? 'lc-banner-warning' : ''}`}
+						>
 							<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 								<div class="min-w-0 space-y-1">
 									<div class="flex flex-wrap items-center gap-2">
@@ -114,6 +137,11 @@
 										>
 											<FontAwesomeIcon icon={faRotate} class="mr-1.5 h-3 w-3" />
 											Rev #{event.eventHeight}
+										</span>
+										<span
+											class={`${eventTypeChipClass(event.eventType)} inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold`}
+										>
+											{eventTypeLabel(event.eventType)}
 										</span>
 										{#if event.eventHeight === activeRevisionForUi}
 											<span
@@ -159,8 +187,6 @@
 										class="lc-text-secondary flex flex-wrap items-center gap-1.5 text-xs leading-relaxed wrap-break-word"
 									>
 										<span>{event.detectedAt.toLocaleString()}</span>
-										<span aria-hidden="true">·</span>
-										<span>{eventTypeLabel(event.eventType)}</span>
 										<span aria-hidden="true">·</span>
 										<span class="min-w-0 break-all">{toReadableSourceLabel(event.source)}</span>
 										<span aria-hidden="true">·</span>

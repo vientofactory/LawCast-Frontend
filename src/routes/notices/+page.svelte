@@ -20,6 +20,7 @@
 		faFileText,
 		faLock,
 		faMagnifyingGlass,
+		faRotate,
 		faSpinner,
 		faTriangleExclamation
 	} from '@fortawesome/free-solid-svg-icons';
@@ -185,6 +186,14 @@
 		}
 
 		return notice.aiSummaryStatus === 'ready' || notice.aiSummaryStatus === 'unavailable';
+	}
+
+	function isSourceDeleted(notice: (typeof notices)[number]): boolean {
+		return notice.lifecycleStatus === 'source_deleted';
+	}
+
+	function isRenumbered(notice: (typeof notices)[number]): boolean {
+		return notice.lifecycleStatus === 'renumbered';
 	}
 
 	// Make pagination items reactive to archive/totalPages/currentPage
@@ -673,6 +682,21 @@
 													진행 중
 												</span>
 											{/if}
+											{#if isSourceDeleted(notice)}
+												<span
+													class="lc-chip-warning inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
+												>
+													<FontAwesomeIcon icon={faTriangleExclamation} class="h-2.5 w-2.5" />
+													소스 미존재(보존)
+												</span>
+											{:else if isRenumbered(notice)}
+												<span
+													class="lc-chip-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
+												>
+													<FontAwesomeIcon icon={faRotate} class="h-2.5 w-2.5" />
+													번호 변경 이력
+												</span>
+											{/if}
 										</div>
 
 										<h3
@@ -698,6 +722,12 @@
 												</div>
 											{/if}
 										</div>
+
+										{#if isSourceDeleted(notice)}
+											<p class="lc-text-warning mt-2 text-xs font-medium">
+												원본 소스에서 현재 확인되지 않아 삭제 대신 보존 상태로 유지됩니다.
+											</p>
+										{/if}
 
 										{#if shouldShowAIBriefing(notice)}
 											<AIBriefingCard
