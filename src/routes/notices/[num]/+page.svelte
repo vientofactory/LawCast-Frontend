@@ -323,13 +323,13 @@
 	function eventTypeLabel(eventType: string): string {
 		switch (eventType) {
 			case 'created':
-				return '문서 생성';
+				return '신규 법률안 생성';
 			case 'updated':
-				return '문서 갱신';
+				return '법률안 갱신';
 			case 'redacted':
-				return '내용 가림';
+				return '법률안 내용 가림';
 			case 'invalidated':
-				return '문서 무효화';
+				return '법률안 무효화';
 			default:
 				return eventType;
 		}
@@ -663,7 +663,7 @@
 													class="lc-chip-blue inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
 												>
 													<FontAwesomeIcon icon={faRotate} class="mr-1.5 h-3 w-3" />
-													리비전 #{event.eventHeight}
+													Rev #{event.eventHeight}
 												</span>
 												<span
 													class="lc-chip-muted inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
