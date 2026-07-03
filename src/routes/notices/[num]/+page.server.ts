@@ -3,7 +3,7 @@ import { apiClient } from '$lib/api/client';
 import type { NoticeChangeTimelineResponse } from '$lib/types/api';
 import type { PageServerLoad } from './$types';
 
-const ENABLE_UI_TEST_TIMELINE_MOCK = true;
+const ENABLE_UI_TEST_TIMELINE_MOCK = false;
 
 function buildUiTestTimelineMock(noticeNum: number): NoticeChangeTimelineResponse {
 	const now = Date.now();

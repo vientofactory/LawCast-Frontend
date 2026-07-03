@@ -368,17 +368,60 @@
 		return CHANGE_FIELD_LABELS[fieldPath] ?? fieldPath;
 	}
 
-	function toValuePreview(value: string | null): string {
-		if (value === null || value === '') {
-			return '(비어 있음)';
+	type DiffSegment = {
+		text: string;
+		kind: 'context' | 'removed' | 'added';
+	};
+
+	function buildInlineDiffSegments(
+		beforeValue: string | null,
+		afterValue: string | null
+	): { beforeSegments: DiffSegment[]; afterSegments: DiffSegment[] } {
+		const before = beforeValue ?? '';
+		const after = afterValue ?? '';
+
+		if (before === after) {
+			return {
+				beforeSegments: before ? [{ text: before, kind: 'context' }] : [],
+				afterSegments: after ? [{ text: after, kind: 'context' }] : []
+			};
 		}
 
-		const normalized = value.replace(/\s+/g, ' ').trim();
-		if (normalized.length <= 80) {
-			return normalized;
+		let prefixLength = 0;
+		const maxPrefixLength = Math.min(before.length, after.length);
+		while (prefixLength < maxPrefixLength && before[prefixLength] === after[prefixLength]) {
+			prefixLength += 1;
 		}
 
-		return `${normalized.slice(0, 80)}...`;
+		let suffixLength = 0;
+		const maxSuffixLength = Math.min(before.length - prefixLength, after.length - prefixLength);
+		while (
+			suffixLength < maxSuffixLength &&
+			before[before.length - 1 - suffixLength] === after[after.length - 1 - suffixLength]
+		) {
+			suffixLength += 1;
+		}
+
+		const beforePrefix = before.slice(0, prefixLength);
+		const beforeChanged = before.slice(prefixLength, before.length - suffixLength);
+		const beforeSuffix = before.slice(before.length - suffixLength);
+
+		const afterPrefix = after.slice(0, prefixLength);
+		const afterChanged = after.slice(prefixLength, after.length - suffixLength);
+		const afterSuffix = after.slice(after.length - suffixLength);
+
+		return {
+			beforeSegments: [
+				...(beforePrefix ? [{ text: beforePrefix, kind: 'context' as const }] : []),
+				...(beforeChanged ? [{ text: beforeChanged, kind: 'removed' as const }] : []),
+				...(beforeSuffix ? [{ text: beforeSuffix, kind: 'context' as const }] : [])
+			],
+			afterSegments: [
+				...(afterPrefix ? [{ text: afterPrefix, kind: 'context' as const }] : []),
+				...(afterChanged ? [{ text: afterChanged, kind: 'added' as const }] : []),
+				...(afterSuffix ? [{ text: afterSuffix, kind: 'context' as const }] : [])
+			]
+		};
 	}
 
 	function shortenHash(hash: string): string {
@@ -665,6 +708,10 @@
 												</p>
 												<div class="space-y-2">
 													{#each event.details as detailItem (detailItem.id)}
+														{@const diffSegments = buildInlineDiffSegments(
+															detailItem.beforeValue,
+															detailItem.afterValue
+														)}
 														<div
 															class="lc-code-block space-y-2 rounded-md border px-3 py-2 text-xs"
 														>
@@ -676,29 +723,52 @@
 																	>{toReadableFieldLabel(detailItem.fieldPath)}</span
 																>
 															</div>
-															{#if detailItem.changeType !== 'added'}
+															<div class="grid gap-2 md:grid-cols-2">
 																<div class="grid gap-1">
 																	<p class="lc-text-muted">이전</p>
-																	<p
-																		class="lc-text-primary rounded border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-2 py-1"
+																	<div
+																		class="rounded border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-2 py-1 font-mono leading-6 break-words whitespace-pre-wrap"
 																	>
-																		{toValuePreview(detailItem.beforeValue)}
-																	</p>
+																		{#if detailItem.changeType === 'added'}
+																			<span class="lc-text-dim">(없음)</span>
+																		{:else if diffSegments.beforeSegments.length === 0}
+																			<span class="lc-text-dim">(비어 있음)</span>
+																		{:else}
+																			{#each diffSegments.beforeSegments as segment, segmentIndex (`before-${detailItem.id}-${segmentIndex}`)}
+																				<span
+																					class={segment.kind === 'removed'
+																						? 'lc-diff-removed'
+																						: 'text-[var(--lc-text-primary)]'}
+																				>
+																					{segment.text}
+																				</span>
+																			{/each}
+																		{/if}
+																	</div>
 																</div>
-															{/if}
-															{#if detailItem.changeType === 'modified'}
-																<p class="lc-text-muted text-center">→</p>
-															{/if}
-															{#if detailItem.changeType !== 'removed'}
 																<div class="grid gap-1">
 																	<p class="lc-text-muted">현재</p>
-																	<p
-																		class="lc-text-primary rounded border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-2 py-1"
+																	<div
+																		class="rounded border border-[var(--lc-border-soft)] bg-[var(--lc-surface-muted)] px-2 py-1 font-mono leading-6 break-words whitespace-pre-wrap"
 																	>
-																		{toValuePreview(detailItem.afterValue)}
-																	</p>
+																		{#if detailItem.changeType === 'removed'}
+																			<span class="lc-text-dim">(없음)</span>
+																		{:else if diffSegments.afterSegments.length === 0}
+																			<span class="lc-text-dim">(비어 있음)</span>
+																		{:else}
+																			{#each diffSegments.afterSegments as segment, segmentIndex (`after-${detailItem.id}-${segmentIndex}`)}
+																				<span
+																					class={segment.kind === 'added'
+																						? 'lc-diff-added'
+																						: 'text-[var(--lc-text-primary)]'}
+																				>
+																					{segment.text}
+																				</span>
+																			{/each}
+																		{/if}
+																	</div>
 																</div>
-															{/if}
+															</div>
 														</div>
 													{/each}
 												</div>

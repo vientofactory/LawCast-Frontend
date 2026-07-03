@@ -339,6 +339,39 @@ textarea {
 	color: #b45309;
 }
 
+.lc-diff-removed,
+.lc-diff-added {
+	border-radius: 0.25rem;
+	padding: 0 0.125rem;
+	font-weight: 700;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+}
+
+.lc-diff-removed {
+	background: #dc2626;
+	color: #ffffff;
+	box-shadow: inset 0 0 0 1px rgba(127, 29, 29, 0.72);
+}
+
+.lc-diff-added {
+	background: #16a34a;
+	color: #ffffff;
+	box-shadow: inset 0 0 0 1px rgba(21, 128, 61, 0.72);
+}
+
+html[data-theme='dark'] .lc-diff-removed {
+	background: #fca5a5;
+	color: #111827;
+	box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.58);
+}
+
+html[data-theme='dark'] .lc-diff-added {
+	background: #86efac;
+	color: #111827;
+	box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.58);
+}
+
 .lc-text-danger {
 	color: #b91c1c;
 }
