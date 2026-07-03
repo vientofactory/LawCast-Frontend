@@ -60,6 +60,13 @@ export interface NoticeDetail {
 		format: string | null;
 	};
 	aiSummaryEnabled?: boolean;
+	revision?: {
+		requestedRev: number | null;
+		resolvedRev: number | null;
+		headRev: number | null;
+		hasDiffchain: boolean;
+		isHistorical: boolean;
+	};
 }
 
 export type ChangeEventType = 'created' | 'updated' | 'redacted' | 'invalidated';

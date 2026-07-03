@@ -48,5 +48,11 @@ export default defineConfig(
 				svelteConfig
 			}
 		}
+	},
+	{
+		files: ['**/*.svelte'],
+		rules: {
+			'@typescript-eslint/no-unused-vars': 'off'
+		}
 	}
 );

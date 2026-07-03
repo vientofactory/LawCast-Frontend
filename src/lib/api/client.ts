@@ -259,11 +259,17 @@ export async function searchNotices(
  */
 export async function getNoticeDetail(
 	noticeNum: number,
+	params: { rev?: number } = {},
 	customFetch?: Fetch
 ): Promise<NoticeDetail> {
 	try {
+		const query = new URLSearchParams();
+		if (params.rev && params.rev > 0) {
+			query.set('rev', String(params.rev));
+		}
+		const suffix = query.toString() ? `?${query.toString()}` : '';
 		return await request<NoticeDetail>(
-			`/notices/${noticeNum}/detail`,
+			`/notices/${noticeNum}/detail${suffix}`,
 			{ method: 'GET' },
 			customFetch
 		);

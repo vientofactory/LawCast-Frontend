@@ -90,7 +90,7 @@ function buildUiTestTimelineMock(noticeNum: number): NoticeChangeTimelineRespons
 	};
 }
 
-export const load: PageServerLoad = async ({ params, fetch }) => {
+export const load: PageServerLoad = async ({ params, url, fetch }) => {
 	const noticeNum = Number(params.num);
 
 	if (!Number.isInteger(noticeNum) || noticeNum <= 0) {
@@ -98,7 +98,11 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 	}
 
 	try {
-		const detail = await apiClient.getNoticeDetail(noticeNum, fetch);
+		const revRaw = url.searchParams.get('rev');
+		const rev = revRaw ? Number.parseInt(revRaw, 10) : undefined;
+		const resolvedRev = Number.isInteger(rev) && (rev as number) > 0 ? rev : undefined;
+
+		const detail = await apiClient.getNoticeDetail(noticeNum, { rev: resolvedRev }, fetch);
 		const changes = ENABLE_UI_TEST_TIMELINE_MOCK
 			? buildUiTestTimelineMock(noticeNum)
 			: await apiClient.getNoticeChanges(noticeNum, { limit: 30 }, fetch).catch((err) => {

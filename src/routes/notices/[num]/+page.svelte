@@ -2,8 +2,9 @@
 	import Header from '$lib/components/Header.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { onMount, tick } from 'svelte';
+	import NoticeChangeTimeline from '$lib/components/NoticeChangeTimeline.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -11,13 +12,10 @@
 		faBell,
 		faChevronDown,
 		faClock,
-		faCodeCompare,
 		faDownload,
 		faFingerprint,
 		faExternalLink,
-		faListCheck,
 		faFileLines,
-		faRotate,
 		faImage,
 		faLock,
 		faScaleBalanced,
@@ -154,6 +152,11 @@
 	$: startDateParam = $page.url.searchParams.get('startDate');
 	$: endDateParam = $page.url.searchParams.get('endDate');
 	$: sortOrderParam = $page.url.searchParams.get('sortOrder');
+	$: currentRevision = detail.revision;
+	$: headRevision = currentRevision?.headRev ?? null;
+	$: activeRevision = currentRevision?.resolvedRev ?? null;
+	$: isHistoricalView = currentRevision?.isHistorical ?? false;
+	$: activeRevisionForUi = activeRevision ?? headRevision;
 
 	$: backLink = (() => {
 		const params = new SvelteURLSearchParams();
@@ -258,10 +261,19 @@
 	$: hasScreenshot = detail.screenshotMeta?.hasScreenshot ?? false;
 
 	let isChangeTimelineOpen = false;
-	let changeTimelineSection: HTMLDetailsElement | null = null;
-	let hasAutoScrolledToTimeline = false;
-	$: shouldAutoScrollToTimeline =
-		parseBooleanParam($page.url.searchParams.get('timeline')) === true;
+
+	function getPositiveIntQueryParam(raw: string | null): number | null {
+		if (!raw) {
+			return null;
+		}
+
+		const parsed = Number.parseInt(raw, 10);
+		if (!Number.isInteger(parsed) || parsed <= 0) {
+			return null;
+		}
+
+		return parsed;
+	}
 
 	$: {
 		const timelineFromQuery = parseBooleanParam($page.url.searchParams.get('timeline'));
@@ -277,61 +289,6 @@
 		const screenshotFromQuery = parseBooleanParam($page.url.searchParams.get('screenshot'));
 		if (screenshotFromQuery !== null && hasScreenshot) {
 			isScreenshotExpanded = screenshotFromQuery;
-		}
-	}
-
-	async function scrollToTimelineOnLoad(): Promise<void> {
-		if (!shouldAutoScrollToTimeline || hasAutoScrolledToTimeline) {
-			return;
-		}
-
-		await tick();
-		if (!changeTimelineSection) {
-			return;
-		}
-
-		changeTimelineSection.scrollIntoView({
-			block: 'start',
-			behavior: 'auto'
-		});
-		hasAutoScrolledToTimeline = true;
-	}
-
-	onMount(() => {
-		void scrollToTimelineOnLoad();
-	});
-
-	function handleTimelineToggle(): void {
-		if (isChangeTimelineOpen) {
-			void scrollToTimelineOnLoad();
-		}
-	}
-
-	function changeTypeLabel(changeType: string): string {
-		switch (changeType) {
-			case 'added':
-				return '추가됨';
-			case 'removed':
-				return '삭제됨';
-			case 'modified':
-				return '수정됨';
-			default:
-				return changeType;
-		}
-	}
-
-	function eventTypeLabel(eventType: string): string {
-		switch (eventType) {
-			case 'created':
-				return '신규 법률안 생성';
-			case 'updated':
-				return '법률안 갱신';
-			case 'redacted':
-				return '법률안 내용 가림';
-			case 'invalidated':
-				return '법률안 무효화';
-			default:
-				return eventType;
 		}
 	}
 
@@ -351,89 +308,175 @@
 		isDone: '처리 상태'
 	};
 
-	function toReadableSourceLabel(source: string | null): string {
-		if (!source) {
-			return '시스템';
-		}
-
-		if (source.includes('archive:upsert')) return '아카이브 저장';
-		if (source.includes('archive:updateSourceHtml')) return '원문 HTML 갱신';
-		if (source.includes('archive:updateNsmHtmlAndDetail')) return '국회 원문/상세 동기화';
-		if (source.includes('nsm')) return '국회 연계 동기화';
-
-		return source;
-	}
-
 	function toReadableFieldLabel(fieldPath: string): string {
 		return CHANGE_FIELD_LABELS[fieldPath] ?? fieldPath;
 	}
 
-	type DiffSegment = {
-		text: string;
-		kind: 'context' | 'removed' | 'added';
+	type RevisionSnapshot = Record<string, string | null>;
+	type RevisionDiffItem = {
+		fieldPath: string;
+		fieldLabel: string;
+		changeType: 'added' | 'removed' | 'modified' | 'unchanged';
+		beforeValue: string | null;
+		afterValue: string | null;
 	};
 
-	function buildInlineDiffSegments(
-		beforeValue: string | null,
-		afterValue: string | null
-	): { beforeSegments: DiffSegment[]; afterSegments: DiffSegment[] } {
-		const before = beforeValue ?? '';
-		const after = afterValue ?? '';
+	function buildSnapshotsByRevision(
+		events: NoticeChangeTimelineResponse['items']
+	): Record<number, RevisionSnapshot> {
+		const snapshots: Record<number, RevisionSnapshot> = {};
+		const current: RevisionSnapshot = {};
+		const asc = [...events].sort((a, b) => a.eventHeight - b.eventHeight);
 
-		if (before === after) {
-			return {
-				beforeSegments: before ? [{ text: before, kind: 'context' }] : [],
-				afterSegments: after ? [{ text: after, kind: 'context' }] : []
-			};
+		for (const event of asc) {
+			for (const detail of event.details) {
+				current[detail.fieldPath] = detail.afterValue;
+			}
+			snapshots[event.eventHeight] = { ...current };
 		}
 
-		let prefixLength = 0;
-		const maxPrefixLength = Math.min(before.length, after.length);
-		while (prefixLength < maxPrefixLength && before[prefixLength] === after[prefixLength]) {
-			prefixLength += 1;
-		}
-
-		let suffixLength = 0;
-		const maxSuffixLength = Math.min(before.length - prefixLength, after.length - prefixLength);
-		while (
-			suffixLength < maxSuffixLength &&
-			before[before.length - 1 - suffixLength] === after[after.length - 1 - suffixLength]
-		) {
-			suffixLength += 1;
-		}
-
-		const beforePrefix = before.slice(0, prefixLength);
-		const beforeChanged = before.slice(prefixLength, before.length - suffixLength);
-		const beforeSuffix = before.slice(before.length - suffixLength);
-
-		const afterPrefix = after.slice(0, prefixLength);
-		const afterChanged = after.slice(prefixLength, after.length - suffixLength);
-		const afterSuffix = after.slice(after.length - suffixLength);
-
-		return {
-			beforeSegments: [
-				...(beforePrefix ? [{ text: beforePrefix, kind: 'context' as const }] : []),
-				...(beforeChanged ? [{ text: beforeChanged, kind: 'removed' as const }] : []),
-				...(beforeSuffix ? [{ text: beforeSuffix, kind: 'context' as const }] : [])
-			],
-			afterSegments: [
-				...(afterPrefix ? [{ text: afterPrefix, kind: 'context' as const }] : []),
-				...(afterChanged ? [{ text: afterChanged, kind: 'added' as const }] : []),
-				...(afterSuffix ? [{ text: afterSuffix, kind: 'context' as const }] : [])
-			]
-		};
+		return snapshots;
 	}
 
-	function shortenHash(hash: string): string {
-		if (!hash) {
-			return 'N/A';
+	$: snapshotsByRevision = buildSnapshotsByRevision(changes.items);
+	$: selectedFromRev = getPositiveIntQueryParam($page.url.searchParams.get('cmpFrom'));
+	$: selectedToRev = getPositiveIntQueryParam($page.url.searchParams.get('cmpTo'));
+	$: showAllCompareFields =
+		$page.url.searchParams.get('cmpShowAll') === '1' ||
+		$page.url.searchParams.get('cmpShowAll') === 'true';
+	$: fromSnapshot = selectedFromRev === null ? {} : (snapshotsByRevision[selectedFromRev] ?? {});
+	$: toSnapshot = selectedToRev === null ? {} : (snapshotsByRevision[selectedToRev] ?? {});
+	$: comparableRevisionCount = Object.keys(snapshotsByRevision).length;
+	$: canSelectCompareBase = comparableRevisionCount > 1;
+	$: revisionDiffItems = (() => {
+		const keys = new Set<string>([
+			...Object.keys(CHANGE_FIELD_LABELS),
+			...Object.keys(fromSnapshot),
+			...Object.keys(toSnapshot)
+		]);
+		const items: RevisionDiffItem[] = [];
+
+		for (const key of keys) {
+			const beforeValue = fromSnapshot[key] ?? null;
+			const afterValue = toSnapshot[key] ?? null;
+			if (!showAllCompareFields && beforeValue === afterValue) {
+				continue;
+			}
+
+			const changeType: RevisionDiffItem['changeType'] =
+				beforeValue === afterValue
+					? 'unchanged'
+					: beforeValue === null
+						? 'added'
+						: afterValue === null
+							? 'removed'
+							: 'modified';
+
+			items.push({
+				fieldPath: key,
+				fieldLabel: toReadableFieldLabel(key),
+				changeType,
+				beforeValue,
+				afterValue
+			});
 		}
 
-		if (hash.length <= 20) {
-			return hash;
+		return items.sort((a, b) => a.fieldLabel.localeCompare(b.fieldLabel, 'ko-KR'));
+	})();
+	$: isCompareMode =
+		selectedFromRev !== null && selectedToRev !== null && selectedFromRev !== selectedToRev;
+
+	function buildRevisionLink(rev: number | null): string {
+		const params = new SvelteURLSearchParams($page.url.searchParams);
+
+		if (rev && rev > 0) {
+			params.set('rev', String(rev));
+		} else {
+			params.delete('rev');
 		}
 
-		return `${hash.slice(0, 10)}...${hash.slice(-10)}`;
+		params.delete('cmpFrom');
+		params.delete('cmpTo');
+		params.delete('cmpShowAll');
+
+		const query = params.toString();
+		return query ? `${$page.url.pathname}?${query}` : $page.url.pathname;
+	}
+
+	function buildCompareEntryLink(fromRev: number | null, toRev: number | null): string {
+		const params = new SvelteURLSearchParams($page.url.searchParams);
+
+		if (fromRev && fromRev > 0) {
+			params.set('cmpFrom', String(fromRev));
+		} else {
+			params.delete('cmpFrom');
+		}
+
+		if (toRev && toRev > 0) {
+			params.set('cmpTo', String(toRev));
+		} else {
+			params.delete('cmpTo');
+		}
+
+		params.delete('cmpShowAll');
+
+		const query = params.toString();
+		return query ? `${$page.url.pathname}?${query}` : $page.url.pathname;
+	}
+
+	function buildCompareShowAllLink(next: boolean): string {
+		const params = new SvelteURLSearchParams($page.url.searchParams);
+		if (next) {
+			params.set('cmpShowAll', '1');
+		} else {
+			params.delete('cmpShowAll');
+		}
+
+		const query = params.toString();
+		return query ? `${$page.url.pathname}?${query}` : $page.url.pathname;
+	}
+
+	async function toggleCompareShowAll(): Promise<void> {
+		const next = !showAllCompareFields;
+		const params = new SvelteURLSearchParams($page.url.searchParams);
+
+		if (next) {
+			params.set('cmpShowAll', '1');
+		} else {
+			params.delete('cmpShowAll');
+		}
+
+		const query = params.toString();
+		await goto(query ? `${$page.url.pathname}?${query}` : $page.url.pathname, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true
+		});
+	}
+
+	async function updateCompareQuery(fromRev: number | null, toRev: number | null): Promise<void> {
+		const params = new SvelteURLSearchParams($page.url.searchParams);
+
+		if (fromRev && fromRev > 0) {
+			params.set('cmpFrom', String(fromRev));
+		} else {
+			params.delete('cmpFrom');
+		}
+
+		if (toRev && toRev > 0) {
+			params.set('cmpTo', String(toRev));
+		} else {
+			params.delete('cmpTo');
+		}
+
+		params.delete('cmpShowAll');
+
+		const query = params.toString();
+		await goto(query ? `${$page.url.pathname}?${query}` : $page.url.pathname, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true
+		});
 	}
 </script>
 
@@ -598,6 +641,18 @@
 				<FontAwesomeIcon icon={faFileLines} class="lc-text-purple h-5 w-5" />
 				<h2 class="lc-text-primary text-lg font-bold">제안이유 및 주요내용 원문</h2>
 			</div>
+
+			{#if isHistoricalView && activeRevision !== null}
+				<div class="lc-banner-warning mb-4 rounded-xl border px-4 py-3 text-sm">
+					현재 Rev #{activeRevision} 시점 원문을 열람 중입니다.
+					{#if headRevision !== null}
+						<a href={buildRevisionLink(null)} class="ml-2 font-semibold underline">
+							최신 리비전 #{headRevision} 보기
+						</a>
+					{/if}
+				</div>
+			{/if}
+
 			{#if detail.originalContent.proposalReason}
 				<h3 class="lc-text-secondary mb-3 text-sm font-semibold">{detail.originalContent.title}</h3>
 				<div class="lc-code-block rounded-lg border p-4">
@@ -619,176 +674,23 @@
 			{/if}
 		</section>
 
-		<details
-			bind:this={changeTimelineSection}
-			bind:open={isChangeTimelineOpen}
-			on:toggle={handleTimelineToggle}
-			class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm"
-		>
-			<summary
-				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-[var(--lc-surface-hover)]"
-			>
-				<span class="flex items-center gap-2">
-					<FontAwesomeIcon icon={faCodeCompare} class="lc-text-accent h-5 w-5" />
-					<h2 class="lc-text-primary text-lg font-bold">변경 추적 타임라인</h2>
-				</span>
-				<span
-					class="lc-button-neutral inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200"
-				>
-					<span
-						class="inline-flex transition-transform duration-200"
-						class:rotate-180={isChangeTimelineOpen}
-					>
-						<FontAwesomeIcon icon={faChevronDown} class="h-4 w-4" />
-					</span>
-				</span>
-			</summary>
+		<NoticeChangeTimeline
+			bind:isOpen={isChangeTimelineOpen}
+			{changes}
+			{activeRevisionForUi}
+			{buildRevisionLink}
+			{isCompareMode}
+			{selectedFromRev}
+			{selectedToRev}
+			{showAllCompareFields}
+			clearCompareHref={buildCompareEntryLink(null, null)}
+			onToggleCompareShowAll={toggleCompareShowAll}
+			{revisionDiffItems}
+			{canSelectCompareBase}
+			onSelectCompare={updateCompareQuery}
+		/>
 
-			{#if isChangeTimelineOpen}
-				<div class="mt-4" in:slide={{ duration: 220 }} out:slide={{ duration: 160 }}>
-					{#if changes.items.length === 0}
-						<div class="lc-panel-inset rounded-lg border px-4 py-5 text-sm">
-							아직 기록된 변경 이벤트가 없습니다.
-						</div>
-					{:else}
-						<div class="space-y-3">
-							{#each changes.items as event, eventIndex (event.id)}
-								<details class="lc-panel-inset rounded-xl border" open={eventIndex === 0}>
-									<summary
-										class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3"
-									>
-										<div class="min-w-0 space-y-1">
-											<div class="flex flex-wrap items-center gap-2">
-												<span
-													class="lc-chip-blue inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-												>
-													<FontAwesomeIcon icon={faRotate} class="mr-1.5 h-3 w-3" />
-													Rev #{event.eventHeight}
-												</span>
-												<span
-													class="lc-chip-muted inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-												>
-													{eventTypeLabel(event.eventType)}
-												</span>
-											</div>
-											<p class="lc-text-secondary truncate text-xs">
-												{formatDateTime(event.detectedAt)} · {toReadableSourceLabel(event.source)}
-											</p>
-										</div>
-										<div class="lc-text-secondary text-xs">
-											필드 {event.changedFieldCount}개 변경
-										</div>
-									</summary>
-
-									<div
-										class="space-y-3 border-t border-[var(--lc-border-soft)] px-4 py-3"
-										in:fade={{ duration: 120 }}
-										out:fade={{ duration: 90 }}
-									>
-										<div class="mb-1 grid gap-2 text-xs sm:grid-cols-2">
-											<div class="lc-stat-tile rounded-lg border px-3 py-2">
-												<p class="lc-text-muted">이벤트 해시</p>
-												<p class="lc-text-primary mt-1 font-mono font-semibold">
-													{shortenHash(event.eventHash)}
-												</p>
-											</div>
-											<div class="lc-stat-tile rounded-lg border px-3 py-2">
-												<p class="lc-text-muted">변경 시각</p>
-												<p class="lc-text-primary mt-1 font-semibold">
-													{formatDateTime(event.detectedAt)}
-												</p>
-											</div>
-										</div>
-
-										{#if event.details.length > 0}
-											<div class="space-y-2">
-												<p class="lc-text-secondary flex items-center gap-2 text-xs font-semibold">
-													<FontAwesomeIcon icon={faListCheck} class="h-3.5 w-3.5" />
-													리비전 변경 내역
-												</p>
-												<div class="space-y-2">
-													{#each event.details as detailItem (detailItem.id)}
-														{@const diffSegments = buildInlineDiffSegments(
-															detailItem.beforeValue,
-															detailItem.afterValue
-														)}
-														<div
-															class="lc-code-block space-y-2 rounded-md border px-3 py-2 text-xs"
-														>
-															<div class="flex flex-wrap items-center gap-2">
-																<span class="lc-chip-muted rounded-full px-2 py-0.5 font-semibold"
-																	>{changeTypeLabel(detailItem.changeType)}</span
-																>
-																<span class="lc-text-primary font-semibold"
-																	>{toReadableFieldLabel(detailItem.fieldPath)}</span
-																>
-															</div>
-															<div class="grid gap-2 md:grid-cols-2">
-																<div class="grid gap-1">
-																	<p class="lc-text-muted">이전</p>
-																	<div
-																		class="rounded border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-2 py-1 font-mono leading-6 break-words whitespace-pre-wrap"
-																	>
-																		{#if detailItem.changeType === 'added'}
-																			<span class="lc-text-dim">(없음)</span>
-																		{:else if diffSegments.beforeSegments.length === 0}
-																			<span class="lc-text-dim">(비어 있음)</span>
-																		{:else}
-																			{#each diffSegments.beforeSegments as segment, segmentIndex (`before-${detailItem.id}-${segmentIndex}`)}
-																				<span
-																					class={segment.kind === 'removed'
-																						? 'lc-diff-removed'
-																						: 'text-[var(--lc-text-primary)]'}
-																				>
-																					{segment.text}
-																				</span>
-																			{/each}
-																		{/if}
-																	</div>
-																</div>
-																<div class="grid gap-1">
-																	<p class="lc-text-muted">현재</p>
-																	<div
-																		class="rounded border border-[var(--lc-border-soft)] bg-[var(--lc-surface-muted)] px-2 py-1 font-mono leading-6 break-words whitespace-pre-wrap"
-																	>
-																		{#if detailItem.changeType === 'removed'}
-																			<span class="lc-text-dim">(없음)</span>
-																		{:else if diffSegments.afterSegments.length === 0}
-																			<span class="lc-text-dim">(비어 있음)</span>
-																		{:else}
-																			{#each diffSegments.afterSegments as segment, segmentIndex (`after-${detailItem.id}-${segmentIndex}`)}
-																				<span
-																					class={segment.kind === 'added'
-																						? 'lc-diff-added'
-																						: 'text-[var(--lc-text-primary)]'}
-																				>
-																					{segment.text}
-																				</span>
-																			{/each}
-																		{/if}
-																	</div>
-																</div>
-															</div>
-														</div>
-													{/each}
-												</div>
-											</div>
-										{:else}
-											<p class="lc-text-secondary text-xs">상세 필드 변경 데이터가 없습니다.</p>
-										{/if}
-									</div>
-								</details>
-							{/each}
-						</div>
-					{/if}
-				</div>
-			{/if}
-		</details>
-
-		<details
-			bind:open={isArchiveMetaOpen}
-			class="lc-panel-card group rounded-2xl border p-6 shadow-sm"
-		>
+		<details class="lc-panel-card group rounded-2xl border p-6 shadow-sm">
 			<summary
 				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-[var(--lc-surface-hover)]"
 			>
