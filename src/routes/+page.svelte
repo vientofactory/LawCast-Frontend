@@ -32,8 +32,11 @@
 
 	$: ({ recentNotices, stats } = data);
 	$: archiveTotalCount = stats?.archive?.count ?? 0;
+	$: archiveCountLabel =
+		archiveTotalCount > 0 ? `${archiveTotalCount.toLocaleString('ko-KR')}건` : '기록 수집 중';
 	$: aiSummaryEnabled =
 		(stats as { aiSummaryEnabled?: boolean } | undefined)?.aiSummaryEnabled !== false;
+	$: aiReviewModeLabel = aiSummaryEnabled ? 'AI 요약 검토' : '원문 중심 검토';
 	$: pageDescription = aiSummaryEnabled
 		? '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, AI 요약과 함께 빠르게 확인할 수 있습니다.'
 		: '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, 원문 정보와 함께 빠르게 확인할 수 있습니다.';
@@ -127,35 +130,50 @@
 							</p>
 						</div>
 
-						<div
-							class="lc-home-meta flex flex-wrap items-center justify-center gap-3 lg:justify-start"
-						>
-							<span
-								class="lc-home-meta-item inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm"
-							>
-								<FontAwesomeIcon icon={faDatabase} class="h-3.5 w-3.5" />
-								{archiveTotalCount > 0
-									? `${archiveTotalCount.toLocaleString('ko-KR')}건 아카이브`
-									: '기록 수집 중'}
-							</span>
-							<span
-								class="lc-home-meta-item inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm"
-							>
-								<FontAwesomeIcon icon={faShieldHalved} class="h-3.5 w-3.5" />
-								무결성 검증 기반 부인방지
-							</span>
-							<span
-								class="lc-home-meta-item inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm"
-							>
-								<FontAwesomeIcon icon={faClock} class="h-3.5 w-3.5" />
-								마지막 업데이트 · {lastUpdatedLabel}
-							</span>
-							<span
-								class="lc-home-meta-item inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm"
-							>
-								<FontAwesomeIcon icon={faRobot} class="h-3.5 w-3.5" />
-								{aiSummaryEnabled ? 'AI 요약으로 빠른 검토' : '원문 중심 검토'}
-							</span>
+						<div class="lc-home-signal-grid" role="list" aria-label="플랫폼 핵심 상태">
+							<article class="lc-home-signal-card" role="listitem">
+								<div class="lc-home-signal-head">
+									<span class="lc-home-signal-icon" aria-hidden="true">
+										<FontAwesomeIcon icon={faDatabase} class="h-3.5 w-3.5" />
+									</span>
+									<span class="lc-home-signal-tag">Archive</span>
+								</div>
+								<p class="lc-home-signal-value">{archiveCountLabel}</p>
+								<p class="lc-home-signal-desc">최초 공개 기준 스냅샷 누적 보존</p>
+							</article>
+
+							<article class="lc-home-signal-card" role="listitem">
+								<div class="lc-home-signal-head">
+									<span class="lc-home-signal-icon" aria-hidden="true">
+										<FontAwesomeIcon icon={faShieldHalved} class="h-3.5 w-3.5" />
+									</span>
+									<span class="lc-home-signal-tag">Integrity</span>
+								</div>
+								<p class="lc-home-signal-value">부인방지 검증</p>
+								<p class="lc-home-signal-desc">해시 기반 메타데이터로 변경 이력 확인</p>
+							</article>
+
+							<article class="lc-home-signal-card" role="listitem">
+								<div class="lc-home-signal-head">
+									<span class="lc-home-signal-icon" aria-hidden="true">
+										<FontAwesomeIcon icon={faClock} class="h-3.5 w-3.5" />
+									</span>
+									<span class="lc-home-signal-tag">Sync</span>
+								</div>
+								<p class="lc-home-signal-value">{lastUpdatedLabel}</p>
+								<p class="lc-home-signal-desc">정기 수집 배치의 최신 반영 시점</p>
+							</article>
+
+							<article class="lc-home-signal-card" role="listitem">
+								<div class="lc-home-signal-head">
+									<span class="lc-home-signal-icon" aria-hidden="true">
+										<FontAwesomeIcon icon={faRobot} class="h-3.5 w-3.5" />
+									</span>
+									<span class="lc-home-signal-tag">Review</span>
+								</div>
+								<p class="lc-home-signal-value">{aiReviewModeLabel}</p>
+								<p class="lc-home-signal-desc">검색 결과에서 원문과 요약을 함께 탐색</p>
+							</article>
 						</div>
 					</div>
 
