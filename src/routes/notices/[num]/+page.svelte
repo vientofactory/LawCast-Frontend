@@ -2,8 +2,9 @@
 	import Header from '$lib/components/Header.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { afterNavigate, goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { onMount, tick } from 'svelte';
 	import NoticeChangeTimeline from '$lib/components/NoticeChangeTimeline.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -34,6 +35,11 @@
 	$: detail = data.detail;
 	$: changes = data.changes;
 	$: aiSummaryEnabled = detail.aiSummaryEnabled !== false;
+
+	let currentUrl = page.url;
+	afterNavigate(() => {
+		currentUrl = page.url;
+	});
 
 	function buildExcerpt(content: string, maxLength = 180): string {
 		const normalized = content.replace(/\s+/g, ' ').trim();
@@ -72,7 +78,7 @@
 			.replace(/&/g, '\\u0026');
 	}
 
-	$: pageUrl = $page.url.origin + $page.url.pathname;
+	$: pageUrl = currentUrl.origin + currentUrl.pathname;
 	$: publishedTime = detail.archiveMetadata.archivedAt ?? detail.notice.archiveStartedAt ?? null;
 	$: modifiedTime = detail.notice.lastUpdatedAt ?? publishedTime;
 	$: pageKeywords = [
@@ -94,12 +100,12 @@
 			{
 				'@type': 'BreadcrumbList',
 				itemListElement: [
-					{ '@type': 'ListItem', position: 1, name: '홈', item: `${$page.url.origin}/` },
+					{ '@type': 'ListItem', position: 1, name: '홈', item: `${currentUrl.origin}/` },
 					{
 						'@type': 'ListItem',
 						position: 2,
 						name: '전체 입법예고',
-						item: `${$page.url.origin}/notices`
+						item: `${currentUrl.origin}/notices`
 					},
 					{
 						'@type': 'ListItem',
@@ -121,7 +127,7 @@
 					: undefined,
 				publisher: { '@type': 'Organization', name: 'LawCast' },
 				inLanguage: 'ko',
-				isPartOf: { '@type': 'WebSite', name: 'LawCast', url: `${$page.url.origin}/` }
+				isPartOf: { '@type': 'WebSite', name: 'LawCast', url: `${currentUrl.origin}/` }
 			}
 		]
 	});
@@ -146,12 +152,12 @@
 		{ label: '제안회기', value: detail.originalContent.proposalSession }
 	].filter((item) => !!item.value);
 
-	$: pageParam = $page.url.searchParams.get('page');
-	$: limitParam = $page.url.searchParams.get('limit');
-	$: searchParam = $page.url.searchParams.get('search');
-	$: startDateParam = $page.url.searchParams.get('startDate');
-	$: endDateParam = $page.url.searchParams.get('endDate');
-	$: sortOrderParam = $page.url.searchParams.get('sortOrder');
+	$: pageParam = currentUrl.searchParams.get('page');
+	$: limitParam = currentUrl.searchParams.get('limit');
+	$: searchParam = currentUrl.searchParams.get('search');
+	$: startDateParam = currentUrl.searchParams.get('startDate');
+	$: endDateParam = currentUrl.searchParams.get('endDate');
+	$: sortOrderParam = currentUrl.searchParams.get('sortOrder');
 	$: currentRevision = detail.revision;
 	$: headRevision = currentRevision?.headRev ?? null;
 	$: activeRevision = currentRevision?.resolvedRev ?? null;
@@ -174,6 +180,29 @@
 	let isScreenshotExpanded = false;
 	let isExportingArchive = false;
 	let exportArchiveError: string | null = null;
+	let timelineSectionElement: HTMLElement | null = null;
+	let hasAutoScrolledToTimeline = false;
+
+	async function autoScrollToTimelineOnLoad(): Promise<void> {
+		if (hasAutoScrolledToTimeline || !currentUrl.searchParams.has('timeline')) {
+			return;
+		}
+
+		await tick();
+		if (!timelineSectionElement) {
+			return;
+		}
+
+		timelineSectionElement.scrollIntoView({
+			behavior: 'smooth',
+			block: 'start'
+		});
+		hasAutoScrolledToTimeline = true;
+	}
+
+	onMount(() => {
+		void autoScrollToTimelineOnLoad();
+	});
 
 	function parseBooleanParam(value: string | null): boolean | null {
 		if (!value) {
@@ -276,17 +305,17 @@
 	}
 
 	$: {
-		const timelineFromQuery = parseBooleanParam($page.url.searchParams.get('timeline'));
+		const timelineFromQuery = parseBooleanParam(currentUrl.searchParams.get('timeline'));
 		if (timelineFromQuery !== null) {
 			isChangeTimelineOpen = timelineFromQuery;
 		}
 
-		const archiveFromQuery = parseBooleanParam($page.url.searchParams.get('archive'));
+		const archiveFromQuery = parseBooleanParam(currentUrl.searchParams.get('archive'));
 		if (archiveFromQuery !== null) {
 			isArchiveMetaOpen = archiveFromQuery;
 		}
 
-		const screenshotFromQuery = parseBooleanParam($page.url.searchParams.get('screenshot'));
+		const screenshotFromQuery = parseBooleanParam(currentUrl.searchParams.get('screenshot'));
 		if (screenshotFromQuery !== null && hasScreenshot) {
 			isScreenshotExpanded = screenshotFromQuery;
 		}
@@ -339,11 +368,11 @@
 	}
 
 	$: snapshotsByRevision = buildSnapshotsByRevision(changes.items);
-	$: selectedFromRev = getPositiveIntQueryParam($page.url.searchParams.get('cmpFrom'));
-	$: selectedToRev = getPositiveIntQueryParam($page.url.searchParams.get('cmpTo'));
+	$: selectedFromRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpFrom'));
+	$: selectedToRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpTo'));
 	$: showAllCompareFields =
-		$page.url.searchParams.get('cmpShowAll') === '1' ||
-		$page.url.searchParams.get('cmpShowAll') === 'true';
+		currentUrl.searchParams.get('cmpShowAll') === '1' ||
+		currentUrl.searchParams.get('cmpShowAll') === 'true';
 	$: fromSnapshot = selectedFromRev === null ? {} : (snapshotsByRevision[selectedFromRev] ?? {});
 	$: toSnapshot = selectedToRev === null ? {} : (snapshotsByRevision[selectedToRev] ?? {});
 	$: comparableRevisionCount = Object.keys(snapshotsByRevision).length;
@@ -387,7 +416,7 @@
 		selectedFromRev !== null && selectedToRev !== null && selectedFromRev !== selectedToRev;
 
 	function buildRevisionLink(rev: number | null): string {
-		const params = new SvelteURLSearchParams($page.url.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
 
 		if (rev && rev > 0) {
 			params.set('rev', String(rev));
@@ -400,11 +429,11 @@
 		params.delete('cmpShowAll');
 
 		const query = params.toString();
-		return query ? `${$page.url.pathname}?${query}` : $page.url.pathname;
+		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
 	}
 
 	function buildCompareEntryLink(fromRev: number | null, toRev: number | null): string {
-		const params = new SvelteURLSearchParams($page.url.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
 
 		if (fromRev && fromRev > 0) {
 			params.set('cmpFrom', String(fromRev));
@@ -421,11 +450,11 @@
 		params.delete('cmpShowAll');
 
 		const query = params.toString();
-		return query ? `${$page.url.pathname}?${query}` : $page.url.pathname;
+		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
 	}
 
 	function buildCompareShowAllLink(next: boolean): string {
-		const params = new SvelteURLSearchParams($page.url.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
 		if (next) {
 			params.set('cmpShowAll', '1');
 		} else {
@@ -433,12 +462,12 @@
 		}
 
 		const query = params.toString();
-		return query ? `${$page.url.pathname}?${query}` : $page.url.pathname;
+		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
 	}
 
 	async function toggleCompareShowAll(): Promise<void> {
 		const next = !showAllCompareFields;
-		const params = new SvelteURLSearchParams($page.url.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
 
 		if (next) {
 			params.set('cmpShowAll', '1');
@@ -447,7 +476,7 @@
 		}
 
 		const query = params.toString();
-		await goto(query ? `${$page.url.pathname}?${query}` : $page.url.pathname, {
+		await goto(query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname, {
 			replaceState: true,
 			noScroll: true,
 			keepFocus: true
@@ -455,7 +484,7 @@
 	}
 
 	async function updateCompareQuery(fromRev: number | null, toRev: number | null): Promise<void> {
-		const params = new SvelteURLSearchParams($page.url.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
 
 		if (fromRev && fromRev > 0) {
 			params.set('cmpFrom', String(fromRev));
@@ -472,7 +501,7 @@
 		params.delete('cmpShowAll');
 
 		const query = params.toString();
-		await goto(query ? `${$page.url.pathname}?${query}` : $page.url.pathname, {
+		await goto(query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname, {
 			replaceState: true,
 			noScroll: true,
 			keepFocus: true
@@ -674,23 +703,28 @@
 			{/if}
 		</section>
 
-		<NoticeChangeTimeline
-			bind:isOpen={isChangeTimelineOpen}
-			{changes}
-			{activeRevisionForUi}
-			{buildRevisionLink}
-			{isCompareMode}
-			{selectedFromRev}
-			{selectedToRev}
-			{showAllCompareFields}
-			clearCompareHref={buildCompareEntryLink(null, null)}
-			onToggleCompareShowAll={toggleCompareShowAll}
-			{revisionDiffItems}
-			{canSelectCompareBase}
-			onSelectCompare={updateCompareQuery}
-		/>
+		<section id="change-tracking-timeline" bind:this={timelineSectionElement}>
+			<NoticeChangeTimeline
+				bind:isOpen={isChangeTimelineOpen}
+				{changes}
+				{activeRevisionForUi}
+				{buildRevisionLink}
+				{isCompareMode}
+				{selectedFromRev}
+				{selectedToRev}
+				{showAllCompareFields}
+				clearCompareHref={buildCompareEntryLink(null, null)}
+				onToggleCompareShowAll={toggleCompareShowAll}
+				{revisionDiffItems}
+				{canSelectCompareBase}
+				onSelectCompare={updateCompareQuery}
+			/>
+		</section>
 
-		<details class="lc-panel-card group rounded-2xl border p-6 shadow-sm">
+		<details
+			bind:open={isArchiveMetaOpen}
+			class="lc-panel-card group rounded-2xl border p-6 shadow-sm"
+		>
 			<summary
 				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-[var(--lc-surface-hover)]"
 			>

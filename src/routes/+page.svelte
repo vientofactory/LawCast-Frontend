@@ -2,7 +2,8 @@
 	import Header from '$lib/components/Header.svelte';
 	import RecentNotices from '$lib/components/RecentNotices.svelte';
 	import { formatDate } from '$lib/utils/helpers';
-	import { navigating, page } from '$app/stores';
+	import { afterNavigate, beforeNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faChevronDown,
@@ -17,6 +18,18 @@
 
 	export let data: PageData;
 
+	let currentUrl = page.url;
+	let isQuickSearchLoading = false;
+
+	beforeNavigate(({ to }) => {
+		isQuickSearchLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
+	});
+
+	afterNavigate(() => {
+		currentUrl = page.url;
+		isQuickSearchLoading = false;
+	});
+
 	$: ({ recentNotices, stats } = data);
 	$: archiveTotalCount = stats?.archive?.count ?? 0;
 	$: aiSummaryEnabled =
@@ -24,8 +37,6 @@
 	$: pageDescription = aiSummaryEnabled
 		? '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, AI 요약과 함께 빠르게 확인할 수 있습니다.'
 		: '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, 원문 정보와 함께 빠르게 확인할 수 있습니다.';
-	$: isQuickSearchLoading =
-		!!$navigating?.to?.url && $navigating.to.url.pathname.replace(/\/+$/, '') === '/notices';
 	$: lastUpdatedLabel = stats?.cache?.lastUpdated
 		? formatDate(stats.cache.lastUpdated)
 		: '업데이트 대기 중';
@@ -42,7 +53,7 @@
 			.replace(/&/g, '\\u0026');
 	}
 
-	$: pageUrl = $page.url.origin + '/';
+	$: pageUrl = currentUrl.origin + '/';
 	$: websiteJsonLd = safeJsonLd({
 		'@context': 'https://schema.org',
 		'@type': 'WebSite',
@@ -54,7 +65,7 @@
 			'@type': 'SearchAction',
 			target: {
 				'@type': 'EntryPoint',
-				urlTemplate: `${$page.url.origin}/notices?search={search_term_string}`
+				urlTemplate: `${currentUrl.origin}/notices?search={search_term_string}`
 			},
 			'query-input': 'required name=search_term_string'
 		}

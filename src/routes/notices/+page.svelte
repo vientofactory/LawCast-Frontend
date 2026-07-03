@@ -3,8 +3,8 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
-	import { navigating, page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
 	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -30,6 +30,18 @@
 		error?: string;
 	};
 
+	let currentUrl = page.url;
+	let isServerLoading = false;
+
+	beforeNavigate(({ to }) => {
+		isServerLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
+	});
+
+	afterNavigate(() => {
+		currentUrl = page.url;
+		isServerLoading = false;
+	});
+
 	$: archive = data.archive;
 	$: notices = archive?.items || [];
 	$: currentPage = archive?.page || 1;
@@ -41,10 +53,10 @@
 	$: endDate = archive?.endDate || '';
 	$: sortOrder = archive?.sortOrder === 'asc' ? 'asc' : 'desc';
 	$: isDoneFilter = (() => {
-		const v = $page.url.searchParams.get('isDone');
+		const v = currentUrl.searchParams.get('isDone');
 		return v === 'true' ? true : v === 'false' ? false : undefined;
 	})();
-	$: fullText = $page.url.searchParams.get('fullText') === 'true';
+	$: fullText = currentUrl.searchParams.get('fullText') === 'true';
 	$: aiSummaryEnabled = archive?.aiSummaryEnabled !== false;
 	$: hasActiveFilters =
 		searchQuery.trim().length > 0 ||
@@ -55,7 +67,7 @@
 	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
 
 	$: canonicalUrl = (() => {
-		const base = $page.url.origin + $page.url.pathname;
+		const base = currentUrl.origin + currentUrl.pathname;
 		if (!hasActiveFilters && currentPage > 1) {
 			return `${base}?page=${currentPage}&limit=${limit}&sortOrder=${sortOrder}`;
 		}
@@ -95,8 +107,6 @@
 	$: isQuickClearRangeActive = !startDate.trim() && !endDate.trim();
 	$: hasDateReversed =
 		startDate.trim().length > 0 && endDate.trim().length > 0 && startDate > endDate;
-	$: isServerLoading =
-		!!$navigating?.to?.url && $navigating.to.url.pathname.replace(/\/+$/, '') === '/notices';
 
 	let pendingPaginationPage: number | null = null;
 	let wasServerLoading = false;
@@ -245,7 +255,7 @@
 		if (sortOrder) params.set('sortOrder', sortOrder);
 		if (fullTextVal) params.set('fullText', 'true');
 		// isDone 필터는 링크 기반이므로 현재 URL에서 그대로 전달
-		const currentIsDone = $page.url.searchParams.get('isDone');
+		const currentIsDone = currentUrl.searchParams.get('isDone');
 		if (currentIsDone) params.set('isDone', currentIsDone);
 		goto(`/notices?${params.toString()}`);
 	}
