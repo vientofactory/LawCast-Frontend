@@ -69,6 +69,8 @@ export interface NoticeDetail {
 		headRev: number | null;
 		hasDiffchain: boolean;
 		isHistorical: boolean;
+		hasLegacyGenesisBoundary?: boolean;
+		legacyGenesisBoundaryAt?: string | null;
 	};
 }
 
@@ -257,6 +259,11 @@ export interface SystemStats {
 	archive: {
 		count: number;
 		isDoneSync?: IsDoneSyncStatus | null;
+		legacyGenesisSeed?: {
+			status: 'idle' | 'running' | 'failed';
+			lastRunAt: string | null;
+			lastError: string | null;
+		} | null;
 	};
 	batchProcessing?: BatchProcessingStats;
 	ollama?: OllamaMetrics;

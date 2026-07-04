@@ -37,6 +37,10 @@
 	let isRefreshing = false;
 
 	$: isDoneSync = stats.archive.isDoneSync as IsDoneSyncStatus | null | undefined;
+	$: legacyGenesisSeed = stats.archive.legacyGenesisSeed as
+		| { status: 'idle' | 'running' | 'failed'; lastRunAt: string | null; lastError: string | null }
+		| null
+		| undefined;
 
 	function isDoneSyncBadgeStyle(status: IsDoneSyncStatus['status'] | undefined) {
 		switch (status) {
@@ -61,6 +65,32 @@
 				return '오류';
 			default:
 				return '알 수 없음';
+		}
+	}
+
+	function legacySeedBadgeStyle(status: 'idle' | 'running' | 'failed' | undefined) {
+		switch (status) {
+			case 'idle':
+				return 'lc-chip-success';
+			case 'running':
+				return 'lc-chip-blue';
+			case 'failed':
+				return 'lc-chip-danger';
+			default:
+				return 'lc-chip-muted';
+		}
+	}
+
+	function legacySeedStatusLabel(status: 'idle' | 'running' | 'failed' | undefined) {
+		switch (status) {
+			case 'idle':
+				return '완료/대기';
+			case 'running':
+				return '실행 중';
+			case 'failed':
+				return '오류';
+			default:
+				return '미수행';
 		}
 	}
 
@@ -468,6 +498,36 @@
 				</ul>
 			{:else}
 				<p class="lc-text-muted text-sm">동기화 이력이 없습니다. (서버 재시작 후 자동 실행)</p>
+			{/if}
+		</section>
+
+		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
+			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
+				<FontAwesomeIcon icon={faBoxArchive} class="lc-text-accent mr-2 h-4 w-4" />
+				레거시 제네시스 시딩
+				{#if legacyGenesisSeed}
+					<span
+						class={`ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${legacySeedBadgeStyle(legacyGenesisSeed.status)}`}
+					>
+						{legacySeedStatusLabel(legacyGenesisSeed.status)}
+					</span>
+				{/if}
+			</h2>
+
+			{#if legacyGenesisSeed}
+				<ul class="lc-text-secondary space-y-1.5 text-sm">
+					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
+						<span>마지막 실행</span>
+						<span class="font-semibold">{formatDateTime(legacyGenesisSeed.lastRunAt)}</span>
+					</li>
+					{#if legacyGenesisSeed.status === 'failed' && legacyGenesisSeed.lastError}
+						<li class="lc-banner-error-soft rounded-lg border px-3 py-2">
+							<span class="font-semibold">오류: </span>{legacyGenesisSeed.lastError}
+						</li>
+					{/if}
+				</ul>
+			{:else}
+				<p class="lc-text-muted text-sm">시딩 상태 정보가 아직 수집되지 않았습니다.</p>
 			{/if}
 		</section>
 

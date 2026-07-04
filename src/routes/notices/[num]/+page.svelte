@@ -167,6 +167,8 @@
 	$: activeRevision = currentRevision?.resolvedRev ?? null;
 	$: isHistoricalView = currentRevision?.isHistorical ?? false;
 	$: activeRevisionForUi = activeRevision ?? headRevision;
+	$: hasLegacyGenesisBoundary = currentRevision?.hasLegacyGenesisBoundary ?? false;
+	$: legacyGenesisBoundaryAt = currentRevision?.legacyGenesisBoundaryAt ?? null;
 
 	$: backLink = (() => {
 		const params = new SvelteURLSearchParams();
@@ -761,6 +763,16 @@
 		</section>
 
 		<section id="change-tracking-timeline" bind:this={timelineSectionElement}>
+			{#if hasLegacyGenesisBoundary}
+				<div class="lc-banner-muted mb-4 rounded-xl border px-4 py-3 text-sm">
+					변경 추적 이력은
+					<strong>
+						{legacyGenesisBoundaryAt ? formatDateTime(legacyGenesisBoundaryAt) : '도입 기준 시점'}
+					</strong>
+					이후부터 보장됩니다. 그 이전 변경 이력은 복원 대상에서 제외됩니다.
+				</div>
+			{/if}
+
 			<NoticeChangeTimeline
 				bind:isOpen={isChangeTimelineOpen}
 				{changes}

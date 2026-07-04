@@ -22,7 +22,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			stats: {
 				webhooks: { total: 0, active: 0, inactive: 0, efficiency: 0 },
 				cache: { size: 0, lastUpdated: null, maxSize: 10, isInitialized: false },
-				archive: { count: 0, isDoneSync: null },
+				archive: { count: 0, isDoneSync: null, legacyGenesisSeed: null },
 				batchProcessing: {
 					jobCount: 0,
 					jobIds: [],

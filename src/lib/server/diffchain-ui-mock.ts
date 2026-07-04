@@ -397,6 +397,11 @@ export function getMockSystemStats(): SystemStats {
 					markedDoneCount: 0
 				},
 				lastError: null
+			},
+			legacyGenesisSeed: {
+				status: 'idle',
+				lastRunAt: hoursAgo(3),
+				lastError: null
 			}
 		},
 		batchProcessing: {
