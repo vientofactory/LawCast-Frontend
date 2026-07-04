@@ -580,9 +580,9 @@
 					<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
 				</div>
 				<div>
-					<p class="text-sm font-semibold">소스 미존재로 보존 전환됨</p>
+					<p class="text-sm font-semibold">보존 상태로 전환됨</p>
 					<p class="mt-0.5 text-sm">
-						원본 소스에서 현재 확인되지 않아 삭제하지 않고 보존 상태로 전환되었습니다.
+						원본 소스에서 현재 확인되지 않아 아카이브에 보존 처리됩니다.
 						{#if detail.notice.sourceDeletedAt}
 							(감지 시각: {formatDateTime(detail.notice.sourceDeletedAt)})
 						{/if}

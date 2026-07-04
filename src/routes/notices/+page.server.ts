@@ -1,4 +1,8 @@
 import { apiClient } from '$lib/api/client';
+import {
+	isDiffchainUiMockEnabled,
+	getMockArchiveNoticesResponse
+} from '$lib/server/diffchain-ui-mock';
 import type { PageServerLoad } from '../$types';
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
@@ -13,6 +17,21 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const isDoneParam = url.searchParams.get('isDone');
 	const isDone = isDoneParam === 'true' ? true : isDoneParam === 'false' ? false : undefined;
 	const fullText = url.searchParams.get('fullText') === 'true';
+
+	if (isDiffchainUiMockEnabled()) {
+		return {
+			archive: getMockArchiveNoticesResponse({
+				page,
+				limit,
+				search,
+				startDate,
+				endDate,
+				sortOrder,
+				isDone,
+				fullText
+			})
+		};
+	}
 
 	try {
 		const archive = await apiClient.getArchivedNotices(

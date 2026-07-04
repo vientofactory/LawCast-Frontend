@@ -725,7 +725,7 @@
 
 										{#if isSourceDeleted(notice)}
 											<p class="lc-text-warning mt-2 text-xs font-medium">
-												원본 소스에서 현재 확인되지 않아 삭제 대신 보존 상태로 유지됩니다.
+												원본 소스에서 현재 확인되지 않아 아카이브에 보존 처리됩니다.
 											</p>
 										{/if}
 
