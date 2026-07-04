@@ -4,6 +4,7 @@ import type {
 	Notice,
 	NoticeChangeDetail,
 	NoticeChangeTimelineResponse,
+	RecentNoticeChangesResponse,
 	NoticeDetail,
 	SystemStats
 } from '$lib/types/api';
@@ -279,7 +280,8 @@ function buildMockNoticeDetail(noticeNum: number, requestedRev?: number): Notice
 
 function buildMockArchiveNotices(): Notice[] {
 	return [2210001, 2210002, 2210003, 2210004].map((noticeNum) => {
-		const { notice } = buildMockNoticeRecord(noticeNum);
+		const record = buildMockNoticeRecord(noticeNum);
+		const { notice } = record;
 		return {
 			num: notice.num,
 			subject: notice.subject,
@@ -294,6 +296,7 @@ function buildMockArchiveNotices(): Notice[] {
 			lifecycleStatus: notice.lifecycleStatus,
 			sourceDeletedAt: notice.sourceDeletedAt,
 			contentId: notice.contentId,
+			changeEventCount: record.changes.count,
 			attachments: notice.attachments
 		};
 	});
@@ -371,6 +374,29 @@ export function getMockNoticeChanges(noticeNum: number): NoticeChangeTimelineRes
 	return buildMockNoticeRecord(noticeNum).changes;
 }
 
+export function getMockRecentNoticeChangesResponse(params: {
+	page: number;
+	limit: number;
+}): RecentNoticeChangesResponse {
+	const merged = [2210001, 2210002, 2210003, 2210004]
+		.flatMap((noticeNum) => buildMockNoticeRecord(noticeNum).changes.items)
+		.filter((item) => item.eventType !== 'created')
+		.sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime());
+
+	const total = merged.length;
+	const page = Math.max(1, params.page);
+	const limit = Math.max(1, Math.min(50, params.limit));
+	const start = (page - 1) * limit;
+
+	return {
+		items: merged.slice(start, start + limit),
+		page,
+		limit,
+		total,
+		totalPages: Math.max(1, Math.ceil(total / limit))
+	};
+}
+
 export function getMockSystemStats(): SystemStats {
 	return {
 		webhooks: {
@@ -421,6 +447,10 @@ export function getMockSystemStats(): SystemStats {
 					status: 'completed'
 				}
 			]
+		},
+		changeTracking: {
+			comparableEventTotal: 8,
+			comparableNoticeCount: 3
 		},
 		ollama: {
 			enabled: true,

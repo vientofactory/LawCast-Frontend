@@ -6,10 +6,11 @@
 		faFileLines,
 		faHouse,
 		faBars,
-		faLink,
+		faCodeCompare,
 		faMoon,
 		faSun
 	} from '@fortawesome/free-solid-svg-icons';
+	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
 	type HeaderMenuItem = {
@@ -21,12 +22,24 @@
 	const menuItems: HeaderMenuItem[] = [
 		{ href: '/', label: '홈', icon: faHouse },
 		{ href: '/notices', label: '입법예고', icon: faFileLines },
-		{ href: '/webhook', label: '웹훅 등록', icon: faLink }
+		{ href: '/notices/changes', label: '변경 내역', icon: faCodeCompare },
+		{ href: '/webhook', label: '디스코드', icon: faDiscord }
 	];
 
 	function isActive(href: string): boolean {
 		const currentPath = page.url.pathname.replace(/\/+$/, '') || '/';
 		if (href === '/') return currentPath === '/';
+		if (href === '/notices/changes') {
+			return currentPath === '/notices/changes' || currentPath.startsWith('/notices/changes/');
+		}
+		if (href === '/notices') {
+			return (
+				currentPath === '/notices' ||
+				(currentPath.startsWith('/notices/') &&
+					currentPath !== '/notices/changes' &&
+					!currentPath.startsWith('/notices/changes/'))
+			);
+		}
 		return currentPath === href || currentPath.startsWith(`${href}/`);
 	}
 

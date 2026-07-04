@@ -15,6 +15,7 @@ export interface Notice {
 	lifecycleStatus?: NoticeLifecycleStatus;
 	sourceDeletedAt?: string | null;
 	contentId?: string | null;
+	changeEventCount?: number;
 	attachments: {
 		pdfFile: string;
 		hwpFile: string;
@@ -127,6 +128,11 @@ export interface RecentNoticeChangesResponse {
 	limit: number;
 	total: number;
 	totalPages: number;
+}
+
+export interface ComparableChangeSummary {
+	comparableEventTotal: number;
+	comparableNoticeCount: number;
 }
 
 export interface ArchiveNoticeListResponse {
@@ -266,6 +272,7 @@ export interface SystemStats {
 		} | null;
 	};
 	batchProcessing?: BatchProcessingStats;
+	changeTracking?: ComparableChangeSummary;
 	ollama?: OllamaMetrics;
 	aiSummaryEnabled?: boolean;
 	nodeRuntime?: {

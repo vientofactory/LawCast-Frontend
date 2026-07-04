@@ -4,7 +4,8 @@
 	import { validateDiscordWebhookUrl, normalizeWebhookUrl } from '$lib/utils/helpers';
 	import WebhookGuide from './WebhookGuide.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { faSpinner, faShieldHalved, faLink, faPlus } from '@fortawesome/free-solid-svg-icons';
+	import { faSpinner, faShieldHalved, faPlus } from '@fortawesome/free-solid-svg-icons';
+	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 	import type { SystemStats } from '$lib/types/api';
 
 	// Props
@@ -115,9 +116,9 @@
 >
 	<h2 class="lc-text-primary mb-6 flex items-center text-xl font-bold tracking-tight">
 		<div class="lc-icon-accent-primary mr-3 rounded-lg p-2">
-			<FontAwesomeIcon icon={faLink} class="lc-text-on-accent h-5 w-5" />
+			<FontAwesomeIcon icon={faDiscord} class="lc-text-on-accent h-5 w-5" />
 		</div>
-		웹훅 등록
+		디스코드 웹훅 등록
 	</h2>
 
 	<ul class="lc-text-secondary mb-6 space-y-2 text-sm">
@@ -127,11 +128,11 @@
 		</li>
 		<li class="flex items-start">
 			<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
-			새로운 입법예고 발견 시 Discord 웹훅으로 알림을 전송합니다
+			새로운 입법예고 발견 시 디스코드 웹훅으로 알림을 전송합니다
 		</li>
 		<li class="flex items-start">
 			<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
-			로그인 없이 간단하게 Discord 웹훅 URL만 등록하면 됩니다
+			로그인 없이 간단하게 디스코드 웹훅 URL만 등록하면 됩니다
 		</li>
 		{#if stats}
 			<li class="lc-text-accent flex items-start font-medium">
@@ -144,7 +145,7 @@
 	<form on:submit|preventDefault={addWebhook} class="space-y-4">
 		<div>
 			<label for="webhook-url" class="lc-text-secondary mb-2 block text-sm font-medium">
-				Discord 웹훅 URL *
+				웹훅 URL <span class="text-red-400">*</span>
 			</label>
 			<input
 				id="webhook-url"

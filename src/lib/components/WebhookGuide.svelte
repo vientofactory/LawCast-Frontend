@@ -19,7 +19,7 @@
 			<span
 				class="lc-text-secondary text-sm font-medium transition-colors duration-200 group-hover:text-[var(--lc-text-primary)]"
 			>
-				Discord 웹훅 생성 방법 안내
+				디스코드 웹훅 생성 방법 안내
 			</span>
 		</div>
 		<div class="transition-transform duration-300 ease-out {isExpanded ? 'rotate-90' : 'rotate-0'}">
@@ -36,7 +36,7 @@
 			transition:slide={{ duration: 400, easing: cubicOut }}
 			style="transform-origin: top;"
 		>
-			<h4 class="mb-3 text-sm font-semibold">Discord 웹훅 생성 단계별 가이드</h4>
+			<h4 class="mb-3 text-sm font-semibold">디스코드 웹훅 생성 단계별 가이드</h4>
 			<ol class="lc-text-secondary space-y-2 text-sm">
 				<li class="flex items-start">
 					<span
@@ -45,7 +45,7 @@
 						1
 					</span>
 					<div>
-						<strong>Discord 서버에서 채널 선택:</strong>
+						<strong>디스코드 서버에서 채널 선택:</strong>
 						알림을 받고 싶은 텍스트 채널로 이동합니다.
 					</div>
 				</li>

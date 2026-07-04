@@ -10,6 +10,7 @@ const DEFAULT_STATS = {
 	webhooks: { total: 0, active: 0, inactive: 0 },
 	cache: { size: 0, lastUpdated: null as string | null, maxSize: 10, isInitialized: false },
 	archive: { count: 0 },
+	changeTracking: { comparableEventTotal: 0, comparableNoticeCount: 0 },
 	aiSummaryEnabled: false
 };
 

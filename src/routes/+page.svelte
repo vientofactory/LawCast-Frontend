@@ -36,6 +36,10 @@
 		archiveTotalCount > 0 ? `${archiveTotalCount.toLocaleString('ko-KR')}건` : '기록 수집 중';
 	$: aiSummaryEnabled =
 		(stats as { aiSummaryEnabled?: boolean } | undefined)?.aiSummaryEnabled !== false;
+	$: comparableChangeTotal =
+		(stats as { changeTracking?: { comparableEventTotal?: number } } | undefined)?.changeTracking
+			?.comparableEventTotal ?? 0;
+	$: comparableChangeTotalLabel = `${comparableChangeTotal.toLocaleString('ko-KR')}건`;
 	$: aiReviewModeLabel = aiSummaryEnabled ? 'AI 요약 검토' : '원문 중심 검토';
 	$: pageDescription = aiSummaryEnabled
 		? '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, AI 요약과 함께 빠르게 확인할 수 있습니다.'
@@ -114,19 +118,18 @@
 				<div class="mx-auto flex max-w-4xl flex-col justify-center gap-8">
 					<div class="space-y-4 text-center lg:text-left">
 						<span class="lc-home-kicker inline-flex rounded-full px-3 py-1 text-xs font-semibold">
-							스냅샷 무결성 검증 아카이브
+							입법예고 기록 보관소
 						</span>
 						<div class="space-y-3">
 							<h1
 								class="lc-text-primary text-3xl leading-tight font-black tracking-tight sm:text-4xl lg:text-5xl"
 							>
 								국회 입법예고
-								<span class="lc-home-heading-accent block">증거 보존 플랫폼</span>
+								<span class="lc-home-heading-accent block">증거 수집 플랫폼</span>
 							</h1>
 							<p class="lc-text-secondary mx-auto max-w-2xl text-sm leading-7 sm:text-base lg:mx-0">
-								LawCast는 입법예고 원문을 최초 수집 시점 그대로 스냅샷으로 보존하고, 해시 기반
-								무결성 검증 메타데이터를 함께 남겨 이후 변경이나 삭제 이후에도 검증 가능한 기록으로
-								남깁니다.
+								LawCast는 입법예고 원문을 처음 수집한 모습 그대로 저장하고, 나중에 내용이 바뀌거나
+								사라져도 이전 기록과 비교해 확인할 수 있도록 남겨 둡니다.
 							</p>
 						</div>
 
@@ -139,18 +142,39 @@
 									<span class="lc-home-signal-tag">Archive</span>
 								</div>
 								<p class="lc-home-signal-value">{archiveCountLabel}</p>
-								<p class="lc-home-signal-desc">최초 공개 기준 스냅샷 누적 보존</p>
+								<p class="lc-home-signal-desc">처음 공개된 내용을 차곡차곡 보관</p>
 							</article>
 
-							<article class="lc-home-signal-card" role="listitem">
-								<div class="lc-home-signal-head">
-									<span class="lc-home-signal-icon" aria-hidden="true">
-										<FontAwesomeIcon icon={faShieldHalved} class="h-3.5 w-3.5" />
-									</span>
-									<span class="lc-home-signal-tag">Integrity</span>
-								</div>
-								<p class="lc-home-signal-value">부인방지 검증</p>
-								<p class="lc-home-signal-desc">해시 기반 메타데이터로 변경 이력 확인</p>
+							<article
+								class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
+								role="listitem"
+							>
+								<a
+									href="/notices/changes"
+									class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
+									aria-label="변경 추적 페이지로 이동"
+								>
+									<div class="lc-home-signal-head">
+										<span
+											class="lc-home-signal-icon transition-transform duration-200 group-focus-within:scale-110 group-focus-within:-rotate-6 group-hover:scale-110 group-hover:-rotate-6"
+											aria-hidden="true"
+										>
+											<FontAwesomeIcon icon={faShieldHalved} class="h-3.5 w-3.5" />
+										</span>
+										<span class="lc-home-signal-tag">Integrity</span>
+									</div>
+									<p
+										class="lc-home-signal-value transition-colors duration-200 group-focus-within:text-sky-700 group-hover:text-sky-700"
+									>
+										{comparableChangeTotalLabel}
+									</p>
+									<p class="lc-home-signal-desc">비교 가능한 변경 추적 보기</p>
+									<p
+										class="mt-1 text-xs font-semibold text-sky-700 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
+									>
+										클릭해서 자세히 보기
+									</p>
+								</a>
 							</article>
 
 							<article class="lc-home-signal-card" role="listitem">
@@ -161,7 +185,7 @@
 									<span class="lc-home-signal-tag">Sync</span>
 								</div>
 								<p class="lc-home-signal-value">{lastUpdatedLabel}</p>
-								<p class="lc-home-signal-desc">정기 수집 배치의 최신 반영 시점</p>
+								<p class="lc-home-signal-desc">최근에 새로 가져온 시각</p>
 							</article>
 
 							<article class="lc-home-signal-card" role="listitem">
@@ -172,7 +196,7 @@
 									<span class="lc-home-signal-tag">Review</span>
 								</div>
 								<p class="lc-home-signal-value">{aiReviewModeLabel}</p>
-								<p class="lc-home-signal-desc">검색 결과에서 원문과 요약을 함께 탐색</p>
+								<p class="lc-home-signal-desc">검색 결과에서 원문과 요약을 함께 보기</p>
 							</article>
 						</div>
 					</div>
@@ -184,8 +208,9 @@
 									법률안 빠른 검색
 								</h2>
 								<p class="lc-text-secondary text-sm leading-6">
-									법률안명, 소관위원회, 본문 키워드를 함께 검색하고 결과 페이지에서 원문, 스냅샷,
-									무결성 검증 메타데이터{aiSummaryEnabled ? ', AI 요약' : ''}까지 이어서 확인합니다.
+									법률안 이름, 소관위원회, 본문 키워드를 한 번에 검색하고 결과 페이지에서 원문,
+									저장된 기록, 변경 확인 정보{aiSummaryEnabled ? ', AI 요약' : ''}까지 이어서 볼 수
+									있습니다.
 								</p>
 							</div>
 

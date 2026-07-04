@@ -8,8 +8,6 @@
 		faFileText,
 		faLock,
 		faPlus,
-		faClock,
-		faDatabase,
 		faRobot,
 		faRotate,
 		faTriangleExclamation
@@ -47,29 +45,6 @@
 			</a>
 		{/if}
 	</div>
-
-	{#if stats}
-		<div
-			class="lc-panel-inset lc-text-muted mb-4 flex flex-wrap gap-4 rounded-lg border px-3 py-2 text-xs font-medium"
-		>
-			<div class="flex items-center">
-				<FontAwesomeIcon icon={faDatabase} class="lc-text-success mr-1.5 h-3 w-3" />
-				<span
-					>수집된 입법예고: <span class="lc-text-secondary"
-						>{stats.archive.count.toLocaleString('ko-KR')}개</span
-					></span
-				>
-			</div>
-			<div class="flex items-center">
-				<FontAwesomeIcon icon={faClock} class="lc-text-accent mr-1.5 h-3 w-3" />
-				<span
-					>마지막 업데이트: <span class="lc-text-secondary"
-						>{stats.cache.lastUpdated ? formatDate(stats.cache.lastUpdated) : 'N/A'}</span
-					></span
-				>
-			</div>
-		</div>
-	{/if}
 
 	{#if notices.length > 0 && aiSummaryEnabled}
 		<a

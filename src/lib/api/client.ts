@@ -5,6 +5,7 @@ import type {
 	NoticeDetail,
 	NoticeChangeTimelineResponse,
 	RecentNoticeChangesResponse,
+	ComparableChangeSummary,
 	ChangeEventType,
 	ArchiveNoticeListResponse,
 	SearchNoticesResult,
@@ -313,6 +314,8 @@ export async function getRecentNoticeChanges(
 		page?: number;
 		limit?: number;
 		eventType?: ChangeEventType;
+		excludeLegacyGenesisSource?: boolean;
+		comparableOnly?: boolean;
 	} = {},
 	customFetch?: Fetch
 ): Promise<RecentNoticeChangesResponse> {
@@ -321,6 +324,8 @@ export async function getRecentNoticeChanges(
 		if (params.page && params.page > 0) query.set('page', String(params.page));
 		if (params.limit && params.limit > 0) query.set('limit', String(params.limit));
 		if (params.eventType) query.set('eventType', params.eventType);
+		if (params.excludeLegacyGenesisSource === true) query.set('excludeLegacyGenesisSource', 'true');
+		if (params.comparableOnly === true) query.set('comparableOnly', 'true');
 
 		const suffix = query.toString() ? `?${query.toString()}` : '';
 		return await request<RecentNoticeChangesResponse>(
@@ -330,6 +335,21 @@ export async function getRecentNoticeChanges(
 		);
 	} catch (error) {
 		console.error('Failed to load recent notice changes:', error);
+		throw normalizeError(error);
+	}
+}
+
+export async function getComparableNoticeChangesSummary(
+	customFetch?: Fetch
+): Promise<ComparableChangeSummary> {
+	try {
+		return await request<ComparableChangeSummary>(
+			'/notices/changes/summary',
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load comparable notice changes summary:', error);
 		throw normalizeError(error);
 	}
 }
@@ -401,6 +421,7 @@ export const apiClient = {
 	getNoticeDetail,
 	getNoticeChanges,
 	getRecentNoticeChanges,
+	getComparableNoticeChangesSummary,
 	getSystemStats,
 	getSystemHealth,
 	registerWebhook

@@ -697,6 +697,13 @@
 													번호 변경 이력
 												</span>
 											{/if}
+											{#if notice.changeEventCount !== undefined}
+												<span
+													class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+												>
+													변경 기록 {notice.changeEventCount.toLocaleString('ko-KR')}건
+												</span>
+											{/if}
 										</div>
 
 										<h3
