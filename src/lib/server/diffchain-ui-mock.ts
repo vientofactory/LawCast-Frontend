@@ -8,6 +8,7 @@ import type {
 	NoticeDetail,
 	SystemStats
 } from '$lib/types/api';
+import { NoticeChangeSource } from '$lib/types/change-source';
 
 const ENABLED_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
@@ -72,7 +73,7 @@ function buildMockChangeTimeline(
 			noticeNum,
 			detectedAt: hoursAgo(72),
 			eventType: 'created' as const,
-			source: 'archive:upsert',
+			source: NoticeChangeSource.ARCHIVE_UPSERT,
 			eventHeight: 1,
 			prevEventHash: null,
 			eventHash: `mock-${noticeNum}-event-1`,
@@ -100,7 +101,7 @@ function buildMockChangeTimeline(
 			noticeNum,
 			detectedAt: hoursAgo(12),
 			eventType: 'updated' as const,
-			source: 'archive:updateSourceHtml',
+			source: NoticeChangeSource.ARCHIVE_UPDATE_SOURCE_HTML,
 			eventHeight: 2,
 			prevEventHash: `mock-${noticeNum}-event-1`,
 			eventHash: `mock-${noticeNum}-event-2`,
@@ -127,7 +128,10 @@ function buildMockChangeTimeline(
 			noticeNum,
 			detectedAt: hoursAgo(1),
 			eventType: 'invalidated' as const,
-			source: sourceState === 'source_deleted' ? 'archive:source-missing' : 'archive:renumbered',
+			source:
+				sourceState === 'source_deleted'
+					? NoticeChangeSource.ARCHIVE_SOURCE_MISSING
+					: NoticeChangeSource.ARCHIVE_RENUMBERED,
 			eventHeight: 3,
 			prevEventHash: `mock-${noticeNum}-event-2`,
 			eventHash: `mock-${noticeNum}-event-3`,

@@ -4,6 +4,7 @@
 	import { faChevronDown, faCodeCompare, faRotate } from '@fortawesome/free-solid-svg-icons';
 	import NoticeRevisionCompare from '$lib/components/NoticeRevisionCompare.svelte';
 	import type { NoticeChangeTimelineResponse } from '$lib/types/api';
+	import { NoticeChangeSource } from '$lib/types/change-source';
 
 	export let isOpen = false;
 	export let changes: NoticeChangeTimelineResponse;
@@ -67,12 +68,14 @@
 			return '시스템';
 		}
 
-		if (source.includes('archive:upsert')) return '아카이브 저장';
-		if (source.includes('archive:renumbered')) return '의안번호 변경(기존 번호 무효화)';
-		if (source.includes('archive:source-missing')) return '소스 미존재 처리(보존)';
-		if (source.includes('archive:updateSourceHtml')) return '원문 HTML 갱신';
-		if (source.includes('archive:updateNsmHtmlAndDetail')) return '국회 원문/상세 동기화';
-		if (source.includes('bootstrap:legacy-seed')) return '제네시스 시드 생성';
+		if (source.includes(NoticeChangeSource.ARCHIVE_UPSERT)) return '아카이브 저장';
+		if (source.includes(NoticeChangeSource.ARCHIVE_RENUMBERED))
+			return '의안번호 변경(기존 번호 무효화)';
+		if (source.includes(NoticeChangeSource.ARCHIVE_SOURCE_MISSING)) return '소스 미존재 처리(보존)';
+		if (source.includes(NoticeChangeSource.ARCHIVE_UPDATE_SOURCE_HTML)) return '원문 HTML 갱신';
+		if (source.includes(NoticeChangeSource.ARCHIVE_UPDATE_NSM_HTML_AND_DETAIL))
+			return '국회 원문/상세 동기화';
+		if (source.includes(NoticeChangeSource.BOOTSTRAP_LEGACY_SEED)) return '제네시스 시드 생성';
 		// if (source.includes('nsm')) return '국회 연계 동기화';
 
 		return source;
