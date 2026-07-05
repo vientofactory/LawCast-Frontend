@@ -65,11 +65,11 @@
 		return date.toLocaleString('ko-KR');
 	}
 
-	$: pageTitle = `${detail.notice.subject} - 제안이유 및 주요내용 원문 | LawCast`;
+	$: pageTitle = `${displayContent.title} - 제안이유 및 주요내용 원문 | LawCast`;
 	$: pageDescription = buildExcerpt(
 		aiSummaryEnabled
-			? (detail.notice.aiSummary ?? detail.originalContent.proposalReason)
-			: detail.originalContent.proposalReason
+			? (detail.notice.aiSummary ?? displayContent.proposalReason)
+			: displayContent.proposalReason
 	);
 
 	function safeJsonLd(data: object): string {
@@ -83,10 +83,10 @@
 	$: publishedTime = detail.archiveMetadata.archivedAt ?? detail.notice.archiveStartedAt ?? null;
 	$: modifiedTime = detail.notice.lastUpdatedAt ?? publishedTime;
 	$: pageKeywords = [
-		detail.notice.subject,
-		detail.originalContent.committee ?? detail.notice.committee,
-		detail.originalContent.proposer,
-		detail.originalContent.billNumber,
+		displayContent.title,
+		displayContent.committee,
+		displayContent.proposer,
+		displayContent.billNumber,
 		'입법예고',
 		'국회 법률안',
 		'제안이유 및 주요내용',
@@ -118,13 +118,13 @@
 			},
 			{
 				'@type': 'Article',
-				headline: detail.notice.subject,
+				headline: displayContent.title,
 				description: pageDescription,
 				url: pageUrl,
 				...(publishedTime ? { datePublished: publishedTime } : {}),
 				...(modifiedTime ? { dateModified: modifiedTime } : {}),
-				author: detail.originalContent.proposer
-					? { '@type': 'Organization', name: detail.originalContent.proposer }
+				author: displayContent.proposer
+					? { '@type': 'Organization', name: displayContent.proposer }
 					: undefined,
 				publisher: { '@type': 'Organization', name: 'LawCast' },
 				inLanguage: 'ko',
@@ -142,18 +142,18 @@
 			: detail.archiveMetadata.integrity.passed === false
 				? '검증 실패'
 				: '검증 대기';
-	$: lifecycleStatus = detail.notice.lifecycleStatus ?? 'active';
+	$: lifecycleStatus = displayContent.lifecycleStatus ?? 'active';
 	$: isSourceDeleted = lifecycleStatus === 'source_deleted';
 	$: isRenumbered = lifecycleStatus === 'renumbered';
 
 	$: contentFacts = [
-		{ label: '의안번호', value: detail.originalContent.billNumber },
-		{ label: '제안자', value: detail.originalContent.proposer },
-		{ label: '제안일', value: detail.originalContent.proposalDate },
-		{ label: '소관위원회', value: detail.originalContent.committee },
-		{ label: '회부일', value: detail.originalContent.referralDate },
-		{ label: '입법예고기간', value: detail.originalContent.noticePeriod },
-		{ label: '제안회기', value: detail.originalContent.proposalSession }
+		{ label: '의안번호', value: displayContent.billNumber },
+		{ label: '제안자', value: displayContent.proposer },
+		{ label: '제안일', value: displayContent.proposalDate },
+		{ label: '소관위원회', value: displayContent.committee },
+		{ label: '회부일', value: displayContent.referralDate },
+		{ label: '입법예고기간', value: displayContent.noticePeriod },
+		{ label: '제안회기', value: displayContent.proposalSession }
 	].filter((item) => !!item.value);
 
 	$: pageParam = currentUrl.searchParams.get('page');
@@ -310,6 +310,57 @@
 		return parsed;
 	}
 
+	type DisplayContent = {
+		title: string;
+		proposalReason: string;
+		billNumber: string | null;
+		proposer: string | null;
+		proposerCategory: string | null;
+		proposalDate: string | null;
+		committee: string | null;
+		referralDate: string | null;
+		noticePeriod: string | null;
+		proposalSession: string | null;
+		isDone: boolean | null;
+		lifecycleStatus: string | null;
+		sourceDeletedAt: string | null;
+	};
+
+	function snapshotToBoolean(value: string | null | undefined): boolean | null {
+		if (value == null) {
+			return null;
+		}
+
+		const normalized = value.trim().toLowerCase();
+		if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+			return true;
+		}
+
+		if (['0', 'false', 'no', 'off'].includes(normalized)) {
+			return false;
+		}
+
+		return null;
+	}
+
+	function buildDisplayContent(snapshot: Record<string, string | null> | null): DisplayContent {
+		return {
+			title: snapshot?.subject ?? detail.notice.subject,
+			proposalReason: snapshot?.proposalReason ?? detail.originalContent.proposalReason,
+			billNumber: snapshot?.billNumber ?? detail.originalContent.billNumber,
+			proposer: snapshot?.proposer ?? detail.originalContent.proposer,
+			proposerCategory: snapshot?.proposerCategory ?? detail.notice.proposerCategory,
+			proposalDate: snapshot?.proposalDate ?? detail.originalContent.proposalDate,
+			committee: snapshot?.committee ?? detail.originalContent.committee ?? detail.notice.committee,
+			referralDate: snapshot?.referralDate ?? detail.originalContent.referralDate,
+			noticePeriod: snapshot?.noticePeriod ?? detail.originalContent.noticePeriod,
+			proposalSession: snapshot?.proposalSession ?? detail.originalContent.proposalSession,
+			isDone: snapshotToBoolean(snapshot?.isDone) ?? detail.notice.isDone ?? null,
+			lifecycleStatus: snapshot?.lifecycleStatus ?? detail.notice.lifecycleStatus ?? null,
+			sourceDeletedAt: snapshot?.sourceDeletedAt ?? detail.notice.sourceDeletedAt ?? null
+		};
+	}
+
 	$: {
 		const timelineFromQuery = parseBooleanParam(currentUrl.searchParams.get('timeline'));
 		if (timelineFromQuery !== null) {
@@ -376,6 +427,13 @@
 	}
 
 	$: snapshotsByRevision = buildSnapshotsByRevision(changes.items);
+	$: headRevisionSnapshot =
+		headRevision !== null ? (snapshotsByRevision[headRevision] ?? null) : null;
+	$: activeRevisionSnapshot =
+		activeRevision !== null
+			? (snapshotsByRevision[activeRevision] ?? headRevisionSnapshot)
+			: headRevisionSnapshot;
+	$: displayContent = buildDisplayContent(activeRevisionSnapshot);
 	$: selectedFromRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpFrom'));
 	$: selectedToRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpTo'));
 	$: showAllCompareFields =
@@ -456,18 +514,6 @@
 		}
 
 		params.delete('cmpShowAll');
-
-		const query = params.toString();
-		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
-	}
-
-	function buildCompareShowAllLink(next: boolean): string {
-		const params = new SvelteURLSearchParams(currentUrl.searchParams);
-		if (next) {
-			params.set('cmpShowAll', '1');
-		} else {
-			params.delete('cmpShowAll');
-		}
 
 		const query = params.toString();
 		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
@@ -554,7 +600,18 @@
 			<span class="lc-text-secondary font-semibold">법률안 원문 조회</span>
 		</nav>
 
-		{#if detail.notice.isDone}
+		{#if isHistoricalView && activeRevision !== null}
+			<div class="lc-banner-warning mb-6 rounded-xl border px-4 py-3 text-sm">
+				현재 Rev #{activeRevision} 시점 원문을 열람 중입니다.
+				{#if headRevision !== null}
+					<a href={buildRevisionLink(null)} class="ml-2 font-semibold underline">
+						최신 리비전 #{headRevision} 보기
+					</a>
+				{/if}
+			</div>
+		{/if}
+
+		{#if displayContent.isDone}
 			<div
 				class="lc-banner-muted mb-6 flex items-start gap-3 rounded-xl border px-5 py-4 shadow-sm"
 				role="status"
@@ -585,8 +642,8 @@
 					<p class="text-sm font-semibold">보존 상태로 전환됨</p>
 					<p class="mt-0.5 text-sm">
 						원본 소스에서 현재 확인되지 않아 아카이브에 보존 처리됩니다.
-						{#if detail.notice.sourceDeletedAt}
-							(감지 시각: {formatDateTime(detail.notice.sourceDeletedAt)})
+						{#if displayContent.sourceDeletedAt}
+							(감지 시각: {formatDateTime(displayContent.sourceDeletedAt)})
 						{/if}
 					</p>
 				</div>
@@ -611,7 +668,7 @@
 		{/if}
 
 		<section
-			class={`mb-6 rounded-2xl border p-6 shadow-lg ${detail.notice.isDone ? 'lc-panel-subtle' : 'lc-panel-card'}`}
+			class={`mb-6 rounded-2xl border p-6 shadow-lg ${displayContent.isDone ? 'lc-panel-subtle' : 'lc-panel-card'}`}
 		>
 			<div class="mb-4 flex flex-wrap items-start justify-between gap-3">
 				<div>
@@ -622,7 +679,7 @@
 							<FontAwesomeIcon icon={faScaleBalanced} class="mr-1.5 h-3.5 w-3.5" />
 							의안번호 {detail.notice.num}
 						</div>
-						{#if detail.notice.isDone}
+						{#if displayContent.isDone}
 							<div
 								class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
 							>
@@ -652,19 +709,19 @@
 						{/if}
 					</div>
 					<h1
-						class={`text-2xl leading-snug font-bold ${detail.notice.isDone ? 'lc-text-muted' : 'lc-text-primary'}`}
+						class={`text-2xl leading-snug font-bold ${displayContent.isDone ? 'lc-text-muted' : 'lc-text-primary'}`}
 					>
-						{detail.notice.subject}
+						{displayContent.title}
 					</h1>
 					<div class="lc-text-secondary mt-3 flex flex-wrap gap-3 text-sm">
 						<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
 							<FontAwesomeIcon icon={faUser} class="mr-1.5 h-3.5 w-3.5" />
-							{detail.notice.proposerCategory}
+							{displayContent.proposerCategory}
 						</span>
-						{#if detail.notice.committee}
+						{#if displayContent.committee}
 							<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
 								<FontAwesomeIcon icon={faBell} class="mr-1.5 h-3.5 w-3.5" />
-								{detail.notice.committee}
+								{displayContent.committee}
 							</span>
 						{/if}
 						<span class="lc-chip-success inline-flex items-center rounded-md px-2 py-1">
@@ -730,22 +787,11 @@
 				<h2 class="lc-text-primary text-lg font-bold">제안이유 및 주요내용 원문</h2>
 			</div>
 
-			{#if isHistoricalView && activeRevision !== null}
-				<div class="lc-banner-warning mb-4 rounded-xl border px-4 py-3 text-sm">
-					현재 Rev #{activeRevision} 시점 원문을 열람 중입니다.
-					{#if headRevision !== null}
-						<a href={buildRevisionLink(null)} class="ml-2 font-semibold underline">
-							최신 리비전 #{headRevision} 보기
-						</a>
-					{/if}
-				</div>
-			{/if}
-
-			{#if detail.originalContent.proposalReason}
-				<h3 class="lc-text-secondary mb-3 text-sm font-semibold">{detail.originalContent.title}</h3>
+			{#if displayContent.proposalReason}
+				<h3 class="lc-text-secondary mb-3 text-sm font-semibold">{displayContent.title}</h3>
 				<div class="lc-code-block rounded-lg border p-4">
 					<p class="lc-text-primary text-sm leading-7 whitespace-pre-line">
-						{detail.originalContent.proposalReason}
+						{displayContent.proposalReason}
 					</p>
 				</div>
 			{:else}
