@@ -100,10 +100,6 @@
 						<FontAwesomeIcon icon={faSquarePollHorizontal} class="mr-1.5 h-3.5 w-3.5" />
 						확인 가능한 변경 내역 {summary.comparableEventTotal.toLocaleString('ko-KR')}건
 					</span>
-					<span class="lc-chip-muted inline-flex items-center rounded-full px-3 py-1.5">
-						<FontAwesomeIcon icon={faTableList} class="mr-1.5 h-3.5 w-3.5" />
-						변경이 있었던 의안 {summary.comparableNoticeCount.toLocaleString('ko-KR')}건
-					</span>
 				</div>
 			</div>
 		</section>
@@ -145,7 +141,7 @@
 									<span
 										class="lc-chip-muted inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
 									>
-										변경 순서 {item.eventHeight}
+										변경 횟수 {item.eventHeight - 1}회
 									</span>
 								</div>
 								<p class="lc-text-secondary text-xs">
