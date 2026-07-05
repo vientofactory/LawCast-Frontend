@@ -3,7 +3,12 @@ import NProgress from 'nprogress';
 import type {
 	Notice,
 	NoticeDetail,
+	NoticeChangeTimelineResponse,
+	RecentNoticeChangesResponse,
+	ComparableChangeSummary,
+	ChangeEventType,
 	ArchiveNoticeListResponse,
+	QuickKeywordSuggestionsResponse,
 	SearchNoticesResult,
 	SystemStats,
 	SystemHealth,
@@ -159,6 +164,27 @@ export async function getRecentNotices(customFetch?: Fetch): Promise<Notice[]> {
 	}
 }
 
+export async function getQuickKeywordSuggestions(
+	params: { limit?: number } = {},
+	customFetch?: Fetch
+): Promise<QuickKeywordSuggestionsResponse> {
+	try {
+		const query = new URLSearchParams();
+		if (params.limit && params.limit > 0) {
+			query.set('limit', String(params.limit));
+		}
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<QuickKeywordSuggestionsResponse>(
+			`/notices/keywords${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load quick keyword suggestions:', error);
+		throw normalizeError(error);
+	}
+}
+
 /**
  * 아카이브 입법예고 목록 조회 (검색/페이지네이션)
  */
@@ -256,16 +282,96 @@ export async function searchNotices(
  */
 export async function getNoticeDetail(
 	noticeNum: number,
+	params: { rev?: number } = {},
 	customFetch?: Fetch
 ): Promise<NoticeDetail> {
 	try {
+		const query = new URLSearchParams();
+		if (params.rev && params.rev > 0) {
+			query.set('rev', String(params.rev));
+		}
+		const suffix = query.toString() ? `?${query.toString()}` : '';
 		return await request<NoticeDetail>(
-			`/notices/${noticeNum}/detail`,
+			`/notices/${noticeNum}/detail${suffix}`,
 			{ method: 'GET' },
 			customFetch
 		);
 	} catch (error) {
 		console.error(`Failed to load notice detail (${noticeNum}):`, error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 의안번호별 변경 추적 타임라인 조회
+ */
+export async function getNoticeChanges(
+	noticeNum: number,
+	params: { limit?: number } = {},
+	customFetch?: Fetch
+): Promise<NoticeChangeTimelineResponse> {
+	try {
+		const query = new URLSearchParams();
+		if (params.limit && params.limit > 0) {
+			query.set('limit', String(params.limit));
+		}
+
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<NoticeChangeTimelineResponse>(
+			`/notices/${noticeNum}/changes${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error(`Failed to load notice changes (${noticeNum}):`, error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 전체 의안 변경 이벤트 목록 조회
+ */
+export async function getRecentNoticeChanges(
+	params: {
+		page?: number;
+		limit?: number;
+		eventType?: ChangeEventType;
+		excludeLegacyGenesisSource?: boolean;
+		comparableOnly?: boolean;
+	} = {},
+	customFetch?: Fetch
+): Promise<RecentNoticeChangesResponse> {
+	try {
+		const query = new URLSearchParams();
+		if (params.page && params.page > 0) query.set('page', String(params.page));
+		if (params.limit && params.limit > 0) query.set('limit', String(params.limit));
+		if (params.eventType) query.set('eventType', params.eventType);
+		if (params.excludeLegacyGenesisSource === true) query.set('excludeLegacyGenesisSource', 'true');
+		if (params.comparableOnly === true) query.set('comparableOnly', 'true');
+
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<RecentNoticeChangesResponse>(
+			`/notices/changes${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load recent notice changes:', error);
+		throw normalizeError(error);
+	}
+}
+
+export async function getComparableNoticeChangesSummary(
+	customFetch?: Fetch
+): Promise<ComparableChangeSummary> {
+	try {
+		return await request<ComparableChangeSummary>(
+			'/notices/changes/summary',
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load comparable notice changes summary:', error);
 		throw normalizeError(error);
 	}
 }
@@ -332,9 +438,13 @@ export async function registerWebhook(
 // 기존 코드와의 호환성을 위한 객체 export
 export const apiClient = {
 	getRecentNotices,
+	getQuickKeywordSuggestions,
 	getArchivedNotices,
 	searchNotices,
 	getNoticeDetail,
+	getNoticeChanges,
+	getRecentNoticeChanges,
+	getComparableNoticeChangesSummary,
 	getSystemStats,
 	getSystemHealth,
 	registerWebhook

@@ -1,4 +1,5 @@
 export type AISummaryStatus = 'ready' | 'unavailable' | 'not_supported' | 'not_requested';
+export type NoticeLifecycleStatus = 'active' | 'source_deleted' | 'renumbered';
 
 export interface Notice {
 	num: number;
@@ -11,7 +12,10 @@ export interface Notice {
 	lastUpdatedAt?: string;
 	aiSummary?: string | null;
 	aiSummaryStatus?: AISummaryStatus;
+	lifecycleStatus?: NoticeLifecycleStatus;
+	sourceDeletedAt?: string | null;
 	contentId?: string | null;
+	changeEventCount?: number;
 	attachments: {
 		pdfFile: string;
 		hwpFile: string;
@@ -60,6 +64,75 @@ export interface NoticeDetail {
 		format: string | null;
 	};
 	aiSummaryEnabled?: boolean;
+	revision?: {
+		requestedRev: number | null;
+		resolvedRev: number | null;
+		headRev: number | null;
+		hasDiffchain: boolean;
+		isHistorical: boolean;
+		hasLegacyGenesisBoundary?: boolean;
+		legacyGenesisBoundaryAt?: string | null;
+	};
+}
+
+export type ChangeEventType = 'created' | 'updated' | 'redacted' | 'invalidated';
+export type ChangeDetailType = 'added' | 'removed' | 'modified';
+
+export interface NoticeChangeDetail {
+	id: number;
+	fieldPath: string;
+	changeType: ChangeDetailType;
+	beforeValue: string | null;
+	afterValue: string | null;
+	beforeHash: string | null;
+	afterHash: string | null;
+}
+
+export interface NoticeChangeEventItem {
+	id: number;
+	noticeNum: number;
+	detectedAt: string;
+	eventType: ChangeEventType;
+	source: string | null;
+	eventHeight: number;
+	prevEventHash: string | null;
+	eventHash: string;
+	changedFieldCount: number;
+	hashAlgo: string;
+	canonVersion: number;
+	diffSummary: Record<string, unknown> | null;
+	details: NoticeChangeDetail[];
+}
+
+export interface NoticeChangeTimelineResponse {
+	noticeNum: number;
+	items: NoticeChangeEventItem[];
+	count: number;
+}
+
+export interface RecentNoticeChangeItem {
+	id: number;
+	noticeNum: number;
+	detectedAt: string;
+	eventType: ChangeEventType;
+	source: string | null;
+	eventHeight: number;
+	eventHash: string;
+	changedFieldCount: number;
+	diffSummary: Record<string, unknown> | null;
+}
+
+export interface RecentNoticeChangesResponse {
+	items: RecentNoticeChangeItem[];
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+}
+
+export interface ComparableChangeSummary {
+	comparableEventTotal: number;
+	comparableNoticeCount: number;
 }
 
 export interface ArchiveNoticeListResponse {
@@ -93,6 +166,8 @@ export interface SearchNoticesItem {
 	isArchived: boolean;
 	aiSummary: string | null;
 	aiSummaryStatus: AISummaryStatus;
+	lifecycleStatus?: NoticeLifecycleStatus;
+	sourceDeletedAt?: string | null;
 	attachments: { pdfFile: string; hwpFile: string };
 	archiveStartedAt: string | null;
 	lastUpdatedAt: string | null;
@@ -106,6 +181,19 @@ export interface SearchNoticesResult {
 	totalPages: number;
 	keyword: string;
 	source: 'archive' | 'crawler' | 'mixed';
+}
+
+export interface QuickKeywordSuggestion {
+	keyword: string;
+	score: number;
+	matchCount: number;
+}
+
+export interface QuickKeywordSuggestionsResponse {
+	items: QuickKeywordSuggestion[];
+	updatedAt: string | null;
+	sourceNoticeCount: number;
+	refreshIntervalMs: number;
 }
 
 export interface WebhookStats {
@@ -190,8 +278,14 @@ export interface SystemStats {
 	archive: {
 		count: number;
 		isDoneSync?: IsDoneSyncStatus | null;
+		legacyGenesisSeed?: {
+			status: 'idle' | 'running' | 'failed';
+			lastRunAt: string | null;
+			lastError: string | null;
+		} | null;
 	};
 	batchProcessing?: BatchProcessingStats;
+	changeTracking?: ComparableChangeSummary;
 	ollama?: OllamaMetrics;
 	aiSummaryEnabled?: boolean;
 	nodeRuntime?: {

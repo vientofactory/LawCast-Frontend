@@ -44,6 +44,16 @@ npm run dev
 
 브라우저에서 `http://localhost:5173`으로 접속하세요.
 
+### Diffchain UI mock 모드
+
+Project Diffchain 관련 UI를 가짜 데이터로 확인하려면 아래처럼 환경변수를 켠 뒤 개발 서버를 실행하세요.
+
+```bash
+DIFFCHAIN_UI_MOCK=1 npm run dev
+```
+
+이 모드에서는 홈, 입법예고 목록, 상세/리비전 비교, 상태 페이지가 mock 데이터로 렌더링됩니다.
+
 ### 빌드
 
 ```bash

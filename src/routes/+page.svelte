@@ -2,7 +2,8 @@
 	import Header from '$lib/components/Header.svelte';
 	import RecentNotices from '$lib/components/RecentNotices.svelte';
 	import { formatDate } from '$lib/utils/helpers';
-	import { navigating, page } from '$app/stores';
+	import { afterNavigate, beforeNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faChevronDown,
@@ -17,19 +18,49 @@
 
 	export let data: PageData;
 
+	let currentUrl = page.url;
+	let isQuickSearchLoading = false;
+
+	beforeNavigate(({ to }) => {
+		isQuickSearchLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
+	});
+
+	afterNavigate(() => {
+		currentUrl = page.url;
+		isQuickSearchLoading = false;
+	});
+
 	$: ({ recentNotices, stats } = data);
+	$: quickKeywords = data.quickKeywords;
 	$: archiveTotalCount = stats?.archive?.count ?? 0;
+	$: archiveCountLabel =
+		archiveTotalCount > 0 ? `${archiveTotalCount.toLocaleString('ko-KR')}건` : '기록 수집 중';
 	$: aiSummaryEnabled =
 		(stats as { aiSummaryEnabled?: boolean } | undefined)?.aiSummaryEnabled !== false;
+	$: comparableChangeTotal =
+		(stats as { changeTracking?: { comparableEventTotal?: number } } | undefined)?.changeTracking
+			?.comparableEventTotal ?? 0;
+	$: comparableChangeTotalLabel = `${comparableChangeTotal.toLocaleString('ko-KR')}건`;
+	$: aiReviewModeLabel = aiSummaryEnabled ? 'AI 요약 검토' : '원문 중심 검토';
 	$: pageDescription = aiSummaryEnabled
 		? '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, AI 요약과 함께 빠르게 확인할 수 있습니다.'
 		: '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, 원문 정보와 함께 빠르게 확인할 수 있습니다.';
-	$: isQuickSearchLoading =
-		!!$navigating?.to?.url && $navigating.to.url.pathname.replace(/\/+$/, '') === '/notices';
 	$: lastUpdatedLabel = stats?.cache?.lastUpdated
 		? formatDate(stats.cache.lastUpdated)
 		: '업데이트 대기 중';
-	const heroSearchSuggestions = ['중대재해', '개인정보', 'AI', '플랫폼', '근로기준'];
+	const fallbackHeroSearchSuggestions = ['중대재해', '개인정보', 'AI', '플랫폼', '근로기준'];
+	$: dynamicHeroSearchSuggestions =
+		quickKeywords?.items
+			?.map((item) => item.keyword)
+			.filter(Boolean)
+			.slice(0, 8) ?? [];
+	$: heroSearchSuggestions =
+		dynamicHeroSearchSuggestions.length > 0
+			? dynamicHeroSearchSuggestions
+			: fallbackHeroSearchSuggestions;
+	$: quickKeywordUpdatedLabel = quickKeywords?.updatedAt
+		? formatDate(quickKeywords.updatedAt)
+		: null;
 
 	function buildQuickSearchHref(keyword: string): string {
 		return `/notices?search=${encodeURIComponent(keyword)}&fullText=true`;
@@ -42,7 +73,7 @@
 			.replace(/&/g, '\\u0026');
 	}
 
-	$: pageUrl = $page.url.origin + '/';
+	$: pageUrl = currentUrl.origin + '/';
 	$: websiteJsonLd = safeJsonLd({
 		'@context': 'https://schema.org',
 		'@type': 'WebSite',
@@ -54,7 +85,7 @@
 			'@type': 'SearchAction',
 			target: {
 				'@type': 'EntryPoint',
-				urlTemplate: `${$page.url.origin}/notices?search={search_term_string}`
+				urlTemplate: `${currentUrl.origin}/notices?search={search_term_string}`
 			},
 			'query-input': 'required name=search_term_string'
 		}
@@ -100,51 +131,86 @@
 				<div class="mx-auto flex max-w-4xl flex-col justify-center gap-8">
 					<div class="space-y-4 text-center lg:text-left">
 						<span class="lc-home-kicker inline-flex rounded-full px-3 py-1 text-xs font-semibold">
-							스냅샷 무결성 검증 아카이브
+							입법예고 기록 보관소
 						</span>
 						<div class="space-y-3">
 							<h1
 								class="lc-text-primary text-3xl leading-tight font-black tracking-tight sm:text-4xl lg:text-5xl"
 							>
 								국회 입법예고
-								<span class="lc-home-heading-accent block">증거 보존 플랫폼</span>
+								<span class="lc-home-heading-accent block">증거 수집 플랫폼</span>
 							</h1>
 							<p class="lc-text-secondary mx-auto max-w-2xl text-sm leading-7 sm:text-base lg:mx-0">
-								LawCast는 입법예고 원문을 최초 수집 시점 그대로 스냅샷으로 보존하고, 해시 기반
-								무결성 검증 메타데이터를 함께 남겨 이후 변경이나 삭제 이후에도 검증 가능한 기록으로
-								남깁니다.
+								LawCast는 입법예고 원문을 처음 수집한 모습 그대로 저장하고, 나중에 내용이 바뀌거나
+								사라져도 이전 기록과 비교해 확인할 수 있도록 남겨 둡니다.
 							</p>
 						</div>
 
-						<div
-							class="lc-home-meta flex flex-wrap items-center justify-center gap-3 lg:justify-start"
-						>
-							<span
-								class="lc-home-meta-item inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm"
+						<div class="lc-home-signal-grid" role="list" aria-label="플랫폼 핵심 상태">
+							<article class="lc-home-signal-card" role="listitem">
+								<div class="lc-home-signal-head">
+									<span class="lc-home-signal-icon" aria-hidden="true">
+										<FontAwesomeIcon icon={faDatabase} class="h-3.5 w-3.5" />
+									</span>
+									<span class="lc-home-signal-tag">Archive</span>
+								</div>
+								<p class="lc-home-signal-value">{archiveCountLabel}</p>
+								<p class="lc-home-signal-desc">처음 공개된 내용을 차곡차곡 보관</p>
+							</article>
+
+							<article
+								class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
+								role="listitem"
 							>
-								<FontAwesomeIcon icon={faDatabase} class="h-3.5 w-3.5" />
-								{archiveTotalCount > 0
-									? `${archiveTotalCount.toLocaleString('ko-KR')}건 아카이브`
-									: '기록 수집 중'}
-							</span>
-							<span
-								class="lc-home-meta-item inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm"
-							>
-								<FontAwesomeIcon icon={faShieldHalved} class="h-3.5 w-3.5" />
-								무결성 검증 기반 부인방지
-							</span>
-							<span
-								class="lc-home-meta-item inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm"
-							>
-								<FontAwesomeIcon icon={faClock} class="h-3.5 w-3.5" />
-								마지막 업데이트 · {lastUpdatedLabel}
-							</span>
-							<span
-								class="lc-home-meta-item inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm"
-							>
-								<FontAwesomeIcon icon={faRobot} class="h-3.5 w-3.5" />
-								{aiSummaryEnabled ? 'AI 요약으로 빠른 검토' : '원문 중심 검토'}
-							</span>
+								<a
+									href="/notices/changes"
+									class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
+									aria-label="변경 추적 페이지로 이동"
+								>
+									<div class="lc-home-signal-head">
+										<span
+											class="lc-home-signal-icon transition-transform duration-200 group-focus-within:scale-110 group-focus-within:-rotate-6 group-hover:scale-110 group-hover:-rotate-6"
+											aria-hidden="true"
+										>
+											<FontAwesomeIcon icon={faShieldHalved} class="h-3.5 w-3.5" />
+										</span>
+										<span class="lc-home-signal-tag">Integrity</span>
+									</div>
+									<p
+										class="lc-home-signal-value transition-colors duration-200 group-focus-within:text-sky-700 group-hover:text-sky-700"
+									>
+										{comparableChangeTotalLabel}
+									</p>
+									<p class="lc-home-signal-desc">비교 가능한 변경 추적 보기</p>
+									<p
+										class="mt-1 text-xs font-semibold text-sky-700 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
+									>
+										클릭해서 자세히 보기
+									</p>
+								</a>
+							</article>
+
+							<article class="lc-home-signal-card" role="listitem">
+								<div class="lc-home-signal-head">
+									<span class="lc-home-signal-icon" aria-hidden="true">
+										<FontAwesomeIcon icon={faClock} class="h-3.5 w-3.5" />
+									</span>
+									<span class="lc-home-signal-tag">Sync</span>
+								</div>
+								<p class="lc-home-signal-value">{lastUpdatedLabel}</p>
+								<p class="lc-home-signal-desc">최근에 새로 가져온 시각</p>
+							</article>
+
+							<article class="lc-home-signal-card" role="listitem">
+								<div class="lc-home-signal-head">
+									<span class="lc-home-signal-icon" aria-hidden="true">
+										<FontAwesomeIcon icon={faRobot} class="h-3.5 w-3.5" />
+									</span>
+									<span class="lc-home-signal-tag">Review</span>
+								</div>
+								<p class="lc-home-signal-value">{aiReviewModeLabel}</p>
+								<p class="lc-home-signal-desc">검색 결과에서 원문과 요약을 함께 보기</p>
+							</article>
 						</div>
 					</div>
 
@@ -155,8 +221,9 @@
 									법률안 빠른 검색
 								</h2>
 								<p class="lc-text-secondary text-sm leading-6">
-									법률안명, 소관위원회, 본문 키워드를 함께 검색하고 결과 페이지에서 원문, 스냅샷,
-									무결성 검증 메타데이터{aiSummaryEnabled ? ', AI 요약' : ''}까지 이어서 확인합니다.
+									법률안 이름, 소관위원회, 본문 키워드를 한 번에 검색하고 결과 페이지에서 원문,
+									저장된 기록, 변경 확인 정보{aiSummaryEnabled ? ', AI 요약' : ''}까지 이어서 볼 수
+									있습니다.
 								</p>
 							</div>
 
@@ -198,7 +265,17 @@
 							</form>
 
 							<div class="space-y-2">
-								<p class="lc-text-muted text-xs font-medium">빠른 키워드</p>
+								<div class="flex flex-wrap items-center justify-between gap-2">
+									<p class="lc-text-muted text-xs font-medium">빠른 키워드</p>
+									{#if quickKeywords?.sourceNoticeCount}
+										<p class="lc-text-muted text-[11px]">
+											최근 {quickKeywords.sourceNoticeCount.toLocaleString('ko-KR')}건 기준
+											{#if quickKeywordUpdatedLabel}
+												· {quickKeywordUpdatedLabel} 갱신
+											{/if}
+										</p>
+									{/if}
+								</div>
 								<div class="flex flex-wrap gap-2">
 									{#each heroSearchSuggestions as suggestion (suggestion)}
 										<a

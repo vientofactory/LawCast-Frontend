@@ -2,7 +2,10 @@
 	import Header from '$lib/components/Header.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
-	import { page } from '$app/stores';
+	import { afterNavigate, goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { onMount, tick } from 'svelte';
+	import NoticeChangeTimeline from '$lib/components/NoticeChangeTimeline.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -18,16 +21,26 @@
 		faLock,
 		faScaleBalanced,
 		faShieldHalved,
+		faRotate,
 		faTriangleExclamation,
 		faUser
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { NoticeDetail } from '$lib/types/api';
+	import type { NoticeDetail, NoticeChangeTimelineResponse } from '$lib/types/api';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 
-	export let data: { detail: NoticeDetail };
+	export let data: {
+		detail: NoticeDetail;
+		changes: NoticeChangeTimelineResponse;
+	};
 
 	$: detail = data.detail;
+	$: changes = data.changes;
 	$: aiSummaryEnabled = detail.aiSummaryEnabled !== false;
+
+	let currentUrl = page.url;
+	afterNavigate(() => {
+		currentUrl = page.url;
+	});
 
 	function buildExcerpt(content: string, maxLength = 180): string {
 		const normalized = content.replace(/\s+/g, ' ').trim();
@@ -66,7 +79,7 @@
 			.replace(/&/g, '\\u0026');
 	}
 
-	$: pageUrl = $page.url.origin + $page.url.pathname;
+	$: pageUrl = currentUrl.origin + currentUrl.pathname;
 	$: publishedTime = detail.archiveMetadata.archivedAt ?? detail.notice.archiveStartedAt ?? null;
 	$: modifiedTime = detail.notice.lastUpdatedAt ?? publishedTime;
 	$: pageKeywords = [
@@ -88,12 +101,12 @@
 			{
 				'@type': 'BreadcrumbList',
 				itemListElement: [
-					{ '@type': 'ListItem', position: 1, name: '홈', item: `${$page.url.origin}/` },
+					{ '@type': 'ListItem', position: 1, name: '홈', item: `${currentUrl.origin}/` },
 					{
 						'@type': 'ListItem',
 						position: 2,
 						name: '전체 입법예고',
-						item: `${$page.url.origin}/notices`
+						item: `${currentUrl.origin}/notices`
 					},
 					{
 						'@type': 'ListItem',
@@ -115,7 +128,7 @@
 					: undefined,
 				publisher: { '@type': 'Organization', name: 'LawCast' },
 				inLanguage: 'ko',
-				isPartOf: { '@type': 'WebSite', name: 'LawCast', url: `${$page.url.origin}/` }
+				isPartOf: { '@type': 'WebSite', name: 'LawCast', url: `${currentUrl.origin}/` }
 			}
 		]
 	});
@@ -129,6 +142,9 @@
 			: detail.archiveMetadata.integrity.passed === false
 				? '검증 실패'
 				: '검증 대기';
+	$: lifecycleStatus = detail.notice.lifecycleStatus ?? 'active';
+	$: isSourceDeleted = lifecycleStatus === 'source_deleted';
+	$: isRenumbered = lifecycleStatus === 'renumbered';
 
 	$: contentFacts = [
 		{ label: '의안번호', value: detail.originalContent.billNumber },
@@ -140,12 +156,19 @@
 		{ label: '제안회기', value: detail.originalContent.proposalSession }
 	].filter((item) => !!item.value);
 
-	$: pageParam = $page.url.searchParams.get('page');
-	$: limitParam = $page.url.searchParams.get('limit');
-	$: searchParam = $page.url.searchParams.get('search');
-	$: startDateParam = $page.url.searchParams.get('startDate');
-	$: endDateParam = $page.url.searchParams.get('endDate');
-	$: sortOrderParam = $page.url.searchParams.get('sortOrder');
+	$: pageParam = currentUrl.searchParams.get('page');
+	$: limitParam = currentUrl.searchParams.get('limit');
+	$: searchParam = currentUrl.searchParams.get('search');
+	$: startDateParam = currentUrl.searchParams.get('startDate');
+	$: endDateParam = currentUrl.searchParams.get('endDate');
+	$: sortOrderParam = currentUrl.searchParams.get('sortOrder');
+	$: currentRevision = detail.revision;
+	$: headRevision = currentRevision?.headRev ?? null;
+	$: activeRevision = currentRevision?.resolvedRev ?? null;
+	$: isHistoricalView = currentRevision?.isHistorical ?? false;
+	$: activeRevisionForUi = activeRevision ?? headRevision;
+	$: hasLegacyGenesisBoundary = currentRevision?.hasLegacyGenesisBoundary ?? false;
+	$: legacyGenesisBoundaryAt = currentRevision?.legacyGenesisBoundaryAt ?? null;
 
 	$: backLink = (() => {
 		const params = new SvelteURLSearchParams();
@@ -163,6 +186,46 @@
 	let isScreenshotExpanded = false;
 	let isExportingArchive = false;
 	let exportArchiveError: string | null = null;
+	let timelineSectionElement: HTMLElement | null = null;
+	let hasAutoScrolledToTimeline = false;
+
+	async function autoScrollToTimelineOnLoad(): Promise<void> {
+		if (hasAutoScrolledToTimeline || !currentUrl.searchParams.has('timeline')) {
+			return;
+		}
+
+		await tick();
+		if (!timelineSectionElement) {
+			return;
+		}
+
+		timelineSectionElement.scrollIntoView({
+			behavior: 'smooth',
+			block: 'start'
+		});
+		hasAutoScrolledToTimeline = true;
+	}
+
+	onMount(() => {
+		void autoScrollToTimelineOnLoad();
+	});
+
+	function parseBooleanParam(value: string | null): boolean | null {
+		if (!value) {
+			return null;
+		}
+
+		const normalized = value.trim().toLowerCase();
+		if (['1', 'true', 'yes', 'on', 'open'].includes(normalized)) {
+			return true;
+		}
+
+		if (['0', 'false', 'no', 'off', 'close', 'closed'].includes(normalized)) {
+			return false;
+		}
+
+		return null;
+	}
 
 	function getArchiveFileName(contentDisposition: string | null, noticeNum: number): string {
 		const fallbackName = `notice-${noticeNum}-archive.zip`;
@@ -231,6 +294,227 @@
 
 	$: screenshotUrl = `/api/notices/${detail.notice.num}/screenshot`;
 	$: hasScreenshot = detail.screenshotMeta?.hasScreenshot ?? false;
+
+	let isChangeTimelineOpen = false;
+
+	function getPositiveIntQueryParam(raw: string | null): number | null {
+		if (!raw) {
+			return null;
+		}
+
+		const parsed = Number.parseInt(raw, 10);
+		if (!Number.isInteger(parsed) || parsed <= 0) {
+			return null;
+		}
+
+		return parsed;
+	}
+
+	$: {
+		const timelineFromQuery = parseBooleanParam(currentUrl.searchParams.get('timeline'));
+		if (timelineFromQuery !== null) {
+			isChangeTimelineOpen = timelineFromQuery;
+		}
+
+		const archiveFromQuery = parseBooleanParam(currentUrl.searchParams.get('archive'));
+		if (archiveFromQuery !== null) {
+			isArchiveMetaOpen = archiveFromQuery;
+		}
+
+		const screenshotFromQuery = parseBooleanParam(currentUrl.searchParams.get('screenshot'));
+		if (screenshotFromQuery !== null && hasScreenshot) {
+			isScreenshotExpanded = screenshotFromQuery;
+		}
+	}
+
+	const CHANGE_FIELD_LABELS: Record<string, string> = {
+		num: '의안번호',
+		subject: '법률안명',
+		proposerCategory: '제안자 구분',
+		committee: '소관위원회',
+		proposalReason: '제안이유',
+		billNumber: '입법예고 의안번호',
+		proposer: '입법예고 제안자',
+		proposalDate: '입법예고 제안일',
+		contentCommittee: '입법예고 소관위원회',
+		referralDate: '입법예고 회부일',
+		noticePeriod: '입법예고 기간',
+		proposalSession: '입법예고 제안회기',
+		isDone: '처리 상태',
+		lifecycleStatus: '보존 상태',
+		sourceDeletedAt: '소스 삭제 감지 시각'
+	};
+
+	function toReadableFieldLabel(fieldPath: string): string {
+		return CHANGE_FIELD_LABELS[fieldPath] ?? fieldPath;
+	}
+
+	type RevisionSnapshot = Record<string, string | null>;
+	type RevisionDiffItem = {
+		fieldPath: string;
+		fieldLabel: string;
+		changeType: 'added' | 'removed' | 'modified' | 'unchanged';
+		beforeValue: string | null;
+		afterValue: string | null;
+	};
+
+	function buildSnapshotsByRevision(
+		events: NoticeChangeTimelineResponse['items']
+	): Record<number, RevisionSnapshot> {
+		const snapshots: Record<number, RevisionSnapshot> = {};
+		const current: RevisionSnapshot = {};
+		const asc = [...events].sort((a, b) => a.eventHeight - b.eventHeight);
+
+		for (const event of asc) {
+			for (const detail of event.details) {
+				current[detail.fieldPath] = detail.afterValue;
+			}
+			snapshots[event.eventHeight] = { ...current };
+		}
+
+		return snapshots;
+	}
+
+	$: snapshotsByRevision = buildSnapshotsByRevision(changes.items);
+	$: selectedFromRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpFrom'));
+	$: selectedToRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpTo'));
+	$: showAllCompareFields =
+		currentUrl.searchParams.get('cmpShowAll') === '1' ||
+		currentUrl.searchParams.get('cmpShowAll') === 'true';
+	$: fromSnapshot = selectedFromRev === null ? {} : (snapshotsByRevision[selectedFromRev] ?? {});
+	$: toSnapshot = selectedToRev === null ? {} : (snapshotsByRevision[selectedToRev] ?? {});
+	$: comparableRevisionCount = Object.keys(snapshotsByRevision).length;
+	$: canSelectCompareBase = comparableRevisionCount > 1;
+	$: revisionDiffItems = (() => {
+		const keys = new Set<string>([
+			...Object.keys(CHANGE_FIELD_LABELS),
+			...Object.keys(fromSnapshot),
+			...Object.keys(toSnapshot)
+		]);
+		const items: RevisionDiffItem[] = [];
+
+		for (const key of keys) {
+			const beforeValue = fromSnapshot[key] ?? null;
+			const afterValue = toSnapshot[key] ?? null;
+			if (!showAllCompareFields && beforeValue === afterValue) {
+				continue;
+			}
+
+			const changeType: RevisionDiffItem['changeType'] =
+				beforeValue === afterValue
+					? 'unchanged'
+					: beforeValue === null
+						? 'added'
+						: afterValue === null
+							? 'removed'
+							: 'modified';
+
+			items.push({
+				fieldPath: key,
+				fieldLabel: toReadableFieldLabel(key),
+				changeType,
+				beforeValue,
+				afterValue
+			});
+		}
+
+		return items.sort((a, b) => a.fieldLabel.localeCompare(b.fieldLabel, 'ko-KR'));
+	})();
+	$: isCompareMode =
+		selectedFromRev !== null && selectedToRev !== null && selectedFromRev !== selectedToRev;
+
+	function buildRevisionLink(rev: number | null): string {
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+
+		if (rev && rev > 0) {
+			params.set('rev', String(rev));
+		} else {
+			params.delete('rev');
+		}
+
+		params.delete('cmpFrom');
+		params.delete('cmpTo');
+		params.delete('cmpShowAll');
+
+		const query = params.toString();
+		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
+	}
+
+	function buildCompareEntryLink(fromRev: number | null, toRev: number | null): string {
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+
+		if (fromRev && fromRev > 0) {
+			params.set('cmpFrom', String(fromRev));
+		} else {
+			params.delete('cmpFrom');
+		}
+
+		if (toRev && toRev > 0) {
+			params.set('cmpTo', String(toRev));
+		} else {
+			params.delete('cmpTo');
+		}
+
+		params.delete('cmpShowAll');
+
+		const query = params.toString();
+		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
+	}
+
+	function buildCompareShowAllLink(next: boolean): string {
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+		if (next) {
+			params.set('cmpShowAll', '1');
+		} else {
+			params.delete('cmpShowAll');
+		}
+
+		const query = params.toString();
+		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
+	}
+
+	async function toggleCompareShowAll(): Promise<void> {
+		const next = !showAllCompareFields;
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+
+		if (next) {
+			params.set('cmpShowAll', '1');
+		} else {
+			params.delete('cmpShowAll');
+		}
+
+		const query = params.toString();
+		await goto(query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true
+		});
+	}
+
+	async function updateCompareQuery(fromRev: number | null, toRev: number | null): Promise<void> {
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+
+		if (fromRev && fromRev > 0) {
+			params.set('cmpFrom', String(fromRev));
+		} else {
+			params.delete('cmpFrom');
+		}
+
+		if (toRev && toRev > 0) {
+			params.set('cmpTo', String(toRev));
+		} else {
+			params.delete('cmpTo');
+		}
+
+		params.delete('cmpShowAll');
+
+		const query = params.toString();
+		await goto(query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true
+		});
+	}
 </script>
 
 <svelte:head>
@@ -288,6 +572,44 @@
 			</div>
 		{/if}
 
+		{#if isSourceDeleted}
+			<div
+				class="lc-banner-warning mb-6 flex items-start gap-3 rounded-xl border px-5 py-4 shadow-sm"
+				role="status"
+				aria-label="소스 삭제 감지 안내"
+			>
+				<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
+					<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
+				</div>
+				<div>
+					<p class="text-sm font-semibold">보존 상태로 전환됨</p>
+					<p class="mt-0.5 text-sm">
+						원본 소스에서 현재 확인되지 않아 아카이브에 보존 처리됩니다.
+						{#if detail.notice.sourceDeletedAt}
+							(감지 시각: {formatDateTime(detail.notice.sourceDeletedAt)})
+						{/if}
+					</p>
+				</div>
+			</div>
+		{:else if isRenumbered}
+			<div
+				class="lc-banner-muted mb-6 flex items-start gap-3 rounded-xl border px-5 py-4 shadow-sm"
+				role="status"
+				aria-label="의안번호 변경 안내"
+			>
+				<div class="lc-chip-muted mt-0.5 rounded-full p-1.5">
+					<FontAwesomeIcon icon={faRotate} class="h-4 w-4" />
+				</div>
+				<div>
+					<p class="lc-text-secondary text-sm font-semibold">의안번호 변경 이력</p>
+					<p class="lc-text-muted mt-0.5 text-sm">
+						기존 번호 기준 체인은 무효화(invalidated) 이벤트로 보존되며, 현재 번호에서 이력이
+						이어집니다.
+					</p>
+				</div>
+			</div>
+		{/if}
+
 		<section
 			class={`mb-6 rounded-2xl border p-6 shadow-lg ${detail.notice.isDone ? 'lc-panel-subtle' : 'lc-panel-card'}`}
 		>
@@ -313,6 +635,19 @@
 							>
 								<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
 								진행 중
+							</div>
+						{/if}
+						{#if isSourceDeleted}
+							<div
+								class="lc-chip-warning inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+							>
+								소스 미존재(보존)
+							</div>
+						{:else if isRenumbered}
+							<div
+								class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+							>
+								번호 변경 이력
 							</div>
 						{/if}
 					</div>
@@ -394,6 +729,18 @@
 				<FontAwesomeIcon icon={faFileLines} class="lc-text-purple h-5 w-5" />
 				<h2 class="lc-text-primary text-lg font-bold">제안이유 및 주요내용 원문</h2>
 			</div>
+
+			{#if isHistoricalView && activeRevision !== null}
+				<div class="lc-banner-warning mb-4 rounded-xl border px-4 py-3 text-sm">
+					현재 Rev #{activeRevision} 시점 원문을 열람 중입니다.
+					{#if headRevision !== null}
+						<a href={buildRevisionLink(null)} class="ml-2 font-semibold underline">
+							최신 리비전 #{headRevision} 보기
+						</a>
+					{/if}
+				</div>
+			{/if}
+
 			{#if detail.originalContent.proposalReason}
 				<h3 class="lc-text-secondary mb-3 text-sm font-semibold">{detail.originalContent.title}</h3>
 				<div class="lc-code-block rounded-lg border p-4">
@@ -413,6 +760,34 @@
 					</p>
 				</div>
 			{/if}
+		</section>
+
+		<section id="change-tracking-timeline" bind:this={timelineSectionElement}>
+			{#if hasLegacyGenesisBoundary}
+				<div class="lc-banner-muted mb-4 rounded-xl border px-4 py-3 text-sm">
+					변경 추적 이력은
+					<strong>
+						{legacyGenesisBoundaryAt ? formatDateTime(legacyGenesisBoundaryAt) : '도입 기준 시점'}
+					</strong>
+					이후부터 보장됩니다. 그 이전 변경 이력은 복원 대상에서 제외됩니다.
+				</div>
+			{/if}
+
+			<NoticeChangeTimeline
+				bind:isOpen={isChangeTimelineOpen}
+				{changes}
+				{activeRevisionForUi}
+				{buildRevisionLink}
+				{isCompareMode}
+				{selectedFromRev}
+				{selectedToRev}
+				{showAllCompareFields}
+				clearCompareHref={buildCompareEntryLink(null, null)}
+				onToggleCompareShowAll={toggleCompareShowAll}
+				{revisionDiffItems}
+				{canSelectCompareBase}
+				onSelectCompare={updateCompareQuery}
+			/>
 		</section>
 
 		<details

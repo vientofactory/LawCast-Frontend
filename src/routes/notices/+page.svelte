@@ -3,8 +3,8 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
-	import { navigating, page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
 	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -20,6 +20,7 @@
 		faFileText,
 		faLock,
 		faMagnifyingGlass,
+		faRotate,
 		faSpinner,
 		faTriangleExclamation
 	} from '@fortawesome/free-solid-svg-icons';
@@ -29,6 +30,18 @@
 		archive: ArchiveNoticeListResponse;
 		error?: string;
 	};
+
+	let currentUrl = page.url;
+	let isServerLoading = false;
+
+	beforeNavigate(({ to }) => {
+		isServerLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
+	});
+
+	afterNavigate(() => {
+		currentUrl = page.url;
+		isServerLoading = false;
+	});
 
 	$: archive = data.archive;
 	$: notices = archive?.items || [];
@@ -41,10 +54,10 @@
 	$: endDate = archive?.endDate || '';
 	$: sortOrder = archive?.sortOrder === 'asc' ? 'asc' : 'desc';
 	$: isDoneFilter = (() => {
-		const v = $page.url.searchParams.get('isDone');
+		const v = currentUrl.searchParams.get('isDone');
 		return v === 'true' ? true : v === 'false' ? false : undefined;
 	})();
-	$: fullText = $page.url.searchParams.get('fullText') === 'true';
+	$: fullText = currentUrl.searchParams.get('fullText') === 'true';
 	$: aiSummaryEnabled = archive?.aiSummaryEnabled !== false;
 	$: hasActiveFilters =
 		searchQuery.trim().length > 0 ||
@@ -55,7 +68,7 @@
 	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
 
 	$: canonicalUrl = (() => {
-		const base = $page.url.origin + $page.url.pathname;
+		const base = currentUrl.origin + currentUrl.pathname;
 		if (!hasActiveFilters && currentPage > 1) {
 			return `${base}?page=${currentPage}&limit=${limit}&sortOrder=${sortOrder}`;
 		}
@@ -95,8 +108,6 @@
 	$: isQuickClearRangeActive = !startDate.trim() && !endDate.trim();
 	$: hasDateReversed =
 		startDate.trim().length > 0 && endDate.trim().length > 0 && startDate > endDate;
-	$: isServerLoading =
-		!!$navigating?.to?.url && $navigating.to.url.pathname.replace(/\/+$/, '') === '/notices';
 
 	let pendingPaginationPage: number | null = null;
 	let wasServerLoading = false;
@@ -177,6 +188,14 @@
 		return notice.aiSummaryStatus === 'ready' || notice.aiSummaryStatus === 'unavailable';
 	}
 
+	function isSourceDeleted(notice: (typeof notices)[number]): boolean {
+		return notice.lifecycleStatus === 'source_deleted';
+	}
+
+	function isRenumbered(notice: (typeof notices)[number]): boolean {
+		return notice.lifecycleStatus === 'renumbered';
+	}
+
 	// Make pagination items reactive to archive/totalPages/currentPage
 	$: paginationItems = (() => {
 		if (totalPages <= 7) {
@@ -245,7 +264,7 @@
 		if (sortOrder) params.set('sortOrder', sortOrder);
 		if (fullTextVal) params.set('fullText', 'true');
 		// isDone 필터는 링크 기반이므로 현재 URL에서 그대로 전달
-		const currentIsDone = $page.url.searchParams.get('isDone');
+		const currentIsDone = currentUrl.searchParams.get('isDone');
 		if (currentIsDone) params.set('isDone', currentIsDone);
 		goto(`/notices?${params.toString()}`);
 	}
@@ -663,6 +682,28 @@
 													진행 중
 												</span>
 											{/if}
+											{#if isSourceDeleted(notice)}
+												<span
+													class="lc-chip-warning inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
+												>
+													<FontAwesomeIcon icon={faTriangleExclamation} class="h-2.5 w-2.5" />
+													소스 미존재(보존)
+												</span>
+											{:else if isRenumbered(notice)}
+												<span
+													class="lc-chip-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
+												>
+													<FontAwesomeIcon icon={faRotate} class="h-2.5 w-2.5" />
+													번호 변경 이력
+												</span>
+											{/if}
+											{#if notice.changeEventCount !== undefined}
+												<span
+													class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+												>
+													변경 기록 {notice.changeEventCount.toLocaleString('ko-KR')}건
+												</span>
+											{/if}
 										</div>
 
 										<h3
@@ -688,6 +729,12 @@
 												</div>
 											{/if}
 										</div>
+
+										{#if isSourceDeleted(notice)}
+											<p class="lc-text-warning mt-2 text-xs font-medium">
+												원본 소스에서 현재 확인되지 않아 아카이브에 보존 처리됩니다.
+											</p>
+										{/if}
 
 										{#if shouldShowAIBriefing(notice)}
 											<AIBriefingCard

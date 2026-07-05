@@ -5,14 +5,12 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowsRotate,
-		faBolt,
 		faBoxArchive,
 		faCloud,
 		faClock,
 		faDatabase,
 		faGear,
 		faLink,
-		faMicrochip,
 		faRobot,
 		faSquareCheck,
 		faTriangleExclamation,
@@ -244,13 +242,6 @@
 							>{stats.webhooks.active.toLocaleString('ko-KR')}개</span
 						>
 					</p>
-					<p>
-						효율: <span class="font-semibold"
-							>{stats.webhooks.efficiency !== undefined
-								? `${stats.webhooks.efficiency.toLocaleString('ko-KR')}%`
-								: 'N/A'}</span
-						>
-					</p>
 				</div>
 			</section>
 
@@ -262,11 +253,6 @@
 				<div class="lc-text-secondary space-y-1 text-sm">
 					<p>
 						캐시 크기: <span class="font-semibold">{stats.cache.size.toLocaleString('ko-KR')}</span>
-					</p>
-					<p>
-						최대 크기: <span class="font-semibold"
-							>{stats.cache.maxSize.toLocaleString('ko-KR')}</span
-						>
 					</p>
 					<p>
 						초기화: <span class="font-semibold">{stats.cache.isInitialized ? '완료' : '필요'}</span>
@@ -307,99 +293,26 @@
 					AI 요약
 				</h2>
 				<div class="lc-text-secondary space-y-1 text-sm">
-					<p>활성화: <span class="font-semibold">{stats.ollama?.enabled ? 'ON' : 'OFF'}</span></p>
 					<p>
-						설정됨: <span class="font-semibold">{stats.ollama?.configured ? 'YES' : 'NO'}</span>
+						사용 여부: <span class="font-semibold"
+							>{stats.ollama?.enabled ? '사용 중' : '꺼짐'}</span
+						>
 					</p>
 					<p>모델: <span class="font-semibold">{stats.ollama?.model || 'N/A'}</span></p>
 					<p>
-						상태:
+						연결 상태:
 						<span
 							class={`ml-1 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${ollamaStyle.badge}`}
 						>
 							{ollamaHealthStatus}
 						</span>
 					</p>
+					<p>
+						마지막 점검: <span class="font-semibold"
+							>{formatDateTime(stats.ollama?.health.lastCheckedAt)}</span
+						>
+					</p>
 				</div>
-			</section>
-		</div>
-
-		<div class="mt-4 grid gap-4 lg:grid-cols-2">
-			<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
-				<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
-					<FontAwesomeIcon icon={faBolt} class="lc-text-warning mr-2 h-4 w-4" />
-					요약 지표
-				</h2>
-				<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-					<div class="lc-stat-tile rounded-xl border p-3">
-						<dt class="lc-text-muted text-xs">아카이브 수</dt>
-						<dd class="lc-text-primary mt-1 text-lg font-bold">
-							{stats.archive.count.toLocaleString('ko-KR')}
-						</dd>
-					</div>
-					<div class="lc-stat-tile rounded-xl border p-3">
-						<dt class="lc-text-muted text-xs">AI 요약 시도</dt>
-						<dd class="lc-text-primary mt-1 text-lg font-bold">
-							{(stats.ollama?.summary.total ?? 0).toLocaleString('ko-KR')}
-						</dd>
-					</div>
-					<div class="lc-stat-tile rounded-xl border p-3">
-						<dt class="lc-text-muted text-xs">AI 성공률</dt>
-						<dd class="lc-text-primary mt-1 text-lg font-bold">
-							{(stats.ollama?.summary.successRate ?? 0).toLocaleString('ko-KR')}%
-						</dd>
-					</div>
-					<div class="lc-stat-tile rounded-xl border p-3">
-						<dt class="lc-text-muted text-xs">AI 실패</dt>
-						<dd class="lc-text-primary mt-1 text-lg font-bold">
-							{(stats.ollama?.summary.failed ?? 0).toLocaleString('ko-KR')}
-						</dd>
-					</div>
-					<div class="lc-stat-tile rounded-xl border p-3">
-						<dt class="lc-text-muted text-xs">AI 스킵</dt>
-						<dd class="lc-text-primary mt-1 text-lg font-bold">
-							{(stats.ollama?.summary.skipped ?? 0).toLocaleString('ko-KR')}
-						</dd>
-					</div>
-					<div class="lc-stat-tile rounded-xl border p-3">
-						<dt class="lc-text-muted text-xs">작업 대기</dt>
-						<dd class="lc-text-primary mt-1 text-lg font-bold">
-							{(stats.batchProcessing?.jobCount ?? 0).toLocaleString('ko-KR')}
-						</dd>
-					</div>
-				</dl>
-			</section>
-
-			<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
-				<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
-					<FontAwesomeIcon icon={faMicrochip} class="lc-text-info mr-2 h-4 w-4" />
-					세부 상태
-				</h2>
-				<ul class="lc-text-secondary space-y-2 text-sm">
-					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
-						<span>AI 요약 기능</span>
-						<span class="font-semibold"
-							>{stats.aiSummaryEnabled !== false ? '사용 중' : '비활성'}</span
-						>
-					</li>
-					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
-						<span>마지막 점검</span>
-						<span class="font-semibold">{formatDateTime(stats.ollama?.health.lastCheckedAt)}</span>
-					</li>
-					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
-						<span>지연 시간</span>
-						<span class="font-semibold"
-							>{stats.ollama?.health.lastLatencyMs !== null &&
-							stats.ollama?.health.lastLatencyMs !== undefined
-								? `${stats.ollama.health.lastLatencyMs.toLocaleString('ko-KR')}ms`
-								: 'N/A'}</span
-						>
-					</li>
-					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
-						<span>최근 배치 이력</span>
-						<span class="font-semibold">{recentJobs.length.toLocaleString('ko-KR')}건</span>
-					</li>
-				</ul>
 			</section>
 		</div>
 
@@ -493,7 +406,7 @@
 					<table class="w-full min-w-140 text-sm">
 						<thead>
 							<tr
-								class="lc-text-muted border-b border-[var(--lc-border-soft)] text-left text-xs font-semibold"
+								class="lc-text-muted border-b border-(--lc-border-soft) text-left text-xs font-semibold"
 							>
 								<th class="pr-4 pb-2">ID</th>
 								<th class="pr-4 pb-2">시작 시간</th>
@@ -504,7 +417,7 @@
 								<th class="pb-2 text-right">소요</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-[var(--lc-border-soft)]">
+						<tbody class="divide-y divide-(--lc-border-soft)">
 							{#each recentJobs as job (job.id)}
 								<tr class="lc-table-row lc-text-secondary">
 									<td class="py-2 pr-4">
