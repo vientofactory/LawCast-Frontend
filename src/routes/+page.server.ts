@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types';
 import {
 	isDiffchainUiMockEnabled,
 	getMockRecentNotices,
+	getMockQuickKeywordSuggestions,
 	getMockSystemStats
 } from '$lib/server/diffchain-ui-mock';
 
@@ -18,16 +19,23 @@ export const load: PageServerLoad = async ({ fetch }) => {
 	if (isDiffchainUiMockEnabled()) {
 		return {
 			recentNotices: getMockRecentNotices(),
+			quickKeywords: getMockQuickKeywordSuggestions(),
 			stats: getMockSystemStats()
 		};
 	}
 
-	const [recentNotices, stats] = await Promise.all([
+	const [recentNotices, quickKeywords, stats] = await Promise.all([
 		apiClient
 			.getRecentNotices(fetch)
 			.catch(() => [] as Awaited<ReturnType<typeof apiClient.getRecentNotices>>),
+		apiClient.getQuickKeywordSuggestions({ limit: 8 }, fetch).catch(() => ({
+			items: [],
+			updatedAt: null,
+			sourceNoticeCount: 0,
+			refreshIntervalMs: 60 * 60 * 1000
+		})),
 		apiClient.getSystemStats(fetch).catch(() => DEFAULT_STATS)
 	]);
 
-	return { recentNotices, stats };
+	return { recentNotices, quickKeywords, stats };
 };

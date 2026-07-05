@@ -31,6 +31,7 @@
 	});
 
 	$: ({ recentNotices, stats } = data);
+	$: quickKeywords = data.quickKeywords;
 	$: archiveTotalCount = stats?.archive?.count ?? 0;
 	$: archiveCountLabel =
 		archiveTotalCount > 0 ? `${archiveTotalCount.toLocaleString('ko-KR')}건` : '기록 수집 중';
@@ -47,7 +48,19 @@
 	$: lastUpdatedLabel = stats?.cache?.lastUpdated
 		? formatDate(stats.cache.lastUpdated)
 		: '업데이트 대기 중';
-	const heroSearchSuggestions = ['중대재해', '개인정보', 'AI', '플랫폼', '근로기준'];
+	const fallbackHeroSearchSuggestions = ['중대재해', '개인정보', 'AI', '플랫폼', '근로기준'];
+	$: dynamicHeroSearchSuggestions =
+		quickKeywords?.items
+			?.map((item) => item.keyword)
+			.filter(Boolean)
+			.slice(0, 8) ?? [];
+	$: heroSearchSuggestions =
+		dynamicHeroSearchSuggestions.length > 0
+			? dynamicHeroSearchSuggestions
+			: fallbackHeroSearchSuggestions;
+	$: quickKeywordUpdatedLabel = quickKeywords?.updatedAt
+		? formatDate(quickKeywords.updatedAt)
+		: null;
 
 	function buildQuickSearchHref(keyword: string): string {
 		return `/notices?search=${encodeURIComponent(keyword)}&fullText=true`;
@@ -252,7 +265,17 @@
 							</form>
 
 							<div class="space-y-2">
-								<p class="lc-text-muted text-xs font-medium">빠른 키워드</p>
+								<div class="flex flex-wrap items-center justify-between gap-2">
+									<p class="lc-text-muted text-xs font-medium">빠른 키워드</p>
+									{#if quickKeywords?.sourceNoticeCount}
+										<p class="lc-text-muted text-[11px]">
+											최근 {quickKeywords.sourceNoticeCount.toLocaleString('ko-KR')}건 기준
+											{#if quickKeywordUpdatedLabel}
+												· {quickKeywordUpdatedLabel} 갱신
+											{/if}
+										</p>
+									{/if}
+								</div>
 								<div class="flex flex-wrap gap-2">
 									{#each heroSearchSuggestions as suggestion (suggestion)}
 										<a

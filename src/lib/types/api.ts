@@ -183,6 +183,19 @@ export interface SearchNoticesResult {
 	source: 'archive' | 'crawler' | 'mixed';
 }
 
+export interface QuickKeywordSuggestion {
+	keyword: string;
+	score: number;
+	matchCount: number;
+}
+
+export interface QuickKeywordSuggestionsResponse {
+	items: QuickKeywordSuggestion[];
+	updatedAt: string | null;
+	sourceNoticeCount: number;
+	refreshIntervalMs: number;
+}
+
 export interface WebhookStats {
 	total: number;
 	active: number;

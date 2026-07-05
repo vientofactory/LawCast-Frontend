@@ -8,6 +8,7 @@ import type {
 	ComparableChangeSummary,
 	ChangeEventType,
 	ArchiveNoticeListResponse,
+	QuickKeywordSuggestionsResponse,
 	SearchNoticesResult,
 	SystemStats,
 	SystemHealth,
@@ -159,6 +160,27 @@ export async function getRecentNotices(customFetch?: Fetch): Promise<Notice[]> {
 		return await request<Notice[]>('/notices/recent', { method: 'GET' }, customFetch);
 	} catch (error) {
 		console.error('Failed to load recent notices:', error);
+		throw normalizeError(error);
+	}
+}
+
+export async function getQuickKeywordSuggestions(
+	params: { limit?: number } = {},
+	customFetch?: Fetch
+): Promise<QuickKeywordSuggestionsResponse> {
+	try {
+		const query = new URLSearchParams();
+		if (params.limit && params.limit > 0) {
+			query.set('limit', String(params.limit));
+		}
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<QuickKeywordSuggestionsResponse>(
+			`/notices/keywords${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load quick keyword suggestions:', error);
 		throw normalizeError(error);
 	}
 }
@@ -416,6 +438,7 @@ export async function registerWebhook(
 // 기존 코드와의 호환성을 위한 객체 export
 export const apiClient = {
 	getRecentNotices,
+	getQuickKeywordSuggestions,
 	getArchivedNotices,
 	searchNotices,
 	getNoticeDetail,

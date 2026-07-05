@@ -1,6 +1,7 @@
 import { env } from '$env/dynamic/private';
 import type {
 	ArchiveNoticeListResponse,
+	QuickKeywordSuggestionsResponse,
 	Notice,
 	NoticeChangeDetail,
 	NoticeChangeTimelineResponse,
@@ -308,6 +309,21 @@ function buildMockArchiveNotices(): Notice[] {
 
 export function getMockRecentNotices(): Notice[] {
 	return buildMockArchiveNotices().slice(0, 3);
+}
+
+export function getMockQuickKeywordSuggestions(): QuickKeywordSuggestionsResponse {
+	return {
+		items: [
+			{ keyword: '중대재해', score: 8.4, matchCount: 3 },
+			{ keyword: 'AI', score: 7.8, matchCount: 3 },
+			{ keyword: '개인정보', score: 6.9, matchCount: 2 },
+			{ keyword: '플랫폼', score: 5.8, matchCount: 2 },
+			{ keyword: '근로기준', score: 5.1, matchCount: 2 }
+		],
+		updatedAt: hoursAgo(1),
+		sourceNoticeCount: 12,
+		refreshIntervalMs: 60 * 60 * 1000
+	};
 }
 
 export function getMockArchiveNoticesResponse(params: {
