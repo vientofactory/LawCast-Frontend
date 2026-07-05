@@ -194,9 +194,9 @@
 										<span aria-hidden="true">·</span>
 										<span class="min-w-0 break-all">{toReadableSourceLabel(event.source)}</span>
 										<span aria-hidden="true">·</span>
-										hash
+										<span class="lc-text-muted">hash</span>
 										<span
-											class="rounded bg-gray-200 px-1 py-0.5 font-mono break-all"
+											class="lc-inline-code rounded px-1 py-0.5 font-mono break-all"
 											title={event.eventHash}
 										>
 											{shortenHash(event.eventHash)}
