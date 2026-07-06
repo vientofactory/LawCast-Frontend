@@ -268,6 +268,22 @@
 		if (currentIsDone) params.set('isDone', currentIsDone);
 		goto(`/notices?${params.toString()}`);
 	}
+
+	function handleSearchInputKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Enter' || event.isComposing) {
+			return;
+		}
+
+		const input = event.currentTarget as HTMLInputElement | null;
+		const form = input?.form;
+		if (!form) {
+			return;
+		}
+
+		// Mobile keyboards can skip implicit form submit for Enter; submit explicitly.
+		event.preventDefault();
+		form.requestSubmit();
+	}
 </script>
 
 <svelte:head>
@@ -445,13 +461,15 @@
 						/>
 						<input
 							id="archive-search"
-							type="text"
+							type="search"
 							name="search"
 							value={searchQuery}
+							enterkeyhint="search"
 							placeholder={fullText
 								? '법률안명, 소관위원회, 원문 키워드 검색'
 								: '법률안명, 소관위원회 검색'}
 							class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
+							on:keydown={handleSearchInputKeydown}
 						/>
 					</div>
 					<label for="archive-start-date" class="sr-only">시작일</label>
