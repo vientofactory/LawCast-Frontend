@@ -326,38 +326,21 @@
 		sourceDeletedAt: string | null;
 	};
 
-	function snapshotToBoolean(value: string | null | undefined): boolean | null {
-		if (value == null) {
-			return null;
-		}
-
-		const normalized = value.trim().toLowerCase();
-		if (['1', 'true', 'yes', 'on'].includes(normalized)) {
-			return true;
-		}
-
-		if (['0', 'false', 'no', 'off'].includes(normalized)) {
-			return false;
-		}
-
-		return null;
-	}
-
-	function buildDisplayContent(snapshot: Record<string, string | null> | null): DisplayContent {
+	function buildDisplayContentFromDetail(input: NoticeDetail): DisplayContent {
 		return {
-			title: snapshot?.subject ?? detail.notice.subject,
-			proposalReason: snapshot?.proposalReason ?? detail.originalContent.proposalReason,
-			billNumber: snapshot?.billNumber ?? detail.originalContent.billNumber,
-			proposer: snapshot?.proposer ?? detail.originalContent.proposer,
-			proposerCategory: snapshot?.proposerCategory ?? detail.notice.proposerCategory,
-			proposalDate: snapshot?.proposalDate ?? detail.originalContent.proposalDate,
-			committee: snapshot?.committee ?? detail.originalContent.committee ?? detail.notice.committee,
-			referralDate: snapshot?.referralDate ?? detail.originalContent.referralDate,
-			noticePeriod: snapshot?.noticePeriod ?? detail.originalContent.noticePeriod,
-			proposalSession: snapshot?.proposalSession ?? detail.originalContent.proposalSession,
-			isDone: snapshotToBoolean(snapshot?.isDone) ?? detail.notice.isDone ?? null,
-			lifecycleStatus: snapshot?.lifecycleStatus ?? detail.notice.lifecycleStatus ?? null,
-			sourceDeletedAt: snapshot?.sourceDeletedAt ?? detail.notice.sourceDeletedAt ?? null
+			title: input.notice.subject,
+			proposalReason: input.originalContent.proposalReason,
+			billNumber: input.originalContent.billNumber,
+			proposer: input.originalContent.proposer,
+			proposerCategory: input.notice.proposerCategory,
+			proposalDate: input.originalContent.proposalDate,
+			committee: input.originalContent.committee ?? input.notice.committee,
+			referralDate: input.originalContent.referralDate,
+			noticePeriod: input.originalContent.noticePeriod,
+			proposalSession: input.originalContent.proposalSession,
+			isDone: input.notice.isDone ?? null,
+			lifecycleStatus: input.notice.lifecycleStatus ?? null,
+			sourceDeletedAt: input.notice.sourceDeletedAt ?? null
 		};
 	}
 
@@ -385,12 +368,18 @@
 		committee: '소관위원회',
 		proposalReason: '제안이유',
 		billNumber: '입법예고 의안번호',
+		contentBillNumber: '입법예고 의안번호',
 		proposer: '입법예고 제안자',
+		contentProposer: '입법예고 제안자',
 		proposalDate: '입법예고 제안일',
+		contentProposalDate: '입법예고 제안일',
 		contentCommittee: '입법예고 소관위원회',
 		referralDate: '입법예고 회부일',
+		contentReferralDate: '입법예고 회부일',
 		noticePeriod: '입법예고 기간',
+		contentNoticePeriod: '입법예고 기간',
 		proposalSession: '입법예고 제안회기',
+		contentProposalSession: '입법예고 제안회기',
 		isDone: '처리 상태',
 		lifecycleStatus: '보존 상태',
 		sourceDeletedAt: '소스 삭제 감지 시각'
@@ -427,13 +416,7 @@
 	}
 
 	$: snapshotsByRevision = buildSnapshotsByRevision(changes.items);
-	$: headRevisionSnapshot =
-		headRevision !== null ? (snapshotsByRevision[headRevision] ?? null) : null;
-	$: activeRevisionSnapshot =
-		activeRevision !== null
-			? (snapshotsByRevision[activeRevision] ?? headRevisionSnapshot)
-			: headRevisionSnapshot;
-	$: displayContent = buildDisplayContent(activeRevisionSnapshot);
+	$: displayContent = buildDisplayContentFromDetail(detail);
 	$: selectedFromRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpFrom'));
 	$: selectedToRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpTo'));
 	$: showAllCompareFields =
