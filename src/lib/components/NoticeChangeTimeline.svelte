@@ -5,6 +5,7 @@
 	import NoticeRevisionCompare from '$lib/components/NoticeRevisionCompare.svelte';
 	import type { NoticeChangeTimelineResponse } from '$lib/types/api';
 	import { NoticeChangeSource } from '$lib/types/change-source';
+	import { formatDateTimeKST } from '$lib/utils/helpers';
 
 	export let isOpen = false;
 	export let changes: NoticeChangeTimelineResponse;
@@ -190,7 +191,7 @@
 									<p
 										class="lc-text-secondary flex flex-wrap items-center gap-1.5 text-xs leading-relaxed wrap-break-word"
 									>
-										<span>{event.detectedAt.toLocaleString()}</span>
+										<span>{formatDateTimeKST(event.detectedAt)}</span>
 										<span aria-hidden="true">·</span>
 										<span class="min-w-0 break-all">{toReadableSourceLabel(event.source)}</span>
 										<span aria-hidden="true">·</span>

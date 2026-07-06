@@ -17,6 +17,7 @@
 		faTableList
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { ComparableChangeSummary, RecentNoticeChangesResponse } from '$lib/types/api';
+	import { formatDateTimeKST } from '$lib/utils/helpers';
 
 	export let data: {
 		changes: RecentNoticeChangesResponse;
@@ -224,7 +225,7 @@
 									</span>
 								</div>
 								<p class="lc-text-secondary text-xs">
-									{new Date(item.detectedAt).toLocaleString()} · 바뀐 항목 {item.changedFieldCount}개
+									{formatDateTimeKST(item.detectedAt)} · 바뀐 항목 {item.changedFieldCount}개
 								</p>
 							</div>
 							<a

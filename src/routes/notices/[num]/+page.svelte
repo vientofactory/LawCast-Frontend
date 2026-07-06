@@ -27,6 +27,7 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { NoticeDetail, NoticeChangeTimelineResponse } from '$lib/types/api';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { formatDateTimeKST } from '$lib/utils/helpers';
 
 	export let data: {
 		detail: NoticeDetail;
@@ -53,16 +54,7 @@
 	}
 
 	function formatDateTime(value: string | null): string {
-		if (!value) {
-			return 'N/A';
-		}
-
-		const date = new Date(value);
-		if (Number.isNaN(date.getTime())) {
-			return 'N/A';
-		}
-
-		return date.toLocaleString('ko-KR');
+		return formatDateTimeKST(value);
 	}
 
 	$: pageTitle = `${displayContent.title} - 제안이유 및 주요내용 원문 | LawCast`;

@@ -1,5 +1,7 @@
 import type { WebhookValidationResult } from '../types/api';
 
+export const KST_TIMEZONE = 'Asia/Seoul';
+
 /**
  * Discord 웹훅 URL 유효성 검증
  */
@@ -87,10 +89,35 @@ export function formatDate(dateString: string | null): string {
 	try {
 		const date = new Date(dateString);
 		if (isNaN(date.getTime())) return '날짜 오류';
-		return date.toLocaleString('ko-KR');
+		return date.toLocaleString('ko-KR', { timeZone: KST_TIMEZONE });
 	} catch {
 		return '날짜 오류';
 	}
+}
+
+export function formatDateTimeKST(value: string | Date | null | undefined): string {
+	if (!value) return 'N/A';
+
+	const parsed = value instanceof Date ? value : new Date(value);
+	if (Number.isNaN(parsed.getTime())) return 'N/A';
+
+	return parsed.toLocaleString('ko-KR', { timeZone: KST_TIMEZONE });
+}
+
+export function formatDateOnlyKST(value: string | Date | null | undefined): string {
+	if (!value) return 'N/A';
+
+	const parsed = value instanceof Date ? value : new Date(value);
+	if (Number.isNaN(parsed.getTime())) return 'N/A';
+
+	const formatter = new Intl.DateTimeFormat('en-CA', {
+		timeZone: KST_TIMEZONE,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	});
+
+	return formatter.format(parsed);
 }
 
 /**

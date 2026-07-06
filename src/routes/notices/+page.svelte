@@ -25,6 +25,7 @@
 		faTriangleExclamation
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { ArchiveNoticeListResponse } from '$lib/types/api';
+	import { KST_TIMEZONE } from '$lib/utils/helpers';
 
 	export let data: {
 		archive: ArchiveNoticeListResponse;
@@ -85,23 +86,38 @@
 		error = data.error || '';
 	}
 
-	function toInputDate(date: Date) {
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, '0');
-		const day = String(date.getDate()).padStart(2, '0');
-		return `${year}-${month}-${day}`;
-	}
-
 	function addDays(base: Date, amount: number) {
 		const dayMillis = 24 * 60 * 60 * 1000;
 		return new SvelteDate(base.getTime() + amount * dayMillis);
 	}
 
+	function getKstDateParts(base: Date) {
+		const formatter = new Intl.DateTimeFormat('en-CA', {
+			timeZone: KST_TIMEZONE,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit'
+		});
+
+		const parts = formatter.formatToParts(base);
+		const year = Number(parts.find((part) => part.type === 'year')?.value ?? '1970');
+		const month = Number(parts.find((part) => part.type === 'month')?.value ?? '01');
+		const day = Number(parts.find((part) => part.type === 'day')?.value ?? '01');
+
+		return { year, month, day };
+	}
+
+	function toKstInputDate(base: Date) {
+		const { year, month, day } = getKstDateParts(base);
+		return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+	}
+
 	const today = new SvelteDate();
-	const todayInputDate = toInputDate(today);
-	const quickStart7Days = toInputDate(addDays(today, -6));
-	const quickStart30Days = toInputDate(addDays(today, -29));
-	const quickMonthStart = toInputDate(new SvelteDate(today.getFullYear(), today.getMonth(), 1));
+	const todayInputDate = toKstInputDate(today);
+	const quickStart7Days = toKstInputDate(addDays(today, -6));
+	const quickStart30Days = toKstInputDate(addDays(today, -29));
+	const kstTodayParts = getKstDateParts(today);
+	const quickMonthStart = `${kstTodayParts.year}-${String(kstTodayParts.month).padStart(2, '0')}-01`;
 	$: isQuick7DaysActive = startDate === quickStart7Days && endDate === todayInputDate;
 	$: isQuick30DaysActive = startDate === quickStart30Days && endDate === todayInputDate;
 	$: isQuickThisMonthActive = startDate === quickMonthStart && endDate === todayInputDate;

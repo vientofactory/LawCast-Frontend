@@ -25,6 +25,7 @@
 		BatchProcessingStats,
 		IsDoneSyncStatus
 	} from '$lib/types/api';
+	import { formatDateTimeKST } from '$lib/utils/helpers';
 
 	export let data: PageData;
 
@@ -77,10 +78,7 @@
 	$: overallLabel = overallStatus === 'healthy' ? '정상' : '주의 필요';
 
 	function formatDateTime(value: string | null | undefined): string {
-		if (!value) return 'N/A';
-		const parsed = new Date(value);
-		if (Number.isNaN(parsed.getTime())) return 'N/A';
-		return parsed.toLocaleString('ko-KR');
+		return formatDateTimeKST(value);
 	}
 
 	function statusStyle(status: OllamaHealthStatus | 'healthy' | 'degraded') {

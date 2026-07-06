@@ -6,6 +6,7 @@ const BACKEND_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 const BATCH_SIZE = 100;
 const MAX_NOTICES = 5000; // Google 권장 상한 50,000 이내
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간
+const KST_TIMEZONE = 'Asia/Seoul';
 
 let cachedXml: string | null = null;
 let cacheExpiresAt = 0;
@@ -13,6 +14,25 @@ let cacheExpiresAt = 0;
 interface NoticeEntry {
 	num: number;
 	lastmod: string;
+}
+
+function formatKstDate(value: string | Date): string {
+	const parsed = value instanceof Date ? value : new Date(value);
+	if (Number.isNaN(parsed.getTime())) {
+		return new Intl.DateTimeFormat('en-CA', {
+			timeZone: KST_TIMEZONE,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit'
+		}).format(new Date());
+	}
+
+	return new Intl.DateTimeFormat('en-CA', {
+		timeZone: KST_TIMEZONE,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	}).format(parsed);
 }
 
 async function fetchAllNoticeEntries(customFetch: typeof fetch): Promise<NoticeEntry[]> {
@@ -62,7 +82,7 @@ async function fetchAllNoticeEntries(customFetch: typeof fetch): Promise<NoticeE
 
 function toEntry(item: Notice): NoticeEntry {
 	const rawDate = item.lastUpdatedAt ?? item.archiveStartedAt;
-	const lastmod = rawDate ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0];
+	const lastmod = rawDate ? formatKstDate(rawDate) : formatKstDate(new Date());
 	return { num: item.num, lastmod };
 }
 
@@ -87,7 +107,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
 	}
 
 	const origin = url.origin;
-	const today = new Date().toISOString().split('T')[0];
+	const today = formatKstDate(new Date());
 
 	const staticEntries = [
 		urlTag(`${origin}/`, today, 'daily', '1.0'),
