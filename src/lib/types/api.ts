@@ -113,6 +113,7 @@ export interface NoticeChangeTimelineResponse {
 export interface RecentNoticeChangeItem {
 	id: number;
 	noticeNum: number;
+	subject?: string | null;
 	detectedAt: string;
 	eventType: ChangeEventType;
 	source: string | null;

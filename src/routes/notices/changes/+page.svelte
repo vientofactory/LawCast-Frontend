@@ -126,6 +126,9 @@
 					<article class="lc-panel-card rounded-xl border p-4 shadow-sm">
 						<div class="flex flex-wrap items-center justify-between gap-3">
 							<div class="min-w-0">
+								<p class="lc-text-primary mb-2 truncate text-sm font-semibold sm:text-base">
+									{item.subject?.trim() || '(법률안 제목 정보 없음)'}
+								</p>
 								<div class="mb-2 flex flex-wrap items-center gap-2">
 									<span
 										class="lc-chip-blue inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
