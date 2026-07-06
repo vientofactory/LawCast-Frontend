@@ -50,6 +50,12 @@ COPY --from=hardened-malloc /hardened_malloc/out/libhardened_malloc.so /usr/loca
 
 ENV NODE_ENV=production
 ENV LD_PRELOAD=/usr/local/lib/libhardened_malloc.so
+ENV TZ=Asia/Seoul
+
+# Set container system timezone to KST.
+RUN apk add --no-cache tzdata && \
+  cp /usr/share/zoneinfo/Asia/Seoul /etc/localtime && \
+  echo "Asia/Seoul" > /etc/timezone
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
