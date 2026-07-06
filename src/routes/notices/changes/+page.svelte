@@ -1,12 +1,18 @@
 <script lang="ts">
 	import Header from '$lib/components/Header.svelte';
+	import { goto } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
+		faAnglesLeft,
+		faAnglesRight,
 		faArrowLeft,
+		faChevronLeft,
+		faChevronRight,
 		faCircleInfo,
 		faCodeCompare,
 		faFileCircleXmark,
 		faRotate,
+		faSpinner,
 		faSquarePollHorizontal,
 		faTableList
 	} from '@fortawesome/free-solid-svg-icons';
@@ -19,6 +25,16 @@
 
 	$: changes = data.changes;
 	$: summary = data.summary;
+	$: currentPage = changes.page || 1;
+	$: totalPages = changes.totalPages || 1;
+	$: totalItems = changes.total || 0;
+	$: limit = changes.limit || 10;
+
+	let pendingPaginationPage: number | null = null;
+
+	$: if (pendingPaginationPage === currentPage) {
+		pendingPaginationPage = null;
+	}
 
 	function eventTypeLabel(eventType: string): string {
 		switch (eventType) {
@@ -55,6 +71,66 @@
 	function buildPageHref(page: number): string {
 		const safePage = Math.max(1, page);
 		return `/notices/changes?page=${safePage}&limit=${changes.limit}`;
+	}
+
+	function getPaginationInfo() {
+		if (totalItems === 0) {
+			return '0개';
+		}
+
+		const start = (currentPage - 1) * limit + 1;
+		const end = Math.min(currentPage * limit, totalItems);
+		return `${start.toLocaleString('ko-KR')}-${end.toLocaleString('ko-KR')} / ${totalItems.toLocaleString('ko-KR')}개`;
+	}
+
+	$: paginationItems = (() => {
+		if (totalPages <= 7) {
+			return Array.from({ length: totalPages }, (_, idx) => idx + 1);
+		}
+
+		const items: Array<number | 'left-ellipsis' | 'right-ellipsis'> = [1];
+		let start = Math.max(2, currentPage - 1);
+		let end = Math.min(totalPages - 1, currentPage + 1);
+
+		if (currentPage <= 3) {
+			start = 2;
+			end = 4;
+		} else if (currentPage >= totalPages - 2) {
+			start = totalPages - 3;
+			end = totalPages - 1;
+		}
+
+		if (start > 2) {
+			items.push('left-ellipsis');
+		}
+
+		for (let page = start; page <= end; page++) {
+			items.push(page);
+		}
+
+		if (end < totalPages - 1) {
+			items.push('right-ellipsis');
+		}
+
+		items.push(totalPages);
+		return items;
+	})();
+
+	function handlePaginationClick(event: MouseEvent, targetPage: number) {
+		if (
+			event.defaultPrevented ||
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey
+		) {
+			return;
+		}
+
+		event.preventDefault();
+		pendingPaginationPage = targetPage;
+		goto(buildPageHref(targetPage));
 	}
 </script>
 
@@ -163,31 +239,133 @@
 				{/each}
 			</section>
 
-			{#if changes.totalPages > 1}
+			{#if totalPages > 1 && totalItems > limit}
 				<nav
-					class="mt-6 flex flex-wrap items-center justify-center gap-2"
-					aria-label="페이지네이션"
+					class="mt-12 flex flex-wrap items-center justify-center gap-2 px-2"
+					aria-label="페이지 내비게이션"
 				>
-					{#if changes.page > 1}
+					{#if currentPage > 1}
 						<a
-							href={buildPageHref(changes.page - 1)}
-							class="lc-button-neutral rounded-lg border px-3 py-2 text-sm"
+							href={buildPageHref(1)}
+							on:click={(event) => handlePaginationClick(event, 1)}
+							aria-label="첫 페이지로 이동"
+							title="첫 페이지"
+							class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
 						>
-							이전
+							{#if pendingPaginationPage === 1}
+								<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+							{:else}
+								<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
+							{/if}
 						</a>
+					{:else}
+						<span
+							aria-hidden="true"
+							class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+						>
+							<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
+						</span>
 					{/if}
-					<span class="lc-text-secondary px-2 text-sm">
-						{changes.page} / {changes.totalPages}
-					</span>
-					{#if changes.page < changes.totalPages}
+
+					{#if currentPage > 1}
 						<a
-							href={buildPageHref(changes.page + 1)}
-							class="lc-button-neutral rounded-lg border px-3 py-2 text-sm"
+							href={buildPageHref(currentPage - 1)}
+							on:click={(event) => handlePaginationClick(event, currentPage - 1)}
+							aria-label="이전 페이지로 이동"
+							title="이전 페이지"
+							class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
 						>
-							다음
+							{#if pendingPaginationPage === currentPage - 1}
+								<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+							{:else}
+								<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
+							{/if}
 						</a>
+					{:else}
+						<span
+							aria-hidden="true"
+							class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+						>
+							<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
+						</span>
+					{/if}
+
+					{#each paginationItems as item, idx (`${item}-${idx}`)}
+						{#if typeof item === 'number'}
+							<a
+								href={buildPageHref(item)}
+								on:click={(event) => handlePaginationClick(event, item)}
+								class={`rounded-xl px-3 py-2 text-xs font-bold shadow-sm transition-all duration-200 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm ${
+									currentPage === item
+										? 'lc-pagination-active scale-105 border'
+										: 'lc-pagination-btn border-2'
+								}`}
+							>
+								{#if pendingPaginationPage === item}
+									<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+								{:else}
+									{item}
+								{/if}
+							</a>
+						{:else}
+							<span class="lc-text-dim px-1 text-xs font-semibold sm:px-2 sm:text-sm">...</span>
+						{/if}
+					{/each}
+
+					{#if currentPage < totalPages}
+						<a
+							href={buildPageHref(currentPage + 1)}
+							on:click={(event) => handlePaginationClick(event, currentPage + 1)}
+							aria-label="다음 페이지로 이동"
+							title="다음 페이지"
+							class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
+						>
+							{#if pendingPaginationPage === currentPage + 1}
+								<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+							{:else}
+								<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
+							{/if}
+						</a>
+					{:else}
+						<span
+							aria-hidden="true"
+							class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+						>
+							<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
+						</span>
+					{/if}
+
+					{#if currentPage < totalPages}
+						<a
+							href={buildPageHref(totalPages)}
+							on:click={(event) => handlePaginationClick(event, totalPages)}
+							aria-label="마지막 페이지로 이동"
+							title="마지막 페이지"
+							class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
+						>
+							{#if pendingPaginationPage === totalPages}
+								<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+							{:else}
+								<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
+							{/if}
+						</a>
+					{:else}
+						<span
+							aria-hidden="true"
+							class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
+						>
+							<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
+						</span>
 					{/if}
 				</nav>
+
+				<div class="mt-6 text-center">
+					<span
+						class="lc-page-count inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold"
+					>
+						{getPaginationInfo()}
+					</span>
+				</div>
 			{/if}
 		{/if}
 	</main>
