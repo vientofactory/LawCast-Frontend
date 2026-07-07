@@ -136,7 +136,7 @@
 				aria-labelledby="home-page-title"
 				data-testid="home-hero"
 			>
-				<div class="mx-auto flex max-w-4xl flex-col justify-center gap-8">
+				<div class="lc-home-hero-content mx-auto flex max-w-4xl flex-col justify-center gap-8">
 					<div class="space-y-4 text-center lg:text-left">
 						<span class="lc-home-kicker inline-flex rounded-full px-3 py-1 text-xs font-semibold">
 							입법예고 기록 보관소
@@ -261,7 +261,7 @@
 
 					<section
 						id="home-quick-search"
-						class="lc-home-search-card rounded-[1.75rem] border p-5 sm:p-6"
+						class="lc-home-search-card lc-home-search-shell rounded-[1.75rem] border p-5 sm:p-6"
 						aria-labelledby="home-search-heading"
 						data-testid="home-search-region"
 					>
@@ -283,7 +283,7 @@
 							<form
 								method="GET"
 								action="/notices"
-								class="flex flex-col gap-3"
+								class="lc-home-search-form flex flex-col gap-3"
 								class:pointer-events-none={isQuickSearchLoading}
 								class:opacity-80={isQuickSearchLoading}
 								aria-busy={isQuickSearchLoading}
@@ -309,14 +309,25 @@
 										title="검색"
 										disabled={isQuickSearchLoading}
 										data-testid="home-search-submit"
-										class="lc-button-primary inline-flex shrink-0 cursor-pointer items-center justify-center rounded-2xl px-5 py-4 text-sm font-semibold whitespace-nowrap"
+										class="lc-home-search-submit lc-button-primary inline-flex shrink-0 cursor-pointer items-center justify-center rounded-2xl px-5 py-4 text-sm font-semibold whitespace-nowrap"
 									>
-										{#if isQuickSearchLoading}
-											<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
-										{:else}
-											<FontAwesomeIcon icon={faMagnifyingGlass} class="mr-2 h-4 w-4" />
-											통합 검색
-										{/if}
+										<span class="lc-home-search-submit-inner">
+											<span
+												class="lc-home-search-submit-label"
+												class:opacity-0={isQuickSearchLoading}
+												aria-hidden={isQuickSearchLoading}
+											>
+												<FontAwesomeIcon icon={faMagnifyingGlass} class="mr-2 h-4 w-4" />
+												통합 검색
+											</span>
+											<span
+												class="lc-home-search-submit-spinner"
+												class:opacity-0={!isQuickSearchLoading}
+												aria-hidden={!isQuickSearchLoading}
+											>
+												<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
+											</span>
+										</span>
 									</button>
 								</div>
 							</form>
@@ -348,16 +359,17 @@
 								</div>
 							</section>
 
-							{#if isQuickSearchLoading}
-								<div
-									class="lc-loading-track h-1.5 w-full overflow-hidden rounded-full"
-									role="status"
-									aria-live="polite"
-								>
-									<span class="sr-only">불러오는 중...</span>
+							<div
+								class="lc-home-search-loading-shell"
+								class:is-active={isQuickSearchLoading}
+								role="status"
+								aria-live="polite"
+							>
+								<span class="sr-only">불러오는 중...</span>
+								<div class="lc-loading-track h-1.5 w-full overflow-hidden rounded-full">
 									<div class="lc-loading-fill loading-slide h-full w-1/3 rounded-full"></div>
 								</div>
-							{/if}
+							</div>
 						</div>
 					</section>
 
@@ -391,6 +403,7 @@
 				id="recent-notices"
 				aria-labelledby="recent-notices-heading"
 				data-testid="recent-notices-region"
+				class="lc-defer-render"
 			>
 				<h2 id="recent-notices-heading" class="sr-only">최근 입법예고</h2>
 				<RecentNotices notices={recentNotices} {stats} />

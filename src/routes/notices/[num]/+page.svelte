@@ -751,7 +751,7 @@
 
 		{#if contentFacts.length > 0}
 			<section
-				class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm"
+				class="lc-panel-card lc-defer-render-sm mb-6 rounded-2xl border p-6 shadow-sm"
 				aria-labelledby="notice-detail-facts-heading"
 				data-testid="notice-detail-facts"
 			>
@@ -816,6 +816,7 @@
 			bind:this={timelineSectionElement}
 			aria-labelledby="notice-detail-timeline-heading"
 			data-testid="notice-detail-timeline"
+			class="lc-defer-render"
 		>
 			<h2 id="notice-detail-timeline-heading" class="sr-only">변경 추적 타임라인</h2>
 			{#if hasLegacyGenesisBoundary}
@@ -847,7 +848,7 @@
 
 		<details
 			bind:open={isArchiveMetaOpen}
-			class="lc-panel-card group rounded-2xl border p-6 shadow-sm"
+			class="lc-panel-card lc-defer-render group rounded-2xl border p-6 shadow-sm"
 			data-testid="notice-detail-archive-meta"
 		>
 			<summary

@@ -1,11 +1,75 @@
-@import '@fontsource/pretendard';
-@import '@fontsource/pretendard/500.css';
-@import '@fontsource/pretendard/600.css';
-@import '@fontsource/pretendard/700.css';
 @import 'tailwindcss';
 
+@font-face {
+	font-family: 'Pretendard Latin';
+	font-style: normal;
+	font-weight: 400;
+	font-display: optional;
+	src: url('/fonts/pretendard/pretendard-latin-400-normal.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20A0-20CF,
+		U+2113, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Pretendard Latin';
+	font-style: normal;
+	font-weight: 500;
+	font-display: optional;
+	src: url('/fonts/pretendard/pretendard-latin-500-normal.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20A0-20CF,
+		U+2113, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Pretendard Latin';
+	font-style: normal;
+	font-weight: 600;
+	font-display: optional;
+	src: url('/fonts/pretendard/pretendard-latin-600-normal.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20A0-20CF,
+		U+2113, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Pretendard Latin';
+	font-style: normal;
+	font-weight: 700;
+	font-display: optional;
+	src: url('/fonts/pretendard/pretendard-latin-700-normal.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20A0-20CF,
+		U+2113, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Pretendard Latin';
+	font-style: normal;
+	font-weight: 900;
+	font-display: optional;
+	src: url('/fonts/pretendard/pretendard-latin-900-normal.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20A0-20CF,
+		U+2113, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:global(.svg-inline--fa) {
+	display: inline-block;
+	height: 1em;
+	overflow: visible;
+	vertical-align: -0.125em;
+}
+
+:global(.svg-inline--fa.fa-fw) {
+	width: 1.25em;
+}
+
 :root {
-	font-family: 'Pretendard', system-ui, sans-serif;
+	font-family:
+		'Pretendard Latin', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', 'Apple Color Emoji',
+		'Noto Color Emoji', system-ui, sans-serif;
 	--lc-body-bg: #fafafb;
 	--lc-page-bg: #f4f6f8;
 	--lc-header-gradient: rgba(255, 255, 255, 0.96);
@@ -103,6 +167,21 @@ textarea {
 	background: var(--lc-page-bg);
 }
 
+.lc-defer-render {
+	content-visibility: auto;
+	contain-intrinsic-size: auto 720px;
+}
+
+.lc-defer-render-sm {
+	content-visibility: auto;
+	contain-intrinsic-size: auto 280px;
+}
+
+.lc-defer-render-lg {
+	content-visibility: auto;
+	contain-intrinsic-size: auto 1080px;
+}
+
 :root {
 	--lc-home-hero-header-offset: 8.5rem;
 }
@@ -131,6 +210,11 @@ textarea {
 	display: flex;
 	align-items: center;
 	isolation: isolate;
+}
+
+.lc-home-hero-content {
+	width: 100%;
+	min-block-size: clamp(39rem, 74svh, 47rem);
 }
 
 .lc-home-hero::after {
@@ -197,6 +281,50 @@ textarea {
 	border-color: var(--lc-home-search-border);
 	box-shadow: var(--lc-home-search-shadow);
 	backdrop-filter: blur(14px);
+}
+
+.lc-home-search-shell {
+	contain: layout paint;
+	min-block-size: 19rem;
+}
+
+.lc-home-search-form {
+	min-block-size: 5.5rem;
+}
+
+.lc-home-search-submit {
+	min-inline-size: 8.5rem;
+}
+
+.lc-home-search-submit-inner {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-inline-size: 4.75rem;
+}
+
+.lc-home-search-submit-label,
+.lc-home-search-submit-spinner {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: opacity 140ms ease;
+}
+
+.lc-home-search-submit-spinner {
+	position: absolute;
+	inset: 0;
+}
+
+.lc-home-search-loading-shell {
+	min-block-size: 0.375rem;
+	opacity: 0;
+	transition: opacity 140ms ease;
+}
+
+.lc-home-search-loading-shell.is-active {
+	opacity: 1;
 }
 
 .lc-home-signal-grid {
@@ -300,6 +428,18 @@ textarea {
 
 	.lc-home-hero {
 		min-height: calc(100svh - var(--lc-home-hero-header-offset));
+	}
+
+	.lc-home-hero-content {
+		min-block-size: 43rem;
+	}
+
+	.lc-home-search-shell {
+		min-block-size: 21.5rem;
+	}
+
+	.lc-home-search-form {
+		min-block-size: 8.5rem;
 	}
 }
 
@@ -1198,13 +1338,28 @@ html[data-theme='dark'] .lc-alert {
 }
 
 /* NProgress 커스텀 스타일 */
+#nprogress {
+	pointer-events: none;
+}
+
 #nprogress .bar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
 	background: #3b82f6 !important;
 	height: 4px !important;
 	z-index: 99999 !important;
 }
 
 #nprogress .peg {
+	display: block;
+	position: absolute;
+	right: 0;
+	width: 100px;
+	height: 100%;
+	opacity: 1;
+	transform: rotate(3deg) translate(0, -4px);
 	box-shadow:
 		0 0 10px #6366f1,
 		0 0 5px #3b82f6 !important;

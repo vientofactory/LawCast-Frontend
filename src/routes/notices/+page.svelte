@@ -730,7 +730,7 @@
 							class:opacity-85={isServerLoading}
 							data-testid="notices-results-list"
 						>
-							{#each notices as notice (notice.num)}
+							{#each notices as notice, index (notice.num)}
 								<article
 									aria-labelledby="notice-heading-{notice.num}"
 									data-testid={`notice-card-${notice.num}`}
@@ -739,6 +739,7 @@
 											? 'lc-notice-card-done lc-notice-border-done'
 											: 'lc-notice-border-active'
 									}`}
+									class:lc-defer-render-sm={index > 1}
 								>
 									<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 										<div class="min-w-0 flex-1">
@@ -882,7 +883,7 @@
 
 						{#if totalPages > 1 && totalItems > limit}
 							<nav
-								class="mt-12 flex flex-wrap items-center justify-center gap-2 px-2"
+								class="lc-defer-render-sm mt-12 flex flex-wrap items-center justify-center gap-2 px-2"
 								aria-label="페이지 내비게이션"
 								data-testid="notices-pagination"
 							>

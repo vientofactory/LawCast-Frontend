@@ -315,7 +315,7 @@
 		</div>
 
 		{#if hasBatchBacklog || hasCacheIssue || hasOllamaIssue}
-			<section class="lc-banner-warning mt-4 rounded-2xl border p-4">
+			<section class="lc-banner-warning lc-defer-render-sm mt-4 rounded-2xl border p-4">
 				<h2 class="mb-2 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-4 w-4" />
 					안내
@@ -339,7 +339,7 @@
 			</section>
 		{/if}
 
-		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
+		<section class="lc-panel-card lc-defer-render-sm mt-4 rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
 				<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
 				종료 마커 동기화
@@ -382,7 +382,7 @@
 			{/if}
 		</section>
 
-		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
+		<section class="lc-panel-card lc-defer-render mt-4 rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
 				<FontAwesomeIcon icon={faBoxArchive} class="lc-text-purple mr-2 h-4 w-4" />
 				최근 배치 작업 이력

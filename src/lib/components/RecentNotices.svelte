@@ -80,10 +80,11 @@
 		</div>
 	{:else}
 		<div class="space-y-3">
-			{#each notices.slice(0, 5) as notice (notice.num)}
+			{#each notices.slice(0, 5) as notice, index (notice.num)}
 				<article
 					aria-labelledby="recent-notice-{notice.num}"
 					class="lc-panel-inset group rounded-xl border p-4 transition-all duration-200 hover:shadow-md"
+					class:lc-defer-render-sm={index > 1}
 				>
 					<div class="mb-3 flex items-start justify-between">
 						<a

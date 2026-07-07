@@ -1,11 +1,9 @@
 <script lang="ts">
 	import '../app.css';
-	import 'nprogress/nprogress.css';
 	import Footer from '$lib/components/Footer.svelte';
 	import NProgress from 'nprogress';
 	import { page } from '$app/state';
 	import { navigating } from '$app/state';
-	import '@fortawesome/fontawesome-svg-core/styles.css';
 	import { config } from '@fortawesome/fontawesome-svg-core';
 
 	config.autoAddCss = false;
