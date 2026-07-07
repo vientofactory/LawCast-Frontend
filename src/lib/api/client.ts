@@ -338,6 +338,11 @@ export async function getRecentNoticeChanges(
 		eventType?: ChangeEventType;
 		excludeLegacyGenesisSource?: boolean;
 		comparableOnly?: boolean;
+		fromEventId?: number;
+		toEventId?: number;
+		fromDetectedAt?: string;
+		toDetectedAt?: string;
+		anchorEventId?: number;
 	} = {},
 	customFetch?: Fetch
 ): Promise<RecentNoticeChangesResponse> {
@@ -348,6 +353,21 @@ export async function getRecentNoticeChanges(
 		if (params.eventType) query.set('eventType', params.eventType);
 		if (params.excludeLegacyGenesisSource === true) query.set('excludeLegacyGenesisSource', 'true');
 		if (params.comparableOnly === true) query.set('comparableOnly', 'true');
+		if (params.fromEventId && params.fromEventId > 0) {
+			query.set('fromEventId', String(params.fromEventId));
+		}
+		if (params.toEventId && params.toEventId > 0) {
+			query.set('toEventId', String(params.toEventId));
+		}
+		if (params.fromDetectedAt?.trim()) {
+			query.set('fromDetectedAt', params.fromDetectedAt.trim());
+		}
+		if (params.toDetectedAt?.trim()) {
+			query.set('toDetectedAt', params.toDetectedAt.trim());
+		}
+		if (params.anchorEventId && params.anchorEventId > 0) {
+			query.set('anchorEventId', String(params.anchorEventId));
+		}
 
 		const suffix = query.toString() ? `?${query.toString()}` : '';
 		return await request<RecentNoticeChangesResponse>(

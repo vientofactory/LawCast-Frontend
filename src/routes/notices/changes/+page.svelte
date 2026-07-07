@@ -22,14 +22,23 @@
 	export let data: {
 		changes: RecentNoticeChangesResponse;
 		summary: ComparableChangeSummary;
+		digestContext: {
+			isDigestContext: boolean;
+			fromEventId: number | null;
+			toEventId: number | null;
+			fromDetectedAt: string | null;
+			toDetectedAt: string | null;
+		};
 	};
 
 	$: changes = data.changes;
 	$: summary = data.summary;
+	$: digestContext = data.digestContext;
 	$: currentPage = changes.page || 1;
 	$: totalPages = changes.totalPages || 1;
 	$: totalItems = changes.total || 0;
 	$: limit = changes.limit || 10;
+	$: isDigestContext = digestContext?.isDigestContext === true;
 
 	let pendingPaginationPage: number | null = null;
 
@@ -65,8 +74,68 @@
 
 	function buildPageHref(page: number): string {
 		const safePage = Math.max(1, page);
-		return `/notices/changes?page=${safePage}&limit=${changes.limit}`;
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
+		const params = new URLSearchParams();
+		params.set('page', String(safePage));
+		params.set('limit', String(changes.limit));
+
+		if (digestContext?.fromEventId) {
+			params.set('fromEventId', String(digestContext.fromEventId));
+		}
+
+		if (digestContext?.toEventId) {
+			params.set('toEventId', String(digestContext.toEventId));
+		}
+
+		if (digestContext?.fromDetectedAt) {
+			params.set('fromDetectedAt', digestContext.fromDetectedAt);
+		}
+
+		if (digestContext?.toDetectedAt) {
+			params.set('toDetectedAt', digestContext.toDetectedAt);
+		}
+
+		if (isDigestContext) {
+			params.set('digest', '1');
+		}
+
+		return `/notices/changes?${params.toString()}`;
 	}
+
+	function isDigestMatchedItem(item: (typeof changes.items)[number]): boolean {
+		if (!isDigestContext) {
+			return false;
+		}
+
+		if (digestContext.fromEventId && item.id < digestContext.fromEventId) {
+			return false;
+		}
+
+		if (digestContext.toEventId && item.id > digestContext.toEventId) {
+			return false;
+		}
+
+		const detectedAtEpoch = Date.parse(item.detectedAt);
+		if (Number.isFinite(detectedAtEpoch)) {
+			if (digestContext.fromDetectedAt) {
+				const fromEpoch = Date.parse(digestContext.fromDetectedAt);
+				if (Number.isFinite(fromEpoch) && detectedAtEpoch < fromEpoch) {
+					return false;
+				}
+			}
+
+			if (digestContext.toDetectedAt) {
+				const toEpoch = Date.parse(digestContext.toDetectedAt);
+				if (Number.isFinite(toEpoch) && detectedAtEpoch > toEpoch) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	$: digestMatchedCount = changes.items.filter((item) => isDigestMatchedItem(item)).length;
 
 	function getPaginationInfo() {
 		if (totalItems === 0) {
@@ -183,6 +252,16 @@
 			</span>
 		</div>
 
+		{#if isDigestContext}
+			<div class="lc-banner-warning mb-4 flex items-start rounded-xl border px-4 py-3 text-sm">
+				<FontAwesomeIcon icon={faCircleInfo} class="mt-0.5 mr-2 h-4 w-4 shrink-0" />
+				<span>
+					현재 페이지에서
+					<strong>{digestMatchedCount.toLocaleString('ko-KR')}건</strong>이 해당 범위와 일치합니다.
+				</span>
+			</div>
+		{/if}
+
 		{#if changes.items.length === 0}
 			<section class="lc-panel-card rounded-2xl border p-8 text-center shadow-sm">
 				<FontAwesomeIcon
@@ -194,7 +273,9 @@
 		{:else}
 			<section class="space-y-3">
 				{#each changes.items as item (item.id)}
-					<article class="lc-panel-card rounded-xl border p-4 shadow-sm">
+					<article
+						class={`lc-panel-card rounded-xl border p-4 shadow-sm ${isDigestMatchedItem(item) ? 'lc-banner-warning border-2' : ''}`}
+					>
 						<div class="flex flex-wrap items-center justify-between gap-3">
 							<div class="min-w-0">
 								<p class="lc-text-primary mb-2 truncate text-sm font-semibold sm:text-base">

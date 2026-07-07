@@ -129,6 +129,7 @@ export interface RecentNoticeChangesResponse {
 	limit: number;
 	total: number;
 	totalPages: number;
+	anchorPage?: number | null;
 }
 
 export interface ComparableChangeSummary {
