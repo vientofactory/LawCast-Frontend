@@ -75,7 +75,7 @@ export interface NoticeDetail {
 	};
 }
 
-export type ChangeEventType = 'created' | 'updated' | 'redacted' | 'invalidated';
+export type ChangeEventType = 'created' | 'updated' | 'invalidated';
 export type ChangeDetailType = 'added' | 'removed' | 'modified';
 
 export interface NoticeChangeDetail {

@@ -43,10 +43,6 @@
 				return '내용 변경';
 			case 'invalidated':
 				return '삭제됨';
-			case 'redacted':
-				return '일부 숨김';
-			case 'created':
-				return '처음 등록';
 			default:
 				return eventType;
 		}
@@ -58,8 +54,6 @@
 				return 'lc-chip-success';
 			case 'invalidated':
 				return 'lc-chip-warning';
-			case 'redacted':
-				return 'lc-chip-muted';
 			default:
 				return 'lc-chip-blue';
 		}

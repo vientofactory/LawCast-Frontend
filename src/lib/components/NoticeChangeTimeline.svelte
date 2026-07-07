@@ -36,8 +36,6 @@
 				return '신규 법률안 생성';
 			case 'updated':
 				return '법률안 갱신';
-			case 'redacted':
-				return '법률안 내용 가림';
 			case 'invalidated':
 				return '법률안 무효화';
 			default:
@@ -53,15 +51,13 @@
 				return 'lc-chip-success';
 			case 'invalidated':
 				return 'lc-chip-warning';
-			case 'redacted':
-				return 'lc-chip-muted';
 			default:
 				return 'lc-chip-muted';
 		}
 	}
 
 	function isEmphasisEvent(eventType: string): boolean {
-		return eventType === 'invalidated' || eventType === 'redacted';
+		return eventType === 'invalidated';
 	}
 
 	function toReadableSourceLabel(source: string | null): string {
