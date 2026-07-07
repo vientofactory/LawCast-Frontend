@@ -562,10 +562,16 @@
 <div class="page-shell">
 	<Header />
 
-	<main id="main-content" class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+	<main
+		id="main-content"
+		class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8"
+		aria-labelledby="notice-detail-title"
+		data-testid="notice-detail-main"
+	>
 		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
 			<a
 				href={backLink}
+				data-testid="notice-detail-back-link"
 				class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 transition-all duration-200"
 			>
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
@@ -644,6 +650,8 @@
 
 		<section
 			class={`mb-6 rounded-2xl border p-6 shadow-lg ${displayContent.isDone ? 'lc-panel-subtle' : 'lc-panel-card'}`}
+			aria-labelledby="notice-detail-title"
+			data-testid="notice-detail-summary"
 		>
 			<div class="mb-4 flex flex-wrap items-start justify-between gap-3">
 				<div>
@@ -684,6 +692,7 @@
 						{/if}
 					</div>
 					<h1
+						id="notice-detail-title"
 						class={`text-2xl leading-snug font-bold ${displayContent.isDone ? 'lc-text-muted' : 'lc-text-primary'}`}
 					>
 						{displayContent.title}
@@ -707,6 +716,7 @@
 				</div>
 				<button
 					on:click={() => openExternalLink(detail.notice.link)}
+					data-testid="notice-detail-open-source"
 					class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold"
 				>
 					<FontAwesomeIcon icon={faExternalLink} class="mr-2 h-4 w-4" />
@@ -740,14 +750,23 @@
 		{/if}
 
 		{#if contentFacts.length > 0}
-			<section class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm">
+			<section
+				class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm"
+				aria-labelledby="notice-detail-facts-heading"
+				data-testid="notice-detail-facts"
+			>
 				<div class="mb-4 flex items-center gap-2">
 					<FontAwesomeIcon icon={faScaleBalanced} class="lc-text-accent h-5 w-5" />
-					<h2 class="lc-text-primary text-lg font-bold">입법예고 정보</h2>
+					<h2 id="notice-detail-facts-heading" class="lc-text-primary text-lg font-bold">
+						입법예고 정보
+					</h2>
 				</div>
 				<dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
 					{#each contentFacts as fact (fact.label)}
-						<div class="lc-panel-inset rounded-lg border px-3 py-2">
+						<div
+							class="lc-panel-inset rounded-lg border px-3 py-2"
+							data-testid={`notice-fact-${fact.label}`}
+						>
 							<dt class="lc-text-muted text-xs font-semibold">{fact.label}</dt>
 							<dd class="lc-text-primary mt-1 text-sm font-medium">{fact.value}</dd>
 						</div>
@@ -756,16 +775,25 @@
 			</section>
 		{/if}
 
-		<section class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm">
+		<section
+			class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm"
+			aria-labelledby="notice-detail-content-heading"
+			data-testid="notice-detail-content"
+		>
 			<div class="mb-4 flex items-center gap-2">
 				<FontAwesomeIcon icon={faFileLines} class="lc-text-purple h-5 w-5" />
-				<h2 class="lc-text-primary text-lg font-bold">제안이유 및 주요내용 원문</h2>
+				<h2 id="notice-detail-content-heading" class="lc-text-primary text-lg font-bold">
+					제안이유 및 주요내용 원문
+				</h2>
 			</div>
 
 			{#if displayContent.proposalReason}
 				<h3 class="lc-text-secondary mb-3 text-sm font-semibold">{displayContent.title}</h3>
 				<div class="lc-code-block rounded-lg border p-4">
-					<p class="lc-text-primary text-sm leading-7 whitespace-pre-line">
+					<p
+						class="lc-text-primary text-sm leading-7 whitespace-pre-line"
+						data-testid="notice-detail-proposal-reason"
+					>
 						{displayContent.proposalReason}
 					</p>
 				</div>
@@ -783,7 +811,13 @@
 			{/if}
 		</section>
 
-		<section id="change-tracking-timeline" bind:this={timelineSectionElement}>
+		<section
+			id="change-tracking-timeline"
+			bind:this={timelineSectionElement}
+			aria-labelledby="notice-detail-timeline-heading"
+			data-testid="notice-detail-timeline"
+		>
+			<h2 id="notice-detail-timeline-heading" class="sr-only">변경 추적 타임라인</h2>
 			{#if hasLegacyGenesisBoundary}
 				<div class="lc-banner-muted mb-4 rounded-xl border px-4 py-3 text-sm">
 					변경 추적 이력은
@@ -814,13 +848,16 @@
 		<details
 			bind:open={isArchiveMetaOpen}
 			class="lc-panel-card group rounded-2xl border p-6 shadow-sm"
+			data-testid="notice-detail-archive-meta"
 		>
 			<summary
 				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-[var(--lc-surface-hover)]"
 			>
 				<span class="flex items-center gap-2">
 					<FontAwesomeIcon icon={faShieldHalved} class="lc-text-success h-5 w-5" />
-					<h2 class="lc-text-primary text-lg font-bold">아카이브 상세정보</h2>
+					<h2 id="notice-detail-archive-heading" class="lc-text-primary text-lg font-bold">
+						아카이브 상세정보
+					</h2>
 				</span>
 				<span
 					class="lc-button-neutral inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200"
@@ -841,6 +878,7 @@
 							{#if hasScreenshot}
 								<button
 									on:click={() => (isScreenshotExpanded = !isScreenshotExpanded)}
+									data-testid="notice-detail-screenshot-toggle"
 									class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-xs font-semibold transition-colors"
 									aria-expanded={isScreenshotExpanded}
 								>
@@ -852,6 +890,7 @@
 								type="button"
 								on:click={downloadArchiveZip}
 								disabled={isExportingArchive}
+								data-testid="notice-detail-download-archive"
 								class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 							>
 								<FontAwesomeIcon icon={faDownload} class="mr-1.5 h-3.5 w-3.5" />
@@ -878,6 +917,7 @@
 									<a
 										href={screenshotUrl}
 										download={`notice-${detail.notice.num}-screenshot.${detail.screenshotMeta.format ?? 'jpeg'}`}
+										data-testid="notice-detail-screenshot-download"
 										class="lc-button-primary inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors"
 									>
 										<FontAwesomeIcon icon={faDownload} class="h-3 w-3" />
@@ -888,6 +928,7 @@
 									<img
 										src={screenshotUrl}
 										alt="의안번호 {detail.notice.num} 국회 입법예고 페이지 스크린샷"
+										data-testid="notice-detail-screenshot-image"
 										class="w-full rounded-lg border border-[var(--lc-border-soft)] shadow-sm"
 										loading="lazy"
 									/>

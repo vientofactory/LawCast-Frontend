@@ -3,6 +3,7 @@
 	import 'nprogress/nprogress.css';
 	import Footer from '$lib/components/Footer.svelte';
 	import NProgress from 'nprogress';
+	import { page } from '$app/state';
 	import { navigating } from '$app/state';
 	import '@fortawesome/fontawesome-svg-core/styles.css';
 	import { config } from '@fortawesome/fontawesome-svg-core';
@@ -20,6 +21,10 @@
 	});
 
 	let { children } = $props();
+	const routePath = $derived(page.url.pathname);
+	const routeId = $derived(
+		routePath === '/' ? 'home' : routePath.replace(/^\//, '').replace(/[/]+/g, '-')
+	);
 </script>
 
 <svelte:head>
@@ -35,5 +40,7 @@
 >
 	메인 콘텐츠로 건너뛰기
 </a>
-{@render children()}
+<div data-route-path={routePath} data-route-id={routeId} data-testid="app-route-container">
+	{@render children()}
+</div>
 <Footer />

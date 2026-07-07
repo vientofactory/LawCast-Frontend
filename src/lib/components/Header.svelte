@@ -98,11 +98,12 @@
 	}
 </script>
 
-<header class="lc-header-shell border-b shadow-lg">
+<header class="lc-header-shell border-b shadow-lg" data-testid="site-header">
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 		<div class="relative flex flex-wrap items-center gap-4 py-5 md:flex-nowrap md:gap-6">
 			<a
 				href="/"
+				data-testid="site-brand"
 				class="text-decoration-none group flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
 			>
 				<div>
@@ -155,6 +156,7 @@
 			<nav
 				class="hidden w-full rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-2 shadow-sm md:absolute md:top-1/2 md:left-1/2 md:block md:w-auto md:-translate-x-1/2 md:-translate-y-1/2"
 				aria-label="주요 메뉴"
+				data-testid="primary-navigation"
 			>
 				<ul class="flex flex-wrap items-center justify-center gap-1.5 text-sm font-semibold">
 					{#each menuItems as item (item.href)}
@@ -162,6 +164,8 @@
 							<a
 								href={item.href}
 								aria-current={isActive(item.href) ? 'page' : undefined}
+								data-testid={`nav-link-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').replace(/[/]+/g, '-')}`}
+								data-nav-target={item.href}
 								class={`group/menu inline-flex items-center gap-2 rounded-xl px-3 py-3 transition-all duration-200 ${
 									isActive(item.href)
 										? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)] shadow-sm'
@@ -201,6 +205,7 @@
 			use:trapFocus
 			class="relative z-10 w-full rounded-b-2xl border-b border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4 pt-6 shadow-lg"
 			aria-label="모바일 메뉴"
+			data-testid="mobile-navigation"
 			transition:fly={{ y: -16, duration: 180, opacity: 0 }}
 		>
 			<div class="mb-4 flex items-center justify-end">
@@ -229,6 +234,8 @@
 						<a
 							href={item.href}
 							aria-current={isActive(item.href) ? 'page' : undefined}
+							data-testid={`mobile-nav-link-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').replace(/[/]+/g, '-')}`}
+							data-nav-target={item.href}
 							class={`group/menu inline-flex items-center gap-2 rounded-xl px-3 py-3 transition-all duration-200 ${
 								isActive(item.href)
 									? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)] shadow-sm'

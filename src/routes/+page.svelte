@@ -123,10 +123,18 @@
 <div class="page-shell">
 	<Header />
 
-	<main id="main-content" class="mx-auto max-w-7xl px-4 pb-6 sm:px-6 sm:pb-8 lg:px-8 lg:pb-10">
+	<main
+		id="main-content"
+		class="mx-auto max-w-7xl px-4 pb-6 sm:px-6 sm:pb-8 lg:px-8 lg:pb-10"
+		aria-labelledby="home-page-title"
+		data-testid="home-main"
+	>
 		<div class="flex flex-col gap-8">
 			<section
+				id="home-overview"
 				class="lc-home-hero -mx-4 px-4 py-6 sm:-mx-6 sm:px-6 sm:py-8 lg:-mx-8 lg:px-8 lg:py-10"
+				aria-labelledby="home-page-title"
+				data-testid="home-hero"
 			>
 				<div class="mx-auto flex max-w-4xl flex-col justify-center gap-8">
 					<div class="space-y-4 text-center lg:text-left">
@@ -135,6 +143,7 @@
 						</span>
 						<div class="space-y-3">
 							<h1
+								id="home-page-title"
 								class="lc-text-primary text-3xl leading-tight font-black tracking-tight sm:text-4xl lg:text-5xl"
 							>
 								국회 입법예고
@@ -146,102 +155,125 @@
 							</p>
 						</div>
 
-						<div class="lc-home-signal-grid" role="list" aria-label="플랫폼 핵심 상태">
-							<article
-								class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
-								role="listitem"
-							>
-								<a
-									href="/notices"
-									class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
-									aria-label="전체 입법예고 조회 페이지로 이동"
+						<section aria-labelledby="home-status-heading" data-testid="home-status-region">
+							<h2 id="home-status-heading" class="sr-only">플랫폼 핵심 상태</h2>
+							<div class="lc-home-signal-grid" role="list" aria-label="플랫폼 핵심 상태">
+								<article
+									class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
+									role="listitem"
+									data-testid="home-status-card-archive"
+								>
+									<a
+										href="/notices"
+										class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
+										aria-label="전체 입법예고 조회 페이지로 이동"
+										data-testid="home-status-link-archive"
+									>
+										<div class="lc-home-signal-head">
+											<span
+												class="lc-home-signal-icon transition-transform duration-200 group-focus-within:scale-110 group-focus-within:-rotate-6 group-hover:scale-110 group-hover:-rotate-6"
+												aria-hidden="true"
+											>
+												<FontAwesomeIcon icon={faDatabase} class="h-3.5 w-3.5" />
+											</span>
+											<span class="lc-home-signal-tag">Archive</span>
+										</div>
+										<p
+											class="lc-home-signal-value transition-colors duration-200 group-focus-within:text-sky-700 group-hover:text-sky-700"
+										>
+											{archiveCountLabel}
+										</p>
+										<p class="lc-home-signal-desc">처음 공개된 내용을 차곡차곡 보관</p>
+										<p
+											class="mt-1 text-xs font-semibold text-sky-700 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
+										>
+											클릭해서 자세히 보기
+										</p>
+									</a>
+								</article>
+
+								<article
+									class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
+									role="listitem"
+									data-testid="home-status-card-changes"
+								>
+									<a
+										href="/notices/changes"
+										class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
+										aria-label="변경 추적 페이지로 이동"
+										data-testid="home-status-link-changes"
+									>
+										<div class="lc-home-signal-head">
+											<span
+												class="lc-home-signal-icon transition-transform duration-200 group-focus-within:scale-110 group-focus-within:-rotate-6 group-hover:scale-110 group-hover:-rotate-6"
+												aria-hidden="true"
+											>
+												<FontAwesomeIcon icon={faShieldHalved} class="h-3.5 w-3.5" />
+											</span>
+											<span class="lc-home-signal-tag">Integrity</span>
+										</div>
+										<p
+											class="lc-home-signal-value transition-colors duration-200 group-focus-within:text-sky-700 group-hover:text-sky-700"
+										>
+											{comparableChangeTotalLabel}
+										</p>
+										<p class="lc-home-signal-desc">비교 가능한 변경 추적 보기</p>
+										<p
+											class="mt-1 text-xs font-semibold text-sky-700 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
+										>
+											클릭해서 자세히 보기
+										</p>
+									</a>
+								</article>
+
+								<article
+									class="lc-home-signal-card"
+									role="listitem"
+									data-testid="home-status-card-sync"
 								>
 									<div class="lc-home-signal-head">
-										<span
-											class="lc-home-signal-icon transition-transform duration-200 group-focus-within:scale-110 group-focus-within:-rotate-6 group-hover:scale-110 group-hover:-rotate-6"
-											aria-hidden="true"
-										>
-											<FontAwesomeIcon icon={faDatabase} class="h-3.5 w-3.5" />
+										<span class="lc-home-signal-icon" aria-hidden="true">
+											<FontAwesomeIcon icon={faClock} class="h-3.5 w-3.5" />
 										</span>
-										<span class="lc-home-signal-tag">Archive</span>
+										<span class="lc-home-signal-tag">Sync</span>
 									</div>
-									<p
-										class="lc-home-signal-value transition-colors duration-200 group-focus-within:text-sky-700 group-hover:text-sky-700"
-									>
-										{archiveCountLabel}
-									</p>
-									<p class="lc-home-signal-desc">처음 공개된 내용을 차곡차곡 보관</p>
-									<p
-										class="mt-1 text-xs font-semibold text-sky-700 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
-									>
-										클릭해서 자세히 보기
-									</p>
-								</a>
-							</article>
+									<p class="lc-home-signal-value">{lastUpdatedLabel}</p>
+									<p class="lc-home-signal-desc">최근에 새로 가져온 시각</p>
+								</article>
 
-							<article
-								class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
-								role="listitem"
-							>
-								<a
-									href="/notices/changes"
-									class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
-									aria-label="변경 추적 페이지로 이동"
+								<article
+									class="lc-home-signal-card"
+									role="listitem"
+									data-testid="home-status-card-review"
 								>
 									<div class="lc-home-signal-head">
-										<span
-											class="lc-home-signal-icon transition-transform duration-200 group-focus-within:scale-110 group-focus-within:-rotate-6 group-hover:scale-110 group-hover:-rotate-6"
-											aria-hidden="true"
-										>
-											<FontAwesomeIcon icon={faShieldHalved} class="h-3.5 w-3.5" />
+										<span class="lc-home-signal-icon" aria-hidden="true">
+											<FontAwesomeIcon icon={faRobot} class="h-3.5 w-3.5" />
 										</span>
-										<span class="lc-home-signal-tag">Integrity</span>
+										<span class="lc-home-signal-tag">Review</span>
 									</div>
-									<p
-										class="lc-home-signal-value transition-colors duration-200 group-focus-within:text-sky-700 group-hover:text-sky-700"
-									>
-										{comparableChangeTotalLabel}
-									</p>
-									<p class="lc-home-signal-desc">비교 가능한 변경 추적 보기</p>
-									<p
-										class="mt-1 text-xs font-semibold text-sky-700 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
-									>
-										클릭해서 자세히 보기
-									</p>
-								</a>
-							</article>
-
-							<article class="lc-home-signal-card" role="listitem">
-								<div class="lc-home-signal-head">
-									<span class="lc-home-signal-icon" aria-hidden="true">
-										<FontAwesomeIcon icon={faClock} class="h-3.5 w-3.5" />
-									</span>
-									<span class="lc-home-signal-tag">Sync</span>
-								</div>
-								<p class="lc-home-signal-value">{lastUpdatedLabel}</p>
-								<p class="lc-home-signal-desc">최근에 새로 가져온 시각</p>
-							</article>
-
-							<article class="lc-home-signal-card" role="listitem">
-								<div class="lc-home-signal-head">
-									<span class="lc-home-signal-icon" aria-hidden="true">
-										<FontAwesomeIcon icon={faRobot} class="h-3.5 w-3.5" />
-									</span>
-									<span class="lc-home-signal-tag">Review</span>
-								</div>
-								<p class="lc-home-signal-value">{aiReviewModeLabel}</p>
-								<p class="lc-home-signal-desc">검색 결과에서 원문과 요약을 함께 보기</p>
-							</article>
-						</div>
+									<p class="lc-home-signal-value">{aiReviewModeLabel}</p>
+									<p class="lc-home-signal-desc">검색 결과에서 원문과 요약을 함께 보기</p>
+								</article>
+							</div>
+						</section>
 					</div>
 
-					<div class="lc-home-search-card rounded-[1.75rem] border p-5 sm:p-6">
+					<section
+						id="home-quick-search"
+						class="lc-home-search-card rounded-[1.75rem] border p-5 sm:p-6"
+						aria-labelledby="home-search-heading"
+						data-testid="home-search-region"
+					>
 						<div class="flex flex-col gap-4">
 							<div class="space-y-2">
-								<h2 class="lc-text-primary text-xl font-bold tracking-tight sm:text-2xl">
+								<h2
+									id="home-search-heading"
+									class="lc-text-primary text-xl font-bold tracking-tight sm:text-2xl"
+								>
 									법률안 빠른 검색
 								</h2>
-								<p class="lc-text-secondary text-sm leading-6">
+								<p id="home-search-description" class="lc-text-secondary text-sm leading-6">
 									법률안 이름, 소관위원회, 본문 키워드를 한 번에 검색하고 결과 페이지에서 원문,
 									저장된 기록, 변경 확인 정보{aiSummaryEnabled ? ', AI 요약' : ''}까지 이어서 볼 수
 									있습니다.
@@ -255,6 +287,8 @@
 								class:pointer-events-none={isQuickSearchLoading}
 								class:opacity-80={isQuickSearchLoading}
 								aria-busy={isQuickSearchLoading}
+								aria-describedby="home-search-description"
+								data-testid="home-search-form"
 							>
 								<input type="hidden" name="fullText" value="true" />
 								<label for="quick-search" class="sr-only">법률안 검색</label>
@@ -266,6 +300,7 @@
 										placeholder="예: 중대재해, 개인정보, 플랫폼, 조세특례"
 										disabled={isQuickSearchLoading}
 										required
+										data-testid="home-search-input"
 										class="lc-home-search-input lc-input lc-input-focus w-full rounded-2xl border px-4 py-4 text-sm outline-hidden transition-colors"
 									/>
 									<button
@@ -273,6 +308,7 @@
 										aria-label="검색"
 										title="검색"
 										disabled={isQuickSearchLoading}
+										data-testid="home-search-submit"
 										class="lc-button-primary inline-flex shrink-0 cursor-pointer items-center justify-center rounded-2xl px-5 py-4 text-sm font-semibold whitespace-nowrap"
 									>
 										{#if isQuickSearchLoading}
@@ -285,9 +321,11 @@
 								</div>
 							</form>
 
-							<div class="space-y-2">
+							<section class="space-y-2" aria-labelledby="home-quick-keywords-heading">
 								<div class="flex flex-wrap items-center justify-between gap-2">
-									<p class="lc-text-muted text-xs font-medium">빠른 키워드</p>
+									<h3 id="home-quick-keywords-heading" class="lc-text-muted text-xs font-medium">
+										빠른 키워드
+									</h3>
 									{#if quickKeywords?.sourceNoticeCount}
 										<p class="lc-text-muted text-[11px]">
 											최근 {quickKeywords.sourceNoticeCount.toLocaleString('ko-KR')}건 기준
@@ -297,17 +335,18 @@
 										</p>
 									{/if}
 								</div>
-								<div class="flex flex-wrap gap-2">
+								<div class="flex flex-wrap gap-2" data-testid="home-quick-keywords">
 									{#each heroSearchSuggestions as suggestion (suggestion)}
 										<a
 											href={buildQuickSearchHref(suggestion)}
+											data-testid={`home-quick-keyword-${suggestion}`}
 											class="lc-home-search-chip rounded-full px-3 py-2 text-sm font-medium"
 										>
 											{suggestion}
 										</a>
 									{/each}
 								</div>
-							</div>
+							</section>
 
 							{#if isQuickSearchLoading}
 								<div
@@ -320,7 +359,15 @@
 								</div>
 							{/if}
 						</div>
-					</div>
+					</section>
+
+					<nav aria-label="홈 섹션 바로가기" class="sr-only" data-testid="home-section-navigation">
+						<ul>
+							<li><a href="#home-overview">소개</a></li>
+							<li><a href="#home-quick-search">빠른 검색</a></li>
+							<li><a href="#recent-notices">최근 입법예고</a></li>
+						</ul>
+					</nav>
 
 					<a
 						href="#recent-notices"
@@ -340,9 +387,14 @@
 			</section>
 
 			<!-- Recent Notices -->
-			<div id="recent-notices">
+			<section
+				id="recent-notices"
+				aria-labelledby="recent-notices-heading"
+				data-testid="recent-notices-region"
+			>
+				<h2 id="recent-notices-heading" class="sr-only">최근 입법예고</h2>
 				<RecentNotices notices={recentNotices} {stats} />
-			</div>
+			</section>
 		</div>
 	</main>
 </div>
