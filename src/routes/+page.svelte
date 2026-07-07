@@ -147,15 +147,36 @@
 						</div>
 
 						<div class="lc-home-signal-grid" role="list" aria-label="플랫폼 핵심 상태">
-							<article class="lc-home-signal-card" role="listitem">
-								<div class="lc-home-signal-head">
-									<span class="lc-home-signal-icon" aria-hidden="true">
-										<FontAwesomeIcon icon={faDatabase} class="h-3.5 w-3.5" />
-									</span>
-									<span class="lc-home-signal-tag">Archive</span>
-								</div>
-								<p class="lc-home-signal-value">{archiveCountLabel}</p>
-								<p class="lc-home-signal-desc">처음 공개된 내용을 차곡차곡 보관</p>
+							<article
+								class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
+								role="listitem"
+							>
+								<a
+									href="/notices"
+									class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
+									aria-label="전체 입법예고 조회 페이지로 이동"
+								>
+									<div class="lc-home-signal-head">
+										<span
+											class="lc-home-signal-icon transition-transform duration-200 group-focus-within:scale-110 group-focus-within:-rotate-6 group-hover:scale-110 group-hover:-rotate-6"
+											aria-hidden="true"
+										>
+											<FontAwesomeIcon icon={faDatabase} class="h-3.5 w-3.5" />
+										</span>
+										<span class="lc-home-signal-tag">Archive</span>
+									</div>
+									<p
+										class="lc-home-signal-value transition-colors duration-200 group-focus-within:text-sky-700 group-hover:text-sky-700"
+									>
+										{archiveCountLabel}
+									</p>
+									<p class="lc-home-signal-desc">처음 공개된 내용을 차곡차곡 보관</p>
+									<p
+										class="mt-1 text-xs font-semibold text-sky-700 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
+									>
+										클릭해서 자세히 보기
+									</p>
+								</a>
 							</article>
 
 							<article
