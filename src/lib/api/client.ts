@@ -198,6 +198,7 @@ export async function getArchivedNotices(
 		sortOrder?: 'asc' | 'desc';
 		isDone?: boolean;
 		fullText?: boolean;
+		noticeNums?: number[];
 	} = {},
 	customFetch?: Fetch
 ): Promise<ArchiveNoticeListResponse> {
@@ -234,6 +235,20 @@ export async function getArchivedNotices(
 
 		if (params.fullText === true) {
 			query.set('fullText', 'true');
+		}
+
+		if (params.noticeNums && params.noticeNums.length > 0) {
+			const deduped = Array.from(
+				new Set(
+					params.noticeNums
+						.map((value) => Number(value))
+						.filter((value) => Number.isInteger(value) && value > 0)
+				)
+			);
+
+			if (deduped.length > 0) {
+				query.set('noticeNums', deduped.join(','));
+			}
 		}
 
 		const suffix = query.toString() ? `?${query.toString()}` : '';
