@@ -17,6 +17,7 @@
 		faTableList
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { ComparableChangeSummary, RecentNoticeChangesResponse } from '$lib/types/api';
+	import { NoticeChangeSource } from '$lib/types/change-source';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 
 	export let data: {
@@ -46,22 +47,31 @@
 		pendingPaginationPage = null;
 	}
 
-	function eventTypeLabel(eventType: string): string {
+	function eventTypeLabel(eventType: string, source: string | null): string {
 		switch (eventType) {
 			case 'updated':
 				return '내용 변경';
 			case 'invalidated':
-				return '삭제됨';
+				if (source?.includes(NoticeChangeSource.ARCHIVE_SOURCE_MISSING)) {
+					return '삭제됨';
+				}
+				if (source?.includes(NoticeChangeSource.ARCHIVE_RENUMBERED)) {
+					return '번호 변경 무효화';
+				}
+				return '무효화';
 			default:
 				return eventType;
 		}
 	}
 
-	function eventTypeChipClass(eventType: string): string {
+	function eventTypeChipClass(eventType: string, source: string | null): string {
 		switch (eventType) {
 			case 'updated':
 				return 'lc-chip-success';
 			case 'invalidated':
+				if (source?.includes(NoticeChangeSource.ARCHIVE_RENUMBERED)) {
+					return 'lc-chip-muted';
+				}
 				return 'lc-chip-warning';
 			default:
 				return 'lc-chip-blue';
@@ -289,9 +299,9 @@
 										의안번호 {item.noticeNum}
 									</span>
 									<span
-										class={`${eventTypeChipClass(item.eventType)} inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold`}
+										class={`${eventTypeChipClass(item.eventType, item.source)} inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold`}
 									>
-										{eventTypeLabel(item.eventType)}
+										{eventTypeLabel(item.eventType, item.source)}
 									</span>
 									<span
 										class="lc-chip-muted inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"

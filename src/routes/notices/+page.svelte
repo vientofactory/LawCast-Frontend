@@ -212,6 +212,10 @@
 		return notice.lifecycleStatus === 'renumbered';
 	}
 
+	function isPreservedState(notice: (typeof notices)[number]): boolean {
+		return isSourceDeleted(notice) || isRenumbered(notice);
+	}
+
 	// Make pagination items reactive to archive/totalPages/currentPage
 	$: paginationItems = (() => {
 		if (totalPages <= 7) {
@@ -776,7 +780,7 @@
 														class="lc-chip-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
 													>
 														<FontAwesomeIcon icon={faRotate} class="h-2.5 w-2.5" />
-														번호 변경 이력
+														보존 상태 전환(번호 변경)
 													</span>
 												{/if}
 												{#if notice.changeEventCount !== undefined}
@@ -814,9 +818,13 @@
 												{/if}
 											</div>
 
-											{#if isSourceDeleted(notice)}
+											{#if isPreservedState(notice)}
 												<p class="lc-text-warning mt-2 text-xs font-medium">
-													원본 소스에서 현재 확인되지 않아 아카이브에 보존 처리됩니다.
+													{#if isSourceDeleted(notice)}
+														보존 상태로 전환되었습니다. (사유: 원본 소스 미존재)
+													{:else}
+														보존 상태로 전환되었습니다. (사유: 의안번호 변경)
+													{/if}
 												</p>
 											{/if}
 
