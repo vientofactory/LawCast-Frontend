@@ -82,7 +82,6 @@
 		}
 		return base;
 	})();
-	$: shouldNoIndex = hasActiveFilters;
 
 	$: pageDescription = aiSummaryEnabled
 		? '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.'
@@ -330,13 +329,13 @@
 </script>
 
 <svelte:head>
-	<title
-		>전체 입법예고{archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast</title
-	>
+	<title>
+		{isDigestContext
+			? '신규 감지 항목 모아보기'
+			: `전체 입법예고 ${archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''}`}
+		- LawCast
+	</title>
 	<link rel="canonical" href={canonicalUrl} />
-	{#if shouldNoIndex}
-		<meta name="robots" content="noindex, follow" />
-	{/if}
 	<meta name="description" content={pageDescription} />
 	<meta
 		name="keywords"
