@@ -162,22 +162,25 @@
 		const id = 'isDone' in overrides ? overrides.isDone : isDoneFilter;
 		const ft = 'fullText' in overrides ? overrides.fullText : fullText ? true : null;
 
-		const params = new SvelteURLSearchParams();
+		const params = new SvelteURLSearchParams(currentUrl.searchParams);
 		params.set('page', String(pg));
 		params.set('limit', String(lim));
 		if (q) params.set('search', q);
+		else params.delete('search');
 		if (sd) params.set('startDate', sd);
+		else params.delete('startDate');
 		if (ed) params.set('endDate', ed);
+		else params.delete('endDate');
 		params.set('sortOrder', so);
 		if (id !== null && id !== undefined) params.set('isDone', String(id));
+		else params.delete('isDone');
 		if (ft) params.set('fullText', 'true');
-		const digestRaw = currentUrl.searchParams.get('digest');
-		if (digestRaw === '1' || digestRaw === 'true') {
+		else params.delete('fullText');
+
+		// Keep digest context normalized when present.
+		const digestRaw = params.get('digest');
+		if (digestRaw === 'true') {
 			params.set('digest', '1');
-		}
-		const noticeNumsRaw = currentUrl.searchParams.get('noticeNums');
-		if (noticeNumsRaw?.trim()) {
-			params.set('noticeNums', noticeNumsRaw.trim());
 		}
 		return `/notices?${params.toString()}`;
 	}
