@@ -144,7 +144,7 @@
 						<div class="space-y-3">
 							<h1
 								id="home-page-title"
-								class="lc-text-primary text-3xl leading-tight font-black tracking-tight sm:text-4xl lg:text-5xl"
+								class="lc-text-primary text-3xl leading-tight font-bold tracking-tight sm:text-4xl lg:text-5xl"
 							>
 								국회 입법예고
 								<span class="lc-home-heading-accent block">증거 수집 플랫폼</span>
