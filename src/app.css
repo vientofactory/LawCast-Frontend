@@ -12,9 +12,6 @@
 }
 
 :root {
-	font-family:
-		'Pretendard', 'Inter', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI',
-		'Helvetica Neue', Arial, system-ui, sans-serif, 'Apple Color Emoji', 'Noto Color Emoji';
 	--lc-body-bg: #fafafb;
 	--lc-page-bg: #f4f6f8;
 	--lc-header-gradient: rgba(255, 255, 255, 0.96);
@@ -89,6 +86,9 @@ html {
 }
 
 body {
+	font-family:
+		'Pretendard', 'Inter', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI',
+		'Helvetica Neue', Arial, system-ui, sans-serif, 'Apple Color Emoji', 'Noto Color Emoji';
 	margin: 0;
 	padding: 0;
 	min-height: 100vh;

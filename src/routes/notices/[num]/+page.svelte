@@ -128,12 +128,21 @@
 	$: shouldShowAIBriefing =
 		aiSummaryEnabled &&
 		(detail.notice.aiSummaryStatus === 'ready' || detail.notice.aiSummaryStatus === 'unavailable');
-	$: integrityStatusLabel =
-		detail.archiveMetadata.integrity.passed === true
-			? '검증 통과'
+	$: integrityStatus =
+		detail.archiveMetadata.integrity.status ??
+		(detail.archiveMetadata.integrity.passed === true
+			? 'passed'
 			: detail.archiveMetadata.integrity.passed === false
+				? 'failed'
+				: 'pending');
+	$: integrityStatusLabel =
+		integrityStatus === 'passed'
+			? '검증 통과'
+			: integrityStatus === 'failed'
 				? '검증 실패'
-				: '검증 대기';
+				: integrityStatus === 'skipped'
+					? '검증 스킵'
+					: '검증 대기';
 	$: lifecycleStatus = displayContent.lifecycleStatus ?? 'active';
 	$: isSourceDeleted = lifecycleStatus === 'source_deleted';
 	$: isRenumbered = lifecycleStatus === 'renumbered';
@@ -950,6 +959,11 @@
 								<p class="lc-text-secondary mt-1 text-xs">
 									검증 시각: {formatDateTime(detail.archiveMetadata.integrity.checkedAt)}
 								</p>
+								{#if detail.archiveMetadata.integrity.skipReason}
+									<p class="lc-text-secondary mt-1 text-xs">
+										스킵 사유: {detail.archiveMetadata.integrity.skipReason}
+									</p>
+								{/if}
 							</div>
 							<div class="lc-stat-tile rounded-lg border px-3 py-2 sm:col-span-2">
 								<dt class="lc-text-muted text-xs font-semibold">SHA256 지문</dt>

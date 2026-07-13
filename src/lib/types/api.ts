@@ -40,8 +40,10 @@ export interface NoticeArchiveMetadata {
 	sourceHtmlSha256: string | null;
 	sourceHtmlSize: number;
 	integrity: {
+		status?: 'pending' | 'passed' | 'failed' | 'skipped';
 		checkedAt: string | null;
 		passed: boolean | null;
+		skipReason?: string | null;
 		calculatedSha256: string | null;
 	};
 	http: {
