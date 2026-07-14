@@ -99,14 +99,6 @@ body {
 		color 180ms ease;
 }
 
-body,
-button,
-input,
-select,
-textarea {
-	font-family: inherit;
-}
-
 .page-shell {
 	min-height: 100vh;
 	background: var(--lc-page-bg);
