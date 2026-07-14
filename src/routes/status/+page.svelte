@@ -73,8 +73,7 @@
 		(stats.batchProcessing as { activeTimeouts?: number } | undefined)?.activeTimeouts ?? 0;
 
 	$: overallStatus = (hasOllamaIssue || hasCacheIssue ? 'degraded' : 'healthy') as
-		| 'healthy'
-		| 'degraded';
+		'healthy' | 'degraded';
 	$: overallLabel = overallStatus === 'healthy' ? '정상' : '주의 필요';
 
 	function formatDateTime(value: string | null | undefined): string {

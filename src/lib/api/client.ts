@@ -454,6 +454,7 @@ export async function registerWebhook(
 		return response;
 	} catch (error) {
 		const err = error as { status?: number; message?: string };
+		// eslint-disable-next-line no-useless-assignment
 		let message = '';
 		if (err?.status === 409) {
 			message = '이미 등록된 웹훅 URL입니다.';

@@ -138,6 +138,7 @@
 		if (wasServerLoading && !isServerLoading) {
 			pendingPaginationPage = null;
 		}
+		// eslint-disable-next-line no-useless-assignment
 		wasServerLoading = isServerLoading;
 	}
 
