@@ -394,10 +394,12 @@
 			{#if recentJobs.length === 0}
 				<p class="lc-text-muted text-sm">기록된 배치 작업이 없습니다.</p>
 			{:else}
-				<p class="lc-text-dim mb-2 text-xs sm:hidden">
-					<FontAwesomeIcon icon={faArrowLeft} class="mr-1" />
-					좌우로 스크롤하여 전체 내용을 확인할 수 있습니다
-					<FontAwesomeIcon icon={faArrowRight} class="ml-1" />
+				<p
+					class="lc-text-dim mb-2 flex items-center justify-center gap-1 whitespace-nowrap text-xs sm:hidden"
+				>
+					<FontAwesomeIcon icon={faArrowLeft} class="mr-1 h-3 w-3 shrink-0" />
+					<span>좌우로 스크롤하여 전체 내용을 확인할 수 있습니다</span>
+					<FontAwesomeIcon icon={faArrowRight} class="h-3 w-3 shrink-0" />
 				</p>
 				<div class="overflow-x-auto">
 					<table class="w-full min-w-140 text-sm">
