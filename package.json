@@ -1,7 +1,9 @@
 {
-	"name": "frontend",
-	"private": true,
+	"name": "lawcast-frontend",
 	"version": "0.0.1",
+	"description": "",
+	"author": "vientorepublic",
+	"private": true,
 	"license": "MIT",
 	"type": "module",
 	"scripts": {
@@ -13,6 +15,24 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --write . && eslint . --fix"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/vientofactory/Lawcast-Frontend.git"
+	},
+	"bugs": {
+		"url": "https://github.com/vientofactory/Lawcast-Frontend/issues"
+	},
+	"homepage": "https://github.com/vientofactory/Lawcast-Frontend#readme",
+	"dependencies": {
+		"@fortawesome/fontawesome-svg-core": "^7.1.0",
+		"@fortawesome/free-brands-svg-icons": "^7.1.0",
+		"@fortawesome/free-solid-svg-icons": "^7.1.0",
+		"@fortawesome/svelte-fontawesome": "^0.2.4",
+		"@types/nprogress": "^0.2.3",
+		"axios": "^1.13.2",
+		"hashguard-client": "^1.5.0",
+		"nprogress": "^0.2.0"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.0.0",
@@ -35,16 +55,6 @@
 		"typescript": "^6.0.0",
 		"typescript-eslint": "^8.46.1",
 		"vite": "^7.1.10"
-	},
-	"dependencies": {
-		"@fortawesome/fontawesome-svg-core": "^7.1.0",
-		"@fortawesome/free-brands-svg-icons": "^7.1.0",
-		"@fortawesome/free-solid-svg-icons": "^7.1.0",
-		"@fortawesome/svelte-fontawesome": "^0.2.4",
-		"@types/nprogress": "^0.2.3",
-		"axios": "^1.13.2",
-		"hashguard-client": "^1.5.0",
-		"nprogress": "^0.2.0"
 	},
 	"overrides": {
 		"cookie": "0.6.0"
