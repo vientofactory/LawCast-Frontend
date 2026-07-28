@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { env } from '$env/dynamic/public';
 	import Header from '$lib/components/Header.svelte';
 	import RecentNotices from '$lib/components/RecentNotices.svelte';
 	import { formatDate } from '$lib/utils/helpers';
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { page } from '$app/state';
+	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faChevronDown,
@@ -61,6 +63,8 @@
 	$: quickKeywordUpdatedLabel = quickKeywords?.updatedAt
 		? formatDate(quickKeywords.updatedAt)
 		: null;
+
+	const discordCommunityUrl = env.PUBLIC_DISCORD_SERVER_URL?.trim() ?? '';
 
 	function buildQuickSearchHref(keyword: string): string {
 		return `/notices?search=${encodeURIComponent(keyword)}&fullText=true`;
@@ -408,6 +412,48 @@
 				<h2 id="recent-notices-heading" class="sr-only">최근 입법예고</h2>
 				<RecentNotices notices={recentNotices} {stats} />
 			</section>
+
+			{#if discordCommunityUrl}
+				<section
+					id="home-discord-community"
+					aria-labelledby="home-discord-community-heading"
+					data-testid="home-discord-community"
+					class="lc-defer-render"
+				>
+					<div
+						class="overflow-hidden rounded-3xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-6 shadow-sm sm:p-8"
+					>
+						<div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+							<div class="space-y-3">
+								<p class="lc-text-muted text-xs font-semibold tracking-[0.12em] uppercase">
+									Community
+								</p>
+								<h2
+									id="home-discord-community-heading"
+									class="lc-text-primary text-2xl font-bold tracking-tight"
+								>
+									LawCast 디스코드 커뮤니티에 참여해 보세요
+								</h2>
+								<p class="lc-text-secondary max-w-2xl text-sm leading-7 sm:text-base">
+									입법예고 변화 포인트를 함께 공유하고, 기능 제안이나 개선 아이디어를 실시간으로
+									남길 수 있습니다. 운영 공지와 서비스 업데이트도 가장 빠르게 받아보세요.
+								</p>
+							</div>
+
+							<a
+								href={discordCommunityUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="lc-button-primary inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold sm:w-auto"
+								aria-label="LawCast 디스코드 커뮤니티 참여하기"
+							>
+								<FontAwesomeIcon icon={faDiscord} class="h-4 w-4" />
+								디스코드 참여하기
+							</a>
+						</div>
+					</div>
+				</section>
+			{/if}
 		</div>
 	</main>
 </div>
