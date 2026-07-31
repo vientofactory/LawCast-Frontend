@@ -150,7 +150,7 @@
 	$: contentFacts = [
 		{ label: '의안번호', value: displayContent.billNumber },
 		// Remove unnecessary prefix from proposer field if present
-		{ label: '제안자', value: displayContent.proposer?.replace("제안자목록", "").trim() },
+		{ label: '제안자', value: displayContent.proposer?.replace('제안자목록', '').trim() },
 		{ label: '제안일', value: displayContent.proposalDate },
 		{ label: '소관위원회', value: displayContent.committee },
 		{ label: '회부일', value: displayContent.referralDate },

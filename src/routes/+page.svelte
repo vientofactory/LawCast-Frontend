@@ -65,6 +65,7 @@
 		: null;
 
 	const discordCommunityUrl = env.PUBLIC_DISCORD_SERVER_URL?.trim() ?? '';
+	const discordServerId = env.PUBLIC_DISCORD_SERVER_ID?.trim() ?? '';
 
 	function buildQuickSearchHref(keyword: string): string {
 		return `/notices?search=${encodeURIComponent(keyword)}&fullText=true`;
@@ -438,6 +439,17 @@
 									입법예고 변화 포인트를 함께 공유하고, 기능 제안이나 개선 아이디어를 실시간으로
 									남길 수 있습니다. 운영 공지와 서비스 업데이트도 가장 빠르게 받아보세요.
 								</p>
+								{#if discordServerId}
+									<iframe
+										title="Discord Community Widget"
+										src={`https://discord.com/widget?id=${discordServerId}&theme=dark`}
+										width={350}
+										height={500}
+										allowtransparency
+										frameborder="0"
+										sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+									></iframe>
+								{/if}
 							</div>
 
 							<a
