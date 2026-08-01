@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { theme } from '$lib/theme';
 	import {
@@ -44,7 +45,21 @@
 	}
 
 	let mobileMenuOpen = false;
+	let headerScrolled = false;
 	let menuButton: HTMLButtonElement;
+
+	onMount(() => {
+		const updateHeaderScrollState = () => {
+			headerScrolled = window.scrollY > 10;
+		};
+
+		updateHeaderScrollState();
+		window.addEventListener('scroll', updateHeaderScrollState, { passive: true });
+
+		return () => {
+			window.removeEventListener('scroll', updateHeaderScrollState);
+		};
+	});
 
 	function toggleMobileMenu() {
 		mobileMenuOpen = !mobileMenuOpen;
@@ -98,7 +113,10 @@
 	}
 </script>
 
-<header class="lc-header-shell border-b shadow-lg" data-testid="site-header">
+<header
+	class={`lc-header-shell border-b shadow-lg ${headerScrolled ? 'is-scrolled' : 'is-at-top'}`}
+	data-testid="site-header"
+>
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 		<div class="relative flex flex-wrap items-center gap-4 py-5 md:flex-nowrap md:gap-6">
 			<a
@@ -268,9 +286,30 @@
 	}
 
 	.lc-header-shell {
-		background: var(--lc-header-gradient);
+		position: sticky;
+		top: 0;
+		z-index: 1000;
+		background: color-mix(in srgb, var(--lc-header-gradient) 92%, transparent);
 		border-color: var(--lc-border-soft);
-		box-shadow: var(--lc-shadow-soft);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+		transition:
+			background-color 180ms ease,
+			border-color 180ms ease,
+			box-shadow 200ms ease,
+			backdrop-filter 200ms ease;
+	}
+
+	.lc-header-shell.is-at-top {
+		box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+	}
+
+	.lc-header-shell.is-scrolled {
+		background: color-mix(in srgb, var(--lc-header-gradient) 80%, transparent);
+		border-color: color-mix(in srgb, var(--lc-border-soft) 74%, var(--lc-border-strong) 26%);
+		box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
 	}
 
 	.lc-brand-wordmark {
