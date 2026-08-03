@@ -340,6 +340,44 @@
 					</p>
 				</div>
 			</section>
+
+			<section class="lc-panel-card lc-defer-render-sm rounded-2xl border p-5 shadow-sm">
+				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
+					<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
+					종료 마커 동기화
+				</h2>
+				<div class="lc-text-secondary space-y-1 text-sm">
+					{#if isDoneSync}
+						<p>
+							상태: <span
+								class={`ml-1 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${isDoneSyncBadgeStyle(isDoneSync.status)}`}
+							>
+								{isDoneSyncStatusLabel(isDoneSync.status)}
+							</span>
+						</p>
+						<p>
+							수신된 종료 건수: <span class="font-semibold"
+								>{(isDoneSync.lastResult?.fetchedDoneCount ?? 0).toLocaleString('ko-KR')}</span
+							>
+						</p>
+						<p>
+							신규 마킹: <span class="font-semibold"
+								>{(isDoneSync.lastResult?.markedDoneCount ?? 0).toLocaleString('ko-KR')}</span
+							>
+						</p>
+						<p>
+							마지막 실행: <span class="font-semibold">{formatDateTime(isDoneSync.lastRunAt)}</span>
+						</p>
+						{#if isDoneSync.status === 'failed' && isDoneSync.lastError}
+							<p class="lc-text-danger">
+								오류: <span class="font-semibold">{isDoneSync.lastError}</span>
+							</p>
+						{/if}
+					{:else}
+						<p class="lc-text-muted text-sm">동기화 이력이 없습니다. (서버 재시작 후 자동 실행)</p>
+					{/if}
+				</div>
+			</section>
 		</div>
 
 		{#if hasBatchBacklog || hasCacheIssue || hasOllamaIssue}
@@ -366,49 +404,6 @@
 				</div>
 			</section>
 		{/if}
-
-		<section class="lc-panel-card lc-defer-render-sm mt-4 rounded-2xl border p-5 shadow-sm">
-			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
-				<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
-				종료 마커 동기화
-				{#if isDoneSync}
-					<span
-						class={`ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${isDoneSyncBadgeStyle(isDoneSync.status)}`}
-					>
-						{isDoneSyncStatusLabel(isDoneSync.status)}
-					</span>
-				{/if}
-			</h2>
-			{#if isDoneSync}
-				<div class="grid grid-cols-2 gap-3">
-					<div class="lc-stat-tile rounded-xl border p-3">
-						<p class="lc-text-muted text-xs">수신된 종료 건수</p>
-						<p class="lc-text-primary mt-1 text-lg font-bold">
-							{(isDoneSync.lastResult?.fetchedDoneCount ?? 0).toLocaleString('ko-KR')}
-						</p>
-					</div>
-					<div class="lc-stat-tile rounded-xl border p-3">
-						<p class="lc-text-muted text-xs">신규 마킹</p>
-						<p class="lc-text-primary mt-1 text-lg font-bold">
-							{(isDoneSync.lastResult?.markedDoneCount ?? 0).toLocaleString('ko-KR')}
-						</p>
-					</div>
-				</div>
-				<ul class="lc-text-secondary mt-3 space-y-1.5 text-sm">
-					<li class="lc-stat-tile flex items-center justify-between rounded-lg border px-3 py-2">
-						<span>마지막 실행</span>
-						<span class="font-semibold">{formatDateTime(isDoneSync.lastRunAt)}</span>
-					</li>
-					{#if isDoneSync.status === 'failed' && isDoneSync.lastError}
-						<li class="lc-banner-error-soft rounded-lg border px-3 py-2">
-							<span class="font-semibold">오류: </span>{isDoneSync.lastError}
-						</li>
-					{/if}
-				</ul>
-			{:else}
-				<p class="lc-text-muted text-sm">동기화 이력이 없습니다. (서버 재시작 후 자동 실행)</p>
-			{/if}
-		</section>
 
 		<section class="lc-panel-card lc-defer-render mt-4 rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
