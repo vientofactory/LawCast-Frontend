@@ -9,9 +9,9 @@
 		faBars,
 		faCodeCompare,
 		faMoon,
-		faSun
+		faSun,
+		faBell
 	} from '@fortawesome/free-solid-svg-icons';
-	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
 	type HeaderMenuItem = {
@@ -24,7 +24,7 @@
 		{ href: '/', label: '홈', icon: faHouse },
 		{ href: '/notices', label: '입법예고', icon: faFileLines },
 		{ href: '/notices/changes', label: '변경 내역', icon: faCodeCompare },
-		{ href: '/webhook', label: '알림 설정', icon: faDiscord }
+		{ href: '/webhook', label: '알림 설정', icon: faBell }
 	];
 
 	function isActive(href: string): boolean {
