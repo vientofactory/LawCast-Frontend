@@ -209,6 +209,13 @@ export interface WebhookStats {
 	efficiency?: number;
 }
 
+export interface WebPushStats {
+	total: number;
+	active: number;
+	inactive: number;
+	withFailures: number;
+}
+
 export interface CacheInfo {
 	size: number;
 	lastUpdated: string | null;
@@ -278,6 +285,7 @@ export interface IsDoneSyncStatus {
 
 export interface SystemStats {
 	webhooks: WebhookStats;
+	webPush?: WebPushStats;
 	cache: CacheInfo;
 	archive: {
 		count: number;

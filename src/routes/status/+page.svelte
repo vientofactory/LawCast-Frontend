@@ -286,6 +286,35 @@
 
 			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
+					<FontAwesomeIcon icon={faCloud} class="lc-text-info mr-2 h-4 w-4" />
+					웹 푸시 상태
+				</h2>
+				<div class="lc-text-secondary space-y-1 text-sm">
+					<p>
+						전체 구독:
+						<span class="font-semibold"
+							>{(stats.webPush?.total ?? 0).toLocaleString('ko-KR')}개</span
+						>
+					</p>
+					<p>
+						활성 구독:
+						<span class="font-semibold"
+							>{(stats.webPush?.active ?? 0).toLocaleString('ko-KR')}개</span
+						>
+					</p>
+					<p>
+						실패 이력:
+						<span
+							class={`font-semibold ${(stats.webPush?.withFailures ?? 0) > 0 ? 'lc-text-dim' : ''}`}
+							>{(stats.webPush?.withFailures ?? 0).toLocaleString('ko-KR')}개</span
+						>
+					</p>
+					<p class="lc-text-dim text-xs">자동 정리 대상 포함</p>
+				</div>
+			</section>
+
+			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
+				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faRobot} class="lc-text-info mr-2 h-4 w-4" />
 					AI 요약
 				</h2>

@@ -427,6 +427,12 @@ export function getMockSystemStats(): SystemStats {
 			recentInactive: 1,
 			efficiency: 75
 		},
+		webPush: {
+			total: 3,
+			active: 2,
+			inactive: 1,
+			withFailures: 1
+		},
 		cache: {
 			size: 4,
 			lastUpdated: hoursAgo(1),
