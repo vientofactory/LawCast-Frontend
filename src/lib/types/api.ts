@@ -339,6 +339,17 @@ export interface WebhookRegistrationRequest {
 	proof: string;
 }
 
+export interface WebPushPublicConfig {
+	enabled: boolean;
+	publicKey: string | null;
+}
+
+export interface WebPushSubscriptionRequest {
+	endpoint: string;
+	p256dh: string;
+	auth: string;
+}
+
 export interface WebhookValidationResult {
 	isValid: boolean;
 	message?: string;

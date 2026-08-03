@@ -24,7 +24,7 @@
 		{ href: '/', label: '홈', icon: faHouse },
 		{ href: '/notices', label: '입법예고', icon: faFileLines },
 		{ href: '/notices/changes', label: '변경 내역', icon: faCodeCompare },
-		{ href: '/webhook', label: '디스코드', icon: faDiscord }
+		{ href: '/webhook', label: '알림 설정', icon: faDiscord }
 	];
 
 	function isActive(href: string): boolean {

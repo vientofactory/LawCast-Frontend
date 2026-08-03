@@ -64,11 +64,12 @@
 		? formatDate(quickKeywords.updatedAt)
 		: null;
 
-	const discordCommunityUrl = env.PUBLIC_DISCORD_SERVER_URL?.trim() ?? '';
-	const discordServerId = env.PUBLIC_DISCORD_SERVER_ID?.trim() ?? '';
+	const discordCommunityUrl = env.PUBLIC_DISCORD_SERVER_URL?.trim() ?? null;
+	const discordServerId = env.PUBLIC_DISCORD_SERVER_ID?.trim() ?? null;
 
 	function buildQuickSearchHref(keyword: string): string {
-		return `/notices?search=${encodeURIComponent(keyword)}&fullText=true`;
+		const params = new URLSearchParams({ search: keyword, fullText: 'true' });
+		return `/notices?${params.toString()}`;
 	}
 
 	function safeJsonLd(data: object): string {

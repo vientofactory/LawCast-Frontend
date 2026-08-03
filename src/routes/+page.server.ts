@@ -25,9 +25,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 	}
 
 	const [recentNotices, quickKeywords, stats] = await Promise.all([
-		apiClient
-			.getRecentNotices(fetch)
-			.catch(() => [] as Awaited<ReturnType<typeof apiClient.getRecentNotices>>),
+		apiClient.getRecentNotices(fetch).catch(() => []),
 		apiClient.getQuickKeywordSuggestions({ limit: 8 }, fetch).catch(() => ({
 			items: [],
 			updatedAt: null,

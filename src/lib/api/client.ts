@@ -14,6 +14,8 @@ import type {
 	SystemHealth,
 	ApiResponse,
 	WebhookRegistrationRequest,
+	WebPushPublicConfig,
+	WebPushSubscriptionRequest,
 	ApiError
 } from '../types/api';
 
@@ -471,6 +473,53 @@ export async function registerWebhook(
 	}
 }
 
+export async function getWebPushPublicConfig(customFetch?: Fetch): Promise<WebPushPublicConfig> {
+	try {
+		return await request<WebPushPublicConfig>('/push/public-key', { method: 'GET' }, customFetch);
+	} catch (error) {
+		console.error('Failed to load web push public config:', error);
+		throw normalizeError(error);
+	}
+}
+
+export async function registerWebPushSubscription(
+	requestData: WebPushSubscriptionRequest,
+	customFetch?: Fetch
+): Promise<{ id: number }> {
+	try {
+		return await request<{ id: number }>(
+			'/push/subscriptions',
+			{
+				method: 'POST',
+				body: JSON.stringify(requestData)
+			},
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to register web push subscription:', error);
+		throw normalizeError(error);
+	}
+}
+
+export async function unregisterWebPushSubscription(
+	endpoint: string,
+	customFetch?: Fetch
+): Promise<void> {
+	try {
+		await request<{ success: boolean }>(
+			'/push/subscriptions',
+			{
+				method: 'DELETE',
+				body: JSON.stringify({ endpoint })
+			},
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to unregister web push subscription:', error);
+		throw normalizeError(error);
+	}
+}
+
 // 기존 코드와의 호환성을 위한 객체 export
 export const apiClient = {
 	getRecentNotices,
@@ -483,5 +532,8 @@ export const apiClient = {
 	getComparableNoticeChangesSummary,
 	getSystemStats,
 	getSystemHealth,
-	registerWebhook
+	registerWebhook,
+	getWebPushPublicConfig,
+	registerWebPushSubscription,
+	unregisterWebPushSubscription
 };
