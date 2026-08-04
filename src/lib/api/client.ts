@@ -1,5 +1,12 @@
 import { browser } from '$app/environment';
+import { env } from '$env/dynamic/public';
 import NProgress from 'nprogress';
+import {
+	isChallengeStatus,
+	isCloudflareChallengeHeader,
+	isJsonContentType,
+	isUnderAttackReloadEnabled
+} from '$lib/utils/cloudflare-challenge';
 import type {
 	Notice,
 	NoticeDetail,
@@ -26,40 +33,9 @@ type Fetch = typeof fetch;
 let activeRequests = 0;
 
 const CLOUDFLARE_CHALLENGE_ERROR_CODE = 'LC_CF_CHALLENGE_DETECTED';
-
-function isCloudflareChallengePayload(payload: string): boolean {
-	const normalized = payload.toLowerCase();
-	const challengeTokens = [
-		'cloudflare',
-		'/cdn-cgi/challenge-platform',
-		'cf-browser-verification',
-		'__cf_chl_',
-		'cf_chl_',
-		'cf_clearance',
-		'cf-ray',
-		'challenge-platform'
-	];
-
-	return challengeTokens.some((token) => normalized.includes(token));
-}
-
-function isCloudflareChallengeResponse(response: Response): boolean {
-	const mitigated = (response.headers.get('cf-mitigated') || '').toLowerCase();
-	if (mitigated === 'challenge') {
-		return true;
-	}
-
-	const responseUrl = (response.url || '').toLowerCase();
-	if (
-		responseUrl.includes('/cdn-cgi/challenge-platform') ||
-		responseUrl.includes('__cf_chl_') ||
-		responseUrl.includes('cf_chl_')
-	) {
-		return true;
-	}
-
-	return false;
-}
+const CF_CHALLENGE_FEATURE_ENABLED = isUnderAttackReloadEnabled(
+	env.PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED
+);
 
 function startProgress() {
 	if (browser) {
@@ -112,26 +88,20 @@ async function request<T>(
 			console.log(`API Response: ${response.status} ${url}`);
 		}
 
-		if (isCloudflareChallengeResponse(response)) {
-			throw {
-				status: response.status || 503,
-				message: CLOUDFLARE_CHALLENGE_ERROR_CODE
-			};
-		}
+		const contentType = response.headers.get('content-type') || '';
+		const isJsonResponse = isJsonContentType(contentType);
 
-		const contentType = (response.headers.get('content-type') || '').toLowerCase();
-		const isJsonResponse =
-			contentType.includes('application/json') || contentType.includes('+json');
-
-		if (!isJsonResponse) {
-			const textPayload = await response.text();
-
-			if (isCloudflareChallengePayload(textPayload)) {
+		if (CF_CHALLENGE_FEATURE_ENABLED && isChallengeStatus(response.status)) {
+			if (isCloudflareChallengeHeader(response) || !isJsonResponse) {
 				throw {
 					status: response.status || 503,
 					message: CLOUDFLARE_CHALLENGE_ERROR_CODE
 				};
 			}
+		}
+
+		if (!isJsonResponse) {
+			const textPayload = await response.text();
 
 			if (!response.ok) {
 				throw {

@@ -1,45 +1,21 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
 	import { page } from '$app/state';
+	import {
+		CF_CHALLENGE_MARK_KEY,
+		CF_RELOAD_GUARD_KEY,
+		isChallengeStatus,
+		isUnderAttackReloadEnabled
+	} from '$lib/utils/cloudflare-challenge';
 	import { onMount } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faArrowLeft, faCompass, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 
-	const CF_RELOAD_GUARD_KEY = 'lawcast:cf-under-attack-reload-at';
 	const CF_RELOAD_COOLDOWN_MS = 20_000;
+	const CF_CHALLENGE_MARK_WINDOW_MS = 30_000;
 	const CF_RELOAD_DELAY_MS = 500;
-	const CF_CHALLENGE_ERROR_CODE = 'lc_cf_challenge_detected';
-	const CF_RELOAD_ENABLED = ['1', 'true', 'yes', 'on'].includes(
-		(env.PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED || '').trim().toLowerCase()
-	);
-
-	function shouldReloadForCloudflareChallenge(status: number, error: App.Error | null): boolean {
-		const message = (error?.message ?? '').toLowerCase();
-
-		const cloudflareMessageHints = [
-			CF_CHALLENGE_ERROR_CODE,
-			'cloudflare',
-			'under attack',
-			'just a moment',
-			'attention required',
-			'cf-ray',
-			'checking your browser',
-			'/cdn-cgi/challenge-platform',
-			'__cf_chl_',
-			'cf_chl_',
-			'cf_clearance',
-			'challenge-platform'
-		];
-
-		const jsonParseHints = ['unexpected token <', 'invalid json', 'not valid json'];
-		const statusHint = status === 403 || status === 429 || status === 503 || status === 520;
-
-		const hasCloudflareHint = cloudflareMessageHints.some((hint) => message.includes(hint));
-		const hasJsonParseHint = jsonParseHints.some((hint) => message.includes(hint));
-
-		return hasCloudflareHint || (statusHint && hasJsonParseHint);
-	}
+	const CF_RELOAD_ENABLED = isUnderAttackReloadEnabled(env.PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED);
 
 	const status = $derived(page.status);
 	const appError = $derived(page.error as App.Error | null);
@@ -58,15 +34,16 @@
 			return;
 		}
 
-		const challengeLocationHints = `${window.location.pathname}${window.location.search}`
-			.toLowerCase()
-			.trim();
-		const hasRuntimeChallengeHint =
-			challengeLocationHints.includes('/cdn-cgi/challenge-platform') ||
-			challengeLocationHints.includes('__cf_chl_') ||
-			challengeLocationHints.includes('cf_chl_');
+		if (!isChallengeStatus(status)) {
+			return;
+		}
 
-		if (!hasRuntimeChallengeHint && !shouldReloadForCloudflareChallenge(status, appError)) {
+		const recentDetectedAt = Number(window.sessionStorage.getItem(CF_CHALLENGE_MARK_KEY) || '0');
+		const hasRecentChallengeDetection =
+			Number.isFinite(recentDetectedAt) &&
+			Date.now() - recentDetectedAt < CF_CHALLENGE_MARK_WINDOW_MS;
+
+		if (!hasRecentChallengeDetection) {
 			return;
 		}
 
