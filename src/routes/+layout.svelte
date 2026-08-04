@@ -24,6 +24,19 @@
 		return url.pathname.endsWith('/__data.json');
 	}
 
+	function normalizePathname(pathname: string): string {
+		return pathname.replace(/\/+$|^$/g, '') ? `/${pathname.replace(/^\/+|\/+$/g, '')}` : '/';
+	}
+
+	function getRoutePathFromDataRequestPath(pathname: string): string | null {
+		if (!pathname.endsWith('/__data.json')) {
+			return null;
+		}
+
+		const routePath = pathname.slice(0, -'/__data.json'.length);
+		return normalizePathname(routePath);
+	}
+
 	config.autoAddCss = false;
 
 	NProgress.configure({ showSpinner: false });
@@ -79,6 +92,20 @@
 				const requestUrl = new URL(rawUrl, window.location.href);
 
 				if (requestUrl.origin !== window.location.origin || !isSvelteKitDataRequest(requestUrl)) {
+					return response;
+				}
+
+				const activeNavigationPath = navigating.to
+					? normalizePathname(navigating.to.url.pathname)
+					: null;
+				const requestRoutePath = getRoutePathFromDataRequestPath(requestUrl.pathname);
+
+				// Ignore prefetch/background data loads. Only react to active page navigation data fetches.
+				if (
+					!activeNavigationPath ||
+					!requestRoutePath ||
+					requestRoutePath !== activeNavigationPath
+				) {
 					return response;
 				}
 
