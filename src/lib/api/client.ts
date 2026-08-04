@@ -43,6 +43,24 @@ function isCloudflareChallengePayload(payload: string): boolean {
 	return challengeTokens.some((token) => normalized.includes(token));
 }
 
+function isCloudflareChallengeResponse(response: Response): boolean {
+	const mitigated = (response.headers.get('cf-mitigated') || '').toLowerCase();
+	if (mitigated === 'challenge') {
+		return true;
+	}
+
+	const responseUrl = (response.url || '').toLowerCase();
+	if (
+		responseUrl.includes('/cdn-cgi/challenge-platform') ||
+		responseUrl.includes('__cf_chl_') ||
+		responseUrl.includes('cf_chl_')
+	) {
+		return true;
+	}
+
+	return false;
+}
+
 function startProgress() {
 	if (browser) {
 		if (activeRequests === 0) {
@@ -92,6 +110,13 @@ async function request<T>(
 		// 개발 환경 응답 로깅
 		if (import.meta.env.DEV) {
 			console.log(`API Response: ${response.status} ${url}`);
+		}
+
+		if (isCloudflareChallengeResponse(response)) {
+			throw {
+				status: response.status || 503,
+				message: CLOUDFLARE_CHALLENGE_ERROR_CODE
+			};
 		}
 
 		const contentType = (response.headers.get('content-type') || '').toLowerCase();

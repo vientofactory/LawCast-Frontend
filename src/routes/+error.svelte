@@ -58,7 +58,15 @@
 			return;
 		}
 
-		if (!shouldReloadForCloudflareChallenge(status, appError)) {
+		const challengeLocationHints = `${window.location.pathname}${window.location.search}`
+			.toLowerCase()
+			.trim();
+		const hasRuntimeChallengeHint =
+			challengeLocationHints.includes('/cdn-cgi/challenge-platform') ||
+			challengeLocationHints.includes('__cf_chl_') ||
+			challengeLocationHints.includes('cf_chl_');
+
+		if (!hasRuntimeChallengeHint && !shouldReloadForCloudflareChallenge(status, appError)) {
 			return;
 		}
 
