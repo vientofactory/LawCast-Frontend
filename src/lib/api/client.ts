@@ -25,6 +25,24 @@ type Fetch = typeof fetch;
 
 let activeRequests = 0;
 
+const CLOUDFLARE_CHALLENGE_ERROR_CODE = 'LC_CF_CHALLENGE_DETECTED';
+
+function isCloudflareChallengePayload(payload: string): boolean {
+	const normalized = payload.toLowerCase();
+	const challengeTokens = [
+		'cloudflare',
+		'/cdn-cgi/challenge-platform',
+		'cf-browser-verification',
+		'__cf_chl_',
+		'cf_chl_',
+		'cf_clearance',
+		'cf-ray',
+		'challenge-platform'
+	];
+
+	return challengeTokens.some((token) => normalized.includes(token));
+}
+
 function startProgress() {
 	if (browser) {
 		if (activeRequests === 0) {
@@ -74,6 +92,33 @@ async function request<T>(
 		// 개발 환경 응답 로깅
 		if (import.meta.env.DEV) {
 			console.log(`API Response: ${response.status} ${url}`);
+		}
+
+		const contentType = (response.headers.get('content-type') || '').toLowerCase();
+		const isJsonResponse =
+			contentType.includes('application/json') || contentType.includes('+json');
+
+		if (!isJsonResponse) {
+			const textPayload = await response.text();
+
+			if (isCloudflareChallengePayload(textPayload)) {
+				throw {
+					status: response.status || 503,
+					message: CLOUDFLARE_CHALLENGE_ERROR_CODE
+				};
+			}
+
+			if (!response.ok) {
+				throw {
+					status: response.status,
+					message: textPayload?.slice(0, 300) || 'Unexpected non-JSON API response'
+				};
+			}
+
+			throw {
+				status: response.status,
+				message: 'Unexpected non-JSON API response'
+			};
 		}
 
 		const data = await response.json();
