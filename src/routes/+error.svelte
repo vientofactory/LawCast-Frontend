@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { env } from '$env/dynamic/public';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
@@ -9,6 +10,9 @@
 	const CF_RELOAD_COOLDOWN_MS = 20_000;
 	const CF_RELOAD_DELAY_MS = 500;
 	const CF_CHALLENGE_ERROR_CODE = 'lc_cf_challenge_detected';
+	const CF_RELOAD_ENABLED = ['1', 'true', 'yes', 'on'].includes(
+		(env.PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED || '').trim().toLowerCase()
+	);
 
 	function shouldReloadForCloudflareChallenge(status: number, error: App.Error | null): boolean {
 		const message = (error?.message ?? '').toLowerCase();
@@ -50,6 +54,10 @@
 	);
 
 	onMount(() => {
+		if (!CF_RELOAD_ENABLED) {
+			return;
+		}
+
 		if (!shouldReloadForCloudflareChallenge(status, appError)) {
 			return;
 		}

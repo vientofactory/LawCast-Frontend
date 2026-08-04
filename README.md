@@ -114,6 +114,10 @@ src/
 # API 베이스 URL
 API_BASE_URL=http://localhost:3000
 PUBLIC_HASHGUARD_URL=https://hashguard.viento.me
+
+# Cloudflare Under Attack 챌린지 감지 시 자동 리로드 활성화
+# true, 1, yes, on 중 하나면 활성화
+PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=false
 ```
 
 ## 개발 명령어
