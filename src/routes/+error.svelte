@@ -17,6 +17,9 @@
 	const CF_RELOAD_DELAY_MS = 500;
 	const CF_RELOAD_ENABLED = isUnderAttackReloadEnabled(env.PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED);
 
+	let showChallengeReloadGuide = $state(false);
+	let isAutoReloadPending = $state(false);
+
 	const status = $derived(page.status);
 	const appError = $derived(page.error as App.Error | null);
 	const isNotFound = $derived(status === 404);
@@ -28,6 +31,11 @@
 			? appError?.message || '요청한 입법예고 원문 또는 페이지가 존재하지 않거나 삭제되었습니다.'
 			: appError?.message || '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
 	);
+	const isChallengeRecoveryView = $derived(showChallengeReloadGuide);
+
+	function handleManualRefresh() {
+		window.location.reload();
+	}
 
 	onMount(() => {
 		if (!CF_RELOAD_ENABLED) {
@@ -47,6 +55,8 @@
 			return;
 		}
 
+		showChallengeReloadGuide = true;
+
 		const now = Date.now();
 		const previous = Number(window.sessionStorage.getItem(CF_RELOAD_GUARD_KEY) || '0');
 
@@ -55,6 +65,7 @@
 		}
 
 		window.sessionStorage.setItem(CF_RELOAD_GUARD_KEY, String(now));
+		isAutoReloadPending = true;
 
 		// Give the browser a brief moment to persist Cloudflare cookies before reload.
 		const timer = window.setTimeout(() => {
@@ -68,7 +79,7 @@
 </script>
 
 <svelte:head>
-	<title>{status} | {title} - LawCast</title>
+	<title>{isChallengeRecoveryView ? '보안 확인 중' : `${status} | ${title}`} - LawCast</title>
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
@@ -78,37 +89,79 @@
 	<main
 		class="mx-auto flex min-h-[calc(100vh-72px)] max-w-4xl items-center px-4 py-10 sm:px-6 lg:px-8"
 	>
-		<section class="lc-panel-hero w-full rounded-2xl border p-6 shadow-xl sm:p-10">
-			<div
-				class="lc-banner-warning mb-5 inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold"
-			>
-				<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-3.5 w-3.5" />
-				HTTP {status}
-			</div>
-
-			<div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-				<div>
-					<h1 class="lc-text-primary text-2xl leading-tight font-bold sm:text-3xl">{title}</h1>
-					<p class="lc-text-secondary mt-2 text-sm leading-relaxed sm:text-base">{description}</p>
+		{#if isChallengeRecoveryView}
+			<section class="lc-panel-hero w-full rounded-2xl border p-6 shadow-xl sm:p-10">
+				<div
+					class="lc-banner-warning mb-5 inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold"
+				>
+					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-3.5 w-3.5" />
+					보안 확인
 				</div>
-			</div>
 
-			<div class="mt-8 flex flex-wrap gap-3">
-				<a
-					href="/notices"
-					class="lc-button-primary inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold"
+				<h1 class="lc-text-primary text-2xl leading-tight font-bold sm:text-3xl">
+					보안 확인 챌린지를 처리하는 중입니다
+				</h1>
+				<p class="lc-text-secondary mt-2 text-sm leading-relaxed sm:text-base">
+					{#if isAutoReloadPending}
+						잠시 후 페이지가 자동으로 새로고침됩니다.
+					{:else}
+						자동 새로고침을 준비하는 중입니다.
+					{/if}
+				</p>
+				<p class="lc-text-secondary mt-2 text-sm leading-relaxed sm:text-base">
+					잠시 후에도 변화가 없으면 아래 버튼으로 직접 새로고침해 주세요.
+				</p>
+
+				<div class="mt-8 flex flex-wrap gap-3">
+					<button
+						type="button"
+						onclick={handleManualRefresh}
+						class="lc-button-primary cursor-pointer inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold"
+					>
+						지금 새로고침
+					</button>
+					<a
+						href="/"
+						class="lc-button-neutral inline-flex items-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors"
+					>
+						<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
+						메인으로 이동
+					</a>
+				</div>
+			</section>
+		{:else}
+			<section class="lc-panel-hero w-full rounded-2xl border p-6 shadow-xl sm:p-10">
+				<div
+					class="lc-banner-warning mb-5 inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold"
 				>
-					<FontAwesomeIcon icon={faCompass} class="mr-2 h-4 w-4" />
-					전체 입법예고로 이동
-				</a>
-				<a
-					href="/"
-					class="lc-button-neutral inline-flex items-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors"
-				>
-					<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
-					메인으로 이동
-				</a>
-			</div>
-		</section>
+					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-3.5 w-3.5" />
+					HTTP {status}
+				</div>
+
+				<div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+					<div>
+						<h1 class="lc-text-primary text-2xl leading-tight font-bold sm:text-3xl">{title}</h1>
+						<p class="lc-text-secondary mt-2 text-sm leading-relaxed sm:text-base">{description}</p>
+					</div>
+				</div>
+
+				<div class="mt-8 flex flex-wrap gap-3">
+					<a
+						href="/notices"
+						class="lc-button-primary inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold"
+					>
+						<FontAwesomeIcon icon={faCompass} class="mr-2 h-4 w-4" />
+						전체 입법예고로 이동
+					</a>
+					<a
+						href="/"
+						class="lc-button-neutral inline-flex items-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors"
+					>
+						<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
+						메인으로 이동
+					</a>
+				</div>
+			</section>
+		{/if}
 	</main>
 </div>
