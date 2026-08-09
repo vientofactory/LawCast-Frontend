@@ -55,7 +55,7 @@
 				<div class="min-w-0">
 					<p class="lc-ai-title inline-flex items-center text-xs font-bold tracking-wide">
 						<FontAwesomeIcon icon={faRobot} class="mr-1.5 h-3.5 w-3.5" />
-						AI 에이전트 브리핑
+						핵심 내용 AI 요약
 					</p>
 					<p class="lc-text-secondary mt-1 text-sm font-medium">
 						전체 입법예고 페이지에서 각 법률안의 AI 요약을 확인할 수 있습니다!

@@ -4,7 +4,6 @@
 
 	export let summary: string | null = null;
 	export let status: 'ready' | 'unavailable' | 'not_supported' | 'not_requested' = 'ready';
-	export let title = '핵심 내용 AI 요약';
 
 	$: isReady = status === 'ready' && !!summary?.trim();
 </script>
@@ -18,15 +17,9 @@
 				class="lc-ai-badge inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
 			>
 				<FontAwesomeIcon icon={faRobot} class="mr-1.5 h-3.5 w-3.5" />
-				AI 에이전트 브리핑
+				핵심 내용 AI 요약
 			</div>
 		</div>
-
-		<p
-			class="lc-ai-title relative z-10 mt-2 text-xs font-semibold tracking-[0.12em] wrap-break-word"
-		>
-			{title}
-		</p>
 		<p class="lc-text-primary relative z-10 mt-1.5 text-sm leading-relaxed wrap-break-word">
 			{summary}
 		</p>
