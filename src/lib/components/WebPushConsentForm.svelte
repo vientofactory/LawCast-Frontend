@@ -2,13 +2,21 @@
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
 	import { apiClient } from '$lib/api/client';
+	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
+	import {
+		applyPowStatus,
+		createPowDisplayState,
+		formatPowHashRate,
+		formatPowRemainingTime
+	} from '$lib/utils/pow-status';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faBell,
 		faBellSlash,
 		faSpinner,
 		faTriangleExclamation,
-		faCloud
+		faCloud,
+		faShieldHalved
 	} from '@fortawesome/free-solid-svg-icons';
 
 	export let onSuccess: (message: string) => void = () => {};
@@ -26,6 +34,12 @@
 	let swActiveState: string | null = null;
 	let subscriptionEndpointPreview: string | null = null;
 	let lastDebugUpdatedAt: string | null = null;
+	let isSolvingPoW = false;
+	let powState = createPowDisplayState();
+
+	function updatePowStatus(status: PowStatus) {
+		powState = applyPowStatus(powState, status);
+	}
 
 	function urlBase64ToUint8Array(base64String: string): Uint8Array {
 		const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -112,15 +126,24 @@
 	}
 
 	async function enableWebPush() {
-		if (isSubmitting || !isSupported) return;
+		if (isSubmitting || isSolvingPoW || !isSupported) return;
 
 		onClearMessage();
 		isSubmitting = true;
+		let subscriptionCreatedInThisAttempt = false;
+		let activeSubscription: PushSubscription | null = null;
 
 		try {
 			if (!isPushEnabledByServer || !vapidPublicKey) {
 				throw new Error('서버 웹 푸시가 비활성화되어 있습니다. 관리자에게 문의해주세요.');
 			}
+
+			isSolvingPoW = true;
+			powState = createPowDisplayState('보안 검증을 준비하고 있어요...');
+
+			const proof = await executePowInWorker('webpush-subscription', updatePowStatus);
+			isSolvingPoW = false;
+			powState = createPowDisplayState();
 
 			const permission = await Notification.requestPermission();
 			isPermissionDenied = permission === 'denied';
@@ -130,24 +153,47 @@
 
 			const registration = await navigator.serviceWorker.register('/sw.js');
 			let subscription = await registration.pushManager.getSubscription();
+			activeSubscription = subscription;
 
 			if (!subscription) {
 				subscription = await registration.pushManager.subscribe({
 					userVisibleOnly: true,
 					applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource
 				});
+				subscriptionCreatedInThisAttempt = true;
+				activeSubscription = subscription;
 			}
 
 			const payload = extractSubscriptionPayload(subscription);
-			await apiClient.registerWebPushSubscription(payload);
+			await apiClient.registerWebPushSubscription({
+				...payload,
+				proof
+			});
 
 			isSubscribed = true;
 			await refreshDebugState(subscription);
 			onSuccess('브라우저 웹 푸시 알림이 활성화되었습니다.');
 		} catch (error) {
+			if (subscriptionCreatedInThisAttempt && activeSubscription) {
+				try {
+					await activeSubscription.unsubscribe();
+				} catch {
+					// Ignore rollback failure and proceed with error handling.
+				}
+			}
+
+			const currentSubscription = await detectCurrentSubscription().catch(() => null);
+			isSubscribed = !!currentSubscription;
+			await refreshDebugState(currentSubscription);
+
+			isSolvingPoW = false;
+			powState = createPowDisplayState();
 			onError(error instanceof Error ? error.message : '웹 푸시 활성화에 실패했습니다.');
 		} finally {
 			isSubmitting = false;
+			if (!isSolvingPoW) {
+				powState = createPowDisplayState();
+			}
 		}
 	}
 
@@ -240,10 +286,16 @@
 			<button
 				type="button"
 				on:click={enableWebPush}
-				disabled={isSubmitting || isSubscribed}
+				disabled={isSubmitting || isSolvingPoW || isSubscribed}
 				class="lc-button-primary inline-flex cursor-pointer items-center justify-center rounded-xl px-6 py-3 font-semibold transition-all duration-200 hover:-translate-y-0.5 disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50"
 			>
-				{#if isSubmitting && !isSubscribed}
+				{#if isSolvingPoW}
+					<FontAwesomeIcon
+						icon={faShieldHalved}
+						class="pointer-events-none mr-2 h-4 w-4 animate-pulse"
+					/>
+					스팸 방지 검증 중...
+				{:else if isSubmitting && !isSubscribed}
 					<FontAwesomeIcon icon={faSpinner} class="pointer-events-none mr-2 h-4 w-4 animate-spin" />
 					처리 중...
 				{:else}
@@ -267,6 +319,30 @@
 				{/if}
 			</button>
 		</div>
+
+		{#if isSolvingPoW}
+			<p class="lc-text-muted mt-3 animate-pulse text-center text-xs">
+				{powState.message ||
+					'잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.'}
+			</p>
+			{#if powState.estimatedRemainingMs !== null || powState.hashRate !== null || powState.difficultyBits !== null}
+				<div class="lc-text-dim mt-2 flex items-center justify-center gap-2 text-[11px]">
+					{#if powState.estimatedRemainingMs !== null}
+						<span class="lc-text-accent font-medium"
+							>{formatPowRemainingTime(powState.estimatedRemainingMs)}</span
+						>
+						<span>·</span>
+					{/if}
+					{#if powState.hashRate !== null}
+						<span>{formatPowHashRate(powState.hashRate)}</span>
+					{/if}
+					{#if powState.difficultyBits !== null}
+						{#if powState.hashRate !== null}<span>·</span>{/if}
+						<span>난이도 {powState.difficultyBits}bit</span>
+					{/if}
+				</div>
+			{/if}
+		{/if}
 
 		<p class="lc-text-muted mt-3 text-sm">
 			현재 상태: {isSubscribed ? '활성화됨' : '비활성화됨'}

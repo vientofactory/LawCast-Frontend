@@ -356,6 +356,7 @@ export interface WebPushSubscriptionRequest {
 	endpoint: string;
 	p256dh: string;
 	auth: string;
+	proof: string;
 }
 
 export interface WebhookValidationResult {

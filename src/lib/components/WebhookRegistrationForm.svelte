@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { apiClient } from '$lib/api/client';
 	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
+	import {
+		applyPowStatus,
+		createPowDisplayState,
+		formatPowHashRate,
+		formatPowRemainingTime
+	} from '$lib/utils/pow-status';
 	import { validateDiscordWebhookUrl, normalizeWebhookUrl } from '$lib/utils/helpers';
 	import WebhookGuide from './WebhookGuide.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -19,31 +25,10 @@
 	let newWebhookUrl = '';
 	let isSubmitting = false;
 	let isSolvingPoW = false;
-	let powStatusMessage = '';
-	let powAttempts: number | null = null;
-	let powDifficultyBits: number | null = null;
-	let powHashRate: number | null = null;
-	let powEstimatedRemainingMs: number | null = null;
-
-	function formatHashRate(rate: number): string {
-		if (rate >= 1_000_000) return `${(rate / 1_000_000).toFixed(1)} MH/s`;
-		if (rate >= 1_000) return `${Math.round(rate / 1_000).toLocaleString()} kH/s`;
-		return `${Math.round(rate).toLocaleString()} H/s`;
-	}
-
-	function formatRemainingTime(ms: number): string {
-		if (ms >= 60_000) return `약 ${Math.ceil(ms / 60_000)}분`;
-		if (ms >= 10_000) return `약 ${Math.ceil(ms / 1_000)}초`;
-		return '잠시 후 완료';
-	}
+	let powState = createPowDisplayState();
 
 	function updatePowStatus(status: PowStatus) {
-		powStatusMessage = status.message;
-		powAttempts = status.attempts ?? powAttempts;
-		powDifficultyBits = status.difficultyBits ?? powDifficultyBits;
-		if (status.hashRate !== undefined) powHashRate = status.hashRate;
-		if (status.estimatedRemainingMs !== undefined)
-			powEstimatedRemainingMs = status.estimatedRemainingMs;
+		powState = applyPowStatus(powState, status);
 	}
 
 	async function addWebhook() {
@@ -65,15 +50,11 @@
 		try {
 			// 스팸 방지 검증 수행
 			isSolvingPoW = true;
-			powStatusMessage = '보안 검증을 준비하고 있어요...';
-			powAttempts = null;
-			powDifficultyBits = null;
-			powHashRate = null;
-			powEstimatedRemainingMs = null;
+			powState = createPowDisplayState('보안 검증을 준비하고 있어요...');
 
 			const proof = await executePowInWorker('webhook-registration', updatePowStatus);
 			isSolvingPoW = false;
-			powStatusMessage = '';
+			powState = createPowDisplayState();
 
 			// URL 정규화
 			const normalizedUrl = normalizeWebhookUrl(newWebhookUrl);
@@ -92,11 +73,7 @@
 			}
 		} catch (err: unknown) {
 			isSolvingPoW = false;
-			powStatusMessage = '';
-			powAttempts = null;
-			powDifficultyBits = null;
-			powHashRate = null;
-			powEstimatedRemainingMs = null;
+			powState = createPowDisplayState();
 			if (err instanceof Error) {
 				onError(err.message);
 			} else {
@@ -105,7 +82,7 @@
 		} finally {
 			isSubmitting = false;
 			if (!isSolvingPoW) {
-				powStatusMessage = '';
+				powState = createPowDisplayState();
 			}
 		}
 	}
@@ -183,23 +160,23 @@
 		</button>
 		{#if isSolvingPoW}
 			<p class="lc-text-muted animate-pulse text-center text-xs">
-				{powStatusMessage ||
+				{powState.message ||
 					'잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.'}
 			</p>
-			{#if powEstimatedRemainingMs !== null || powHashRate !== null || powDifficultyBits !== null}
+			{#if powState.estimatedRemainingMs !== null || powState.hashRate !== null || powState.difficultyBits !== null}
 				<div class="lc-text-dim flex items-center justify-center gap-2 text-[11px]">
-					{#if powEstimatedRemainingMs !== null}
+					{#if powState.estimatedRemainingMs !== null}
 						<span class="lc-text-accent font-medium"
-							>{formatRemainingTime(powEstimatedRemainingMs)}</span
+							>{formatPowRemainingTime(powState.estimatedRemainingMs)}</span
 						>
 						<span>·</span>
 					{/if}
-					{#if powHashRate !== null}
-						<span>{formatHashRate(powHashRate)}</span>
+					{#if powState.hashRate !== null}
+						<span>{formatPowHashRate(powState.hashRate)}</span>
 					{/if}
-					{#if powDifficultyBits !== null}
-						{#if powHashRate !== null}<span>·</span>{/if}
-						<span>난이도 {powDifficultyBits}bit</span>
+					{#if powState.difficultyBits !== null}
+						{#if powState.hashRate !== null}<span>·</span>{/if}
+						<span>난이도 {powState.difficultyBits}bit</span>
 					{/if}
 				</div>
 			{/if}
