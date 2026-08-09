@@ -1,14 +1,10 @@
 <script lang="ts">
 	import { apiClient } from '$lib/api/client';
 	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
-	import {
-		applyPowStatus,
-		createPowDisplayState,
-		formatPowHashRate,
-		formatPowRemainingTime
-	} from '$lib/utils/pow-status';
+	import { applyPowStatus, createPowDisplayState } from '$lib/utils/pow-status';
 	import { validateDiscordWebhookUrl, normalizeWebhookUrl } from '$lib/utils/helpers';
 	import WebhookGuide from './WebhookGuide.svelte';
+	import PoWChallengeStatus from './PoWChallengeStatus.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faSpinner, faShieldHalved, faPlus } from '@fortawesome/free-solid-svg-icons';
 	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
@@ -159,27 +155,12 @@
 			{/if}
 		</button>
 		{#if isSolvingPoW}
-			<p class="lc-text-muted animate-pulse text-center text-xs">
-				{powState.message ||
-					'잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.'}
-			</p>
-			{#if powState.estimatedRemainingMs !== null || powState.hashRate !== null || powState.difficultyBits !== null}
-				<div class="lc-text-dim flex items-center justify-center gap-2 text-[11px]">
-					{#if powState.estimatedRemainingMs !== null}
-						<span class="lc-text-accent font-medium"
-							>{formatPowRemainingTime(powState.estimatedRemainingMs)}</span
-						>
-						<span>·</span>
-					{/if}
-					{#if powState.hashRate !== null}
-						<span>{formatPowHashRate(powState.hashRate)}</span>
-					{/if}
-					{#if powState.difficultyBits !== null}
-						{#if powState.hashRate !== null}<span>·</span>{/if}
-						<span>난이도 {powState.difficultyBits}bit</span>
-					{/if}
-				</div>
-			{/if}
+			<PoWChallengeStatus
+				message={powState.message}
+				estimatedRemainingMs={powState.estimatedRemainingMs}
+				hashRate={powState.hashRate}
+				difficultyBits={powState.difficultyBits}
+			/>
 		{/if}
 	</form>
 

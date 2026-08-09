@@ -3,12 +3,8 @@
 	import { dev } from '$app/environment';
 	import { apiClient } from '$lib/api/client';
 	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
-	import {
-		applyPowStatus,
-		createPowDisplayState,
-		formatPowHashRate,
-		formatPowRemainingTime
-	} from '$lib/utils/pow-status';
+	import { applyPowStatus, createPowDisplayState } from '$lib/utils/pow-status';
+	import PoWChallengeStatus from './PoWChallengeStatus.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faBell,
@@ -321,27 +317,14 @@
 		</div>
 
 		{#if isSolvingPoW}
-			<p class="lc-text-muted mt-3 animate-pulse text-center text-xs">
-				{powState.message ||
-					'잠시만 기다려주세요. 페이지를 새로고침하면 처음부터 다시 시작해야 합니다.'}
-			</p>
-			{#if powState.estimatedRemainingMs !== null || powState.hashRate !== null || powState.difficultyBits !== null}
-				<div class="lc-text-dim mt-2 flex items-center justify-center gap-2 text-[11px]">
-					{#if powState.estimatedRemainingMs !== null}
-						<span class="lc-text-accent font-medium"
-							>{formatPowRemainingTime(powState.estimatedRemainingMs)}</span
-						>
-						<span>·</span>
-					{/if}
-					{#if powState.hashRate !== null}
-						<span>{formatPowHashRate(powState.hashRate)}</span>
-					{/if}
-					{#if powState.difficultyBits !== null}
-						{#if powState.hashRate !== null}<span>·</span>{/if}
-						<span>난이도 {powState.difficultyBits}bit</span>
-					{/if}
-				</div>
-			{/if}
+			<PoWChallengeStatus
+				message={powState.message}
+				estimatedRemainingMs={powState.estimatedRemainingMs}
+				hashRate={powState.hashRate}
+				difficultyBits={powState.difficultyBits}
+				messageSpacingClass="mt-3"
+				metricsSpacingClass="mt-2"
+			/>
 		{/if}
 
 		<p class="lc-text-muted mt-3 text-sm">
