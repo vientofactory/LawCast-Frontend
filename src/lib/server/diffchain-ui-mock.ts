@@ -397,10 +397,25 @@ export function getMockNoticeChanges(noticeNum: number): NoticeChangeTimelineRes
 export function getMockRecentNoticeChangesResponse(params: {
 	page: number;
 	limit: number;
+	excludeIsDoneEvents?: boolean;
 }): RecentNoticeChangesResponse {
 	const merged = [2210001, 2210002, 2210003, 2210004]
-		.flatMap((noticeNum) => buildMockNoticeRecord(noticeNum).changes.items)
+		.flatMap((noticeNum) => {
+			const record = buildMockNoticeRecord(noticeNum);
+			if (params.excludeIsDoneEvents === true && record.notice.isDone) {
+				return [];
+			}
+
+			return record.changes.items;
+		})
 		.filter((item) => item.eventType !== 'created')
+		.filter((item) => {
+			if (params.excludeIsDoneEvents !== true) {
+				return true;
+			}
+
+			return item.details.some((detail) => detail.fieldPath === 'isDone') === false;
+		})
 		.sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime());
 
 	const total = merged.length;

@@ -50,11 +50,19 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		toEventId !== null;
 
 	if (isDiffchainUiMockEnabled()) {
-		const changes = getMockRecentNoticeChangesResponse({ page, limit });
+		const summaryBase = getMockRecentNoticeChangesResponse({
+			page: 1,
+			limit: 1000
+		});
+		const changes = getMockRecentNoticeChangesResponse({
+			page,
+			limit,
+			excludeIsDoneEvents: true
+		});
 		return {
 			changes,
 			summary: {
-				comparableEventTotal: changes.total,
+				comparableEventTotal: summaryBase.total,
 				comparableNoticeCount: 4
 			},
 			digestContext: {
@@ -73,6 +81,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				page: 1,
 				limit: 1,
 				excludeLegacyGenesisSource: true,
+				excludeIsDoneEvents: true,
 				comparableOnly: true,
 				fromEventId: fromEventId ?? undefined,
 				toEventId: toEventId ?? undefined,
@@ -89,6 +98,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 					page,
 					limit,
 					excludeLegacyGenesisSource: true,
+					excludeIsDoneEvents: true,
 					comparableOnly: true,
 					anchorEventId: firstDigestItem.id
 				},
@@ -111,6 +121,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				page,
 				limit,
 				excludeLegacyGenesisSource: true,
+				excludeIsDoneEvents: true,
 				comparableOnly: true,
 				fromEventId: fromEventId ?? undefined,
 				toEventId: toEventId ?? undefined,

@@ -394,6 +394,7 @@ export async function getRecentNoticeChanges(
 		limit?: number;
 		eventType?: ChangeEventType;
 		excludeLegacyGenesisSource?: boolean;
+		excludeIsDoneEvents?: boolean;
 		comparableOnly?: boolean;
 		fromEventId?: number;
 		toEventId?: number;
@@ -409,6 +410,7 @@ export async function getRecentNoticeChanges(
 		if (params.limit && params.limit > 0) query.set('limit', String(params.limit));
 		if (params.eventType) query.set('eventType', params.eventType);
 		if (params.excludeLegacyGenesisSource === true) query.set('excludeLegacyGenesisSource', 'true');
+		if (params.excludeIsDoneEvents === true) query.set('excludeIsDoneEvents', 'true');
 		if (params.comparableOnly === true) query.set('comparableOnly', 'true');
 		if (params.fromEventId && params.fromEventId > 0) {
 			query.set('fromEventId', String(params.fromEventId));
