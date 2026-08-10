@@ -392,7 +392,11 @@ export async function getRecentNoticeChanges(
 	params: {
 		page?: number;
 		limit?: number;
+		search?: string;
+		noticeNum?: number;
 		eventType?: ChangeEventType;
+		source?: string;
+		sortOrder?: 'asc' | 'desc';
 		excludeLegacyGenesisSource?: boolean;
 		excludeIsDoneEvents?: boolean;
 		comparableOnly?: boolean;
@@ -408,7 +412,13 @@ export async function getRecentNoticeChanges(
 		const query = new URLSearchParams();
 		if (params.page && params.page > 0) query.set('page', String(params.page));
 		if (params.limit && params.limit > 0) query.set('limit', String(params.limit));
+		if (params.search?.trim()) query.set('search', params.search.trim());
+		if (params.noticeNum && params.noticeNum > 0) query.set('noticeNum', String(params.noticeNum));
 		if (params.eventType) query.set('eventType', params.eventType);
+		if (params.source?.trim()) query.set('source', params.source.trim());
+		if (params.sortOrder === 'asc' || params.sortOrder === 'desc') {
+			query.set('sortOrder', params.sortOrder);
+		}
 		if (params.excludeLegacyGenesisSource === true) query.set('excludeLegacyGenesisSource', 'true');
 		if (params.excludeIsDoneEvents === true) query.set('excludeIsDoneEvents', 'true');
 		if (params.comparableOnly === true) query.set('comparableOnly', 'true');

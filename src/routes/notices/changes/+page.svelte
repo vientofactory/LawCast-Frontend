@@ -11,18 +11,31 @@
 		faCircleInfo,
 		faCodeCompare,
 		faFileCircleXmark,
+		faMagnifyingGlass,
 		faRotate,
 		faSpinner,
 		faSquarePollHorizontal,
 		faTableList
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { ComparableChangeSummary, RecentNoticeChangesResponse } from '$lib/types/api';
+	import type {
+		ChangeEventType,
+		ComparableChangeSummary,
+		RecentNoticeChangesResponse
+	} from '$lib/types/api';
 	import { NoticeChangeSource } from '$lib/types/change-source';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 
 	export let data: {
 		changes: RecentNoticeChangesResponse;
 		summary: ComparableChangeSummary;
+		filters: {
+			search: string;
+			noticeNum: number | null;
+			eventType: ChangeEventType | null;
+			source: string;
+			sortOrder: 'asc' | 'desc';
+			includeIsDoneChanges: boolean;
+		};
 		digestContext: {
 			isDigestContext: boolean;
 			fromEventId: number | null;
@@ -34,12 +47,26 @@
 
 	$: changes = data.changes;
 	$: summary = data.summary;
+	$: filters = data.filters;
 	$: digestContext = data.digestContext;
 	$: currentPage = changes.page || 1;
 	$: totalPages = changes.totalPages || 1;
 	$: totalItems = changes.total || 0;
 	$: limit = changes.limit || 10;
 	$: isDigestContext = digestContext?.isDigestContext === true;
+	$: searchQuery = filters?.search || '';
+	$: noticeNumFilter = filters?.noticeNum ?? null;
+	$: selectedEventType = filters?.eventType ?? null;
+	$: sourceFilter = filters?.source || '';
+	$: sortOrder = filters?.sortOrder === 'asc' ? 'asc' : 'desc';
+	$: includeIsDoneChanges = filters?.includeIsDoneChanges === true;
+	$: hasActiveFilters =
+		searchQuery.trim().length > 0 ||
+		noticeNumFilter !== null ||
+		selectedEventType !== null ||
+		sourceFilter.trim().length > 0 ||
+		sortOrder === 'asc' ||
+		includeIsDoneChanges === false;
 
 	let pendingPaginationPage: number | null = null;
 
@@ -82,12 +109,49 @@
 		return `/notices/${noticeNum}?timeline=true`;
 	}
 
-	function buildPageHref(page: number): string {
+	type FilterOverrides = {
+		search?: string;
+		noticeNum?: number | null;
+		eventType?: ChangeEventType | null;
+		source?: string;
+		sortOrder?: 'asc' | 'desc';
+		includeIsDoneChanges?: boolean;
+	};
+
+	function buildPageHref(page: number, overrides: FilterOverrides = {}): string {
 		const safePage = Math.max(1, page);
+		const resolvedSearch = (overrides.search ?? searchQuery).trim();
+		const resolvedNoticeNum = overrides.noticeNum ?? noticeNumFilter;
+		const resolvedEventType = overrides.eventType ?? selectedEventType;
+		const resolvedSource = (overrides.source ?? sourceFilter).trim();
+		const resolvedSortOrder = overrides.sortOrder ?? sortOrder;
+		const resolvedIncludeIsDoneChanges = overrides.includeIsDoneChanges ?? includeIsDoneChanges;
+
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const params = new URLSearchParams();
 		params.set('page', String(safePage));
 		params.set('limit', String(changes.limit));
+		params.set('sortOrder', resolvedSortOrder);
+
+		if (resolvedSearch.length > 0) {
+			params.set('search', resolvedSearch);
+		}
+
+		if (resolvedNoticeNum && resolvedNoticeNum > 0) {
+			params.set('noticeNum', String(resolvedNoticeNum));
+		}
+
+		if (resolvedEventType) {
+			params.set('eventType', resolvedEventType);
+		}
+
+		if (resolvedSource.length > 0) {
+			params.set('source', resolvedSource);
+		}
+
+		if (!resolvedIncludeIsDoneChanges) {
+			params.set('includeIsDoneChanges', '0');
+		}
 
 		if (digestContext?.fromEventId) {
 			params.set('fromEventId', String(digestContext.fromEventId));
@@ -206,6 +270,51 @@
 		pendingPaginationPage = targetPage;
 		goto(buildPageHref(targetPage));
 	}
+
+	function handleFilterSubmit(event: Event) {
+		event.preventDefault();
+		const form = event.currentTarget as HTMLFormElement;
+		const formData = new FormData(form);
+		const search = (formData.get('search') || '').toString().trim();
+		const noticeNumRaw = (formData.get('noticeNum') || '').toString().trim();
+		const parsedNoticeNum = Number.parseInt(noticeNumRaw, 10);
+		const noticeNum =
+			Number.isInteger(parsedNoticeNum) && parsedNoticeNum > 0 ? parsedNoticeNum : null;
+		const eventTypeRaw = (formData.get('eventType') || '').toString().trim();
+		const eventType =
+			eventTypeRaw === 'updated' || eventTypeRaw === 'invalidated'
+				? (eventTypeRaw as ChangeEventType)
+				: null;
+		const source = (formData.get('source') || '').toString().trim();
+		const nextSortOrder = formData.get('sortOrder') === 'asc' ? 'asc' : 'desc';
+		const nextIncludeIsDoneChanges = formData.get('includeIsDoneChanges') === 'true';
+
+		goto(
+			buildPageHref(1, {
+				search,
+				noticeNum,
+				eventType,
+				source,
+				sortOrder: nextSortOrder,
+				includeIsDoneChanges: nextIncludeIsDoneChanges
+			})
+		);
+	}
+
+	function handleSearchInputKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Enter' || event.isComposing) {
+			return;
+		}
+
+		const input = event.currentTarget as HTMLInputElement | null;
+		const form = input?.form;
+		if (!form) {
+			return;
+		}
+
+		event.preventDefault();
+		form.requestSubmit();
+	}
 </script>
 
 <svelte:head>
@@ -270,6 +379,158 @@
 					<strong>{digestMatchedCount.toLocaleString('ko-KR')}건</strong>이 해당 범위와 일치합니다.
 				</span>
 			</div>
+		{/if}
+
+		{#if !isDigestContext}
+			<section class="lc-panel-card mb-5 rounded-xl border p-4 shadow-sm">
+				<form method="GET" action="/notices/changes" on:submit={handleFilterSubmit}>
+					<div class="grid gap-2 md:grid-cols-[1.2fr_0.7fr_0.8fr_0.9fr_auto] md:items-center">
+						<div class="relative">
+							<label for="changes-search" class="sr-only">검색어</label>
+							<FontAwesomeIcon
+								icon={faMagnifyingGlass}
+								class="lc-text-dim pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
+							/>
+							<input
+								id="changes-search"
+								type="search"
+								name="search"
+								value={searchQuery}
+								placeholder="의안번호, 제목, 위원회, 제안이유 검색"
+								class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
+								on:keydown={handleSearchInputKeydown}
+							/>
+						</div>
+
+						<div>
+							<label for="changes-notice-num" class="sr-only">의안번호</label>
+							<input
+								id="changes-notice-num"
+								type="number"
+								name="noticeNum"
+								min="1"
+								value={noticeNumFilter ?? ''}
+								placeholder="의안번호"
+								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+							/>
+						</div>
+
+						<div>
+							<label for="changes-event-type" class="sr-only">이벤트 유형</label>
+							<select
+								id="changes-event-type"
+								name="eventType"
+								value={selectedEventType ?? ''}
+								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+							>
+								<option value="">전체 유형</option>
+								<option value="updated">내용 변경</option>
+								<option value="invalidated">무효화</option>
+							</select>
+						</div>
+
+						<div>
+							<label for="changes-sort-order" class="sr-only">정렬</label>
+							<select
+								id="changes-sort-order"
+								name="sortOrder"
+								value={sortOrder}
+								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+							>
+								<option value="desc">최신순</option>
+								<option value="asc">오래된순</option>
+							</select>
+						</div>
+
+						<button
+							type="submit"
+							class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold"
+						>
+							검색
+						</button>
+					</div>
+
+					<div class="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto] md:items-center">
+						<div>
+							<label for="changes-source" class="sr-only">소스</label>
+							<input
+								id="changes-source"
+								type="text"
+								name="source"
+								value={sourceFilter}
+								placeholder="이벤트 소스 포함 키워드 (선택)"
+								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+							/>
+						</div>
+
+						<label class="inline-flex cursor-pointer items-center gap-2 text-sm">
+							<input
+								type="checkbox"
+								name="includeIsDoneChanges"
+								value="true"
+								checked={includeIsDoneChanges}
+								class="h-4 w-4"
+							/>
+							<span class="lc-text-secondary">종료된 입법예고 관련 변경도 포함</span>
+						</label>
+
+						<a
+							href="/notices/changes"
+							class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold"
+						>
+							필터 초기화
+						</a>
+					</div>
+				</form>
+
+				{#if hasActiveFilters}
+					<div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+						<span class="lc-text-muted font-semibold">적용된 필터</span>
+						{#if searchQuery.trim()}
+							<span
+								class="lc-chip-blue inline-flex items-center rounded-full px-2 py-1 font-semibold"
+							>
+								키워드: {searchQuery.trim()}
+							</span>
+						{/if}
+						{#if noticeNumFilter !== null}
+							<span
+								class="lc-chip-success inline-flex items-center rounded-full px-2 py-1 font-semibold"
+							>
+								의안번호: {noticeNumFilter}
+							</span>
+						{/if}
+						{#if selectedEventType !== null}
+							<span
+								class="lc-chip-muted inline-flex items-center rounded-full px-2 py-1 font-semibold"
+							>
+								유형: {selectedEventType === 'updated' ? '내용 변경' : '무효화'}
+							</span>
+						{/if}
+						{#if sourceFilter.trim()}
+							<span
+								class="lc-chip-warning inline-flex items-center rounded-full px-2 py-1 font-semibold"
+							>
+								소스: {sourceFilter.trim()}
+							</span>
+						{/if}
+						{#if includeIsDoneChanges === false}
+							<span
+								class="lc-chip-muted inline-flex items-center rounded-full px-2 py-1 font-semibold"
+							>
+								종료된 입법예고 제외
+							</span>
+						{/if}
+						{#if sortOrder === 'asc'}
+							<span
+								class="lc-chip-muted inline-flex items-center rounded-full px-2 py-1 font-semibold"
+							>
+								정렬: 오래된순
+							</span>
+						{/if}
+					</div>
+				{/if}
+			</section>
 		{/if}
 
 		{#if changes.items.length === 0}

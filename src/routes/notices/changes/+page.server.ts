@@ -37,6 +37,20 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const requestedLimit = Number(url.searchParams.get('limit') || '20');
 	const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
 	const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(50, requestedLimit)) : 20;
+	const search = (url.searchParams.get('search') || '').trim();
+	const noticeNum = parsePositiveInt(url.searchParams.get('noticeNum'));
+	const eventTypeRaw = (url.searchParams.get('eventType') || '').trim();
+	const allowedEventTypes = ['updated', 'invalidated'] as const;
+	const eventType = allowedEventTypes.includes(eventTypeRaw as (typeof allowedEventTypes)[number])
+		? (eventTypeRaw as (typeof allowedEventTypes)[number])
+		: undefined;
+	const source = (url.searchParams.get('source') || '').trim();
+	const sortOrder = url.searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
+	const includeIsDoneChangesRaw = url.searchParams.get('includeIsDoneChanges');
+	const includeIsDoneChanges =
+		includeIsDoneChangesRaw === null
+			? true
+			: includeIsDoneChangesRaw === '1' || includeIsDoneChangesRaw === 'true';
 	const fromEventId = parsePositiveInt(url.searchParams.get('fromEventId'));
 	const toEventId = parsePositiveInt(url.searchParams.get('toEventId'));
 	const fromDetectedAt = parseIsoDate(url.searchParams.get('fromDetectedAt'));
@@ -52,18 +66,37 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	if (isDiffchainUiMockEnabled()) {
 		const summaryBase = getMockRecentNoticeChangesResponse({
 			page: 1,
-			limit: 1000
+			limit: 1000,
+			search,
+			noticeNum: noticeNum ?? undefined,
+			eventType,
+			source,
+			sortOrder,
+			excludeIsDoneEvents: !includeIsDoneChanges
 		});
 		const changes = getMockRecentNoticeChangesResponse({
 			page,
 			limit,
-			excludeIsDoneEvents: true
+			search,
+			noticeNum: noticeNum ?? undefined,
+			eventType,
+			source,
+			sortOrder,
+			excludeIsDoneEvents: !includeIsDoneChanges
 		});
 		return {
 			changes,
 			summary: {
 				comparableEventTotal: summaryBase.total,
 				comparableNoticeCount: 4
+			},
+			filters: {
+				search,
+				noticeNum,
+				eventType: eventType ?? null,
+				source,
+				sortOrder,
+				includeIsDoneChanges
 			},
 			digestContext: {
 				isDigestContext,
@@ -80,8 +113,13 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			{
 				page: 1,
 				limit: 1,
+				search,
+				noticeNum: noticeNum ?? undefined,
+				eventType,
+				source,
+				sortOrder,
 				excludeLegacyGenesisSource: true,
-				excludeIsDoneEvents: true,
+				excludeIsDoneEvents: !includeIsDoneChanges,
 				comparableOnly: true,
 				fromEventId: fromEventId ?? undefined,
 				toEventId: toEventId ?? undefined,
@@ -97,8 +135,13 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				{
 					page,
 					limit,
+					search,
+					noticeNum: noticeNum ?? undefined,
+					eventType,
+					source,
+					sortOrder,
 					excludeLegacyGenesisSource: true,
-					excludeIsDoneEvents: true,
+					excludeIsDoneEvents: !includeIsDoneChanges,
 					comparableOnly: true,
 					anchorEventId: firstDigestItem.id
 				},
@@ -120,8 +163,13 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			{
 				page,
 				limit,
+				search,
+				noticeNum: noticeNum ?? undefined,
+				eventType,
+				source,
+				sortOrder,
 				excludeLegacyGenesisSource: true,
-				excludeIsDoneEvents: true,
+				excludeIsDoneEvents: !includeIsDoneChanges,
 				comparableOnly: true,
 				fromEventId: fromEventId ?? undefined,
 				toEventId: toEventId ?? undefined,
@@ -136,6 +184,14 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	return {
 		changes,
 		summary,
+		filters: {
+			search,
+			noticeNum,
+			eventType: eventType ?? null,
+			source,
+			sortOrder,
+			includeIsDoneChanges
+		},
 		digestContext: {
 			isDigestContext,
 			fromEventId,

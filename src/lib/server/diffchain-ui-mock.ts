@@ -397,8 +397,17 @@ export function getMockNoticeChanges(noticeNum: number): NoticeChangeTimelineRes
 export function getMockRecentNoticeChangesResponse(params: {
 	page: number;
 	limit: number;
+	search?: string;
+	noticeNum?: number;
+	eventType?: 'updated' | 'invalidated';
+	source?: string;
+	sortOrder?: 'asc' | 'desc';
 	excludeIsDoneEvents?: boolean;
 }): RecentNoticeChangesResponse {
+	const normalizedSearch = (params.search || '').trim().toLowerCase();
+	const normalizedSource = (params.source || '').trim().toLowerCase();
+	const sortOrder = params.sortOrder === 'asc' ? 'asc' : 'desc';
+
 	const merged = [2210001, 2210002, 2210003, 2210004]
 		.flatMap((noticeNum) => {
 			const record = buildMockNoticeRecord(noticeNum);
@@ -406,9 +415,21 @@ export function getMockRecentNoticeChangesResponse(params: {
 				return [];
 			}
 
-			return record.changes.items;
+			return record.changes.items.map((item) => ({
+				...item,
+				subject: record.notice.subject
+			}));
 		})
 		.filter((item) => item.eventType !== 'created')
+		.filter((item) => (params.noticeNum ? item.noticeNum === params.noticeNum : true))
+		.filter((item) => (params.eventType ? item.eventType === params.eventType : true))
+		.filter((item) => {
+			if (!normalizedSource) {
+				return true;
+			}
+
+			return (item.source || '').toLowerCase().includes(normalizedSource);
+		})
 		.filter((item) => {
 			if (params.excludeIsDoneEvents !== true) {
 				return true;
@@ -416,7 +437,25 @@ export function getMockRecentNoticeChangesResponse(params: {
 
 			return item.details.some((detail) => detail.fieldPath === 'isDone') === false;
 		})
-		.sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime());
+		.filter((item) => {
+			if (!normalizedSearch) {
+				return true;
+			}
+
+			const haystack = `${item.noticeNum} ${item.subject || ''}`.toLowerCase();
+			return haystack.includes(normalizedSearch);
+		})
+		.sort((a, b) => {
+			const timeDiff = new Date(a.detectedAt).getTime() - new Date(b.detectedAt).getTime();
+			if (timeDiff === 0) {
+				return a.id - b.id;
+			}
+			return timeDiff;
+		});
+
+	if (sortOrder === 'desc') {
+		merged.reverse();
+	}
 
 	const total = merged.length;
 	const page = Math.max(1, params.page);
