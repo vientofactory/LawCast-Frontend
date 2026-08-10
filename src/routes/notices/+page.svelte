@@ -2,6 +2,8 @@
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
+	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
+	import PaginationNav from '$lib/components/PaginationNav.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
 	import { page } from '$app/state';
 	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
@@ -9,12 +11,8 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
-		faAnglesLeft,
-		faAnglesRight,
 		faBell,
 		faCalendar,
-		faChevronLeft,
-		faChevronRight,
 		faExternalLink,
 		faFileDownload,
 		faFileText,
@@ -204,16 +202,6 @@
 			buildQueryLink({ page: pg })
 	)(fullText, isDoneFilter);
 
-	function getPaginationInfo() {
-		if (totalItems === 0) {
-			return '0개';
-		}
-
-		const start = (currentPage - 1) * limit + 1;
-		const end = Math.min(currentPage * limit, totalItems);
-		return `${start.toLocaleString('ko-KR')}-${end.toLocaleString('ko-KR')} / ${totalItems.toLocaleString('ko-KR')}개`;
-	}
-
 	function shouldShowAIBriefing(notice: (typeof notices)[number]) {
 		if (!aiSummaryEnabled) {
 			return false;
@@ -233,40 +221,6 @@
 	function isPreservedState(notice: (typeof notices)[number]): boolean {
 		return isSourceDeleted(notice) || isRenumbered(notice);
 	}
-
-	// Make pagination items reactive to archive/totalPages/currentPage
-	$: paginationItems = (() => {
-		if (totalPages <= 7) {
-			return Array.from({ length: totalPages }, (_, idx) => idx + 1);
-		}
-
-		const items: Array<number | 'left-ellipsis' | 'right-ellipsis'> = [1];
-		let start = Math.max(2, currentPage - 1);
-		let end = Math.min(totalPages - 1, currentPage + 1);
-
-		if (currentPage <= 3) {
-			start = 2;
-			end = 4;
-		} else if (currentPage >= totalPages - 2) {
-			start = totalPages - 3;
-			end = totalPages - 1;
-		}
-
-		if (start > 2) {
-			items.push('left-ellipsis');
-		}
-
-		for (let page = start; page <= end; page++) {
-			items.push(page);
-		}
-
-		if (end < totalPages - 1) {
-			items.push('right-ellipsis');
-		}
-
-		items.push(totalPages);
-		return items;
-	})();
 
 	function handlePaginationClick(event: MouseEvent, targetPage: number) {
 		if (
@@ -941,156 +895,20 @@
 							{/each}
 						</div>
 
-						{#if totalPages > 1 && totalItems > limit}
-							<nav
-								class="lc-defer-render-sm mt-12 flex flex-wrap items-center justify-center gap-2 px-2"
-								aria-label="페이지 내비게이션"
-								data-testid="notices-pagination"
-							>
-								{#if currentPage > 1}
-									<a
-										href={buildPageLink(1)}
-										on:click={(event) => handlePaginationClick(event, 1)}
-										aria-label="첫 페이지로 이동"
-										title="첫 페이지"
-										class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
-									>
-										{#if pendingPaginationPage === 1}
-											<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
-										{:else}
-											<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
-										{/if}
-									</a>
-								{:else}
-									<span
-										aria-hidden="true"
-										class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
-									>
-										<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
-									</span>
-								{/if}
-								{#if currentPage > 1}
-									<a
-										href={buildPageLink(currentPage - 1)}
-										on:click={(event) => handlePaginationClick(event, currentPage - 1)}
-										aria-label="이전 페이지로 이동"
-										title="이전 페이지"
-										class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
-									>
-										{#if pendingPaginationPage === currentPage - 1}
-											<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
-										{:else}
-											<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
-										{/if}
-									</a>
-								{:else}
-									<span
-										aria-hidden="true"
-										class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
-									>
-										<FontAwesomeIcon icon={faChevronLeft} class="h-4 w-4" />
-									</span>
-								{/if}
-
-								{#each paginationItems as item, idx (`${item}-${idx}`)}
-									{#if typeof item === 'number'}
-										<a
-											href={buildPageLink(item)}
-											on:click={(event) => handlePaginationClick(event, item)}
-											class={`rounded-xl px-3 py-2 text-xs font-bold shadow-sm transition-all duration-200 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm ${
-												currentPage === item
-													? 'lc-pagination-active scale-105 border'
-													: 'lc-pagination-btn border-2'
-											}`}
-										>
-											{#if pendingPaginationPage === item}
-												<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
-											{:else}
-												{item}
-											{/if}
-										</a>
-									{:else}
-										<span class="lc-text-dim px-1 text-xs font-semibold sm:px-2 sm:text-sm"
-											>...</span
-										>
-									{/if}
-								{/each}
-								{#if currentPage < totalPages}
-									<a
-										href={buildPageLink(currentPage + 1)}
-										on:click={(event) => handlePaginationClick(event, currentPage + 1)}
-										aria-label="다음 페이지로 이동"
-										title="다음 페이지"
-										class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
-									>
-										{#if pendingPaginationPage === currentPage + 1}
-											<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
-										{:else}
-											<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
-										{/if}
-									</a>
-								{:else}
-									<span
-										aria-hidden="true"
-										class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
-									>
-										<FontAwesomeIcon icon={faChevronRight} class="h-4 w-4" />
-									</span>
-								{/if}
-								{#if currentPage < totalPages}
-									<a
-										href={buildPageLink(totalPages)}
-										on:click={(event) => handlePaginationClick(event, totalPages)}
-										aria-label="마지막 페이지로 이동"
-										title="마지막 페이지"
-										class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
-									>
-										{#if pendingPaginationPage === totalPages}
-											<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
-										{:else}
-											<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
-										{/if}
-									</a>
-								{:else}
-									<span
-										aria-hidden="true"
-										class="lc-pagination-disabled rounded-xl border-2 px-3 py-2 text-xs font-semibold opacity-60 sm:px-4 sm:py-3 sm:text-sm"
-									>
-										<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
-									</span>
-								{/if}
-							</nav>
-
-							<div class="mt-6 text-center">
-								<span
-									class="lc-page-count inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold"
-									data-testid="notices-pagination-info"
-								>
-									{getPaginationInfo()}
-								</span>
-							</div>
-						{/if}
+						<PaginationNav
+							{currentPage}
+							{totalPages}
+							{totalItems}
+							{limit}
+							pendingPage={pendingPaginationPage}
+							buildHref={buildPageLink}
+							onPageClick={handlePaginationClick}
+							ariaLabel="페이지 내비게이션"
+							testId="notices-pagination"
+						/>
 					{/if}
 
-					{#if isServerLoading}
-						<div
-							class="lc-loading-overlay pointer-events-none absolute inset-0 z-10 rounded-2xl"
-						></div>
-						<div
-							class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
-							role="status"
-							aria-live="polite"
-						>
-							<div
-								class="lc-panel-hero flex flex-col items-center gap-3 rounded-2xl border px-8 py-6 shadow-2xl backdrop-blur-sm"
-							>
-								<div class="relative flex items-center justify-center">
-									<div class="lc-spinner-ring h-10 w-10 animate-spin rounded-full border-4"></div>
-								</div>
-								<p class="lc-text-secondary text-sm font-semibold">불러오는 중...</p>
-							</div>
-						</div>
-					{/if}
+					<LoadingOverlay visible={isServerLoading} />
 				</section>
 			</section>
 		{/if}
