@@ -400,12 +400,10 @@ export function getMockRecentNoticeChangesResponse(params: {
 	search?: string;
 	noticeNum?: number;
 	eventType?: 'updated' | 'invalidated';
-	source?: string;
 	sortOrder?: 'asc' | 'desc';
 	excludeIsDoneEvents?: boolean;
 }): RecentNoticeChangesResponse {
 	const normalizedSearch = (params.search || '').trim().toLowerCase();
-	const normalizedSource = (params.source || '').trim().toLowerCase();
 	const sortOrder = params.sortOrder === 'asc' ? 'asc' : 'desc';
 
 	const merged = [2210001, 2210002, 2210003, 2210004]
@@ -423,13 +421,6 @@ export function getMockRecentNoticeChangesResponse(params: {
 		.filter((item) => item.eventType !== 'created')
 		.filter((item) => (params.noticeNum ? item.noticeNum === params.noticeNum : true))
 		.filter((item) => (params.eventType ? item.eventType === params.eventType : true))
-		.filter((item) => {
-			if (!normalizedSource) {
-				return true;
-			}
-
-			return (item.source || '').toLowerCase().includes(normalizedSource);
-		})
 		.filter((item) => {
 			if (params.excludeIsDoneEvents !== true) {
 				return true;

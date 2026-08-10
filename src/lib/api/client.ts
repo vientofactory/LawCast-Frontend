@@ -395,7 +395,6 @@ export async function getRecentNoticeChanges(
 		search?: string;
 		noticeNum?: number;
 		eventType?: ChangeEventType;
-		source?: string;
 		sortOrder?: 'asc' | 'desc';
 		excludeLegacyGenesisSource?: boolean;
 		excludeIsDoneEvents?: boolean;
@@ -415,7 +414,6 @@ export async function getRecentNoticeChanges(
 		if (params.search?.trim()) query.set('search', params.search.trim());
 		if (params.noticeNum && params.noticeNum > 0) query.set('noticeNum', String(params.noticeNum));
 		if (params.eventType) query.set('eventType', params.eventType);
-		if (params.source?.trim()) query.set('source', params.source.trim());
 		if (params.sortOrder === 'asc' || params.sortOrder === 'desc') {
 			query.set('sortOrder', params.sortOrder);
 		}

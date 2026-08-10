@@ -44,7 +44,6 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const eventType = allowedEventTypes.includes(eventTypeRaw as (typeof allowedEventTypes)[number])
 		? (eventTypeRaw as (typeof allowedEventTypes)[number])
 		: undefined;
-	const source = (url.searchParams.get('source') || '').trim();
 	const sortOrder = url.searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
 	const includeIsDoneChangesRaw = url.searchParams.get('includeIsDoneChanges');
 	const includeIsDoneChanges =
@@ -70,7 +69,6 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			search,
 			noticeNum: noticeNum ?? undefined,
 			eventType,
-			source,
 			sortOrder,
 			excludeIsDoneEvents: !includeIsDoneChanges
 		});
@@ -80,7 +78,6 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			search,
 			noticeNum: noticeNum ?? undefined,
 			eventType,
-			source,
 			sortOrder,
 			excludeIsDoneEvents: !includeIsDoneChanges
 		});
@@ -94,7 +91,6 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				search,
 				noticeNum,
 				eventType: eventType ?? null,
-				source,
 				sortOrder,
 				includeIsDoneChanges
 			},
@@ -116,7 +112,6 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				search,
 				noticeNum: noticeNum ?? undefined,
 				eventType,
-				source,
 				sortOrder,
 				excludeLegacyGenesisSource: true,
 				excludeIsDoneEvents: !includeIsDoneChanges,
@@ -138,7 +133,6 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 					search,
 					noticeNum: noticeNum ?? undefined,
 					eventType,
-					source,
 					sortOrder,
 					excludeLegacyGenesisSource: true,
 					excludeIsDoneEvents: !includeIsDoneChanges,
@@ -166,7 +160,6 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				search,
 				noticeNum: noticeNum ?? undefined,
 				eventType,
-				source,
 				sortOrder,
 				excludeLegacyGenesisSource: true,
 				excludeIsDoneEvents: !includeIsDoneChanges,
@@ -188,7 +181,6 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			search,
 			noticeNum,
 			eventType: eventType ?? null,
-			source,
 			sortOrder,
 			includeIsDoneChanges
 		},

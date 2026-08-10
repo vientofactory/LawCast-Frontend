@@ -32,7 +32,6 @@
 			search: string;
 			noticeNum: number | null;
 			eventType: ChangeEventType | null;
-			source: string;
 			sortOrder: 'asc' | 'desc';
 			includeIsDoneChanges: boolean;
 		};
@@ -57,14 +56,12 @@
 	$: searchQuery = filters?.search || '';
 	$: noticeNumFilter = filters?.noticeNum ?? null;
 	$: selectedEventType = filters?.eventType ?? null;
-	$: sourceFilter = filters?.source || '';
 	$: sortOrder = filters?.sortOrder === 'asc' ? 'asc' : 'desc';
 	$: includeIsDoneChanges = filters?.includeIsDoneChanges === true;
 	$: hasActiveFilters =
 		searchQuery.trim().length > 0 ||
 		noticeNumFilter !== null ||
 		selectedEventType !== null ||
-		sourceFilter.trim().length > 0 ||
 		sortOrder === 'asc' ||
 		includeIsDoneChanges === false;
 
@@ -113,7 +110,6 @@
 		search?: string;
 		noticeNum?: number | null;
 		eventType?: ChangeEventType | null;
-		source?: string;
 		sortOrder?: 'asc' | 'desc';
 		includeIsDoneChanges?: boolean;
 	};
@@ -123,7 +119,6 @@
 		const resolvedSearch = (overrides.search ?? searchQuery).trim();
 		const resolvedNoticeNum = overrides.noticeNum ?? noticeNumFilter;
 		const resolvedEventType = overrides.eventType ?? selectedEventType;
-		const resolvedSource = (overrides.source ?? sourceFilter).trim();
 		const resolvedSortOrder = overrides.sortOrder ?? sortOrder;
 		const resolvedIncludeIsDoneChanges = overrides.includeIsDoneChanges ?? includeIsDoneChanges;
 
@@ -143,10 +138,6 @@
 
 		if (resolvedEventType) {
 			params.set('eventType', resolvedEventType);
-		}
-
-		if (resolvedSource.length > 0) {
-			params.set('source', resolvedSource);
 		}
 
 		if (!resolvedIncludeIsDoneChanges) {
@@ -285,7 +276,6 @@
 			eventTypeRaw === 'updated' || eventTypeRaw === 'invalidated'
 				? (eventTypeRaw as ChangeEventType)
 				: null;
-		const source = (formData.get('source') || '').toString().trim();
 		const nextSortOrder = formData.get('sortOrder') === 'asc' ? 'asc' : 'desc';
 		const nextIncludeIsDoneChanges = formData.get('includeIsDoneChanges') === 'true';
 
@@ -294,7 +284,6 @@
 				search,
 				noticeNum,
 				eventType,
-				source,
 				sortOrder: nextSortOrder,
 				includeIsDoneChanges: nextIncludeIsDoneChanges
 			})
@@ -450,19 +439,7 @@
 						</button>
 					</div>
 
-					<div class="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto] md:items-center">
-						<div>
-							<label for="changes-source" class="sr-only">소스</label>
-							<input
-								id="changes-source"
-								type="text"
-								name="source"
-								value={sourceFilter}
-								placeholder="이벤트 소스 포함 키워드 (선택)"
-								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
-							/>
-						</div>
-
+					<div class="mt-2 flex flex-wrap items-center gap-2">
 						<label class="inline-flex cursor-pointer items-center gap-2 text-sm">
 							<input
 								type="checkbox"
@@ -505,13 +482,6 @@
 								class="lc-chip-muted inline-flex items-center rounded-full px-2 py-1 font-semibold"
 							>
 								유형: {selectedEventType === 'updated' ? '내용 변경' : '무효화'}
-							</span>
-						{/if}
-						{#if sourceFilter.trim()}
-							<span
-								class="lc-chip-warning inline-flex items-center rounded-full px-2 py-1 font-semibold"
-							>
-								소스: {sourceFilter.trim()}
 							</span>
 						{/if}
 						{#if includeIsDoneChanges === false}
