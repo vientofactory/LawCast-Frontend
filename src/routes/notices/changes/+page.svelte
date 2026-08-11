@@ -55,6 +55,7 @@
 	$: selectedEventType = filters?.eventType ?? null;
 	$: sortOrder = filters?.sortOrder === 'asc' ? 'asc' : 'desc';
 	$: includeIsDoneChanges = filters?.includeIsDoneChanges === true;
+	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
 	$: hasActiveFilters =
 		searchQuery.trim().length > 0 ||
 		noticeNumFilter !== null ||
@@ -114,6 +115,7 @@
 	}
 
 	type FilterOverrides = {
+		limit?: number;
 		search?: string;
 		noticeNum?: number | null;
 		eventType?: ChangeEventType | null;
@@ -123,6 +125,12 @@
 
 	function buildPageHref(page: number, overrides: FilterOverrides = {}): string {
 		const safePage = Math.max(1, page);
+		const requestedLimit = overrides.limit ?? limit;
+		const safeLimit = PAGE_SIZE_OPTIONS.includes(
+			requestedLimit as (typeof PAGE_SIZE_OPTIONS)[number]
+		)
+			? requestedLimit
+			: 10;
 		const resolvedSearch = (overrides.search ?? searchQuery).trim();
 		const resolvedNoticeNum = overrides.noticeNum ?? noticeNumFilter;
 		const resolvedEventType = overrides.eventType ?? selectedEventType;
@@ -132,7 +140,7 @@
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const params = new URLSearchParams();
 		params.set('page', String(safePage));
-		params.set('limit', String(changes.limit));
+		params.set('limit', String(safeLimit));
 		params.set('sortOrder', resolvedSortOrder);
 
 		if (resolvedSearch.length > 0) {
@@ -241,10 +249,17 @@
 				? (eventTypeRaw as ChangeEventType)
 				: null;
 		const nextSortOrder = formData.get('sortOrder') === 'asc' ? 'asc' : 'desc';
+		const requestedLimit = Number.parseInt((formData.get('limit') || '').toString(), 10);
+		const nextLimit = PAGE_SIZE_OPTIONS.includes(
+			requestedLimit as (typeof PAGE_SIZE_OPTIONS)[number]
+		)
+			? requestedLimit
+			: 10;
 		const nextIncludeIsDoneChanges = formData.get('includeIsDoneChanges') === 'true';
 
 		goto(
 			buildPageHref(1, {
+				limit: nextLimit,
 				search,
 				noticeNum,
 				eventType,
@@ -337,7 +352,7 @@
 		{#if !isDigestContext}
 			<section class="lc-panel-card mb-5 rounded-xl border p-4 shadow-sm">
 				<form method="GET" action="/notices/changes" on:submit={handleFilterSubmit}>
-					<div class="grid gap-2 md:grid-cols-[1.2fr_0.7fr_0.8fr_0.9fr_auto] md:items-center">
+					<div class="grid gap-2 md:grid-cols-[1.2fr_0.7fr_0.8fr_0.9fr_0.8fr_auto] md:items-center">
 						<div class="relative">
 							<label for="changes-search" class="sr-only">검색어</label>
 							<FontAwesomeIcon
@@ -392,6 +407,21 @@
 							>
 								<option value="desc">최신순</option>
 								<option value="asc">오래된순</option>
+							</select>
+						</div>
+
+						<div>
+							<label for="changes-limit" class="sr-only">페이지당 개수</label>
+							<select
+								id="changes-limit"
+								name="limit"
+								value={String(limit)}
+								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+								title="페이지당 개수"
+							>
+								{#each PAGE_SIZE_OPTIONS as size (size)}
+									<option value={String(size)}>{size}개씩</option>
+								{/each}
 							</select>
 						</div>
 

@@ -128,6 +128,7 @@
 	$: isQuickClearRangeActive = !startDate.trim() && !endDate.trim();
 	$: hasDateReversed =
 		startDate.trim().length > 0 && endDate.trim().length > 0 && startDate > endDate;
+	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
 
 	let pendingPaginationPage: number | null = null;
 	let wasServerLoading = false;
@@ -244,7 +245,13 @@
 		const formData = new FormData(form);
 		const params = new SvelteURLSearchParams();
 		params.set('page', '1');
-		params.set('limit', String(limit));
+		const requestedLimit = Number.parseInt((formData.get('limit') || '').toString(), 10);
+		const nextLimit = PAGE_SIZE_OPTIONS.includes(
+			requestedLimit as (typeof PAGE_SIZE_OPTIONS)[number]
+		)
+			? requestedLimit
+			: 10;
+		params.set('limit', String(nextLimit));
 		const search = (formData.get('search') || '').toString().trim();
 		const startDate = (formData.get('startDate') || '').toString().trim();
 		const endDate = (formData.get('endDate') || '').toString().trim();
@@ -477,7 +484,7 @@
 									</a>
 								</div>
 							</div>
-							<div class="grid gap-2 md:grid-cols-[1fr_auto_auto_auto] md:items-center">
+							<div class="grid gap-2 md:grid-cols-[1fr_auto_auto_auto_auto] md:items-center">
 								<div class="relative flex-1">
 									<label for="archive-search" class="sr-only">검색어</label>
 									<FontAwesomeIcon
@@ -531,8 +538,20 @@
 									<option value="desc">내림차순</option>
 									<option value="asc">오름차순</option>
 								</select>
+								<label for="archive-limit" class="sr-only">페이지당 개수</label>
+								<select
+									id="archive-limit"
+									name="limit"
+									value={String(limit)}
+									data-testid="notices-page-size"
+									class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
+									title="페이지당 개수"
+								>
+									{#each PAGE_SIZE_OPTIONS as size (size)}
+										<option value={String(size)}>{size}개씩</option>
+									{/each}
+								</select>
 								<input type="hidden" name="page" value="1" />
-								<input type="hidden" name="limit" value={String(limit)} />
 								<input type="hidden" name="fullText" value={String(fullText)} />
 							</div>
 							<div class="mt-1.5 flex items-center">

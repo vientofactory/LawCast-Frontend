@@ -5,6 +5,9 @@ import {
 } from '$lib/server/diffchain-ui-mock';
 import type { PageServerLoad } from '../$types';
 
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
+
 function parseNoticeNums(raw: string | null): number[] {
 	if (!raw) {
 		return [];
@@ -22,9 +25,13 @@ function parseNoticeNums(raw: string | null): number[] {
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
 	const requestedPage = Number(url.searchParams.get('page') || '1');
-	const requestedLimit = Number(url.searchParams.get('limit') || '10');
+	const requestedLimit = Number(url.searchParams.get('limit') || String(DEFAULT_PAGE_SIZE));
 	const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
-	const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(20, requestedLimit)) : 10;
+	const limit =
+		Number.isFinite(requestedLimit) &&
+		PAGE_SIZE_OPTIONS.includes(requestedLimit as (typeof PAGE_SIZE_OPTIONS)[number])
+			? requestedLimit
+			: DEFAULT_PAGE_SIZE;
 	const search = (url.searchParams.get('search') || '').trim();
 	const startDate = (url.searchParams.get('startDate') || '').trim();
 	const endDate = (url.searchParams.get('endDate') || '').trim();
