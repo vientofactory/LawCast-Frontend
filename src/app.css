@@ -943,31 +943,31 @@ html[data-theme='dark'] .lc-diff-added {
 }
 
 html[data-theme='dark'] .lc-ai-panel {
-	background: rgba(15, 23, 42, 0.9);
-	border-color: rgba(103, 232, 249, 0.28);
+	background: rgba(17, 23, 29, 0.82);
+	border-color: rgba(148, 163, 184, 0.14);
 }
 
 html[data-theme='dark'] .lc-ai-badge {
-	background: rgba(15, 23, 42, 0.68);
-	border-color: rgba(103, 232, 249, 0.24);
-	color: #a5f3fc;
+	background: rgba(26, 33, 41, 0.82);
+	border-color: rgba(148, 163, 184, 0.12);
+	color: #dfeaf8;
 }
 
 html[data-theme='dark'] .lc-ai-title {
-	color: rgba(165, 243, 252, 0.88);
+	color: #dfeaf8;
 }
 
 html[data-theme='dark'] .lc-ai-warning {
-	background: rgba(56, 35, 10, 0.44);
-	border-color: rgba(251, 191, 36, 0.26);
+	background: rgba(49, 39, 26, 0.72);
+	border-color: rgba(210, 159, 76, 0.2);
 }
 
 html[data-theme='dark'] .lc-ai-warning-title {
-	color: #fcd34d;
+	color: #f3d79d;
 }
 
 html[data-theme='dark'] .lc-ai-warning-body {
-	color: #f59e0b;
+	color: #e7d7a3;
 }
 
 html[data-theme='dark'] .lc-chip-blue {

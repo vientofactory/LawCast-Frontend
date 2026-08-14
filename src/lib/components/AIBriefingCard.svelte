@@ -39,6 +39,6 @@
 
 <style>
 	.agent-summary-card {
-		box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+		box-shadow: none;
 	}
 </style>
