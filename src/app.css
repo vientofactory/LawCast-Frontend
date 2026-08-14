@@ -156,6 +156,11 @@ body {
 	border-radius: 1.25rem !important;
 }
 
+html[data-theme='dark'] .lc-panel-hero {
+	background: rgba(17, 23, 29, 0.82);
+	border-color: rgba(148, 163, 184, 0.14);
+}
+
 .lc-loading-shell {
 	border-radius: 1rem !important;
 	overflow: hidden;
@@ -1233,27 +1238,27 @@ html[data-theme='dark'] .lc-stat-tile {
 }
 
 html[data-theme='dark'] .lc-banner-muted {
-	background: rgba(30, 41, 59, 0.84);
-	border-color: var(--lc-border-soft);
-	color: var(--lc-text-secondary);
+	background: rgba(17, 23, 29, 0.88);
+	border-color: rgba(148, 163, 184, 0.14);
+	color: #dfeaf8;
 }
 
 html[data-theme='dark'] .lc-banner-warning {
-	background: rgba(69, 26, 3, 0.78);
-	border-color: rgba(251, 191, 36, 0.22);
-	color: #fde68a;
+	background: rgba(49, 39, 26, 0.72);
+	border-color: rgba(210, 159, 76, 0.2);
+	color: #f3d79d;
 }
 
 html[data-theme='dark'] .lc-banner-info {
-	background: rgba(8, 47, 73, 0.78);
-	border-color: rgba(56, 189, 248, 0.2);
-	color: #a5f3fc;
+	background: rgba(16, 28, 36, 0.72);
+	border-color: rgba(118, 155, 193, 0.2);
+	color: #d7ebfb;
 }
 
 html[data-theme='dark'] .lc-banner-error-soft {
-	background: rgba(69, 10, 10, 0.76);
-	border-color: rgba(248, 113, 113, 0.2);
-	color: #fca5a5;
+	background: rgba(54, 28, 31, 0.72);
+	border-color: rgba(196, 123, 134, 0.2);
+	color: #f5c2c7;
 }
 
 html[data-theme='dark'] .lc-button-primary {
