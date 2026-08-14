@@ -14,10 +14,14 @@
 		aria-live="polite"
 	>
 		<div
-			class="lc-panel-hero flex flex-col items-center gap-3 rounded-2xl border px-8 py-6 shadow-2xl backdrop-blur-sm"
+			class="lc-panel-hero lc-loading-shell flex flex-col items-center gap-3 overflow-hidden border px-8 py-6 shadow-2xl backdrop-blur-sm"
+			style="border-radius: 1rem;"
 		>
-			<div class="relative flex items-center justify-center">
-				<div class="lc-spinner-ring h-10 w-10 animate-spin rounded-full border-4"></div>
+			<div class="relative flex items-center justify-center" style="border-radius: 1rem;">
+				<div
+					class="lc-spinner-ring h-10 w-10 animate-spin border-4"
+					style="border-radius: 9999px;"
+				></div>
 			</div>
 			<p class="lc-text-secondary text-sm font-semibold">{message}</p>
 		</div>

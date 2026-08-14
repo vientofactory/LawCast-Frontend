@@ -144,7 +144,7 @@
 			>
 				<div class="lc-home-hero-content mx-auto flex max-w-4xl flex-col justify-center gap-8">
 					<div class="space-y-4 text-center lg:text-left">
-						<span class="lc-home-kicker inline-flex rounded-full px-3 py-1 text-xs font-semibold">
+						<span class="lc-home-kicker inline-flex rounded-md px-3 py-1 text-xs font-semibold">
 							입법예고 기록 보관소
 						</span>
 						<div class="space-y-3">

@@ -12,11 +12,12 @@
 	};
 </script>
 
-<div class="flex items-center justify-center py-16">
-	<div class="text-center">
+<div class="flex items-center justify-center py-16" style="border-radius: 9999px;">
+	<div class="text-center" style="border-radius: 9999px;">
 		<FontAwesomeIcon
 			icon={faSpinner}
 			class="lc-text-accent mx-auto mb-4 {sizeClasses[size]} animate-spin"
+			style="border-radius: 9999px;"
 		/>
 		<p class="lc-text-secondary">{message}</p>
 	</div>

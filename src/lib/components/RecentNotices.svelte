@@ -28,7 +28,7 @@
 </script>
 
 <section
-	class="lc-panel-card rounded-2xl border p-6 transition-all duration-300 hover:shadow-xl"
+	class="lc-panel-card rounded-md border p-5 transition-all duration-300"
 	aria-label="최근 입법예고"
 >
 	<div class="mb-6 flex items-center justify-between">
@@ -49,7 +49,7 @@
 	{#if notices.length > 0 && aiSummaryEnabled}
 		<a
 			href="./notices"
-			class="lc-ai-panel group/ai mb-4 block rounded-xl border p-3 shadow-sm transition-all duration-200 hover:shadow-md"
+			class="lc-ai-panel group/ai mb-4 block rounded-md border p-3 transition-all duration-200"
 		>
 			<div class="flex items-center justify-between gap-3">
 				<div class="min-w-0">
@@ -83,7 +83,7 @@
 			{#each notices.slice(0, 5) as notice, index (notice.num)}
 				<article
 					aria-labelledby="recent-notice-{notice.num}"
-					class="lc-panel-inset group rounded-xl border p-4 transition-all duration-200 hover:shadow-md"
+					class="lc-panel-inset group rounded-md border p-4 transition-all duration-200"
 					class:lc-defer-render-sm={index > 1}
 				>
 					<div class="mb-3 flex items-start justify-between">

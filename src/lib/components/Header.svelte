@@ -114,7 +114,7 @@
 </script>
 
 <header
-	class={`lc-header-shell border-b shadow-lg ${headerScrolled ? 'is-scrolled' : 'is-at-top'}`}
+	class={`lc-header-shell border-b ${headerScrolled ? 'is-scrolled' : 'is-at-top'}`}
 	data-testid="site-header"
 >
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -136,7 +136,7 @@
 				<button
 					type="button"
 					on:click={() => theme.toggle()}
-					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full border p-1 transition-all duration-200"
+					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full transition-all duration-200"
 					role="switch"
 					aria-checked={isDarkTheme}
 					aria-label={isDarkTheme ? '라이트 테마로 전환' : '다크 테마로 전환'}
@@ -157,7 +157,7 @@
 			<!-- 햄버거/닫기 버튼 -->
 			<button
 				bind:this={menuButton}
-				class="ml-auto inline-flex items-center justify-center rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-[var(--lc-text-secondary)] shadow-sm transition-all duration-200 hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] md:hidden"
+				class="ml-auto inline-flex items-center justify-center rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-[var(--lc-text-secondary)] transition-all duration-200 hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] md:hidden"
 				aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
 				on:click={toggleMobileMenu}
 				aria-expanded={mobileMenuOpen}
@@ -172,7 +172,7 @@
 
 			<!-- 데스크톱 메뉴 -->
 			<nav
-				class="hidden w-full rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-2 shadow-sm md:absolute md:top-1/2 md:left-1/2 md:block md:w-auto md:-translate-x-1/2 md:-translate-y-1/2"
+				class="hidden w-full rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-2 md:absolute md:top-1/2 md:left-1/2 md:block md:w-auto md:-translate-x-1/2 md:-translate-y-1/2"
 				aria-label="주요 메뉴"
 				data-testid="primary-navigation"
 			>
@@ -184,9 +184,9 @@
 								aria-current={isActive(item.href) ? 'page' : undefined}
 								data-testid={`nav-link-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').replace(/[/]+/g, '-')}`}
 								data-nav-target={item.href}
-								class={`group/menu inline-flex items-center gap-2 rounded-xl px-3 py-3 transition-all duration-200 ${
+								class={`group/menu inline-flex items-center gap-2 rounded-md px-3 py-3 transition-all duration-200 ${
 									isActive(item.href)
-										? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)] shadow-sm'
+										? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
 										: 'text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-accent)]'
 								}`}
 								style="min-height:44px"
@@ -221,7 +221,7 @@
 		<nav
 			id="mobile-menu-panel"
 			use:trapFocus
-			class="relative z-10 w-full rounded-b-2xl border-b border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4 pt-6 shadow-lg"
+			class="relative z-10 w-full rounded-b-md border-b border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4 pt-6"
 			aria-label="모바일 메뉴"
 			data-testid="mobile-navigation"
 			transition:fly={{ y: -16, duration: 180, opacity: 0 }}

@@ -798,15 +798,12 @@
 			</div>
 
 			{#if displayContent.proposalReason}
-				<h3 class="lc-text-secondary mb-3 text-sm font-semibold">{displayContent.title}</h3>
-				<div class="lc-code-block rounded-lg border p-4">
-					<p
-						class="lc-text-primary text-sm leading-7 whitespace-pre-line"
-						data-testid="notice-detail-proposal-reason"
-					>
-						{displayContent.proposalReason}
-					</p>
-				</div>
+				<p
+					class="lc-text-primary text-sm leading-7 whitespace-pre-line"
+					data-testid="notice-detail-proposal-reason"
+				>
+					{displayContent.proposalReason}
+				</p>
 			{:else}
 				<div class="lc-banner-warning flex items-start gap-3 rounded-lg border p-4">
 					<FontAwesomeIcon
