@@ -1,0 +1,7 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "lawcast-frontend",
+	"compatibility_date": "2026-08-15",
+	"pages_build_output_dir": ".svelte-kit/cloudflare",
+	"compatibility_flags": ["nodejs_compat"]
+}
