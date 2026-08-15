@@ -135,7 +135,37 @@ npm run check
 
 ## 배포
 
-빌드된 파일은 `build/` 디렉토리에 생성됩니다. Node.js 어댑터를 사용하여 서버에 배포할 수 있습니다.
+이 프로젝트는 `@sveltejs/adapter-cloudflare`와 `wrangler.jsonc`가 설정되어 있어 Cloudflare Pages에 배포할 수 있습니다. 빌드 결과는 `.svelte-kit/cloudflare` 디렉토리에 생성됩니다.
+
+### Cloudflare 대시보드에서 배포
+
+Git 저장소를 Cloudflare Pages에 연결하고 다음과 같이 빌드 설정을 입력합니다.
+
+- 루트 디렉토리: `frontend` (저장소 전체를 연결한 경우)
+- 빌드 명령어: `npm run build`
+- 빌드 출력 디렉토리: `.svelte-kit/cloudflare`
+- Node.js 버전: 18 이상
+
+Pages 프로젝트의 **Settings > Variables and Secrets**에서 다음 환경 변수를 설정합니다.
+
+```env
+API_BASE_URL=https://your-api.example.com/api
+PUBLIC_HASHGUARD_URL=https://hashguard.viento.me
+PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=false
+```
+
+`API_BASE_URL`은 Cloudflare에서 접근 가능한 백엔드의 공개 HTTPS 주소여야 합니다. 프리뷰 배포와 프로덕션 배포의 API가 다르면 각 환경에 별도로 값을 지정합니다.
+
+### Wrangler CLI로 배포
+
+Cloudflare에 로그인한 뒤 프론트엔드 디렉토리에서 빌드 및 배포합니다.
+
+```bash
+npm run build
+npx wrangler pages deploy
+```
+
+`wrangler.jsonc`의 Pages 출력 경로와 `nodejs_compat` 호환성 플래그가 배포 시 자동으로 적용됩니다.
 
 ## 라이선스
 
