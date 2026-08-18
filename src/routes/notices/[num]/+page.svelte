@@ -365,6 +365,7 @@
 
 	const CHANGE_FIELD_LABELS: Record<string, string> = {
 		num: '의안번호',
+		contentId: '국회 의안 ID',
 		subject: '법률안명',
 		proposerCategory: '제안자 구분',
 		committee: '소관위원회',
