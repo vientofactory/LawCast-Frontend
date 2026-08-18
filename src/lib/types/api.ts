@@ -75,6 +75,7 @@ export interface NoticeDetail {
 		hasLegacyGenesisBoundary?: boolean;
 		legacyGenesisBoundaryAt?: string | null;
 	};
+	changes?: NoticeChangeTimelineResponse;
 }
 
 export type ChangeEventType = 'created' | 'updated' | 'invalidated';

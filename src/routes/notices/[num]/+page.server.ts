@@ -48,16 +48,16 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 		}
 
 		const detail = await apiClient.getNoticeDetail(noticeNum, { rev: resolvedRev }, fetch);
-		const changes = await apiClient
-			.getNoticeChanges(noticeNum, { limit: 1000 }, fetch)
-			.catch((err) => {
+		const changes =
+			detail.changes ??
+			(await apiClient.getNoticeChanges(noticeNum, { limit: 100 }, fetch).catch((err) => {
 				console.warn(`Failed to load notice changes (${noticeNum}):`, err);
 				return {
 					noticeNum,
 					items: [],
 					count: 0
 				};
-			});
+			}));
 		return { detail, changes };
 	} catch (err) {
 		console.error(`Failed to load notice detail (${noticeNum}):`, err);
