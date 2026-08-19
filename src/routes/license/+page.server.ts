@@ -1,6 +1,8 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import type { ServerLoad } from '@sveltejs/kit';
+// Statically imported so Vite inlines the data at build time; Cloudflare
+// Pages' Workers runtime has no filesystem access for readFileSync at request time.
+import pkg from '../../../package.json';
+import lock from '../../../package-lock.json';
 
 export interface PackageEntry {
 	name: string;
@@ -22,13 +24,10 @@ function normalizeLicense(raw: string | undefined): string {
 
 type LockfilePackages = Record<string, { version?: string; license?: string }>;
 
-function loadPackagesFromLockfile(pkgPath: string, lockPath: string): PackageEntry[] {
-	const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as {
-		dependencies?: Record<string, string>;
-	};
-	const lock = JSON.parse(readFileSync(lockPath, 'utf-8')) as {
-		packages?: LockfilePackages;
-	};
+function loadPackagesFromLockfile(
+	pkg: { dependencies?: Record<string, string> },
+	lock: { packages?: LockfilePackages }
+): PackageEntry[] {
 	const lockPkgs = lock.packages ?? {};
 
 	return Object.keys(pkg.dependencies ?? {}).map((name) => {
@@ -44,10 +43,7 @@ function loadPackagesFromLockfile(pkgPath: string, lockPath: string): PackageEnt
 	});
 }
 
-const FRONTEND_PACKAGES: PackageEntry[] = loadPackagesFromLockfile(
-	resolve(process.cwd(), 'package.json'),
-	resolve(process.cwd(), 'package-lock.json')
-);
+const FRONTEND_PACKAGES: PackageEntry[] = loadPackagesFromLockfile(pkg, lock);
 
 export const load: ServerLoad = async ({ fetch }) => {
 	let backendPackages: PackageEntry[] = [];
