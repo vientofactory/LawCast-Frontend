@@ -1,6 +1,6 @@
 # LawCast 프론트엔드
 
-LawCast 서비스의 웹 프론트엔드 애플리케이션입니다. SvelteKit 프레임워크를 기반으로 구축되었으며, 사용자가 디스코드 웹훅을 등록하고 입법예고 정보를 확인할 수 있는 인터페이스를 제공합니다.
+LawCast 서비스의 웹 프론트엔드 애플리케이션입니다. SvelteKit 기반으로 작성되었고, 사용자가 디스코드 웹훅을 등록하고 입법예고 정보를 확인할 수 있는 인터페이스를 제공합니다.
 
 ## 기능
 
@@ -68,7 +68,7 @@ npm run preview
 
 ## 프로젝트 구조
 
-```
+```text
 src/
 ├── lib/
 │   ├── components/     # 재사용 가능한 컴포넌트
@@ -83,20 +83,20 @@ src/
 
 ### 주요 페이지
 
-- `/` : 웹훅 등록 + 최근 입법예고 요약 없는 빠른 목록
-- `/notices` : AI 브리핑 카드 포함 전체 입법예고 목록 (검색/날짜 필터/정렬/빠른 기간)
-- `/notices/[num]` : 법률안 상세(원문: 제안이유 및 주요내용)
+- `/`: 웹훅 등록 + 최근 입법예고 요약 없는 빠른 목록
+- `/notices`: AI 브리핑 카드 포함 전체 입법예고 목록 (검색/날짜 필터/정렬/빠른 기간)
+- `/notices/[num]`: 법률안 상세(원문: 제안이유 및 주요내용)
 
 ## 백엔드 연동 API (요약/원문)
 
-- `GET /api/notices/recent` : 목록 + (선택적) aiSummary 필드
-- `GET /api/notices/:num/detail` : 법률안 상세 + 원문(proposalReason)
+- `GET /api/notices/recent`: 목록 + (선택적) aiSummary 필드
+- `GET /api/notices/:num/detail`: 법률안 상세 + 원문(proposalReason)
 
 프론트는 SSR 로드(`+page.server.ts`)에서 위 API를 호출해 SEO 친화적으로 페이지를 렌더링합니다.
 
 ### 전체 입법예고 필터 UX
 
-`/notices` 페이지에서 다음 기능을 제공합니다.
+`/notices` 페이지에서 아래 기능을 제공합니다.
 
 - 키워드 검색
 - 날짜 범위 직접 입력 (`startDate`, `endDate`)
@@ -104,11 +104,11 @@ src/
 - 의안번호 정렬 (`desc`, `asc`)
 - 현재 적용된 필터 요약 배지 표시
 
-필터가 적용된 상태에서 페이지 이동 시 쿼리 파라미터를 유지하여 탐색 흐름이 끊기지 않도록 구성되어 있습니다.
+필터 적용 상태에서 페이지를 이동해도 쿼리 파라미터를 유지해 탐색 흐름이 끊기지 않게 구성했습니다.
 
 ## 환경 설정
 
-필요한 경우 `.env` 파일을 생성하여 API 엔드포인트 등을 설정할 수 있습니다.
+필요하면 `.env` 파일을 만들어 API 엔드포인트 등을 설정할 수 있습니다.
 
 ```env
 # API 베이스 URL
@@ -139,14 +139,14 @@ npm run check
 
 ### Cloudflare 대시보드에서 배포
 
-Git 저장소를 Cloudflare Pages에 연결하고 다음과 같이 빌드 설정을 입력합니다.
+Git 저장소를 Cloudflare Pages에 연결한 뒤 아래 빌드 설정을 입력합니다.
 
 - 루트 디렉토리: `frontend` (저장소 전체를 연결한 경우)
 - 빌드 명령어: `npm run build`
 - 빌드 출력 디렉토리: `.svelte-kit/cloudflare`
 - Node.js 버전: 18 이상
 
-Pages 프로젝트의 **Settings > Variables and Secrets**에서 다음 환경 변수를 설정합니다.
+Pages 프로젝트의 **Settings > Variables and Secrets**에서 아래 환경 변수를 설정합니다.
 
 ```env
 API_BASE_URL=https://your-api.example.com/api
@@ -158,14 +158,14 @@ PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=false
 
 ### Wrangler CLI로 배포
 
-Cloudflare에 로그인한 뒤 프론트엔드 디렉토리에서 빌드 및 배포합니다.
+Cloudflare에 로그인한 뒤 프론트엔드 디렉토리에서 빌드/배포를 진행합니다.
 
 ```bash
 npm run build
 npx wrangler pages deploy
 ```
 
-`wrangler.jsonc`의 Pages 출력 경로와 `nodejs_compat` 호환성 플래그가 배포 시 자동으로 적용됩니다.
+`wrangler.jsonc`의 Pages 출력 경로와 `nodejs_compat` 호환성 플래그가 배포 시 자동 적용됩니다.
 
 ## 라이선스
 
