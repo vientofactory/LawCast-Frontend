@@ -224,9 +224,9 @@
 	function isDoneSyncBadgeStyle(status: IsDoneSyncStatus['status'] | undefined) {
 		switch (status) {
 			case 'idle':
-				return 'lc-chip-success';
-			case 'running':
 				return 'lc-chip-blue';
+			case 'running':
+				return 'lc-chip-success';
 			case 'failed':
 				return 'lc-chip-danger';
 			default:
