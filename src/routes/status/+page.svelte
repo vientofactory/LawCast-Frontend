@@ -1,41 +1,225 @@
 <script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
+	import { writable } from 'svelte/store';
+	import { browser } from '$app/environment';
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowsRotate,
-		faBoxArchive,
 		faCloud,
 		faClock,
 		faDatabase,
-		faGear,
 		faLink,
 		faRobot,
 		faSquareCheck,
 		faTriangleExclamation,
 		faXmarkCircle,
-		faArrowLeft,
-		faArrowRight
+		faGlobe
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
-	import type {
-		OllamaHealthStatus,
-		BatchRunRecord,
-		BatchProcessingStats,
-		IsDoneSyncStatus
-	} from '$lib/types/api';
+	import type { OllamaHealthStatus, IsDoneSyncStatus, CrawlerStatus } from '$lib/types/api';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 
 	export let data: PageData;
 
-	$: stats = data.stats;
+	$: stats = data.stats as import('$lib/types/api').SystemStats;
 	$: fetchedAt = data.fetchedAt;
 	$: error = data.error;
 
 	let isRefreshing = false;
+	let lastRefreshAt = 0;
+	let lastTimerRefreshAt = 0;
+	const REFRESH_COOLDOWN_MS = 30_000;
+	const TIMER_REFRESH_COOLDOWN_MS = 20_000;
 
+	$: crawlers = stats.crawlers;
 	$: isDoneSync = stats.archive.isDoneSync as IsDoneSyncStatus | null | undefined;
+
+	// ── Optimistic countdown timer ──────────────────────────────────────
+	// Server-provided timestamps are the source of truth. A client-side
+	// tick updates the countdown every second without hitting the server.
+	// Auto-refreshes when the data becomes stale or a timer exhausts.
+	let tickInterval: ReturnType<typeof setInterval> | null = null;
+	const STALE_THRESHOLD_MS = 15_000;
+
+	// Writable store guarantees reactivity even in legacy mode.
+	// The $ prefix auto-subscribes in the template.
+	const now = writable(Date.now());
+
+	function calcRemaining(lastRunAt: string | null, intervalMs: number, currentNow: number): number {
+		if (!lastRunAt || intervalMs <= 0) return -1;
+		return Math.max(0, intervalMs - (currentNow - new Date(lastRunAt).getTime()));
+	}
+
+	let palRemaining = 0;
+	let nsmRemaining = 0;
+
+	// Update countdowns every tick by subscribing to the store
+	const unsubNow = now.subscribe((t) => {
+		palRemaining = crawlers
+			? calcRemaining(crawlers.palCrawler.lastRunAt, crawlers.palCrawler.cron.intervalMs, t)
+			: -1;
+		nsmRemaining = crawlers
+			? calcRemaining(
+					crawlers.nsmPendingCrawler.lastRunAt,
+					crawlers.nsmPendingCrawler.cron.intervalMs,
+					t
+				)
+			: -1;
+	});
+
+	function fmtRemaining(ms: number): string {
+		if (ms < 0) return '-';
+		if (ms <= 0) return '곧 실행';
+		const min = Math.floor(ms / 60_000);
+		const sec = Math.floor((ms % 60_000) / 1000);
+		return min > 0 ? `${min}분 ${sec}초` : `${sec}초`;
+	}
+
+	function formatDateTime(value: string | null | undefined): string {
+		return formatDateTimeKST(value);
+	}
+
+	$: palCountdown = crawlers ? countdownLabel(palRemaining, crawlers.palCrawler.status) : '-';
+	$: nsmCountdown = crawlers
+		? countdownLabel(nsmRemaining, crawlers.nsmPendingCrawler.status)
+		: '-';
+
+	/**
+	 * States:
+	 *  - running  -> always "수집 중…" (server is actively crawling)
+	 *  - idle     -> countdown string or "대기 중" when timer expired
+	 *  - failed   -> countdown string or "대기 중" when timer expired
+	 */
+	function countdownLabel(remainingMs: number, status: CrawlerStatus['status']): string {
+		if (status === 'running') return '수집 중…';
+		if (remainingMs > 0) return fmtRemaining(remainingMs);
+		if (status === 'failed') return '대기 중';
+		// idle + timer expired -> cron is about to fire or just fired
+		return '곧 실행';
+	}
+
+	function startTick() {
+		if (tickInterval) return;
+		tickInterval = setInterval(() => {
+			now.set(Date.now());
+
+			// ── Staleness refresh ─────────────────────────────────────
+			const t = Date.now();
+			if (fetchedAt && t - new Date(fetchedAt).getTime() > STALE_THRESHOLD_MS) {
+				refreshStatus();
+			}
+
+			// ── Timer-exhausted refresh ───────────────────────────────
+			// When a cron timer expires, refresh to pick up the server's
+			// new lastRunAt — but with a short cooldown to avoid hammering
+			// the server while the cron hasn't fired yet.
+			if (crawlers) {
+				if (
+					(palRemaining <= 0 && crawlers.palCrawler.status !== 'running') ||
+					(nsmRemaining <= 0 && crawlers.nsmPendingCrawler.status !== 'running')
+				) {
+					const sinceLastTimerRefresh = t - lastTimerRefreshAt;
+					if (sinceLastTimerRefresh >= TIMER_REFRESH_COOLDOWN_MS) {
+						lastTimerRefreshAt = t;
+						refreshStatus(true);
+					}
+				}
+			}
+		}, 1_000);
+	}
+
+	function stopTick() {
+		if (tickInterval) {
+			clearInterval(tickInterval);
+			tickInterval = null;
+		}
+	}
+
+	function handleVisibilityChange() {
+		if (!browser) return;
+		if (document.hidden) {
+			stopTick();
+		} else {
+			now.set(Date.now());
+			startTick();
+		}
+	}
+
+	onMount(() => {
+		if (!browser) return;
+		startTick();
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+	});
+
+	onDestroy(() => {
+		if (!browser) return;
+		stopTick();
+		document.removeEventListener('visibilitychange', handleVisibilityChange);
+		unsubNow();
+	});
+
+	function crawlerStatusBadge(status: CrawlerStatus['status']) {
+		switch (status) {
+			case 'running':
+				return { badge: 'lc-chip-success', label: '실행 중', icon: faArrowsRotate };
+			case 'failed':
+				return { badge: 'lc-chip-danger', label: '오류', icon: faXmarkCircle };
+			default:
+				return { badge: 'lc-chip-blue', label: '대기', icon: faSquareCheck };
+		}
+	}
+
+	const PHASE_NAME_MAP: Record<string, string> = {
+		'full sync': '전체 입법예고 동기화',
+		'pending sync': '국민참여입법센터 신규 의안 수집',
+		'isDone sync': '입법예고 종료 마커 동기화',
+		'integrity check': '아카이브 무결성 검증',
+		'integrity rescan': '아카이브 무결성 재검증',
+		'chain integrity audit': '변경 이력 체인 감사',
+		'summary backfill': 'AI 요약 생성',
+		'legacy genesis seed': '기존 의안 변경 이력 시드'
+	};
+
+	function formatPhaseName(name: string): string {
+		return PHASE_NAME_MAP[name] ?? name;
+	}
+
+	function phaseStatusBadge(status: string) {
+		switch (status) {
+			case 'running':
+				return 'lc-chip-blue';
+			case 'failed':
+				return 'lc-chip-danger';
+			case 'completed':
+				return 'lc-chip-success';
+			default:
+				return 'lc-chip-muted';
+		}
+	}
+
+	function phaseStatusLabel(status: string): string {
+		switch (status) {
+			case 'running':
+				return '실행 중';
+			case 'failed':
+				return '실패';
+			case 'completed':
+				return '완료';
+			default:
+				return '대기';
+		}
+	}
+
+	$: ollamaHealthStatus = (stats.ollama?.health.status ?? 'unknown') as OllamaHealthStatus;
+	$: hasOllamaIssue = ollamaHealthStatus === 'unhealthy' || ollamaHealthStatus === 'misconfigured';
+	$: hasCacheIssue = stats.cache.isInitialized === false;
+
+	$: overallStatus = (hasOllamaIssue || hasCacheIssue ? 'degraded' : 'healthy') as
+		'healthy' | 'degraded';
+	$: overallLabel = overallStatus === 'healthy' ? '정상' : '주의 필요';
 
 	function isDoneSyncBadgeStyle(status: IsDoneSyncStatus['status'] | undefined) {
 		switch (status) {
@@ -63,102 +247,45 @@
 		}
 	}
 
-	$: ollamaHealthStatus = (stats.ollama?.health.status ?? 'unknown') as OllamaHealthStatus;
-	$: hasOllamaIssue = ollamaHealthStatus === 'unhealthy' || ollamaHealthStatus === 'misconfigured';
-	$: hasCacheIssue = stats.cache.isInitialized === false;
-	$: hasBatchBacklog = (stats.batchProcessing?.jobCount ?? 0) > 0;
-	$: batchIsShuttingDown =
-		(stats.batchProcessing as { isShuttingDown?: boolean } | undefined)?.isShuttingDown ?? false;
-	$: batchActiveTimeouts =
-		(stats.batchProcessing as { activeTimeouts?: number } | undefined)?.activeTimeouts ?? 0;
-
-	$: overallStatus = (hasOllamaIssue || hasCacheIssue ? 'degraded' : 'healthy') as
-		'healthy' | 'degraded';
-	$: overallLabel = overallStatus === 'healthy' ? '정상' : '주의 필요';
-
-	function formatDateTime(value: string | null | undefined): string {
-		return formatDateTimeKST(value);
-	}
-
-	function statusStyle(status: OllamaHealthStatus | 'healthy' | 'degraded') {
-		switch (status) {
+	$: overallStyle = (() => {
+		switch (overallStatus) {
 			case 'healthy':
-				return {
-					badge: 'lc-chip-success',
-					icon: faSquareCheck
-				};
+				return { badge: 'lc-chip-success', icon: faSquareCheck };
 			case 'degraded':
-				return {
-					badge: 'lc-chip-warning',
-					icon: faTriangleExclamation
-				};
+				return { badge: 'lc-chip-warning', icon: faTriangleExclamation };
+			default:
+				return { badge: 'lc-chip-muted', icon: faClock };
+		}
+	})();
+	$: ollamaStyle = (() => {
+		switch (ollamaHealthStatus) {
+			case 'healthy':
+				return { badge: 'lc-chip-success', icon: faSquareCheck };
 			case 'unhealthy':
-				return {
-					badge: 'lc-chip-danger',
-					icon: faXmarkCircle
-				};
+				return { badge: 'lc-chip-danger', icon: faXmarkCircle };
 			case 'misconfigured':
-				return {
-					badge: 'lc-chip-warning',
-					icon: faTriangleExclamation
-				};
-			case 'disabled':
-				return {
-					badge: 'lc-chip-muted',
-					icon: faCloud
-				};
+				return { badge: 'lc-chip-warning', icon: faTriangleExclamation };
 			default:
-				return {
-					badge: 'lc-chip-muted',
-					icon: faClock
-				};
+				return { badge: 'lc-chip-muted', icon: faClock };
 		}
-	}
+	})();
 
-	$: recentJobs = ((stats.batchProcessing as BatchProcessingStats | undefined)?.recentJobs ??
-		[]) as BatchRunRecord[];
-
-	function formatDuration(ms: number | null | undefined): string {
-		if (ms == null) return '-';
-		if (ms < 1000) return `${ms}ms`;
-		return `${(ms / 1000).toFixed(1)}s`;
-	}
-
-	function batchStatusStyle(status: BatchRunRecord['status']) {
-		switch (status) {
-			case 'completed':
-				return 'lc-chip-success';
-			case 'failed':
-				return 'lc-chip-danger';
-			case 'running':
-				return 'lc-chip-blue';
-			default:
-				return 'lc-chip-muted';
+	async function refreshStatus(manual = false) {
+		if (isRefreshing) return;
+		if (!manual) {
+			const elapsed = Date.now() - lastRefreshAt;
+			if (elapsed < REFRESH_COOLDOWN_MS) return;
 		}
-	}
-
-	function batchStatusLabel(status: BatchRunRecord['status']): string {
-		switch (status) {
-			case 'completed':
-				return '완료';
-			case 'failed':
-				return '실패';
-			case 'running':
-				return '실행 중';
-			default:
-				return status;
-		}
-	}
-
-	$: overallStyle = statusStyle(overallStatus);
-	$: ollamaStyle = statusStyle(ollamaHealthStatus);
-
-	async function refreshStatus() {
 		isRefreshing = true;
 		try {
 			await invalidateAll();
 		} finally {
+			lastRefreshAt = Date.now();
 			isRefreshing = false;
+			// Sync now so the countdown recalculates with the fresh lastRunAt
+			// from the server. Without this, palRemaining/nsmRemaining keep
+			// using the old lastRunAt until the next 1-second tick.
+			now.set(Date.now());
 		}
 	}
 </script>
@@ -167,18 +294,18 @@
 	<title>LawCast - 시스템 상태</title>
 	<meta
 		name="description"
-		content="LawCast 시스템 상태 대시보드입니다. 웹훅, 캐시, 배치 처리, AI 요약 상태를 확인할 수 있습니다."
+		content="LawCast 시스템 상태 대시보드입니다. 크롤러, 캐시, AI 요약 상태를 확인할 수 있습니다."
 	/>
 	<meta property="og:type" content="website" />
 	<meta property="og:title" content="LawCast - 시스템 상태" />
 	<meta
 		property="og:description"
-		content="LawCast 시스템 상태 대시보드입니다. 웹훅, 캐시, 배치 처리, AI 요약 상태를 확인할 수 있습니다."
+		content="LawCast 시스템 상태 대시보드입니다. 크롤러, 캐시, AI 요약 상태를 확인할 수 있습니다."
 	/>
 	<meta name="twitter:title" content="LawCast - 시스템 상태" />
 	<meta
 		name="twitter:description"
-		content="LawCast 시스템 상태 대시보드입니다. 웹훅, 캐시, 배치 처리, AI 요약 상태를 확인할 수 있습니다."
+		content="LawCast 시스템 상태 대시보드입니다. 크롤러, 캐시, AI 요약 상태를 확인할 수 있습니다."
 	/>
 </svelte:head>
 
@@ -205,7 +332,7 @@
 						전체 상태 {overallLabel}
 					</span>
 					<button
-						on:click={refreshStatus}
+						on:click={() => refreshStatus(true)}
 						disabled={isRefreshing}
 						class="lc-chip-cyan inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 					>
@@ -223,7 +350,137 @@
 			<Alert type="error" message={error} onDismiss={() => {}} />
 		{/if}
 
-		<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+		<!-- ── Crawler Status Cards ─────────────────────────────────────── -->
+		{#if crawlers}
+			{@const palBadge = crawlerStatusBadge(crawlers.palCrawler.status)}
+			{@const nsmBadge = crawlerStatusBadge(crawlers.nsmPendingCrawler.status)}
+
+			<div class="grid gap-4 md:grid-cols-2">
+				<!-- PAL Crawler -->
+				<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
+					<div class="mb-3 flex items-center justify-between">
+						<h3 class="lc-text-primary flex items-center text-sm font-bold">
+							<FontAwesomeIcon icon={faGlobe} class="lc-text-accent mr-2 h-4 w-4" />
+							국회 입법예고 크롤러
+						</h3>
+						<span
+							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palBadge.badge}`}
+						>
+							<FontAwesomeIcon icon={palBadge.icon} class="h-3 w-3" />
+							{palBadge.label}
+						</span>
+					</div>
+					<div class="lc-text-secondary space-y-1.5 text-sm">
+						<p class="flex items-center justify-between">
+							<span class="lc-text-muted">소스</span>
+							<span class="font-semibold">{crawlers.palCrawler.source}</span>
+						</p>
+						<p class="flex items-center justify-between">
+							<span class="lc-text-muted">스케줄</span>
+							<span class="font-mono text-xs">{crawlers.palCrawler.cron.description}</span>
+						</p>
+						<p class="flex items-center justify-between">
+							<span class="lc-text-muted">마지막 실행</span>
+							<span class="font-semibold">{formatDateTime(crawlers.palCrawler.lastRunAt)}</span>
+						</p>
+						<p class="flex items-center justify-between">
+							<span class="lc-text-muted">다음 실행까지</span>
+							<span class="lc-text-accent font-semibold">
+								{palCountdown}
+							</span>
+						</p>
+						{#if crawlers.palCrawler.lastError}
+							<p class="lc-text-danger mt-1 rounded bg-red-500/5 px-2 py-1 text-xs">
+								오류: {crawlers.palCrawler.lastError.slice(0, 80)}
+							</p>
+						{/if}
+					</div>
+				</section>
+
+				<!-- NSM Crawler -->
+				<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
+					<div class="mb-3 flex items-center justify-between">
+						<h3 class="lc-text-primary flex items-center text-sm font-bold">
+							<FontAwesomeIcon icon={faGlobe} class="lc-text-purple mr-2 h-4 w-4" />
+							국민참여입법센터 크롤러
+						</h3>
+						<span
+							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${nsmBadge.badge}`}
+						>
+							<FontAwesomeIcon icon={nsmBadge.icon} class="h-3 w-3" />
+							{nsmBadge.label}
+						</span>
+					</div>
+					<div class="lc-text-secondary space-y-1.5 text-sm">
+						<p class="flex items-center justify-between">
+							<span class="lc-text-muted">소스</span>
+							<span class="font-semibold">{crawlers.nsmPendingCrawler.source}</span>
+						</p>
+						<p class="flex items-center justify-between">
+							<span class="lc-text-muted">스케줄</span>
+							<span class="font-mono text-xs">{crawlers.nsmPendingCrawler.cron.description}</span>
+						</p>
+						<p class="flex items-center justify-between">
+							<span class="lc-text-muted">마지막 실행</span>
+							<span class="font-semibold"
+								>{formatDateTime(crawlers.nsmPendingCrawler.lastRunAt)}</span
+							>
+						</p>
+						<p class="flex items-center justify-between">
+							<span class="lc-text-muted">다음 실행까지</span>
+							<span class="lc-text-accent font-semibold">
+								{nsmCountdown}
+							</span>
+						</p>
+						{#if crawlers.nsmPendingCrawler.lastError}
+							<p class="lc-text-danger mt-1 rounded bg-red-500/5 px-2 py-1 text-xs">
+								오류: {crawlers.nsmPendingCrawler.lastError.slice(0, 80)}
+							</p>
+						{/if}
+					</div>
+				</section>
+			</div>
+
+			<!-- ── Archive Sync Phases ──────────────────────────────────── -->
+			<section class="lc-panel-card lc-defer-render-sm mt-4 rounded-2xl border p-5 shadow-sm">
+				<div class="mb-3 flex items-center justify-between">
+					<h2 class="lc-text-primary flex items-center text-sm font-bold">
+						<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
+						아카이브 동기화 단계
+					</h2>
+				</div>
+				<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+					{#each crawlers.archiveSync.phases as phase (phase.name)}
+						<div class="rounded-xl border border-(--lc-border-soft) px-3 py-2">
+							<div class="mb-1 flex items-center justify-between">
+								<span class="lc-text-primary text-xs font-semibold"
+									>{formatPhaseName(phase.name)}</span
+								>
+								<span
+									class={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${phaseStatusBadge(phase.status)}`}
+								>
+									{phaseStatusLabel(phase.status)}
+								</span>
+							</div>
+							<div class="lc-text-dim text-[11px]">
+								마지막: {formatDateTime(phase.lastRunAt)}
+							</div>
+							{#if phase.lastError}
+								<div
+									class="lc-text-danger mt-0.5 truncate text-[11px]"
+									title={phase.lastError ?? ''}
+								>
+									{phase.lastError?.slice(0, 60)}
+								</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		<!-- ── Core Status Cards ───────────────────────────────────────── -->
+		<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mt-4">
 			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faLink} class="lc-text-success mr-2 h-4 w-4" />
@@ -257,29 +514,6 @@
 					<p>
 						마지막 갱신: <span class="font-semibold">{formatDateTime(stats.cache.lastUpdated)}</span
 						>
-					</p>
-				</div>
-			</section>
-
-			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
-				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
-					<FontAwesomeIcon icon={faGear} class="lc-text-purple mr-2 h-4 w-4" />
-					배치 처리
-				</h2>
-				<div class="lc-text-secondary space-y-1 text-sm">
-					<p>
-						실행 중 작업:
-						<span class="font-semibold"
-							>{(stats.batchProcessing?.jobCount ?? 0).toLocaleString('ko-KR')}</span
-						>
-					</p>
-					<p>
-						타임아웃 큐:
-						<span class="font-semibold">{batchActiveTimeouts.toLocaleString('ko-KR')}</span>
-					</p>
-					<p>
-						종료 절차:
-						<span class="font-semibold">{batchIsShuttingDown ? '진행 중' : '정상'}</span>
 					</p>
 				</div>
 			</section>
@@ -380,7 +614,7 @@
 			</section>
 		</div>
 
-		{#if hasBatchBacklog || hasCacheIssue || hasOllamaIssue}
+		{#if hasCacheIssue || hasOllamaIssue}
 			<section class="lc-banner-warning lc-defer-render-sm mt-4 rounded-2xl border p-4">
 				<h2 class="mb-2 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-4 w-4" />
@@ -389,9 +623,6 @@
 				<div class="space-y-1 text-sm">
 					{#if hasCacheIssue}
 						<p>캐시가 초기화되지 않았습니다. 크롤링/Redis 상태를 확인하세요.</p>
-					{/if}
-					{#if hasBatchBacklog}
-						<p>현재 배치 작업이 진행 중입니다. 서비스 응답이 일시적으로 지연될 수 있습니다.</p>
 					{/if}
 					{#if hasOllamaIssue}
 						<p>
@@ -404,84 +635,5 @@
 				</div>
 			</section>
 		{/if}
-
-		<section class="lc-panel-card lc-defer-render mt-4 rounded-2xl border p-5 shadow-sm">
-			<h2 class="lc-text-primary mb-3 flex items-center text-base font-bold">
-				<FontAwesomeIcon icon={faBoxArchive} class="lc-text-purple mr-2 h-4 w-4" />
-				최근 배치 작업 이력
-				{#if recentJobs.length > 0}
-					<span class="lc-chip-purple ml-2 rounded-full px-2 py-0.5 text-xs font-semibold">
-						{recentJobs.length}건
-					</span>
-				{/if}
-			</h2>
-			{#if recentJobs.length === 0}
-				<p class="lc-text-muted text-sm">기록된 배치 작업이 없습니다.</p>
-			{:else}
-				<p
-					class="lc-text-dim mb-2 flex items-center justify-center gap-1 whitespace-nowrap text-xs sm:hidden"
-				>
-					<FontAwesomeIcon icon={faArrowLeft} class="mr-1 h-3 w-3 shrink-0" />
-					<span>좌우로 스크롤하여 전체 내용을 확인할 수 있습니다</span>
-					<FontAwesomeIcon icon={faArrowRight} class="h-3 w-3 shrink-0" />
-				</p>
-				<div class="overflow-x-auto">
-					<table class="w-full min-w-140 text-sm">
-						<thead>
-							<tr
-								class="lc-text-muted border-b border-(--lc-border-soft) text-left text-xs font-semibold"
-							>
-								<th class="pr-4 pb-2">ID</th>
-								<th class="pr-4 pb-2">시작 시간</th>
-								<th class="pr-4 pb-2">상태</th>
-								<th class="pr-4 pb-2 text-right">작업</th>
-								<th class="pr-4 pb-2 text-right">성공</th>
-								<th class="pr-4 pb-2 text-right">실패</th>
-								<th class="pb-2 text-right">소요</th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-(--lc-border-soft)">
-							{#each recentJobs as job (job.id)}
-								<tr class="lc-table-row lc-text-secondary">
-									<td class="py-2 pr-4">
-										<span
-											class="lc-chip-muted rounded px-1.5 py-0.5 font-mono text-xs"
-											title={job.id}
-										>
-											{job.id.slice(-12)}
-										</span>
-									</td>
-									<td class="lc-text-muted py-2 pr-4 text-xs">{formatDateTime(job.startedAt)}</td>
-									<td class="py-2 pr-4">
-										<span
-											class={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${batchStatusStyle(job.status)}`}
-										>
-											{batchStatusLabel(job.status)}
-										</span>
-										{#if job.status === 'failed' && job.error}
-											<span class="lc-text-danger ml-1 text-xs" title={job.error}>(!)</span>
-										{/if}
-									</td>
-									<td class="py-2 pr-4 text-right font-semibold">{job.totalJobs}</td>
-									<td class="lc-text-success py-2 pr-4 text-right font-semibold">
-										{job.status === 'running' ? '-' : job.successCount}
-									</td>
-									<td
-										class="py-2 pr-4 text-right font-semibold {job.failedCount > 0
-											? 'lc-text-danger'
-											: 'lc-text-dim'}"
-									>
-										{job.status === 'running' ? '-' : job.failedCount}
-									</td>
-									<td class="lc-text-muted py-2 text-right text-xs"
-										>{formatDuration(job.duration)}</td
-									>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-			{/if}
-		</section>
 	</main>
 </div>

@@ -501,24 +501,6 @@ export function getMockSystemStats(): SystemStats {
 				lastError: null
 			}
 		},
-		batchProcessing: {
-			jobCount: 1,
-			jobIds: ['mock-change-batch-1'],
-			isShuttingDown: false,
-			activeTimeouts: 0,
-			recentJobs: [
-				{
-					id: 'mock-change-batch-1',
-					startedAt: hoursAgo(3),
-					completedAt: hoursAgo(3),
-					totalJobs: 4,
-					successCount: 4,
-					failedCount: 0,
-					duration: 4200,
-					status: 'completed'
-				}
-			]
-		},
 		changeTracking: {
 			comparableEventTotal: 8,
 			comparableNoticeCount: 3
@@ -546,6 +528,46 @@ export function getMockSystemStats(): SystemStats {
 				error: null
 			}
 		},
-		aiSummaryEnabled: true
+		aiSummaryEnabled: true,
+		crawlers: {
+			palCrawler: {
+				name: '국회 입법예고 크롤러 (PAL)',
+				source: 'pal.assembly.go.kr',
+				status: 'idle',
+				lastRunAt: hoursAgo(0.15),
+				lastError: null,
+				cron: { expression: '2-59/10 * * * *', intervalMs: 600000, description: '매 10분' }
+			},
+			nsmPendingCrawler: {
+				name: '국민참여입법센터 크롤러 (NSM)',
+				source: 'opinion.lawmaking.go.kr',
+				status: 'idle',
+				lastRunAt: hoursAgo(0.2),
+				lastError: null,
+				cron: { expression: '6-59/20 * * * *', intervalMs: 1200000, description: '매 20분' }
+			},
+			archiveSync: {
+				isRunning: false,
+				runningPhases: [],
+				phases: [
+					{ name: 'full sync', status: 'completed', lastRunAt: hoursAgo(2), lastError: null },
+					{ name: 'pending sync', status: 'completed', lastRunAt: hoursAgo(1.5), lastError: null },
+					{ name: 'isDone sync', status: 'completed', lastRunAt: hoursAgo(2), lastError: null },
+					{
+						name: 'summary backfill',
+						status: 'completed',
+						lastRunAt: hoursAgo(1),
+						lastError: null
+					},
+					{
+						name: 'integrity rescan',
+						status: 'completed',
+						lastRunAt: hoursAgo(10),
+						lastError: null
+					}
+				],
+				asyncApply: null
+			}
+		}
 	};
 }

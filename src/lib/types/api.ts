@@ -263,12 +263,31 @@ export interface BatchRunRecord {
 	metadata?: Record<string, unknown>;
 }
 
-export interface BatchProcessingStats {
-	jobCount: number;
-	jobIds?: string[];
-	isShuttingDown?: boolean;
-	activeTimeouts?: number;
-	recentJobs?: BatchRunRecord[];
+export interface CrawlerStatus {
+	name: string;
+	source: string;
+	status: 'idle' | 'running' | 'failed';
+	lastRunAt: string | null;
+	lastError: string | null;
+	cron: {
+		expression: string;
+		intervalMs: number;
+		description: string;
+	};
+}
+
+export interface ArchiveSyncPhaseStatus {
+	name: string;
+	status: string;
+	lastRunAt: string | null;
+	lastError: string | null;
+}
+
+export interface ArchiveSyncDetailedStatus {
+	isRunning: boolean;
+	runningPhases: string[];
+	phases: ArchiveSyncPhaseStatus[];
+	asyncApply: Record<string, unknown> | null;
 }
 
 export interface IsDoneSyncResult {
@@ -297,20 +316,10 @@ export interface SystemStats {
 			lastError: string | null;
 		} | null;
 	};
-	batchProcessing?: BatchProcessingStats;
 	changeTracking?: ComparableChangeSummary;
 	ollama?: OllamaMetrics;
 	aiSummaryEnabled?: boolean;
 	nodeRuntime?: {
-		eventLoopDelay: {
-			min: number;
-			max: number;
-			mean: number;
-			stddev: number;
-			percentiles: { p50: number; p90: number; p99: number };
-			exceeds: number;
-			lastUpdated: number;
-		} | null;
 		memory: {
 			rss: number;
 			heapTotal: number;
@@ -318,6 +327,11 @@ export interface SystemStats {
 			external: number;
 			arrayBuffers: number;
 		};
+	};
+	crawlers?: {
+		palCrawler: CrawlerStatus;
+		nsmPendingCrawler: CrawlerStatus;
+		archiveSync: ArchiveSyncDetailedStatus;
 	};
 }
 

@@ -24,13 +24,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				webPush: { total: 0, active: 0, inactive: 0, withFailures: 0 },
 				cache: { size: 0, lastUpdated: null, maxSize: 10, isInitialized: false },
 				archive: { count: 0, isDoneSync: null, legacyGenesisSeed: null },
-				batchProcessing: {
-					jobCount: 0,
-					jobIds: [],
-					isShuttingDown: false,
-					activeTimeouts: 0,
-					recentJobs: []
-				},
 				ollama: {
 					enabled: false,
 					configured: false,
@@ -54,7 +47,26 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						error: null
 					}
 				},
-				aiSummaryEnabled: false
+				aiSummaryEnabled: false,
+				crawlers: {
+					palCrawler: {
+						name: '국회 입법예고 크롤러 (PAL)',
+						source: 'pal.assembly.go.kr',
+						status: 'idle',
+						lastRunAt: null,
+						lastError: null,
+						cron: { expression: '2-59/10 * * * *', intervalMs: 600000, description: '매 10분' }
+					},
+					nsmPendingCrawler: {
+						name: '국민참여입법센터 크롤러 (NSM)',
+						source: 'opinion.lawmaking.go.kr',
+						status: 'idle',
+						lastRunAt: null,
+						lastError: null,
+						cron: { expression: '6-59/20 * * * *', intervalMs: 1200000, description: '매 20분' }
+					},
+					archiveSync: { isRunning: false, runningPhases: [], phases: [], asyncApply: null }
+				}
 			},
 			fetchedAt: new Date().toISOString(),
 			error: '상태 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
