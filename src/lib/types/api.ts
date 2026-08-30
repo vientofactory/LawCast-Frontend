@@ -389,3 +389,43 @@ export interface ApiError extends Error {
 		};
 	};
 }
+
+// ── Crawling Transparency ───────────────────────────────────────────────
+
+export interface CrawlingSource {
+	id: string;
+	name: string;
+	url: string;
+	description: string;
+	noticeCount: number;
+	intervalMs: number;
+	intervalLabel: string;
+}
+
+export interface CrawlingSchedule {
+	id: string;
+	name: string;
+	intervalMs: number;
+	intervalLabel: string;
+	description: string;
+}
+
+export interface CrawlingTransferFlow {
+	description: string;
+	nsmToPalIndicator: string;
+}
+
+export interface CrawlingTransparencyData {
+	noticeSources: CrawlingSource[];
+	collection: {
+		totalNotices: number;
+		byLifecycle: Record<string, number>;
+		bySource: Record<string, number>;
+	};
+	changeTracking: {
+		totalEvents: number;
+		byType: Record<string, number>;
+	};
+	schedules: CrawlingSchedule[];
+	transferFlow: CrawlingTransferFlow;
+}

@@ -29,6 +29,9 @@
 					<p class="lc-text-secondary text-sm">
 						<a href="/status" class="lc-link">시스템 상태</a>
 					</p>
+					<p class="lc-text-secondary text-sm">
+						<a href="/crawling-transparency" class="lc-link">투명성 정보</a>
+					</p>
 					{#if env.PUBLIC_DISCORD_SERVER_URL?.trim()}
 						<p class="lc-text-secondary text-sm">
 							<a

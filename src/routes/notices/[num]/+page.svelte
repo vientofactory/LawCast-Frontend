@@ -11,6 +11,7 @@
 	import {
 		faArrowLeft,
 		faBell,
+		faCheck,
 		faChevronDown,
 		faClock,
 		faDownload,
@@ -21,6 +22,7 @@
 		faLock,
 		faScaleBalanced,
 		faShieldHalved,
+		faShareNodes,
 		faRotate,
 		faTriangleExclamation,
 		faUser
@@ -187,6 +189,7 @@
 	let isArchiveMetaOpen = false;
 	let isScreenshotExpanded = false;
 	let isExportingArchive = false;
+	let shareState: 'idle' | 'copied' = 'idle';
 	let exportArchiveError: string | null = null;
 	let timelineSectionElement: HTMLElement | null = null;
 	let hasAutoScrolledToTimeline = false;
@@ -291,6 +294,33 @@
 			exportArchiveError = '자료 반출 다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.';
 		} finally {
 			isExportingArchive = false;
+		}
+	}
+
+	async function shareNotice(): Promise<void> {
+		const shareData = {
+			title: pageTitle,
+			text: `${displayContent.title} | LawCast`,
+			url: pageUrl
+		};
+
+		if (navigator.share && navigator.canShare?.(shareData)) {
+			try {
+				await navigator.share(shareData);
+				return;
+			} catch {
+				// User cancelled or share failed — fall through to clipboard
+			}
+		}
+
+		try {
+			await navigator.clipboard.writeText(pageUrl);
+			shareState = 'copied';
+			setTimeout(() => {
+				shareState = 'idle';
+			}, 2000);
+		} catch {
+			// Clipboard API unavailable — silently ignore
 		}
 	}
 
@@ -711,7 +741,7 @@
 					<div class="lc-text-secondary mt-3 flex flex-wrap gap-3 text-sm">
 						<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
 							<FontAwesomeIcon icon={faUser} class="mr-1.5 h-3.5 w-3.5" />
-							{displayContent.proposerCategory}
+							제안자 구분: {displayContent.proposerCategory}
 						</span>
 						{#if displayContent.committee}
 							<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
@@ -725,14 +755,27 @@
 						</span>
 					</div>
 				</div>
-				<button
-					on:click={() => openExternalLink(detail.notice.link)}
-					data-testid="notice-detail-open-source"
-					class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold"
-				>
-					<FontAwesomeIcon icon={faExternalLink} class="mr-2 h-4 w-4" />
-					국회 페이지 열기
-				</button>
+				<div class="flex items-center gap-2">
+					<button
+						on:click={shareNotice}
+						data-testid="notice-detail-share"
+						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors"
+					>
+						<FontAwesomeIcon
+							icon={shareState === 'copied' ? faCheck : faShareNodes}
+							class="mr-2 h-4 w-4"
+						/>
+						{shareState === 'copied' ? '링크 복사됨' : '공유'}
+					</button>
+					<button
+						on:click={() => openExternalLink(detail.notice.link)}
+						data-testid="notice-detail-open-source"
+						class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold"
+					>
+						<FontAwesomeIcon icon={faExternalLink} class="mr-2 h-4 w-4" />
+						국회 페이지 열기
+					</button>
+				</div>
 			</div>
 
 			{#if shouldShowAIBriefing}

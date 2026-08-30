@@ -23,7 +23,8 @@ import type {
 	WebhookRegistrationRequest,
 	WebPushPublicConfig,
 	WebPushSubscriptionRequest,
-	ApiError
+	ApiError,
+	CrawlingTransparencyData
 } from '../types/api';
 
 const BASE_URL = '/api';
@@ -570,6 +571,24 @@ export async function unregisterWebPushSubscription(
 	}
 }
 
+/**
+ * 크롤링 투명성 통계 조회
+ */
+export async function getCrawlingTransparency(
+	customFetch?: Fetch
+): Promise<CrawlingTransparencyData> {
+	try {
+		return await request<CrawlingTransparencyData>(
+			'/crawling-transparency',
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load crawling transparency:', error);
+		throw normalizeError(error);
+	}
+}
+
 // 기존 코드와의 호환성을 위한 객체 export
 export const apiClient = {
 	getRecentNotices,
@@ -585,5 +604,6 @@ export const apiClient = {
 	registerWebhook,
 	getWebPushPublicConfig,
 	registerWebPushSubscription,
-	unregisterWebPushSubscription
+	unregisterWebPushSubscription,
+	getCrawlingTransparency
 };
