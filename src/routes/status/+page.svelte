@@ -216,9 +216,14 @@
 	$: ollamaHealthStatus = (stats.ollama?.health.status ?? 'unknown') as OllamaHealthStatus;
 	$: hasOllamaIssue = ollamaHealthStatus === 'unhealthy' || ollamaHealthStatus === 'misconfigured';
 	$: hasCacheIssue = stats.cache.isInitialized === false;
+	$: hasCrawlerFailure =
+		crawlers?.palCrawler.status === 'failed' ||
+		crawlers?.nsmPendingCrawler.status === 'failed' ||
+		(crawlers?.archiveSync.phases.some((p) => p.status === 'failed') ?? false);
 
-	$: overallStatus = (hasOllamaIssue || hasCacheIssue ? 'degraded' : 'healthy') as
-		'healthy' | 'degraded';
+	$: overallStatus = (
+		hasOllamaIssue || hasCacheIssue || hasCrawlerFailure ? 'degraded' : 'healthy'
+	) as 'healthy' | 'degraded';
 	$: overallLabel = overallStatus === 'healthy' ? '정상' : '주의 필요';
 
 	function isDoneSyncBadgeStyle(status: IsDoneSyncStatus['status'] | undefined) {
