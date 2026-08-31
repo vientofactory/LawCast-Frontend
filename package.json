@@ -32,6 +32,9 @@
 		"@sveltejs/adapter-cloudflare": "^7.2.9",
 		"@types/nprogress": "^0.2.3",
 		"axios": "^1.13.2",
+		"chart.js": "^4.5.1",
+		"chartjs-adapter-date-fns": "^3.0.0",
+		"date-fns": "^4.4.0",
 		"hashguard-client": "^1.5.0",
 		"nprogress": "^0.2.0"
 	},

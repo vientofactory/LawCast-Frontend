@@ -24,7 +24,9 @@ import type {
 	WebPushPublicConfig,
 	WebPushSubscriptionRequest,
 	ApiError,
-	CrawlingTransparencyData
+	CrawlingTransparencyData,
+	ProposalStatisticsData,
+	ProposalStatisticsGranularity
 } from '../types/api';
 
 const BASE_URL = '/api';
@@ -589,6 +591,40 @@ export async function getCrawlingTransparency(
 	}
 }
 
+/**
+ * 법률안 발의 통계 조회
+ */
+export async function getProposalStatistics(
+	params: {
+		granularity?: ProposalStatisticsGranularity;
+		startDate?: string;
+		endDate?: string;
+	} = {},
+	customFetch?: Fetch
+): Promise<ProposalStatisticsData> {
+	try {
+		const query = new URLSearchParams();
+		if (params.granularity) {
+			query.set('granularity', params.granularity);
+		}
+		if (params.startDate?.trim()) {
+			query.set('startDate', params.startDate.trim());
+		}
+		if (params.endDate?.trim()) {
+			query.set('endDate', params.endDate.trim());
+		}
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<ProposalStatisticsData>(
+			`/stats/proposals${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load proposal statistics:', error);
+		throw normalizeError(error);
+	}
+}
+
 // 기존 코드와의 호환성을 위한 객체 export
 export const apiClient = {
 	getRecentNotices,
@@ -605,5 +641,6 @@ export const apiClient = {
 	getWebPushPublicConfig,
 	registerWebPushSubscription,
 	unregisterWebPushSubscription,
-	getCrawlingTransparency
+	getCrawlingTransparency,
+	getProposalStatistics
 };

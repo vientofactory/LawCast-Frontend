@@ -429,3 +429,20 @@ export interface CrawlingTransparencyData {
 	schedules: CrawlingSchedule[];
 	transferFlow: CrawlingTransferFlow;
 }
+
+// ── Proposal Statistics ─────────────────────────────────────────────────
+
+export type ProposalStatisticsGranularity = 'daily' | 'weekly' | 'monthly';
+
+export interface ProposalStatisticsBucket {
+	period: string;
+	count: number;
+}
+
+export interface ProposalStatisticsData {
+	granularity: ProposalStatisticsGranularity;
+	startDate: string | null;
+	endDate: string | null;
+	totalCount: number;
+	buckets: ProposalStatisticsBucket[];
+}

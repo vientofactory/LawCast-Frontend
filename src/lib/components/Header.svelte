@@ -10,7 +10,8 @@
 		faCodeCompare,
 		faMoon,
 		faSun,
-		faBell
+		faBell,
+		faChartBar
 	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
@@ -24,6 +25,7 @@
 		{ href: '/', label: '홈', icon: faHouse },
 		{ href: '/notices', label: '입법예고', icon: faFileLines },
 		{ href: '/notices/changes', label: '변경 내역', icon: faCodeCompare },
+		{ href: '/proposals', label: '발의 통계', icon: faChartBar },
 		{ href: '/webhook', label: '알림 설정', icon: faBell }
 	];
 

@@ -32,6 +32,9 @@
 					<p class="lc-text-secondary text-sm">
 						<a href="/crawling-transparency" class="lc-link">투명성 정보</a>
 					</p>
+					<p class="lc-text-secondary text-sm">
+						<a href="/proposals" class="lc-link">발의 통계</a>
+					</p>
 					{#if env.PUBLIC_DISCORD_SERVER_URL?.trim()}
 						<p class="lc-text-secondary text-sm">
 							<a
