@@ -133,6 +133,38 @@ npm run lint
 npm run check
 ```
 
+## E2E 테스트 (Playwright)
+
+프론트엔드에는 Playwright 기반 브라우저 E2E 테스트가 포함되어 있습니다. SvelteKit 개발 서버를 자동으로 시작하고 Chromium 브라우저에서 주요 페이지와 사용자 흐름을 검증합니다.
+
+### 사전 요구사항
+
+- Node.js 18 이상
+- `npm install` 완료 상태
+- Chromium 브라우저 (`npx playwright install chromium`으로 설치)
+
+### 테스트 실행
+
+```bash
+# E2E 테스트 실행 (개발 서버 자동 시작)
+npm run test:e2e
+
+# UI 모드로 실행 (브라우저에서 테스트 조작 가능)
+npm run test:e2e:ui
+
+# 디버그 모드로 실행 (단계별 디버깅)
+npm run test:e2e:debug
+
+# 테스트 리포트 열기
+npm run test:e2e:report
+```
+
+CI 환경에서는 `PLAYWRIGHT_BASE_URL` 환경 변수로 외부 서버 주소를 지정할 수 있습니다.
+
+```bash
+PLAYWRIGHT_BASE_URL=https://your-staging.example.com npm run test:e2e
+```
+
 ## 배포
 
 이 프로젝트는 `@sveltejs/adapter-cloudflare`와 `wrangler.jsonc`가 설정되어 있어 Cloudflare Pages에 배포할 수 있습니다. 빌드 결과는 `.svelte-kit/cloudflare` 디렉토리에 생성됩니다.
