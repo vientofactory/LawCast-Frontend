@@ -14,7 +14,11 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --write . && eslint . --fix"
+		"lint": "prettier --write . && eslint . --fix",
+		"test:e2e": "playwright test",
+		"test:e2e:ui": "playwright test --ui",
+		"test:e2e:debug": "playwright test --debug",
+		"test:e2e:report": "playwright show-report"
 	},
 	"repository": {
 		"type": "git",
@@ -41,6 +45,7 @@
 	"devDependencies": {
 		"@eslint/compat": "^2.0.0",
 		"@eslint/js": "^10.0.0",
+		"@playwright/test": "^1.62.1",
 		"@sveltejs/kit": "^2.47.1",
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
 		"@tailwindcss/vite": "^4.1.14",
