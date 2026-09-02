@@ -159,6 +159,27 @@ export function downloadFile(url: string, filename?: string): void {
 }
 
 /**
+ * Blob 데이터를 파일로 다운로드
+ */
+export function downloadBlob(blob: Blob, filename: string): void {
+	if (typeof window === 'undefined') {
+		return;
+	}
+
+	const blobUrl = URL.createObjectURL(blob);
+	try {
+		const link = document.createElement('a');
+		link.href = blobUrl;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+	} finally {
+		URL.revokeObjectURL(blobUrl);
+	}
+}
+
+/**
  * 파일 다운로드 가능 여부 확인
  */
 export function isDownloadable(url: string): boolean {
