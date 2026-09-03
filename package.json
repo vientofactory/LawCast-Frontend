@@ -66,6 +66,6 @@
 		"vite": "^7.1.10"
 	},
 	"overrides": {
-		"cookie": "0.6.0"
+		"cookie": "2.0.1"
 	}
 }
