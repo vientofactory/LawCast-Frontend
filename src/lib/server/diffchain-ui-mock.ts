@@ -567,7 +567,107 @@ export function getMockSystemStats(): SystemStats {
 					}
 				],
 				asyncApply: null
-			}
+			},
+			cronJobs: [
+				{
+					name: 'crawling and notification',
+					status: 'idle',
+					lastRunAt: hoursAgo(0.15),
+					lastError: null,
+					cron: { expression: '2-59/10 * * * *', intervalMs: 600000, description: '매 10분' }
+				},
+				{
+					name: 'pending bills crawl (NsmLmSts)',
+					status: 'idle',
+					lastRunAt: hoursAgo(0.2),
+					lastError: null,
+					cron: { expression: '6-59/20 * * * *', intervalMs: 1200000, description: '매 20분' }
+				},
+				{
+					name: 'proposalReason backfill drain',
+					status: 'idle',
+					lastRunAt: hoursAgo(0.3),
+					lastError: null,
+					cron: { expression: '9-59/15 * * * *', intervalMs: 900000, description: '매 15분' }
+				},
+				{
+					name: 'isDone sync',
+					status: 'idle',
+					lastRunAt: hoursAgo(2),
+					lastError: null,
+					cron: { expression: '13 */6 * * *', intervalMs: 21600000, description: '6시간마다' }
+				},
+				{
+					name: 'webhook cleanup',
+					status: 'idle',
+					lastRunAt: hoursAgo(20),
+					lastError: null,
+					cron: { expression: '1 0 * * *', intervalMs: 86400000, description: '매일' }
+				},
+				{
+					name: 'webhook optimization',
+					status: 'idle',
+					lastRunAt: hoursAgo(22),
+					lastError: null,
+					cron: { expression: '1 2 * * *', intervalMs: 86400000, description: '매일' }
+				},
+				{
+					name: 'system monitoring',
+					status: 'idle',
+					lastRunAt: hoursAgo(0.5),
+					lastError: null,
+					cron: { expression: '0 * * * *', intervalMs: 3600000, description: '매시간' }
+				},
+				{
+					name: 'snapshot artifact backfill',
+					status: 'idle',
+					lastRunAt: hoursAgo(10),
+					lastError: null,
+					cron: { expression: '43 3 * * *', intervalMs: 86400000, description: '매일' }
+				},
+				{
+					name: 'integrity re-scan',
+					status: 'idle',
+					lastRunAt: hoursAgo(10),
+					lastError: null,
+					cron: { expression: '43 3 * * *', intervalMs: 86400000, description: '매일' }
+				},
+				{
+					name: 'change-tracking daily audit',
+					status: 'idle',
+					lastRunAt: hoursAgo(9),
+					lastError: null,
+					cron: { expression: '7 4 * * *', intervalMs: 86400000, description: '매일' }
+				},
+				{
+					name: 'change-tracking weekly audit',
+					status: 'idle',
+					lastRunAt: hoursAgo(48),
+					lastError: null,
+					cron: { expression: '19 4 * * 1', intervalMs: 604800000, description: '매주' }
+				},
+				{
+					name: 'quick keyword refresh',
+					status: 'idle',
+					lastRunAt: hoursAgo(0.5),
+					lastError: null,
+					cron: { expression: '11 * * * *', intervalMs: 3600000, description: '매시간' }
+				},
+				{
+					name: 'sqlite vacuum',
+					status: 'idle',
+					lastRunAt: hoursAgo(96),
+					lastError: null,
+					cron: { expression: '31 5 * * 0', intervalMs: 604800000, description: '매주' }
+				},
+				{
+					name: 'database mirror upload',
+					status: 'idle',
+					lastRunAt: hoursAgo(15),
+					lastError: null,
+					cron: { expression: '0 8 * * *', intervalMs: 86400000, description: '매일' }
+				}
+			]
 		}
 	};
 }

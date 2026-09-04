@@ -290,6 +290,18 @@ export interface ArchiveSyncDetailedStatus {
 	asyncApply: Record<string, unknown> | null;
 }
 
+export interface CronJobStatus {
+	name: string;
+	status: 'idle' | 'running' | 'failed';
+	lastRunAt: string | null;
+	lastError: string | null;
+	cron: {
+		expression: string;
+		intervalMs: number;
+		description: string;
+	};
+}
+
 export interface IsDoneSyncResult {
 	fetchedDoneCount: number;
 	markedDoneCount: number;
@@ -332,6 +344,7 @@ export interface SystemStats {
 		palCrawler: CrawlerStatus;
 		nsmPendingCrawler: CrawlerStatus;
 		archiveSync: ArchiveSyncDetailedStatus;
+		cronJobs: CronJobStatus[];
 	};
 }
 

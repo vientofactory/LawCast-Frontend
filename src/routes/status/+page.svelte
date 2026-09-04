@@ -172,42 +172,44 @@
 		}
 	}
 
-	const PHASE_NAME_MAP: Record<string, string> = {
-		'full sync': '전체 입법예고 동기화',
-		'pending sync': '국민참여입법센터 신규 의안 수집',
+	const CRON_JOB_NAME_MAP: Record<string, string> = {
+		'crawling and notification': '국회 입법예고 크롤링 및 알림',
+		'pending bills crawl (NsmLmSts)': '국민참여입법센터 신규 의안 수집',
+		'proposalReason backfill drain': '입법취지 백필 드레인',
 		'isDone sync': '입법예고 종료 마커 동기화',
-		'integrity check': '아카이브 무결성 검증',
-		'integrity rescan': '아카이브 무결성 재검증',
-		'chain integrity audit': '변경 이력 체인 감사',
-		'summary backfill': 'AI 요약 생성',
-		'legacy genesis seed': '기존 의안 변경 이력 시드'
+		'webhook cleanup': '웹훅 정리',
+		'webhook optimization': '웹훅 최적화',
+		'system monitoring': '시스템 모니터링',
+		'snapshot artifact backfill': '스냅샷 아티팩트 백필',
+		'integrity re-scan': '아카이브 무결성 재검증',
+		'change-tracking daily audit': '변경 이력 일일 감사',
+		'change-tracking weekly audit': '변경 이력 주간 감사',
+		'quick keyword refresh': '빠른 키워드 갱신',
+		'sqlite vacuum': 'SQLite 정리',
+		'database mirror upload': 'DB 미러 업로드'
 	};
 
-	function formatPhaseName(name: string): string {
-		return PHASE_NAME_MAP[name] ?? name;
+	function formatCronJobName(name: string): string {
+		return CRON_JOB_NAME_MAP[name] ?? name;
 	}
 
-	function phaseStatusBadge(status: string) {
+	function cronJobStatusBadge(status: string) {
 		switch (status) {
 			case 'running':
 				return 'lc-chip-blue';
 			case 'failed':
 				return 'lc-chip-danger';
-			case 'completed':
-				return 'lc-chip-success';
 			default:
 				return 'lc-chip-muted';
 		}
 	}
 
-	function phaseStatusLabel(status: string): string {
+	function cronJobStatusLabel(status: string): string {
 		switch (status) {
 			case 'running':
 				return '실행 중';
 			case 'failed':
 				return '실패';
-			case 'completed':
-				return '완료';
 			default:
 				return '대기';
 		}
@@ -219,7 +221,7 @@
 	$: hasCrawlerFailure =
 		crawlers?.palCrawler.status === 'failed' ||
 		crawlers?.nsmPendingCrawler.status === 'failed' ||
-		(crawlers?.archiveSync.phases.some((p) => p.status === 'failed') ?? false);
+		(crawlers?.cronJobs.some((j) => j.status === 'failed') ?? false);
 
 	$: overallStatus = (
 		hasOllamaIssue || hasCacheIssue || hasCrawlerFailure ? 'degraded' : 'healthy'
@@ -446,36 +448,36 @@
 				</section>
 			</div>
 
-			<!-- ── Archive Sync Phases ──────────────────────────────────── -->
+			<!-- ── Cron Job Status ──────────────────────────────────────── -->
 			<section class="lc-panel-card lc-defer-render-sm mt-4 rounded-2xl border p-5 shadow-sm">
 				<div class="mb-3 flex items-center justify-between">
 					<h2 class="lc-text-primary flex items-center text-sm font-bold">
 						<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
-						아카이브 동기화 단계
+						크론 작업 현황
 					</h2>
 				</div>
 				<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-					{#each crawlers.archiveSync.phases as phase (phase.name)}
+					{#each crawlers.cronJobs as job (job.name)}
 						<div class="rounded-xl border border-(--lc-border-soft) px-3 py-2">
 							<div class="mb-1 flex items-center justify-between">
 								<span class="lc-text-primary text-xs font-semibold"
-									>{formatPhaseName(phase.name)}</span
+									>{formatCronJobName(job.name)}</span
 								>
 								<span
-									class={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${phaseStatusBadge(phase.status)}`}
+									class={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cronJobStatusBadge(job.status)}`}
 								>
-									{phaseStatusLabel(phase.status)}
+									{cronJobStatusLabel(job.status)}
 								</span>
 							</div>
-							<div class="lc-text-dim text-[11px]">
-								마지막: {formatDateTime(phase.lastRunAt)}
+							<div class="lc-text-dim text-[11px] font-mono">
+								{job.cron.description}
 							</div>
-							{#if phase.lastError}
-								<div
-									class="lc-text-danger mt-0.5 truncate text-[11px]"
-									title={phase.lastError ?? ''}
-								>
-									{phase.lastError?.slice(0, 60)}
+							<div class="lc-text-dim text-[11px]">
+								마지막: {formatDateTime(job.lastRunAt)}
+							</div>
+							{#if job.lastError}
+								<div class="lc-text-danger mt-0.5 truncate text-[11px]" title={job.lastError ?? ''}>
+									{job.lastError?.slice(0, 60)}
 								</div>
 							{/if}
 						</div>

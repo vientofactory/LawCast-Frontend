@@ -65,7 +65,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						lastError: null,
 						cron: { expression: '6-59/20 * * * *', intervalMs: 1200000, description: '매 20분' }
 					},
-					archiveSync: { isRunning: false, runningPhases: [], phases: [], asyncApply: null }
+					archiveSync: { isRunning: false, runningPhases: [], phases: [], asyncApply: null },
+					cronJobs: []
 				}
 			},
 			fetchedAt: new Date().toISOString(),
