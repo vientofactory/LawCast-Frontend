@@ -70,7 +70,7 @@
 	}
 </script>
 
-<div class="space-y-4">
+<div class="space-y-4" data-testid="discussion-thread-detail">
 	<!-- Top Navigation and Thread Header -->
 	<div class="flex items-center justify-between gap-3 border-b border-[var(--lc-border-soft)] pb-3">
 		<button
@@ -95,6 +95,7 @@
 
 	<!-- Thread Info Box -->
 	<div
+		data-testid="discussion-thread-summary"
 		class="rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-4 shadow-sm"
 	>
 		<div class="flex flex-wrap items-center gap-2">
@@ -133,7 +134,7 @@
 	</div>
 
 	<!-- Comments List -->
-	<div class="space-y-3">
+	<div class="space-y-3" data-testid="discussion-comment-list">
 		{#each comments as comment (comment.id)}
 			<CommentItem
 				{comment}
@@ -149,12 +150,14 @@
 	<!-- Reply Box -->
 	{#if thread.status === 'open'}
 		<div
+			data-testid="discussion-reply-form"
 			class="mt-6 rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-4 shadow-sm"
 		>
 			<h3 class="lc-text-primary mb-3 text-xs font-bold">새 의견 작성</h3>
 
 			{#if replyErrorMessage}
 				<div
+					data-testid="discussion-reply-error"
 					class="lc-banner-danger mb-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-600 dark:text-red-400"
 				>
 					{replyErrorMessage}
@@ -173,6 +176,7 @@
 						</label>
 						<input
 							id="reply-nickname-input"
+							data-testid="discussion-reply-nickname"
 							type="text"
 							bind:value={replyNickname}
 							disabled={isSubmittingComment}
@@ -191,6 +195,7 @@
 						</label>
 						<input
 							id="reply-password-input"
+							data-testid="discussion-reply-password"
 							type="password"
 							bind:value={replyPassword}
 							disabled={isSubmittingComment}
@@ -208,6 +213,7 @@
 					</label>
 					<textarea
 						id="reply-content-input"
+						data-testid="discussion-reply-content"
 						bind:value={replyContent}
 						disabled={isSubmittingComment}
 						rows="4"
@@ -225,6 +231,7 @@
 					<button
 						type="submit"
 						disabled={isSubmittingComment}
+						data-testid="discussion-reply-submit"
 						class="lc-button-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
 					>
 						{#if isSubmittingComment}

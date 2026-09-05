@@ -35,7 +35,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 				noticeNum,
 				threadId,
 				detail: getMockNoticeDetail(noticeNum),
-				discussion: getMockDiscussionThread(threadId)
+				discussion: getMockDiscussionThread(threadId, noticeNum)
 			};
 		}
 

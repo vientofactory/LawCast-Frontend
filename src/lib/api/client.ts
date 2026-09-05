@@ -755,9 +755,9 @@ export async function deleteDiscussionComment(
 	commentId: number,
 	payload: DeleteCommentPayload,
 	customFetch?: Fetch
-): Promise<{ success: boolean; message: string }> {
+): Promise<DiscussionComment> {
 	try {
-		return await request<{ success: boolean; message: string }>(
+		return await request<DiscussionComment>(
 			`/discussions/comments/${commentId}`,
 			{
 				method: 'DELETE',

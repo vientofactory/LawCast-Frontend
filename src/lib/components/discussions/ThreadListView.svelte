@@ -18,7 +18,7 @@
 	export let onSelectThread: ((threadId: number) => void) | undefined = undefined;
 </script>
 
-<div class="space-y-4">
+<div class="space-y-4" data-testid="discussion-thread-list">
 	<!-- Top Bar -->
 	<div class="flex items-center justify-between gap-2 border-b border-[var(--lc-border-soft)] pb-3">
 		<div class="flex items-center gap-2">
@@ -30,6 +30,7 @@
 		<button
 			type="button"
 			on:click={() => onOpenNewThreadModal?.()}
+			data-testid="discussion-new-thread-button"
 			class="lc-button-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
 		>
 			<FontAwesomeIcon icon={faPlus} class="h-3 w-3" />
@@ -43,7 +44,10 @@
 			토론 목록을 불러오는 중...
 		</div>
 	{:else if threads.length === 0}
-		<div class="rounded-xl border border-dashed border-[var(--lc-border-soft)] p-8 text-center">
+		<div
+			data-testid="discussion-empty-state"
+			class="rounded-xl border border-dashed border-[var(--lc-border-soft)] p-8 text-center"
+		>
 			<div
 				class="lc-chip-muted mx-auto mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full"
 			>
@@ -67,6 +71,7 @@
 			{#each threads as thread (thread.id)}
 				<a
 					href={`/notices/${thread.noticeNum}/discussions/${thread.id}`}
+					data-testid={`discussion-thread-link-${thread.id}`}
 					class="group flex cursor-pointer flex-col justify-between gap-2 p-4 transition-colors hover:bg-[var(--lc-surface-hover)] sm:flex-row sm:items-center no-underline text-inherit"
 					on:click={(e) => {
 						if (onSelectThread) {

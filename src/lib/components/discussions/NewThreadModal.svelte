@@ -136,7 +136,7 @@
 						bind:value={title}
 						disabled={isSubmitting}
 						maxlength="150"
-						placeholder="예: 제○조 개정안의 실효성에 대한 의견"
+						placeholder="예: ○○ 개정안의 실효성에 대한 의견"
 						class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-sm text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
 					/>
 				</div>

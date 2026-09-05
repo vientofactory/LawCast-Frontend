@@ -396,33 +396,58 @@ export function getMockNoticeChanges(noticeNum: number): NoticeChangeTimelineRes
 	return buildMockNoticeRecord(noticeNum).changes;
 }
 
-export function getMockNoticeDiscussions(_noticeNum: number): DiscussionThreadListResponse {
+function getMockDiscussionThreadId(noticeNum: number): number {
+	return noticeNum * 100 + 1;
+}
+
+function getNoticeNumFromMockThreadId(threadId: number): number {
+	return threadId > 100 ? Math.floor((threadId - 1) / 100) : 2210001;
+}
+
+export function getMockNoticeDiscussions(noticeNum: number): DiscussionThreadListResponse {
 	return {
-		items: [],
-		total: 0,
+		items: [
+			{
+				id: getMockDiscussionThreadId(noticeNum),
+				noticeNum,
+				title: '모의 토론 주제',
+				status: 'open',
+				authorNickname: '익명',
+				authorIpMasked: '127.0.***.***',
+				commentCount: 1,
+				createdAt: hoursAgo(2),
+				updatedAt: hoursAgo(1)
+			}
+		],
+		total: 1,
 		page: 1,
 		limit: 20
 	};
 }
 
-export function getMockDiscussionThread(threadId: number): DiscussionThreadDetailResponse {
+export function getMockDiscussionThread(
+	threadId: number,
+	noticeNum?: number
+): DiscussionThreadDetailResponse {
+	const resolvedNoticeNum = noticeNum ?? getNoticeNumFromMockThreadId(threadId);
+
 	return {
 		thread: {
 			id: threadId,
-			noticeNum: 2210001,
+			noticeNum: resolvedNoticeNum,
 			title: '모의 토론 주제',
 			status: 'open',
 			authorNickname: '익명',
 			authorIpMasked: '127.0.***.***',
 			commentCount: 1,
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString()
+			createdAt: hoursAgo(2),
+			updatedAt: hoursAgo(1)
 		},
 		comments: [
 			{
 				id: 1,
 				threadId,
-				noticeNum: 2210001,
+				noticeNum: resolvedNoticeNum,
 				sequence: 1,
 				authorNickname: '익명',
 				authorIpMasked: '127.0.***.***',
@@ -430,8 +455,8 @@ export function getMockDiscussionThread(threadId: number): DiscussionThreadDetai
 				isDeleted: false,
 				isEdited: false,
 				editedAt: null,
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString()
+				createdAt: hoursAgo(2),
+				updatedAt: hoursAgo(2)
 			}
 		]
 	};

@@ -193,8 +193,7 @@
 					>
 						<p class="font-semibold text-red-500">안내</p>
 						<p class="mt-1">
-							토론 맥락 유지를 위해 의견 삭제 시 본문이 '작성자에 의해 삭제된 의견입니다'로
-							대체됩니다.
+							토론 맥락 유지를 위해 의견 삭제 시 본문이 삭제된 상태로 보존(소프트 삭제)됩니다.
 						</p>
 					</div>
 				{:else if mode === 'toggle-thread-status'}

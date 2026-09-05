@@ -144,6 +144,7 @@
 
 <div
 	id={`res-${comment.sequence}`}
+	data-testid={`discussion-comment-${comment.sequence}`}
 	class={`group relative rounded-xl border transition-colors ${
 		comment.isDeleted
 			? 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-muted)]/50 opacity-70'
@@ -191,6 +192,7 @@
 						type="button"
 						on:click={handleQuote}
 						title={`#${comment.sequence} 인용하여 답글`}
+						data-testid={`discussion-comment-quote-${comment.sequence}`}
 						class="lc-text-muted hover:lc-text-primary inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
 					>
 						<FontAwesomeIcon icon={faQuoteRight} class="h-3 w-3" />
@@ -223,7 +225,7 @@
 	{#if comment.isDeleted}
 		<div class="flex items-center gap-2 py-2 text-xs italic text-[var(--lc-text-dim)]">
 			<FontAwesomeIcon icon={faBan} class="h-3.5 w-3.5 text-gray-400" />
-			<span>작성자에 의해 삭제된 의견입니다.</span>
+			<span>{comment.content}</span>
 		</div>
 	{:else}
 		<div class="space-y-2">

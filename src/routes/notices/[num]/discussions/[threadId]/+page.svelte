@@ -154,19 +154,13 @@
 		isSubmittingAction = true;
 		actionErrorMessage = '';
 		try {
-			await apiClient.deleteDiscussionComment(deletePayload.commentId, {
+			const deletedComment = await apiClient.deleteDiscussionComment(deletePayload.commentId, {
 				password: deletePayload.password
 			});
 			discussionData = {
 				...discussionData,
 				comments: discussionData.comments.map((c) =>
-					c.id === deletePayload.commentId
-						? {
-								...c,
-								isDeleted: true,
-								content: '작성자에 의해 삭제된 의견입니다.'
-							}
-						: c
+					c.id === deletePayload.commentId ? deletedComment : c
 				)
 			};
 			isActionModalOpen = false;
@@ -212,7 +206,7 @@
 		currentUrl = page.url;
 	});
 
-	$: pageTitle = `${thread.title} - 의안 ${data.noticeNum} 토론 | LawCast`;
+	$: pageTitle = `${thread.title} - 의안 "${detail.notice.subject}" 토론 | LawCast`;
 	$: pageUrl = currentUrl.origin + currentUrl.pathname;
 </script>
 
@@ -221,7 +215,7 @@
 	<link rel="canonical" href={pageUrl} />
 	<meta
 		name="description"
-		content={`의안번호 ${data.noticeNum} (${detail.notice.subject})에 대한 시민 토론 스레드입니다.`}
+		content={`의안번호 ${data.noticeNum} (${detail.notice.subject})에 대한 토론 스레드입니다.`}
 	/>
 	<meta property="og:title" content={pageTitle} />
 	<meta property="og:description" content={`의안번호 ${data.noticeNum} - ${thread.title}`} />

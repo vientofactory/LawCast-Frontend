@@ -97,6 +97,7 @@
 
 <section
 	id="notice-discussions"
+	data-testid="notice-discussions"
 	class="lc-panel-card mt-6 mb-6 rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-6 shadow-sm"
 >
 	<div class="mb-4 flex items-center justify-between border-b border-[var(--lc-border-soft)] pb-4">
