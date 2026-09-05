@@ -4,7 +4,8 @@ import type { PageServerLoad } from './$types';
 import {
 	isDiffchainUiMockEnabled,
 	getMockNoticeChanges,
-	getMockNoticeDetail
+	getMockNoticeDetail,
+	getMockNoticeDiscussions
 } from '$lib/server/diffchain-ui-mock';
 
 function parseRevisionQuery(revRaw: string | null): number | undefined {
@@ -43,7 +44,8 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 		if (isDiffchainUiMockEnabled()) {
 			return {
 				detail: getMockNoticeDetail(noticeNum, resolvedRev),
-				changes: getMockNoticeChanges(noticeNum)
+				changes: getMockNoticeChanges(noticeNum),
+				discussions: getMockNoticeDiscussions(noticeNum)
 			};
 		}
 
@@ -58,7 +60,16 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 					count: 0
 				};
 			}));
-		return { detail, changes };
+		const discussions = await apiClient.getNoticeDiscussions(noticeNum, {}, fetch).catch((err) => {
+			console.warn(`Failed to load notice discussions (${noticeNum}):`, err);
+			return {
+				items: [],
+				total: 0,
+				page: 1,
+				limit: 20
+			};
+		});
+		return { detail, changes, discussions };
 	} catch (err) {
 		console.error(`Failed to load notice detail (${noticeNum}):`, err);
 

@@ -7,7 +7,9 @@ import type {
 	NoticeChangeTimelineResponse,
 	RecentNoticeChangesResponse,
 	NoticeDetail,
-	SystemStats
+	SystemStats,
+	DiscussionThreadListResponse,
+	DiscussionThreadDetailResponse
 } from '$lib/types/api';
 import { NoticeChangeSource } from '$lib/types/change-source';
 
@@ -392,6 +394,47 @@ export function getMockNoticeDetail(noticeNum: number, requestedRev?: number): N
 
 export function getMockNoticeChanges(noticeNum: number): NoticeChangeTimelineResponse {
 	return buildMockNoticeRecord(noticeNum).changes;
+}
+
+export function getMockNoticeDiscussions(_noticeNum: number): DiscussionThreadListResponse {
+	return {
+		items: [],
+		total: 0,
+		page: 1,
+		limit: 20
+	};
+}
+
+export function getMockDiscussionThread(threadId: number): DiscussionThreadDetailResponse {
+	return {
+		thread: {
+			id: threadId,
+			noticeNum: 2210001,
+			title: '모의 토론 주제',
+			status: 'open',
+			authorNickname: '익명',
+			authorIpMasked: '127.0.***.***',
+			commentCount: 1,
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString()
+		},
+		comments: [
+			{
+				id: 1,
+				threadId,
+				noticeNum: 2210001,
+				sequence: 1,
+				authorNickname: '익명',
+				authorIpMasked: '127.0.***.***',
+				content: '모의 토론 시작 의견입니다.',
+				isDeleted: false,
+				isEdited: false,
+				editedAt: null,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString()
+			}
+		]
+	};
 }
 
 export function getMockRecentNoticeChangesResponse(params: {
