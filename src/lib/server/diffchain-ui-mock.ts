@@ -1,4 +1,5 @@
 import { env } from '$env/dynamic/private';
+import { DiscussionThreadStatus } from '$lib/types/api';
 import type {
 	ArchiveNoticeListResponse,
 	QuickKeywordSuggestionsResponse,
@@ -411,7 +412,7 @@ export function getMockNoticeDiscussions(noticeNum: number): DiscussionThreadLis
 				id: getMockDiscussionThreadId(noticeNum),
 				noticeNum,
 				title: '모의 토론 주제',
-				status: 'open',
+				status: DiscussionThreadStatus.OPEN,
 				authorNickname: '익명',
 				authorIpMasked: '127.0.***.***',
 				commentCount: 1,
@@ -436,7 +437,7 @@ export function getMockDiscussionThread(
 			id: threadId,
 			noticeNum: resolvedNoticeNum,
 			title: '모의 토론 주제',
-			status: 'open',
+			status: DiscussionThreadStatus.OPEN,
 			authorNickname: '익명',
 			authorIpMasked: '127.0.***.***',
 			commentCount: 1,

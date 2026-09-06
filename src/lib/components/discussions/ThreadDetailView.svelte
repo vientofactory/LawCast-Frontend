@@ -10,7 +10,12 @@
 		faKey,
 		faSpinner
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { DiscussionComment, DiscussionThread, CreateCommentPayload } from '$lib/types/api';
+	import {
+		DiscussionThreadStatus,
+		type DiscussionComment,
+		type DiscussionThread,
+		type CreateCommentPayload
+	} from '$lib/types/api';
 	import CommentItem from './CommentItem.svelte';
 
 	export let thread: DiscussionThread;
@@ -88,8 +93,11 @@
 				on:click={() => onToggleStatus?.(thread)}
 				class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1 text-xs font-medium"
 			>
-				<FontAwesomeIcon icon={thread.status === 'open' ? faLock : faLockOpen} class="h-3 w-3" />
-				{thread.status === 'open' ? '토론 닫기' : '토론 다시 열기'}
+				<FontAwesomeIcon
+					icon={thread.status === DiscussionThreadStatus.OPEN ? faLock : faLockOpen}
+					class="h-3 w-3"
+				/>
+				{thread.status === DiscussionThreadStatus.OPEN ? '토론 닫기' : '토론 다시 열기'}
 			</button>
 		</div>
 	</div>
@@ -100,7 +108,7 @@
 		class="rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-4 shadow-sm"
 	>
 		<div class="flex flex-wrap items-center gap-2">
-			{#if thread.status === 'open'}
+			{#if thread.status === DiscussionThreadStatus.OPEN}
 				<span
 					class="lc-chip-success inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
 				>
@@ -140,7 +148,7 @@
 			<CommentItem
 				{comment}
 				allComments={comments}
-				isThreadClosed={thread.status === 'closed'}
+				isThreadClosed={thread.status === DiscussionThreadStatus.CLOSED}
 				onQuote={handleQuote}
 				onEdit={(c) => onEditComment?.(c)}
 				onDelete={(c) => onDeleteComment?.(c)}
@@ -149,7 +157,7 @@
 	</div>
 
 	<!-- Reply Box -->
-	{#if thread.status === 'open'}
+	{#if thread.status === DiscussionThreadStatus.OPEN}
 		<div
 			data-testid="discussion-reply-form"
 			class="mt-6 rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-4 shadow-sm"
@@ -250,10 +258,12 @@
 		</div>
 	{:else}
 		<div
-			class="mt-4 rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-muted)] p-4 text-center text-xs text-[var(--lc-text-muted)]"
+			class="mt-4 rounded-xl border border-(--lc-border-soft) bg-(--lc-surface-muted) p-4 text-center text-xs text-(--lc-text-muted)"
 		>
-			<FontAwesomeIcon icon={faLock} class="mr-1 h-3.5 w-3.5" />
-			이 토론은 닫혔으므로 새 의견을 작성할 수 없습니다.
+			<div class="flex items-center justify-center gap-1.5">
+				<FontAwesomeIcon icon={faLock} class="h-3.5 w-3.5 shrink-0" />
+				<span>이 토론은 닫혔으므로 새 의견을 작성할 수 없습니다.</span>
+			</div>
 		</div>
 	{/if}
 </div>

@@ -463,7 +463,10 @@ export interface ProposalStatisticsData {
 
 // ── Discussions (Wiki-style Anonymous Discussion) ───────────────────────
 
-export type DiscussionThreadStatus = 'open' | 'closed';
+export enum DiscussionThreadStatus {
+	OPEN = 'open',
+	CLOSED = 'closed'
+}
 
 export interface DiscussionThread {
 	id: number;

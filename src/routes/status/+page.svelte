@@ -172,6 +172,9 @@
 		}
 	}
 
+	$: palBadge = crawlers ? crawlerStatusBadge(crawlers.palCrawler.status) : null;
+	$: nsmBadge = crawlers ? crawlerStatusBadge(crawlers.nsmPendingCrawler.status) : null;
+
 	const CRON_JOB_NAME_MAP: Record<string, string> = {
 		'crawling and notification': '국회 입법예고 크롤링 및 알림',
 		'pending bills crawl (NsmLmSts)': '국민참여입법센터 신규 의안 수집',
@@ -186,7 +189,8 @@
 		'change-tracking weekly audit': '변경 이력 주간 감사',
 		'quick keyword refresh': '빠른 키워드 갱신',
 		'sqlite vacuum': 'SQLite 정리',
-		'database mirror upload': 'DB 미러 업로드'
+		'database mirror upload': 'DB 미러 업로드',
+		'discussion idle close': '비활성 토론 스레드 정리'
 	};
 
 	function formatCronJobName(name: string): string {
@@ -357,11 +361,30 @@
 			<Alert type="error" message={error} onDismiss={() => {}} />
 		{/if}
 
+		{#if hasCacheIssue || hasOllamaIssue}
+			<section class="lc-banner-warning lc-defer-render-sm mt-4 mb-4 rounded-2xl border p-4">
+				<h2 class="mb-2 flex items-center text-sm font-bold">
+					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-4 w-4" />
+					안내
+				</h2>
+				<div class="space-y-1 text-sm">
+					{#if hasCacheIssue}
+						<p>캐시가 초기화되지 않았습니다. 크롤링/Redis 상태를 확인하세요.</p>
+					{/if}
+					{#if hasOllamaIssue}
+						<p>
+							Ollama 상태가 {ollamaHealthStatus}입니다.
+							{#if stats.ollama?.health.error}
+								오류: {stats.ollama.health.error}
+							{/if}
+						</p>
+					{/if}
+				</div>
+			</section>
+		{/if}
+
 		<!-- ── Crawler Status Cards ─────────────────────────────────────── -->
 		{#if crawlers}
-			{@const palBadge = crawlerStatusBadge(crawlers.palCrawler.status)}
-			{@const nsmBadge = crawlerStatusBadge(crawlers.nsmPendingCrawler.status)}
-
 			<div class="grid gap-4 md:grid-cols-2">
 				<!-- PAL Crawler -->
 				<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
@@ -371,10 +394,12 @@
 							국회 입법예고 크롤러
 						</h3>
 						<span
-							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palBadge.badge}`}
+							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palBadge?.badge ?? ''}`}
 						>
-							<FontAwesomeIcon icon={palBadge.icon} class="h-3 w-3" />
-							{palBadge.label}
+							{#key crawlers.palCrawler.status}
+								<FontAwesomeIcon icon={palBadge?.icon ?? faClock} class="h-3 w-3" />
+							{/key}
+							{palBadge?.label ?? '대기'}
 						</span>
 					</div>
 					<div class="lc-text-secondary space-y-1.5 text-sm">
@@ -412,10 +437,12 @@
 							국민참여입법센터 크롤러
 						</h3>
 						<span
-							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${nsmBadge.badge}`}
+							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${nsmBadge?.badge ?? ''}`}
 						>
-							<FontAwesomeIcon icon={nsmBadge.icon} class="h-3 w-3" />
-							{nsmBadge.label}
+							{#key crawlers.nsmPendingCrawler.status}
+								<FontAwesomeIcon icon={nsmBadge?.icon ?? faClock} class="h-3 w-3" />
+							{/key}
+							{nsmBadge?.label ?? '대기'}
 						</span>
 					</div>
 					<div class="lc-text-secondary space-y-1.5 text-sm">
@@ -620,27 +647,5 @@
 				</div>
 			</section>
 		</div>
-
-		{#if hasCacheIssue || hasOllamaIssue}
-			<section class="lc-banner-warning lc-defer-render-sm mt-4 rounded-2xl border p-4">
-				<h2 class="mb-2 flex items-center text-sm font-bold">
-					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-4 w-4" />
-					안내
-				</h2>
-				<div class="space-y-1 text-sm">
-					{#if hasCacheIssue}
-						<p>캐시가 초기화되지 않았습니다. 크롤링/Redis 상태를 확인하세요.</p>
-					{/if}
-					{#if hasOllamaIssue}
-						<p>
-							Ollama 상태가 {ollamaHealthStatus}입니다.
-							{#if stats.ollama?.health.error}
-								오류: {stats.ollama.health.error}
-							{/if}
-						</p>
-					{/if}
-				</div>
-			</section>
-		{/if}
 	</main>
 </div>

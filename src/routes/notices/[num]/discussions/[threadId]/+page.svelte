@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+	import { DiscussionThreadStatus } from '$lib/types/api';
 	import {
 		faArrowLeft,
 		faScaleBalanced,
@@ -41,7 +42,7 @@
 		id: data.threadId,
 		noticeNum: data.noticeNum,
 		title: '토론 스레드',
-		status: 'open' as const,
+		status: DiscussionThreadStatus.OPEN,
 		authorNickname: '익명',
 		authorIpMasked: '',
 		commentCount: 0,
@@ -244,7 +245,7 @@
 	async function handleSubmitToggleStatus(statusPayload: {
 		threadId: number;
 		password: string;
-		status: 'open' | 'closed';
+		status: DiscussionThreadStatus;
 	}) {
 		isSubmittingAction = true;
 		actionErrorMessage = '';
@@ -264,7 +265,9 @@
 			};
 			isActionModalOpen = false;
 			showSuccess(
-				updated.status === 'open' ? '토론이 다시 열렸습니다.' : '토론이 성공적으로 닫혔습니다.'
+				updated.status === DiscussionThreadStatus.OPEN
+					? '토론이 다시 열렸습니다.'
+					: '토론이 성공적으로 닫혔습니다.'
 			);
 		} catch (err: unknown) {
 			console.error('Failed to update thread status:', err);

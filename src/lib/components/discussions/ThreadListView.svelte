@@ -8,7 +8,7 @@
 		faClock,
 		faChevronRight
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { DiscussionThread } from '$lib/types/api';
+	import { DiscussionThreadStatus, type DiscussionThread } from '$lib/types/api';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 
 	export let threads: DiscussionThread[] = [];
@@ -66,11 +66,6 @@
 			data-testid="discussion-empty-state"
 			class="rounded-xl border border-dashed border-[var(--lc-border-soft)] p-8 text-center"
 		>
-			<div
-				class="lc-chip-muted mx-auto mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full"
-			>
-				<FontAwesomeIcon icon={faComments} class="h-5 w-5" />
-			</div>
 			<p class="lc-text-primary text-sm font-semibold">아직 등록된 토론이 없습니다.</p>
 			<p class="lc-text-muted mt-1 text-xs">이 법률안에 대한 첫 번째 토론을 시작해보세요.</p>
 			<button
@@ -100,7 +95,7 @@
 				>
 					<div class="min-w-0 flex-1 space-y-1">
 						<div class="flex flex-wrap items-center gap-2">
-							{#if thread.status === 'open'}
+							{#if thread.status === DiscussionThreadStatus.OPEN}
 								<span
 									class="lc-chip-success inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
 								>

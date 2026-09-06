@@ -10,7 +10,11 @@
 		faXmark,
 		faSpinner
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { DiscussionComment, DiscussionThread } from '$lib/types/api';
+	import {
+		DiscussionThreadStatus,
+		type DiscussionComment,
+		type DiscussionThread
+	} from '$lib/types/api';
 
 	export let isOpen = false;
 	export let mode: 'edit-comment' | 'delete-comment' | 'toggle-thread-status' = 'delete-comment';
@@ -25,7 +29,7 @@
 	export let onSubmitDelete: ((data: { commentId: number; password: string }) => void) | undefined =
 		undefined;
 	export let onSubmitToggleStatus:
-		| ((data: { threadId: number; password: string; status: 'open' | 'closed' }) => void)
+		| ((data: { threadId: number; password: string; status: DiscussionThreadStatus }) => void)
 		| undefined = undefined;
 	export let onClose: (() => void) | undefined = undefined;
 
@@ -78,7 +82,10 @@
 				password
 			});
 		} else if (mode === 'toggle-thread-status' && targetThread) {
-			const nextStatus = targetThread.status === 'open' ? 'closed' : 'open';
+			const nextStatus =
+				targetThread.status === DiscussionThreadStatus.OPEN
+					? DiscussionThreadStatus.CLOSED
+					: DiscussionThreadStatus.OPEN;
 			onSubmitToggleStatus?.({
 				threadId: targetThread.id,
 				password,
@@ -129,7 +136,7 @@
 								? faTrash
 								: mode === 'edit-comment'
 									? faPenToSquare
-									: targetThread?.status === 'open'
+									: targetThread?.status === DiscussionThreadStatus.OPEN
 										? faLock
 										: faLockOpen}
 							class="h-4 w-4"
@@ -142,7 +149,9 @@
 							{:else if mode === 'delete-comment'}
 								의견 삭제 (#{targetComment?.sequence})
 							{:else}
-								토론 상태 변경 ({targetThread?.status === 'open' ? '토론 닫기' : '토론 다시 열기'})
+								토론 상태 변경 ({targetThread?.status === DiscussionThreadStatus.OPEN
+									? '토론 닫기'
+									: '토론 다시 열기'})
 							{/if}
 						</h2>
 						<p class="lc-text-muted text-xs">작성 시 등록했던 비밀번호를 입력해주세요.</p>
@@ -203,7 +212,7 @@
 					>
 						<p class="font-semibold text-[var(--lc-text-primary)]">안내</p>
 						<p class="mt-1">
-							{targetThread?.status === 'open'
+							{targetThread?.status === DiscussionThreadStatus.OPEN
 								? '토론을 닫으면 추가 의견 작성이 제한됩니다. 토론 개설 시 입력한 비밀번호가 필요합니다.'
 								: '닫힌 토론을 다시 열어 참여자가 추가 의견을 작성할 수 있도록 합니다.'}
 						</p>
