@@ -135,7 +135,10 @@ async function request<T>(
 			const errorData = {
 				status: response.status,
 				message: data?.message,
-				errors: data?.errors
+				errors: data?.errors,
+				retryAfter:
+					parseRetryAfter(response.headers.get('retry-after')) ??
+					parseRetryAfterValue(data?.retryAfter)
 			};
 			throw errorData;
 		}
@@ -202,8 +205,28 @@ function normalizeError(error: unknown): ApiError {
 	const apiError: ApiError = new Error(message);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	apiError.status = (error as any)?.status;
+	apiError.retryAfter = (error as { retryAfter?: number } | undefined)?.retryAfter;
 	// 필요하다면 원본 response나 data를 첨부할 수 있음
 	return apiError;
+}
+
+function parseRetryAfter(value: string | null): number | undefined {
+	if (!value) return undefined;
+	const seconds = Number.parseInt(value, 10);
+	return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
+}
+
+function parseRetryAfterValue(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+export function isRateLimitError(error: unknown): error is ApiError {
+	return (error as { status?: number } | undefined)?.status === 429;
+}
+
+export function getRateLimitRetryAfter(error: unknown, fallbackSeconds = 60): number {
+	const retryAfter = (error as { retryAfter?: number } | undefined)?.retryAfter;
+	return typeof retryAfter === 'number' && retryAfter > 0 ? retryAfter : fallbackSeconds;
 }
 
 /**

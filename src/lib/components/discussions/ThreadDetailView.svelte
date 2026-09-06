@@ -16,6 +16,7 @@
 	export let thread: DiscussionThread;
 	export let comments: DiscussionComment[] = [];
 	export let isSubmittingComment = false;
+	export let isRateLimited = false;
 	export let onBack: (() => void) | undefined = undefined;
 	export let onSubmitComment: ((payload: CreateCommentPayload) => void) | undefined = undefined;
 	export let onEditComment: ((comment: DiscussionComment) => void) | undefined = undefined;
@@ -179,7 +180,7 @@
 							data-testid="discussion-reply-nickname"
 							type="text"
 							bind:value={replyNickname}
-							disabled={isSubmittingComment}
+							disabled={isSubmittingComment || isRateLimited}
 							maxlength="30"
 							placeholder="익명"
 							class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-1.5 text-sm text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
@@ -198,7 +199,7 @@
 							data-testid="discussion-reply-password"
 							type="password"
 							bind:value={replyPassword}
-							disabled={isSubmittingComment}
+							disabled={isSubmittingComment || isRateLimited}
 							minlength="4"
 							maxlength="64"
 							placeholder="4자 이상"
@@ -215,7 +216,7 @@
 						id="reply-content-input"
 						data-testid="discussion-reply-content"
 						bind:value={replyContent}
-						disabled={isSubmittingComment}
+						disabled={isSubmittingComment || isRateLimited}
 						rows="4"
 						maxlength="5000"
 						placeholder="이 토론에 대한 의견을 작성해주세요. (상단 의견의 '인용' 버튼으로 이전 의견을 인용할 수 있습니다.)"
@@ -230,13 +231,15 @@
 				<div class="flex justify-end">
 					<button
 						type="submit"
-						disabled={isSubmittingComment}
+						disabled={isSubmittingComment || isRateLimited}
 						data-testid="discussion-reply-submit"
 						class="lc-button-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
 					>
 						{#if isSubmittingComment}
 							<FontAwesomeIcon icon={faSpinner} class="h-3 w-3 animate-spin" />
 							<span>등록 중...</span>
+						{:else if isRateLimited}
+							<span>잠시 후 다시 시도</span>
 						{:else}
 							<FontAwesomeIcon icon={faPaperPlane} class="h-3 w-3" />
 							<span>의견 등록하기</span>

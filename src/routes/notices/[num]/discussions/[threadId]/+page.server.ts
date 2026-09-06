@@ -39,10 +39,26 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 			};
 		}
 
-		const [detail, discussion] = await Promise.all([
-			apiClient.getNoticeDetail(noticeNum, {}, fetch),
-			apiClient.getDiscussionThread(threadId, fetch)
-		]);
+		const detail = await apiClient.getNoticeDetail(noticeNum, {}, fetch);
+		let discussion;
+		try {
+			discussion = await apiClient.getDiscussionThread(threadId, fetch);
+		} catch (discussionError) {
+			if (getHttpStatus(discussionError) === 429) {
+				return {
+					noticeNum,
+					threadId,
+					detail,
+					discussion: null,
+					discussionError: {
+						status: 429,
+						message: getErrorMessage(discussionError) ?? '요청이 너무 많습니다.',
+						retryAfter: (discussionError as { retryAfter?: number } | undefined)?.retryAfter ?? 60
+					}
+				};
+			}
+			throw discussionError;
+		}
 
 		if (discussion.thread.noticeNum !== noticeNum) {
 			throw error(404, '해당 법률안의 토론 스레드를 찾을 수 없습니다.');

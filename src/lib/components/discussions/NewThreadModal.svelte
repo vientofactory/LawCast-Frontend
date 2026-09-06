@@ -13,6 +13,7 @@
 
 	export let isOpen = false;
 	export let isSubmitting = false;
+	export let isRateLimited = false;
 	export let externalErrorMessage = '';
 	export let onSubmit: ((payload: CreateThreadPayload) => void) | undefined = undefined;
 	export let onClose: (() => void) | undefined = undefined;
@@ -134,7 +135,7 @@
 						id="thread-title-input"
 						type="text"
 						bind:value={title}
-						disabled={isSubmitting}
+						disabled={isSubmitting || isRateLimited}
 						maxlength="150"
 						placeholder="예: ○○ 개정안의 실효성에 대한 의견"
 						class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-sm text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
@@ -214,7 +215,7 @@
 					</button>
 					<button
 						type="submit"
-						disabled={isSubmitting}
+						disabled={isSubmitting || isRateLimited}
 						class="lc-button-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
 					>
 						{#if isSubmitting}

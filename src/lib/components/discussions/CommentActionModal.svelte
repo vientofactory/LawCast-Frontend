@@ -17,6 +17,7 @@
 	export let targetComment: DiscussionComment | null = null;
 	export let targetThread: DiscussionThread | null = null;
 	export let isSubmitting = false;
+	export let isRateLimited = false;
 	export let externalErrorMessage = '';
 	export let onSubmitEdit:
 		((data: { commentId: number; password: string; content: string }) => void) | undefined =
@@ -221,7 +222,7 @@
 						id="action-password-input"
 						type="password"
 						bind:value={password}
-						disabled={isSubmitting}
+						disabled={isSubmitting || isRateLimited}
 						maxlength="64"
 						placeholder="비밀번호 입력"
 						class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-sm text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
@@ -239,7 +240,7 @@
 					</button>
 					<button
 						type="submit"
-						disabled={isSubmitting}
+						disabled={isSubmitting || isRateLimited}
 						class={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold ${
 							mode === 'delete-comment'
 								? 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50'

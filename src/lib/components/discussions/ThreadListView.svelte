@@ -14,34 +14,52 @@
 	export let threads: DiscussionThread[] = [];
 	export let total = 0;
 	export let isLoading = false;
+	export let hasError = false;
+	export let rateLimitRemaining = 0;
 	export let onOpenNewThreadModal: (() => void) | undefined = undefined;
 	export let onSelectThread: ((threadId: number) => void) | undefined = undefined;
 </script>
 
 <div class="space-y-4" data-testid="discussion-thread-list">
-	<!-- Top Bar -->
-	<div class="flex items-center justify-between gap-2 border-b border-[var(--lc-border-soft)] pb-3">
-		<div class="flex items-center gap-2">
-			<span class="lc-text-primary text-sm font-bold"> 토론 목록 </span>
-			<span class="lc-chip-blue rounded-full px-2 py-0.5 text-xs font-semibold">
-				{total}개
-			</span>
-		</div>
-		<button
-			type="button"
-			on:click={() => onOpenNewThreadModal?.()}
-			data-testid="discussion-new-thread-button"
-			class="lc-button-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
+	{#if !hasError}
+		<!-- Top Bar -->
+		<div
+			class="flex items-center justify-between gap-2 border-b border-[var(--lc-border-soft)] pb-3"
 		>
-			<FontAwesomeIcon icon={faPlus} class="h-3 w-3" />
-			새 토론 시작
-		</button>
-	</div>
+			<div class="flex items-center gap-2">
+				<span class="lc-text-primary text-sm font-bold"> 토론 목록 </span>
+				<span class="lc-chip-blue rounded-full px-2 py-0.5 text-xs font-semibold">
+					{total}개
+				</span>
+			</div>
+			<button
+				type="button"
+				on:click={() => onOpenNewThreadModal?.()}
+				data-testid="discussion-new-thread-button"
+				class="lc-button-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
+			>
+				<FontAwesomeIcon icon={faPlus} class="h-3 w-3" />
+				새 토론 시작
+			</button>
+		</div>
+	{/if}
 
 	<!-- Thread List -->
 	{#if isLoading}
 		<div class="flex items-center justify-center p-8 text-xs text-[var(--lc-text-muted)]">
 			토론 목록을 불러오는 중...
+		</div>
+	{:else if hasError}
+		<div class="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-center">
+			<p class="text-sm font-semibold text-red-700 dark:text-red-300">
+				토론 목록을 불러오지 못했습니다.
+			</p>
+			<p class="mt-1 text-xs text-red-600 dark:text-red-400">잠시 후 새로고침해주세요.</p>
+			{#if rateLimitRemaining > 0}
+				<p class="mt-2 text-xs font-semibold text-red-700 dark:text-red-300">
+					{rateLimitRemaining}초 후 다시 시도할 수 있습니다.
+				</p>
+			{/if}
 		</div>
 	{:else if threads.length === 0}
 		<div

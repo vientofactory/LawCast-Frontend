@@ -2,10 +2,10 @@
 	import Header from '$lib/components/Header.svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
-		faComments,
 		faScaleBalanced,
 		faCircleCheck,
 		faCircleExclamation,
@@ -18,7 +18,7 @@
 		DiscussionThread,
 		CreateCommentPayload
 	} from '$lib/types/api';
-	import { apiClient } from '$lib/api/client';
+	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '$lib/api/client';
 	import ThreadDetailView from '$lib/components/discussions/ThreadDetailView.svelte';
 	import CommentActionModal from '$lib/components/discussions/CommentActionModal.svelte';
 
@@ -26,14 +26,29 @@
 		noticeNum: number;
 		threadId: number;
 		detail: NoticeDetail;
-		discussion: DiscussionThreadDetailResponse;
+		discussion: DiscussionThreadDetailResponse | null;
+		discussionError?: {
+			status: number;
+			message: string;
+			retryAfter?: number;
+		};
 	};
 
 	let discussionData = data.discussion;
 
 	$: detail = data.detail;
-	$: thread = discussionData.thread;
-	$: comments = discussionData.comments;
+	$: thread = discussionData?.thread ?? {
+		id: data.threadId,
+		noticeNum: data.noticeNum,
+		title: '토론 스레드',
+		status: 'open' as const,
+		authorNickname: '익명',
+		authorIpMasked: '',
+		commentCount: 0,
+		createdAt: new Date(0).toISOString(),
+		updatedAt: new Date(0).toISOString()
+	};
+	$: comments = discussionData?.comments ?? [];
 
 	let isSubmittingComment = false;
 	let isActionModalOpen = false;
@@ -44,11 +59,13 @@
 	let isSubmittingAction = false;
 	let actionErrorMessage = '';
 
-	let errorMessage = '';
+	let errorMessage = data.discussionError?.message ?? '';
 	let successMessage = '';
 	let successTimer: ReturnType<typeof setTimeout> | null = null;
 	let threadDetailViewComponent: ThreadDetailView;
 	let isLoading = false;
+	let rateLimitRemaining = data.discussionError?.retryAfter ?? 0;
+	let rateLimitTimer: ReturnType<typeof setInterval> | null = null;
 
 	function showSuccess(msg: string) {
 		successMessage = msg;
@@ -58,14 +75,50 @@
 		}, 3500);
 	}
 
+	function startRateLimitCooldown(seconds: number): void {
+		rateLimitRemaining = seconds;
+		if (rateLimitTimer) clearInterval(rateLimitTimer);
+		rateLimitTimer = setInterval(() => {
+			rateLimitRemaining = Math.max(0, rateLimitRemaining - 1);
+			if (rateLimitRemaining === 0 && rateLimitTimer) {
+				clearInterval(rateLimitTimer);
+				rateLimitTimer = null;
+			}
+		}, 1000);
+	}
+
+	onMount(() => {
+		if (data.discussionError) {
+			startRateLimitCooldown(data.discussionError.retryAfter ?? 60);
+		}
+	});
+
+	function discussionErrorMessage(error: unknown, fallback: string): string {
+		if (!isRateLimitError(error)) {
+			return error instanceof Error ? error.message : fallback;
+		}
+
+		rateLimitRemaining = getRateLimitRetryAfter(error);
+		if (rateLimitTimer) clearInterval(rateLimitTimer);
+		rateLimitTimer = setInterval(() => {
+			rateLimitRemaining = Math.max(0, rateLimitRemaining - 1);
+			if (rateLimitRemaining === 0 && rateLimitTimer) {
+				clearInterval(rateLimitTimer);
+				rateLimitTimer = null;
+			}
+		}, 1000);
+		return `요청이 너무 많습니다. ${rateLimitRemaining}초 후 다시 시도해주세요.`;
+	}
+
 	async function reloadThread() {
 		isLoading = true;
 		errorMessage = '';
 		try {
 			discussionData = await apiClient.getDiscussionThread(data.threadId);
+			errorMessage = '';
 		} catch (err: unknown) {
 			console.error('Failed to reload discussion:', err);
-			errorMessage = '토론 내용을 새로고침하지 못했습니다.';
+			errorMessage = discussionErrorMessage(err, '토론 내용을 새로고침하지 못했습니다.');
 		} finally {
 			isLoading = false;
 		}
@@ -78,6 +131,11 @@
 	async function handleAddComment(payload: CreateCommentPayload) {
 		isSubmittingComment = true;
 		errorMessage = '';
+		if (!discussionData) {
+			errorMessage = '토론 내용을 불러온 후 다시 시도해주세요.';
+			isSubmittingComment = false;
+			return;
+		}
 		try {
 			const newComment = await apiClient.addDiscussionComment(data.threadId, payload);
 			discussionData = {
@@ -94,7 +152,7 @@
 			showSuccess('새 의견이 등록되었습니다.');
 		} catch (err: unknown) {
 			console.error('Failed to add comment:', err);
-			errorMessage = err instanceof Error ? err.message : '의견 등록 중 오류가 발생했습니다.';
+			errorMessage = discussionErrorMessage(err, '의견 등록 중 오류가 발생했습니다.');
 		} finally {
 			isSubmittingComment = false;
 		}
@@ -131,6 +189,11 @@
 	}) {
 		isSubmittingAction = true;
 		actionErrorMessage = '';
+		if (!discussionData) {
+			actionErrorMessage = '토론 내용을 불러온 후 다시 시도해주세요.';
+			isSubmittingAction = false;
+			return;
+		}
 		try {
 			const updated = await apiClient.updateDiscussionComment(editPayload.commentId, {
 				password: editPayload.password,
@@ -144,7 +207,7 @@
 			showSuccess('의견이 성공적으로 수정되었습니다.');
 		} catch (err: unknown) {
 			console.error('Failed to edit comment:', err);
-			actionErrorMessage = err instanceof Error ? err.message : '의견 수정 중 오류가 발생했습니다.';
+			actionErrorMessage = discussionErrorMessage(err, '의견 수정 중 오류가 발생했습니다.');
 		} finally {
 			isSubmittingAction = false;
 		}
@@ -153,6 +216,11 @@
 	async function handleSubmitDelete(deletePayload: { commentId: number; password: string }) {
 		isSubmittingAction = true;
 		actionErrorMessage = '';
+		if (!discussionData) {
+			actionErrorMessage = '토론 내용을 불러온 후 다시 시도해주세요.';
+			isSubmittingAction = false;
+			return;
+		}
 		try {
 			const deletedComment = await apiClient.deleteDiscussionComment(deletePayload.commentId, {
 				password: deletePayload.password
@@ -167,7 +235,7 @@
 			showSuccess('의견이 삭제되었습니다.');
 		} catch (err: unknown) {
 			console.error('Failed to delete comment:', err);
-			actionErrorMessage = err instanceof Error ? err.message : '의견 삭제 중 오류가 발생했습니다.';
+			actionErrorMessage = discussionErrorMessage(err, '의견 삭제 중 오류가 발생했습니다.');
 		} finally {
 			isSubmittingAction = false;
 		}
@@ -180,6 +248,11 @@
 	}) {
 		isSubmittingAction = true;
 		actionErrorMessage = '';
+		if (!discussionData) {
+			actionErrorMessage = '토론 내용을 불러온 후 다시 시도해주세요.';
+			isSubmittingAction = false;
+			return;
+		}
 		try {
 			const updated = await apiClient.updateDiscussionThreadStatus(statusPayload.threadId, {
 				password: statusPayload.password,
@@ -195,7 +268,7 @@
 			);
 		} catch (err: unknown) {
 			console.error('Failed to update thread status:', err);
-			actionErrorMessage = err instanceof Error ? err.message : '상태 변경 중 오류가 발생했습니다.';
+			actionErrorMessage = discussionErrorMessage(err, '상태 변경 중 오류가 발생했습니다.');
 		} finally {
 			isSubmittingAction = false;
 		}
@@ -290,6 +363,7 @@
 					<button
 						type="button"
 						on:click={reloadThread}
+						disabled={isLoading || rateLimitRemaining > 0}
 						title="새로고침"
 						class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1.5 text-xs font-semibold"
 					>
@@ -326,30 +400,51 @@
 		{/if}
 
 		<!-- Thread Detail View -->
-		<section
-			class="lc-panel-card rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-6 shadow-sm"
-		>
-			<ThreadDetailView
-				bind:this={threadDetailViewComponent}
-				{thread}
-				{comments}
-				{isSubmittingComment}
-				onBack={handleBack}
-				onSubmitComment={handleAddComment}
-				onEditComment={openEditCommentModal}
-				onDeleteComment={openDeleteCommentModal}
-				onToggleStatus={openToggleThreadStatusModal}
-			/>
-		</section>
+		{#if discussionData}
+			<section
+				class="lc-panel-card rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-6"
+			>
+				<ThreadDetailView
+					bind:this={threadDetailViewComponent}
+					{thread}
+					{comments}
+					{isSubmittingComment}
+					isRateLimited={rateLimitRemaining > 0}
+					onBack={handleBack}
+					onSubmitComment={handleAddComment}
+					onEditComment={openEditCommentModal}
+					onDeleteComment={openDeleteCommentModal}
+					onToggleStatus={openToggleThreadStatusModal}
+				/>
+			</section>
+		{:else}
+			<section class="lc-banner-warning rounded-2xl border p-6 text-center" aria-live="polite">
+				<p class="text-sm font-semibold">토론을 잠시 불러올 수 없습니다.</p>
+				<p class="mt-1 text-xs">
+					{rateLimitRemaining > 0
+						? `${rateLimitRemaining}초 후 다시 시도해주세요.`
+						: '잠시 후 다시 시도해주세요.'}
+				</p>
+				<button
+					type="button"
+					on:click={reloadThread}
+					disabled={isLoading || rateLimitRemaining > 0}
+					class="lc-button-neutral mt-4 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+				>
+					다시 시도
+				</button>
+			</section>
+		{/if}
 	</main>
 </div>
 
 <CommentActionModal
-	isOpen={isActionModalOpen}
+	isOpen={isActionModalOpen && discussionData !== null}
 	mode={actionModalMode}
 	targetComment={actionTargetComment}
 	targetThread={actionTargetThread}
 	isSubmitting={isSubmittingAction}
+	isRateLimited={rateLimitRemaining > 0}
 	externalErrorMessage={actionErrorMessage}
 	onClose={() => (isActionModalOpen = false)}
 	onSubmitEdit={handleSubmitEdit}

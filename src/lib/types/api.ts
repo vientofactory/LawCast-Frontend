@@ -394,6 +394,7 @@ export interface WebhookValidationResult {
 
 export interface ApiError extends Error {
 	status?: number;
+	retryAfter?: number;
 	response?: {
 		status: number;
 		data?: {

@@ -8,7 +8,7 @@
 		faCircleCheck,
 		faRotateRight
 	} from '@fortawesome/free-solid-svg-icons';
-	import { apiClient } from '$lib/api/client';
+	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '$lib/api/client';
 	import type {
 		DiscussionThread,
 		DiscussionThreadListResponse,
@@ -19,6 +19,8 @@
 
 	export let noticeNum: number;
 	export let initialDiscussions: DiscussionThreadListResponse | undefined = undefined;
+	export let initialDiscussionError:
+		{ status: number; message: string; retryAfter?: number } | undefined = undefined;
 
 	let threads: DiscussionThread[] = initialDiscussions?.items ?? [];
 	let totalThreads = initialDiscussions?.total ?? 0;
@@ -28,9 +30,11 @@
 	let isSubmittingNewThread = false;
 	let newThreadErrorMessage = '';
 
-	let errorMessage = '';
+	let errorMessage = initialDiscussionError?.message ?? '';
 	let successMessage = '';
 	let successTimer: ReturnType<typeof setTimeout> | null = null;
+	let rateLimitRemaining = initialDiscussionError?.retryAfter ?? 0;
+	let rateLimitTimer: ReturnType<typeof setInterval> | null = null;
 
 	function showSuccess(msg: string) {
 		successMessage = msg;
@@ -38,6 +42,28 @@
 		successTimer = setTimeout(() => {
 			successMessage = '';
 		}, 3500);
+	}
+
+	function discussionErrorMessage(error: unknown, fallback: string): string {
+		if (!isRateLimitError(error)) {
+			return error instanceof Error ? error.message : fallback;
+		}
+
+		const retryAfter = getRateLimitRetryAfter(error);
+		startRateLimitCooldown(retryAfter);
+		return `요청이 너무 많습니다. ${retryAfter}초 후 다시 시도해주세요.`;
+	}
+
+	function startRateLimitCooldown(seconds: number): void {
+		rateLimitRemaining = seconds;
+		if (rateLimitTimer) clearInterval(rateLimitTimer);
+		rateLimitTimer = setInterval(() => {
+			rateLimitRemaining = Math.max(0, rateLimitRemaining - 1);
+			if (rateLimitRemaining === 0 && rateLimitTimer) {
+				clearInterval(rateLimitTimer);
+				rateLimitTimer = null;
+			}
+		}, 1000);
 	}
 
 	$: if (initialDiscussions && threads.length === 0 && totalThreads === 0) {
@@ -55,7 +81,7 @@
 			totalThreads = res.total;
 		} catch (err) {
 			console.error('Failed to load discussions:', err);
-			errorMessage = '토론 목록을 불러오지 못했습니다.';
+			errorMessage = discussionErrorMessage(err, '토론 목록을 불러오지 못했습니다.');
 		} finally {
 			isLoadingThreads = false;
 		}
@@ -81,14 +107,16 @@
 			await goto(`/notices/${noticeNum}/discussions/${res.thread.id}`);
 		} catch (err: unknown) {
 			console.error('Failed to create thread:', err);
-			newThreadErrorMessage =
-				err instanceof Error ? err.message : '토론 개설 중 오류가 발생했습니다.';
+			newThreadErrorMessage = discussionErrorMessage(err, '토론 개설 중 오류가 발생했습니다.');
 		} finally {
 			isSubmittingNewThread = false;
 		}
 	}
 
 	onMount(() => {
+		if (initialDiscussionError) {
+			startRateLimitCooldown(initialDiscussionError.retryAfter ?? 60);
+		}
 		if (!initialDiscussions) {
 			loadThreads();
 		}
@@ -113,6 +141,7 @@
 		<button
 			type="button"
 			on:click={loadThreads}
+			disabled={isLoadingThreads || rateLimitRemaining > 0}
 			title="새로고침"
 			class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1.5 text-xs font-semibold"
 		>
@@ -149,6 +178,8 @@
 		{threads}
 		total={totalThreads}
 		isLoading={isLoadingThreads}
+		hasError={Boolean(errorMessage || initialDiscussionError)}
+		{rateLimitRemaining}
 		onOpenNewThreadModal={openNewThreadModal}
 		onSelectThread={handleSelectThread}
 	/>
@@ -158,6 +189,7 @@
 <NewThreadModal
 	isOpen={isNewThreadModalOpen}
 	isSubmitting={isSubmittingNewThread}
+	isRateLimited={rateLimitRemaining > 0}
 	externalErrorMessage={newThreadErrorMessage}
 	onClose={() => (isNewThreadModalOpen = false)}
 	onSubmit={handleCreateThread}

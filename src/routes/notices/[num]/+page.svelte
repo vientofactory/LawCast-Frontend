@@ -41,6 +41,11 @@
 		detail: NoticeDetail;
 		changes: NoticeChangeTimelineResponse;
 		discussions?: DiscussionThreadListResponse;
+		discussionError?: {
+			status: number;
+			message: string;
+			retryAfter?: number;
+		};
 	};
 
 	$: detail = data.detail;
@@ -884,7 +889,11 @@
 			{/if}
 		</section>
 
-		<NoticeDiscussions noticeNum={detail.notice.num} initialDiscussions={data.discussions} />
+		<NoticeDiscussions
+			noticeNum={detail.notice.num}
+			initialDiscussions={data.discussions}
+			initialDiscussionError={data.discussionError}
+		/>
 
 		<section
 			id="change-tracking-timeline"
