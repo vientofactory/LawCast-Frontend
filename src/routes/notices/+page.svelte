@@ -51,7 +51,7 @@
 	$: currentPage = archive?.page || 1;
 	$: totalPages = archive?.totalPages || 1;
 	$: totalItems = archive?.total || 0;
-	$: limit = archive?.limit || 10;
+	$: limit = archive?.limit || 20;
 	$: searchQuery = archive?.search || '';
 	$: startDate = archive?.startDate || '';
 	$: endDate = archive?.endDate || '';

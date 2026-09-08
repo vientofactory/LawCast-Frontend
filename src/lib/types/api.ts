@@ -133,6 +133,7 @@ export interface RecentNoticeChangesResponse {
 	total: number;
 	totalPages: number;
 	anchorPage?: number | null;
+	nextCursor?: string | null;
 }
 
 export interface ComparableChangeSummary {

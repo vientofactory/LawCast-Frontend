@@ -443,6 +443,7 @@ export async function getRecentNoticeChanges(
 		fromDetectedAt?: string;
 		toDetectedAt?: string;
 		anchorEventId?: number;
+		cursor?: string;
 	} = {},
 	customFetch?: Fetch
 ): Promise<RecentNoticeChangesResponse> {
@@ -474,6 +475,7 @@ export async function getRecentNoticeChanges(
 		if (params.anchorEventId && params.anchorEventId > 0) {
 			query.set('anchorEventId', String(params.anchorEventId));
 		}
+		if (params.cursor?.trim()) query.set('cursor', params.cursor.trim());
 
 		const suffix = query.toString() ? `?${query.toString()}` : '';
 		return await request<RecentNoticeChangesResponse>(
