@@ -480,7 +480,8 @@ export enum DiscussionThreadStatus {
 
 export enum DiscussionMessageType {
 	USER = 'user',
-	SYSTEM = 'system'
+	SYSTEM = 'system',
+	ADMIN = 'admin'
 }
 
 export interface DiscussionThread {
@@ -488,6 +489,7 @@ export interface DiscussionThread {
 	noticeNum: number;
 	title: string;
 	status: DiscussionThreadStatus;
+	isLocked: boolean;
 	authorNickname: string;
 	authorIpMasked: string;
 	commentCount: number;

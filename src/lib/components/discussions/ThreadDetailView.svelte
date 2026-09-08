@@ -120,17 +120,28 @@
 					<span class="hidden sm:inline">인용 알림</span>
 				</button>
 			{/if}
-			<button
-				type="button"
-				on:click={() => onToggleStatus?.(thread)}
-				class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1 text-xs font-medium"
-			>
-				<FontAwesomeIcon
-					icon={thread.status === DiscussionThreadStatus.OPEN ? faLock : faLockOpen}
-					class="h-3 w-3"
-				/>
-				{thread.status === DiscussionThreadStatus.OPEN ? '토론 닫기' : '토론 다시 열기'}
-			</button>
+			{#if thread.isLocked}
+				<span
+					class="lc-chip-muted inline-flex items-center gap-1 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1 text-xs font-semibold"
+					data-testid="discussion-thread-locked-indicator"
+					title="관리자에 의해 잠긴 토론은 발제자가 직접 상태를 변경할 수 없습니다."
+				>
+					<FontAwesomeIcon icon={faLock} class="h-3 w-3" />
+					관리자에 의해 잠김
+				</span>
+			{:else}
+				<button
+					type="button"
+					on:click={() => onToggleStatus?.(thread)}
+					class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1 text-xs font-medium"
+				>
+					<FontAwesomeIcon
+						icon={thread.status === DiscussionThreadStatus.OPEN ? faLock : faLockOpen}
+						class="h-3 w-3"
+					/>
+					{thread.status === DiscussionThreadStatus.OPEN ? '토론 닫기' : '토론 다시 열기'}
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -153,6 +164,14 @@
 				>
 					<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
 					토론 닫힘
+				</span>
+			{/if}
+			{#if thread.isLocked}
+				<span
+					class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+				>
+					<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
+					관리자 잠금
 				</span>
 			{/if}
 			<span
@@ -326,7 +345,11 @@
 		>
 			<div class="flex items-center justify-center gap-1.5">
 				<FontAwesomeIcon icon={faLock} class="h-3.5 w-3.5 shrink-0" />
-				<span>이 토론은 닫혔으므로 새 의견을 작성할 수 없습니다.</span>
+				<span>
+					{thread.isLocked
+						? '이 토론은 관리자에 의해 잠겨 새 의견을 작성할 수 없습니다.'
+						: '이 토론은 닫혔으므로 새 의견을 작성할 수 없습니다.'}
+				</span>
 			</div>
 		</div>
 	{/if}

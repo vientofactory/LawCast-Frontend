@@ -8,6 +8,7 @@
 		faArrowRight,
 		faUser,
 		faRobot,
+		faBullhorn,
 		faClock,
 		faBan
 	} from '@fortawesome/free-solid-svg-icons';
@@ -151,6 +152,9 @@
 	}
 
 	$: contentBlocks = parseCommentContent(comment.content);
+	$: isNonUserMessage =
+		comment.messageType === DiscussionMessageType.SYSTEM ||
+		comment.messageType === DiscussionMessageType.ADMIN;
 </script>
 
 <div
@@ -161,7 +165,9 @@
 			? 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-muted)]/50 opacity-70'
 			: comment.messageType === DiscussionMessageType.SYSTEM
 				? 'border-amber-400/70 bg-[var(--lc-surface-primary)] hover:border-amber-400'
-				: 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] hover:border-blue-500/40'
+				: comment.messageType === DiscussionMessageType.ADMIN
+					? 'border-indigo-400/70 bg-[var(--lc-surface-primary)] hover:border-indigo-400'
+					: 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] hover:border-blue-500/40'
 	} p-4`}
 >
 	<!-- Comment Topbar -->
@@ -179,12 +185,16 @@
 			</button>
 			<span class="lc-text-primary inline-flex items-center gap-1 font-semibold">
 				<FontAwesomeIcon
-					icon={comment.messageType === DiscussionMessageType.SYSTEM ? faRobot : faUser}
+					icon={comment.messageType === DiscussionMessageType.SYSTEM
+						? faRobot
+						: comment.messageType === DiscussionMessageType.ADMIN
+							? faBullhorn
+							: faUser}
 					class="lc-text-muted h-3 w-3"
 				/>
 				{comment.authorNickname}
 			</span>
-			{#if comment.messageType !== DiscussionMessageType.SYSTEM}
+			{#if !isNonUserMessage}
 				<span
 					class="lc-chip-muted rounded-md px-1.5 py-0.5 font-mono text-[11px] text-[var(--lc-text-muted)]"
 				>
@@ -201,7 +211,7 @@
 		</div>
 
 		<!-- Action Buttons -->
-		{#if !comment.isDeleted && comment.messageType !== DiscussionMessageType.SYSTEM && !isThreadClosed}
+		{#if !comment.isDeleted && !isNonUserMessage && !isThreadClosed}
 			<div
 				class="flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
 			>

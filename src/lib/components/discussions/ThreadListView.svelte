@@ -110,6 +110,15 @@
 									닫힘
 								</span>
 							{/if}
+							{#if thread.isLocked}
+								<span
+									class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+									title="관리자에 의해 잠긴 토론"
+								>
+									<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
+									잠김
+								</span>
+							{/if}
 							<h3 class="lc-text-primary truncate text-sm font-semibold group-hover:text-blue-600">
 								{thread.title}
 							</h3>

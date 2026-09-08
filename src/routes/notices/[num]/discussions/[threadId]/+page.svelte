@@ -37,7 +37,10 @@
 		};
 	};
 
-	let discussionData = data.discussion;
+	let discussionData: DiscussionThreadDetailResponse | null;
+	// Re-sync with fresh server data whenever SvelteKit reruns load for this
+	// route (e.g. client-side re-navigation), not just on a full page reload.
+	$: discussionData = data.discussion;
 
 	$: detail = data.detail;
 	$: thread = discussionData?.thread ?? {
@@ -45,6 +48,7 @@
 		noticeNum: data.noticeNum,
 		title: '토론 스레드',
 		status: DiscussionThreadStatus.OPEN,
+		isLocked: false,
 		authorNickname: '익명',
 		authorIpMasked: '',
 		commentCount: 0,
