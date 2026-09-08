@@ -120,8 +120,22 @@ test.describe('Notices List Page', () => {
 		const hasResults = await resultsList.isVisible().catch(() => false);
 
 		if (hasResults) {
+			const summaryText = await page.getByTestId('notices-results-summary').innerText();
+			const totalResults = Number(summaryText.match(/[\d,]+(?=건)/)?.[0]?.replace(/,/g, '') ?? '0');
+			const pageSize = Number(
+				(await page
+					.getByTestId('notices-page-size')
+					.inputValue()
+					.catch(() => '10')) || '10'
+			);
+
+			if (totalResults <= pageSize) {
+				test.skip(true, 'Pagination is only rendered when total results exceed the page size.');
+				return;
+			}
+
 			const pagination = page.locator(
-				'[data-testid="pagination-nav"], nav[aria-label="페이지 내비게이션"]'
+				'[data-testid="notices-pagination"], nav[aria-label="페이지 내비게이션"]'
 			);
 			await expect(pagination.first()).toBeVisible();
 		}

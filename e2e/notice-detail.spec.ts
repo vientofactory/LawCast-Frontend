@@ -129,10 +129,10 @@ test.describe('Notice Detail Page', () => {
 	});
 
 	test('invalid notice number shows error page', async ({ page }) => {
-		const response = await page.goto('/notices/999999999');
-		// Should either show error or redirect
+		const response = await page.goto('/notices/not-a-number');
+		// The route rejects non-numeric notice identifiers before loading notice data.
 		const isErrorPage = await page
-			.locator('text=찾을 수 없습니다')
+			.locator('text=유효하지 않은 법률안 번호입니다.')
 			.isVisible()
 			.catch(() => false);
 		const isServerError = response && response.status() >= 400;

@@ -21,7 +21,19 @@
 	let newWebhookUrl = '';
 	let isSubmitting = false;
 	let isSolvingPoW = false;
+	let feedback: { type: 'success' | 'error'; message: string } | null = null;
 	let powState = createPowDisplayState();
+
+	function clearFeedback() {
+		feedback = null;
+		onClearMessage();
+	}
+
+	function showFeedback(type: 'success' | 'error', message: string) {
+		feedback = { type, message };
+		if (type === 'success') onSuccess(message);
+		else onError(message);
+	}
 
 	function updatePowStatus(status: PowStatus) {
 		powState = applyPowStatus(powState, status);
@@ -31,7 +43,7 @@
 		// 웹훅 URL 유효성 검증
 		const validation = validateDiscordWebhookUrl(newWebhookUrl);
 		if (!validation.isValid) {
-			onError(validation.message || '올바르지 않은 웹훅 URL입니다.');
+			showFeedback('error', validation.message || '올바르지 않은 웹훅 URL입니다.');
 			return;
 		}
 
@@ -41,7 +53,7 @@
 		}
 
 		isSubmitting = true;
-		onClearMessage();
+		clearFeedback();
 
 		try {
 			// 스팸 방지 검증 수행
@@ -61,19 +73,19 @@
 			});
 
 			if (result.success) {
-				onSuccess(result.message || '웹훅이 성공적으로 등록되었습니다.');
+				showFeedback('success', result.message || '웹훅이 성공적으로 등록되었습니다.');
 				newWebhookUrl = '';
 				onWebhookRegistered(); // 통계 업데이트를 위한 이벤트
 			} else {
-				onError(result.message || '웹훅 등록에 실패했습니다.');
+				showFeedback('error', result.message || '웹훅 등록에 실패했습니다.');
 			}
 		} catch (err: unknown) {
 			isSolvingPoW = false;
 			powState = createPowDisplayState();
 			if (err instanceof Error) {
-				onError(err.message);
+				showFeedback('error', err.message);
 			} else {
-				onError('예상치 못한 오류가 발생했습니다.');
+				showFeedback('error', '예상치 못한 오류가 발생했습니다.');
 			}
 		} finally {
 			isSubmitting = false;
@@ -93,6 +105,19 @@
 		</div>
 		디스코드 웹훅 등록
 	</h2>
+
+	{#if feedback}
+		<div
+			class={`mb-5 rounded-lg border p-3 text-sm ${
+				feedback.type === 'success'
+					? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+					: 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400'
+			}`}
+			role={feedback.type === 'error' ? 'alert' : 'status'}
+		>
+			{feedback.message}
+		</div>
+	{/if}
 
 	<ul class="lc-text-secondary mb-6 space-y-2 text-sm">
 		<li class="flex items-start">

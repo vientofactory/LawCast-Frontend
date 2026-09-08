@@ -14,6 +14,7 @@
 		faCheck,
 		faChevronDown,
 		faClock,
+		faComments,
 		faDownload,
 		faFingerprint,
 		faExternalLink,
@@ -27,13 +28,24 @@
 		faTriangleExclamation,
 		faUser
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { NoticeDetail, NoticeChangeTimelineResponse } from '$lib/types/api';
+	import type {
+		NoticeDetail,
+		NoticeChangeTimelineResponse,
+		DiscussionThreadListResponse
+	} from '$lib/types/api';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import NoticeDiscussions from '$lib/components/discussions/NoticeDiscussions.svelte';
 
 	export let data: {
 		detail: NoticeDetail;
 		changes: NoticeChangeTimelineResponse;
+		discussions?: DiscussionThreadListResponse;
+		discussionError?: {
+			status: number;
+			message: string;
+			retryAfter?: number;
+		};
 	};
 
 	$: detail = data.detail;
@@ -756,6 +768,21 @@
 					</div>
 				</div>
 				<div class="flex items-center gap-2">
+					<a
+						href="#notice-discussions"
+						data-testid="notice-detail-discussions-anchor"
+						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors"
+					>
+						<FontAwesomeIcon icon={faComments} class="mr-2 h-4 w-4" />
+						<span>토론</span>
+						{#if data.discussions?.total && data.discussions.total > 0}
+							<span
+								class="lc-chip-blue ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-bold"
+							>
+								{data.discussions.total}
+							</span>
+						{/if}
+					</a>
 					<button
 						on:click={shareNotice}
 						data-testid="notice-detail-share"
@@ -861,6 +888,12 @@
 				</div>
 			{/if}
 		</section>
+
+		<NoticeDiscussions
+			noticeNum={detail.notice.num}
+			initialDiscussions={data.discussions}
+			initialDiscussionError={data.discussionError}
+		/>
 
 		<section
 			id="change-tracking-timeline"

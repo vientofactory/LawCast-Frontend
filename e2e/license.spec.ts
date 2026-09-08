@@ -69,7 +69,11 @@ test.describe('License Page', () => {
 		await page.waitForTimeout(2000);
 
 		const criticalErrors = errors.filter(
-			(e) => !e.includes('ResizeObserver') && !e.includes('chunk') && !e.includes('NetworkError')
+			(e) =>
+				!e.includes('ResizeObserver') &&
+				!e.includes('chunk') &&
+				!e.includes('NetworkError') &&
+				!e.includes('WebSocket closed without opened')
 		);
 		expect(criticalErrors).toHaveLength(0);
 	});

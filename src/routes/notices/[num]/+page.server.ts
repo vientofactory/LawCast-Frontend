@@ -1,11 +1,25 @@
 import { error } from '@sveltejs/kit';
 import { apiClient } from '$lib/api/client';
 import type { PageServerLoad } from './$types';
+import type { DiscussionThread } from '$lib/types/api';
 import {
 	isDiffchainUiMockEnabled,
 	getMockNoticeChanges,
-	getMockNoticeDetail
+	getMockNoticeDetail,
+	getMockNoticeDiscussions
 } from '$lib/server/diffchain-ui-mock';
+
+type DiscussionLoadResult = {
+	items: DiscussionThread[];
+	total: number;
+	page: number;
+	limit: number;
+	discussionError?: {
+		status: number;
+		message: string;
+		retryAfter: number;
+	};
+};
 
 function parseRevisionQuery(revRaw: string | null): number | undefined {
 	if (revRaw === null || revRaw.trim() === '') {
@@ -43,7 +57,8 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 		if (isDiffchainUiMockEnabled()) {
 			return {
 				detail: getMockNoticeDetail(noticeNum, resolvedRev),
-				changes: getMockNoticeChanges(noticeNum)
+				changes: getMockNoticeChanges(noticeNum),
+				discussions: getMockNoticeDiscussions(noticeNum)
 			};
 		}
 
@@ -58,7 +73,32 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 					count: 0
 				};
 			}));
-		return { detail, changes };
+		const discussions: DiscussionLoadResult = await apiClient
+			.getNoticeDiscussions(noticeNum, {}, fetch)
+			.catch((err): DiscussionLoadResult => {
+				console.warn(`Failed to load notice discussions (${noticeNum}):`, err);
+				return {
+					items: [],
+					total: 0,
+					page: 1,
+					limit: 20,
+					discussionError:
+						getHttpStatus(err) === 429
+							? {
+									status: 429,
+									message: getErrorMessage(err) ?? '요청이 너무 많습니다.',
+									retryAfter: (err as { retryAfter?: number } | undefined)?.retryAfter ?? 60
+								}
+							: undefined
+				};
+			});
+		const { discussionError, ...discussionList } = discussions;
+		return {
+			detail,
+			changes,
+			discussions: discussionList,
+			...(discussionError ? { discussionError } : {})
+		};
 	} catch (err) {
 		console.error(`Failed to load notice detail (${noticeNum}):`, err);
 

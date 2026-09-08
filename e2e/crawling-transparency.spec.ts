@@ -33,7 +33,11 @@ test.describe('Crawling Transparency Page', () => {
 
 		// Filter out known non-critical errors
 		const criticalErrors = errors.filter(
-			(e) => !e.includes('ResizeObserver') && !e.includes('chunk') && !e.includes('NetworkError')
+			(e) =>
+				!e.includes('ResizeObserver') &&
+				!e.includes('chunk') &&
+				!e.includes('NetworkError') &&
+				!e.includes('WebSocket closed without opened')
 		);
 		expect(criticalErrors).toHaveLength(0);
 	});

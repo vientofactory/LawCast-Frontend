@@ -380,11 +380,20 @@ export interface WebPushPublicConfig {
 	publicKey: string | null;
 }
 
+export interface DiscussionWebPushStatus {
+	isBound: boolean;
+}
+
+export interface WebPushNoticeStatus {
+	enabled: boolean;
+}
+
 export interface WebPushSubscriptionRequest {
 	endpoint: string;
 	p256dh: string;
 	auth: string;
 	proof: string;
+	threadId?: number;
 }
 
 export interface WebhookValidationResult {
@@ -394,6 +403,7 @@ export interface WebhookValidationResult {
 
 export interface ApiError extends Error {
 	status?: number;
+	retryAfter?: number;
 	response?: {
 		status: number;
 		data?: {
@@ -458,4 +468,85 @@ export interface ProposalStatisticsData {
 	endDate: string | null;
 	totalCount: number;
 	buckets: ProposalStatisticsBucket[];
+}
+
+// ── Discussions (Wiki-style Anonymous Discussion) ───────────────────────
+
+export enum DiscussionThreadStatus {
+	OPEN = 'open',
+	CLOSED = 'closed'
+}
+
+export enum DiscussionMessageType {
+	USER = 'user',
+	SYSTEM = 'system'
+}
+
+export interface DiscussionThread {
+	id: number;
+	noticeNum: number;
+	title: string;
+	status: DiscussionThreadStatus;
+	authorNickname: string;
+	authorIpMasked: string;
+	commentCount: number;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface DiscussionComment {
+	id: number;
+	threadId: number;
+	noticeNum: number;
+	sequence: number;
+	messageType: DiscussionMessageType;
+	authorNickname: string;
+	authorIpMasked: string;
+	content: string;
+	isDeleted: boolean;
+	isEdited: boolean;
+	editedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface DiscussionThreadListResponse {
+	items: DiscussionThread[];
+	total: number;
+	page: number;
+	limit: number;
+}
+
+export interface DiscussionThreadDetailResponse {
+	thread: DiscussionThread;
+	comments: DiscussionComment[];
+	hasMore?: boolean;
+	nextCursor?: number | null;
+}
+
+export interface CreateThreadPayload {
+	title: string;
+	authorNickname?: string;
+	password: string;
+	content: string;
+}
+
+export interface CreateCommentPayload {
+	authorNickname?: string;
+	password: string;
+	content: string;
+}
+
+export interface UpdateCommentPayload {
+	password: string;
+	content: string;
+}
+
+export interface DeleteCommentPayload {
+	password: string;
+}
+
+export interface UpdateThreadStatusPayload {
+	status: DiscussionThreadStatus;
+	password: string;
 }

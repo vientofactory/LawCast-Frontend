@@ -46,6 +46,10 @@ export const PUT: RequestHandler = async ({ params, request, fetch, url }) => {
 	return forwardRequest('PUT', params.path, request, fetch, url);
 };
 
+export const PATCH: RequestHandler = async ({ params, request, fetch, url }) => {
+	return forwardRequest('PATCH', params.path, request, fetch, url);
+};
+
 export const DELETE: RequestHandler = async ({ params, request, fetch, url }) => {
 	return forwardRequest('DELETE', params.path, request, fetch, url);
 };

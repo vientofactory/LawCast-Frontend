@@ -1,27 +1,10 @@
 <script lang="ts">
 	import Header from '$lib/components/Header.svelte';
-	import Alert from '$lib/components/Alert.svelte';
 	import WebhookRegistrationForm from '$lib/components/WebhookRegistrationForm.svelte';
 	import WebPushConsentForm from '$lib/components/WebPushConsentForm.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { warmupHashGuardWorker } from '$lib/hashguard-worker';
-	let error = '';
-	let success = '';
-
-	function clearMessage() {
-		error = '';
-		success = '';
-	}
-
-	function handleWebhookError(message: string) {
-		error = message;
-	}
-
-	function handleWebhookSuccess(message: string) {
-		success = message;
-	}
-
 	async function handleWebhookRegistered() {
 		await invalidateAll();
 	}
@@ -30,7 +13,7 @@
 		try {
 			await warmupHashGuardWorker();
 		} catch (e) {
-			error = e instanceof Error ? e.message : String(e);
+			console.error('Failed to warm up hash guard worker:', e);
 		}
 	});
 </script>
@@ -62,37 +45,11 @@
 	<Header />
 
 	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-		{#if error}
-			<Alert
-				type="error"
-				message={error}
-				showRefresh={error.includes('초기 데이터')}
-				onDismiss={clearMessage}
-				onRefresh={() => location.reload()}
-			/>
-		{/if}
-		{#if success}
-			<Alert
-				type="success"
-				message={success}
-				autoHide={true}
-				autoHideDelay={4000}
-				onDismiss={clearMessage}
-			/>
-		{/if}
-
 		<WebhookRegistrationForm
 			isInitialLoading={false}
-			onError={handleWebhookError}
-			onSuccess={handleWebhookSuccess}
-			onClearMessage={clearMessage}
 			onWebhookRegistered={handleWebhookRegistered}
 		/>
 
-		<WebPushConsentForm
-			onError={handleWebhookError}
-			onSuccess={handleWebhookSuccess}
-			onClearMessage={clearMessage}
-		/>
+		<WebPushConsentForm />
 	</main>
 </div>

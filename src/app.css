@@ -1,5 +1,55 @@
 @import 'tailwindcss';
 
+.lc-theme-switch {
+	background: var(--lc-surface-primary);
+	border-color: var(--lc-border-soft);
+	color: var(--lc-text-secondary);
+	box-shadow: var(--lc-shadow-soft);
+}
+
+.lc-theme-switch:hover {
+	background: var(--lc-surface-hover);
+	color: var(--lc-text-primary);
+}
+
+.lc-theme-switch-track {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	width: 2.9rem;
+	height: 1.6rem;
+	padding: 0.12rem;
+	border-radius: 9999px;
+	background: rgba(148, 163, 184, 0.32);
+	transition: background-color 180ms ease;
+}
+
+.lc-theme-switch-track.is-dark {
+	background: #2563eb;
+}
+
+.lc-theme-switch-thumb {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.35rem;
+	height: 1.35rem;
+	border-radius: 9999px;
+	background: var(--lc-surface-primary);
+	color: #f59e0b;
+	box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+	transform: translateX(0);
+	transition:
+		transform 180ms ease,
+		background-color 180ms ease,
+		color 180ms ease;
+}
+
+.lc-theme-switch-thumb.is-dark {
+	transform: translateX(1.28rem);
+	color: #a5f3fc;
+}
+
 :global(.svg-inline--fa) {
 	display: inline-block;
 	height: 1em;
@@ -876,6 +926,12 @@ html[data-theme='dark'] .lc-diff-added {
 	color: #155e75;
 }
 
+.lc-banner-success {
+	background: rgba(240, 253, 244, 0.94);
+	border-color: rgba(74, 222, 128, 0.28);
+	color: #15803d;
+}
+
 .lc-banner-error-soft {
 	background: rgba(254, 242, 242, 0.94);
 	border-color: rgba(248, 113, 113, 0.24);
@@ -1255,6 +1311,12 @@ html[data-theme='dark'] .lc-banner-info {
 	color: #d7ebfb;
 }
 
+html[data-theme='dark'] .lc-banner-success {
+	background: rgba(23, 52, 41, 0.74);
+	border-color: rgba(94, 147, 118, 0.24);
+	color: #c4ebd5;
+}
+
 html[data-theme='dark'] .lc-banner-error-soft {
 	background: rgba(54, 28, 31, 0.72);
 	border-color: rgba(196, 123, 134, 0.2);
@@ -1442,6 +1504,28 @@ html[data-theme='dark'] .lc-alert {
 		transform: translateX(320%);
 	}
 }
+@keyframes lc-comment-flash {
+	0% {
+		border-color: var(--lc-border-soft);
+	}
+	12% {
+		border-color: var(--lc-text-accent);
+	}
+	25% {
+		border-color: var(--lc-border-soft);
+	}
+	37% {
+		border-color: var(--lc-text-accent);
+	}
+	100% {
+		border-color: var(--lc-border-soft);
+	}
+}
+
+.lc-comment-highlight {
+	animation: lc-comment-flash 1.6s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	* {
 		scroll-behavior: auto !important;

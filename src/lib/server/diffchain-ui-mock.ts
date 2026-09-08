@@ -1,4 +1,5 @@
 import { env } from '$env/dynamic/private';
+import { DiscussionMessageType, DiscussionThreadStatus } from '$lib/types/api';
 import type {
 	ArchiveNoticeListResponse,
 	QuickKeywordSuggestionsResponse,
@@ -7,7 +8,9 @@ import type {
 	NoticeChangeTimelineResponse,
 	RecentNoticeChangesResponse,
 	NoticeDetail,
-	SystemStats
+	SystemStats,
+	DiscussionThreadListResponse,
+	DiscussionThreadDetailResponse
 } from '$lib/types/api';
 import { NoticeChangeSource } from '$lib/types/change-source';
 
@@ -392,6 +395,73 @@ export function getMockNoticeDetail(noticeNum: number, requestedRev?: number): N
 
 export function getMockNoticeChanges(noticeNum: number): NoticeChangeTimelineResponse {
 	return buildMockNoticeRecord(noticeNum).changes;
+}
+
+function getMockDiscussionThreadId(noticeNum: number): number {
+	return noticeNum * 100 + 1;
+}
+
+function getNoticeNumFromMockThreadId(threadId: number): number {
+	return threadId > 100 ? Math.floor((threadId - 1) / 100) : 2210001;
+}
+
+export function getMockNoticeDiscussions(noticeNum: number): DiscussionThreadListResponse {
+	return {
+		items: [
+			{
+				id: getMockDiscussionThreadId(noticeNum),
+				noticeNum,
+				title: '모의 토론 주제',
+				status: DiscussionThreadStatus.OPEN,
+				authorNickname: '익명',
+				authorIpMasked: '127.0.***.***',
+				commentCount: 1,
+				createdAt: hoursAgo(2),
+				updatedAt: hoursAgo(1)
+			}
+		],
+		total: 1,
+		page: 1,
+		limit: 20
+	};
+}
+
+export function getMockDiscussionThread(
+	threadId: number,
+	noticeNum?: number
+): DiscussionThreadDetailResponse {
+	const resolvedNoticeNum = noticeNum ?? getNoticeNumFromMockThreadId(threadId);
+
+	return {
+		thread: {
+			id: threadId,
+			noticeNum: resolvedNoticeNum,
+			title: '모의 토론 주제',
+			status: DiscussionThreadStatus.OPEN,
+			authorNickname: '익명',
+			authorIpMasked: '127.0.***.***',
+			commentCount: 1,
+			createdAt: hoursAgo(2),
+			updatedAt: hoursAgo(1)
+		},
+		comments: [
+			{
+				id: 1,
+				threadId,
+				noticeNum: resolvedNoticeNum,
+				sequence: 1,
+				messageType: DiscussionMessageType.USER,
+				authorNickname: '익명',
+				authorIpMasked: '127.0.***.***',
+				content: '모의 토론 시작 의견입니다.',
+				isDeleted: false,
+				isEdited: false,
+				editedAt: null,
+				createdAt: hoursAgo(2),
+				updatedAt: hoursAgo(2)
+			}
+		]
+	};
 }
 
 export function getMockRecentNoticeChangesResponse(params: {

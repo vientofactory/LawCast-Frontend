@@ -6,5 +6,14 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	ssr: {
 		noExternal: ['cookie']
+	},
+	// Sharing the development server over a network (e.g., ngrok)
+	server: {
+		host: true,
+		allowedHosts: true,
+		hmr: {
+			protocol: 'wss',
+			clientPort: 443
+		}
 	}
 });

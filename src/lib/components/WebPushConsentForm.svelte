@@ -1,14 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import type { Component, ComponentProps } from 'svelte';
+	import { fade, slide } from 'svelte/transition';
 	import { dev } from '$app/environment';
 	import { apiClient } from '$lib/api/client';
 	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
 	import { applyPowStatus, createPowDisplayState } from '$lib/utils/pow-status';
 	import PoWChallengeStatus from './PoWChallengeStatus.svelte';
+	import type FullUnsubscribeConfirmModal from './FullUnsubscribeConfirmModal.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faBell,
 		faBellSlash,
+		faChevronDown,
 		faSpinner,
 		faTriangleExclamation,
 		faCloud,
@@ -18,12 +22,18 @@
 	export let onSuccess: (message: string) => void = () => {};
 	export let onError: (message: string) => void = () => {};
 	export let onClearMessage: () => void = () => {};
+	export let threadId: number | undefined = undefined;
+	export let showFullUnsubscribeControl = true;
+	export let compact = false;
+	export let showInlineFeedback = true;
 
 	let isSupported = false;
 	let isPermissionDenied = false;
 	let isPushEnabledByServer = false;
 	let vapidPublicKey: string | null = null;
 	let isSubscribed = false;
+	let isNoticeNotificationsEnabled = false;
+	let isDiscussionBound = false;
 	let isLoading = true;
 	let isSubmitting = false;
 	let swScope: string | null = null;
@@ -31,10 +41,27 @@
 	let subscriptionEndpointPreview: string | null = null;
 	let lastDebugUpdatedAt: string | null = null;
 	let isSolvingPoW = false;
+	let isFullUnsubscribeOpen = false;
+	let isFullUnsubscribeConfirmOpen = false;
+	let feedback: { type: 'success' | 'error'; message: string } | null = null;
+	let FullUnsubscribeConfirmModalComponent: Component<
+		ComponentProps<typeof FullUnsubscribeConfirmModal>
+	> | null = null;
 	let powState = createPowDisplayState();
 
 	function updatePowStatus(status: PowStatus) {
 		powState = applyPowStatus(powState, status);
+	}
+
+	function clearFeedback() {
+		feedback = null;
+		onClearMessage();
+	}
+
+	function showFeedback(type: 'success' | 'error', message: string) {
+		feedback = { type, message };
+		if (type === 'success') onSuccess(message);
+		else onError(message);
 	}
 
 	function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -113,9 +140,22 @@
 
 			const subscription = await detectCurrentSubscription();
 			isSubscribed = !!subscription;
+			isNoticeNotificationsEnabled = false;
+			isDiscussionBound = false;
+			if (subscription) {
+				const noticeStatus = await apiClient.getWebPushNoticeStatus(subscription.endpoint);
+				isNoticeNotificationsEnabled = noticeStatus.enabled;
+			}
+			if (threadId !== undefined && subscription) {
+				const status = await apiClient.getDiscussionWebPushStatus(threadId, subscription.endpoint);
+				isDiscussionBound = status.isBound;
+			}
 			await refreshDebugState(subscription);
 		} catch (error) {
-			onError(error instanceof Error ? error.message : '웹 푸시 상태 확인에 실패했습니다.');
+			showFeedback(
+				'error',
+				error instanceof Error ? error.message : '웹 푸시 상태 확인에 실패했습니다.'
+			);
 		} finally {
 			isLoading = false;
 		}
@@ -124,7 +164,7 @@
 	async function enableWebPush() {
 		if (isSubmitting || isSolvingPoW || !isSupported) return;
 
-		onClearMessage();
+		clearFeedback();
 		isSubmitting = true;
 		let subscriptionCreatedInThisAttempt = false;
 		let activeSubscription: PushSubscription | null = null;
@@ -163,12 +203,17 @@
 			const payload = extractSubscriptionPayload(subscription);
 			await apiClient.registerWebPushSubscription({
 				...payload,
-				proof
+				proof,
+				...(threadId === undefined ? {} : { threadId })
 			});
 
 			isSubscribed = true;
+			if (threadId === undefined) {
+				isNoticeNotificationsEnabled = true;
+			}
+			isDiscussionBound = threadId !== undefined;
 			await refreshDebugState(subscription);
-			onSuccess('브라우저 웹 푸시 알림이 활성화되었습니다.');
+			showFeedback('success', '웹 푸시 알림이 활성화되었습니다.');
 		} catch (error) {
 			if (subscriptionCreatedInThisAttempt && activeSubscription) {
 				try {
@@ -180,11 +225,16 @@
 
 			const currentSubscription = await detectCurrentSubscription().catch(() => null);
 			isSubscribed = !!currentSubscription;
+			isNoticeNotificationsEnabled = false;
+			isDiscussionBound = false;
 			await refreshDebugState(currentSubscription);
 
 			isSolvingPoW = false;
 			powState = createPowDisplayState();
-			onError(error instanceof Error ? error.message : '웹 푸시 활성화에 실패했습니다.');
+			showFeedback(
+				'error',
+				error instanceof Error ? error.message : '웹 푸시 활성화에 실패했습니다.'
+			);
 		} finally {
 			isSubmitting = false;
 			if (!isSolvingPoW) {
@@ -194,28 +244,92 @@
 	}
 
 	async function disableWebPush() {
-		if (isSubmitting || !isSupported) return;
+		if (isSubmitting || !isSupported || !isNoticeNotificationsEnabled) return;
 
-		onClearMessage();
+		clearFeedback();
 		isSubmitting = true;
 
 		try {
 			const subscription = await detectCurrentSubscription();
 
-			if (subscription) {
-				const endpoint = subscription.endpoint;
-				await subscription.unsubscribe();
-				await apiClient.unregisterWebPushSubscription(endpoint);
-			}
+			if (!subscription) throw new Error('브라우저 웹 푸시 구독을 찾지 못했습니다.');
 
-			isSubscribed = false;
-			await refreshDebugState(null);
-			onSuccess('브라우저 웹 푸시 알림이 해지되었습니다.');
+			await apiClient.updateWebPushNoticePreference(subscription.endpoint, false);
+			isNoticeNotificationsEnabled = false;
+			showFeedback('success', '입법예고 알림이 해지되었습니다.');
 		} catch (error) {
-			onError(error instanceof Error ? error.message : '웹 푸시 해지에 실패했습니다.');
+			showFeedback(
+				'error',
+				error instanceof Error ? error.message : '웹 푸시 해지에 실패했습니다.'
+			);
 		} finally {
 			isSubmitting = false;
 		}
+	}
+
+	async function disableDiscussionWebPush() {
+		if (isSubmitting || !isSupported || threadId === undefined || !isDiscussionBound) {
+			return;
+		}
+
+		clearFeedback();
+		isSubmitting = true;
+
+		try {
+			const subscription = await detectCurrentSubscription();
+			if (!subscription) throw new Error('브라우저 웹 푸시 구독을 찾지 못했습니다.');
+
+			await apiClient.unregisterDiscussionWebPushBinding(threadId, subscription.endpoint);
+			isDiscussionBound = false;
+			showFeedback('success', '이 스레드 인용 알림이 해지되었습니다.');
+		} catch (error) {
+			showFeedback(
+				'error',
+				error instanceof Error ? error.message : '스레드 인용 알림 해지에 실패했습니다.'
+			);
+		} finally {
+			isSubmitting = false;
+		}
+	}
+
+	async function unsubscribeBrowserPush() {
+		if (isSubmitting || !isSupported || !isSubscribed) return;
+
+		clearFeedback();
+		isSubmitting = true;
+
+		try {
+			const subscription = await detectCurrentSubscription();
+			if (!subscription) throw new Error('브라우저 웹 푸시 구독을 찾지 못했습니다.');
+
+			await subscription.unsubscribe();
+			await apiClient.unregisterWebPushSubscription(subscription.endpoint);
+			isSubscribed = false;
+			isNoticeNotificationsEnabled = false;
+			isDiscussionBound = false;
+			await refreshDebugState(null);
+			showFeedback('success', '모든 웹 푸시 구독이 해지되었습니다.');
+		} catch (error) {
+			showFeedback(
+				'error',
+				error instanceof Error ? error.message : '웹 푸시 구독 해지에 실패했습니다.'
+			);
+		} finally {
+			isSubmitting = false;
+		}
+	}
+
+	async function openFullUnsubscribeConfirm(): Promise<void> {
+		if (!FullUnsubscribeConfirmModalComponent) {
+			const mod = await import('$lib/components/FullUnsubscribeConfirmModal.svelte');
+			FullUnsubscribeConfirmModalComponent = mod.default;
+		}
+		isFullUnsubscribeConfirmOpen = true;
+	}
+
+	async function confirmFullUnsubscribe(): Promise<void> {
+		isFullUnsubscribeConfirmOpen = false;
+		await unsubscribeBrowserPush();
 	}
 
 	onMount(async () => {
@@ -231,25 +345,41 @@
 </script>
 
 <div
-	class="lc-panel-card mt-6 rounded-2xl border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
+	class={compact
+		? 'space-y-4'
+		: 'lc-panel-card mt-6 rounded-2xl border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl'}
 >
-	<h2 class="lc-text-primary mb-6 flex items-center text-xl font-bold tracking-tight">
-		<div class="lc-icon-accent-primary mr-3 rounded-lg p-2">
-			<FontAwesomeIcon icon={faCloud} class="lc-text-on-accent h-5 w-5" />
-		</div>
-		브라우저 웹 푸시 알림
-	</h2>
+	{#if !compact}
+		<h2 class="lc-text-primary mb-6 flex items-center text-xl font-bold tracking-tight">
+			<div class="lc-icon-accent-primary mr-3 rounded-lg p-2">
+				<FontAwesomeIcon icon={faCloud} class="lc-text-on-accent h-5 w-5" />
+			</div>
+			브라우저 웹 푸시 알림
+		</h2>
+		<ul class="lc-text-secondary mb-6 space-y-2 text-sm">
+			<li class="flex items-start">
+				<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
+				브라우저 알림 권한을 허용하면 새 법률안 및 변경 감지를 즉시 받을 수 있습니다.
+			</li>
+			<li class="flex items-start">
+				<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
+				로그인 없이 현재 브라우저 단위로 구독됩니다.
+			</li>
+		</ul>
+	{/if}
 
-	<ul class="lc-text-secondary mb-6 space-y-2 text-sm">
-		<li class="flex items-start">
-			<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
-			브라우저 알림 권한을 허용하면 새 법률안 및 변경 감지를 즉시 받을 수 있습니다.
-		</li>
-		<li class="flex items-start">
-			<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
-			로그인 없이 현재 브라우저 단위로 구독됩니다.
-		</li>
-	</ul>
+	{#if showInlineFeedback && feedback}
+		<div
+			class={`mb-4 rounded-lg border p-3 text-sm ${
+				feedback.type === 'success'
+					? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+					: 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400'
+			}`}
+			role={feedback.type === 'error' ? 'alert' : 'status'}
+		>
+			{feedback.message}
+		</div>
+	{/if}
 
 	{#if isLoading}
 		<div class="lc-text-muted flex items-center justify-center gap-2 py-4 text-sm">
@@ -278,43 +408,130 @@
 			</div>
 		{/if}
 
-		<div class="flex flex-col gap-3 sm:flex-row">
-			<button
-				type="button"
-				on:click={enableWebPush}
-				disabled={isSubmitting || isSolvingPoW || isSubscribed}
-				class="lc-button-primary inline-flex cursor-pointer items-center justify-center rounded-xl px-6 py-3 font-semibold transition-all duration-200 hover:-translate-y-0.5 disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				{#if isSolvingPoW}
-					<FontAwesomeIcon
-						icon={faShieldHalved}
-						class="pointer-events-none mr-2 h-4 w-4 animate-pulse"
-					/>
-					스팸 방지 검증 중...
-				{:else if isSubmitting && !isSubscribed}
-					<FontAwesomeIcon icon={faSpinner} class="pointer-events-none mr-2 h-4 w-4 animate-spin" />
-					처리 중...
-				{:else}
-					<FontAwesomeIcon icon={faBell} class="pointer-events-none mr-2 h-4 w-4" />
-					웹 푸시 동의 및 활성화
-				{/if}
-			</button>
+		{#if threadId === undefined}
+			<section class="rounded-xl border border-(--lc-border-soft) bg-(--lc-surface-inset) p-4">
+				<div class="flex flex-wrap items-start justify-between gap-3">
+					<div>
+						<h3 class="lc-text-primary text-sm font-bold">입법예고 알림</h3>
+						<p class="lc-text-muted mt-1 text-xs">
+							새 법률안과 변경 사항을 이 브라우저로 알려드립니다.
+						</p>
+					</div>
+					<span
+						class={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+							isNoticeNotificationsEnabled
+								? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+								: 'bg-(--lc-surface-primary) text-(--lc-text-muted)'
+						}`}
+					>
+						{isNoticeNotificationsEnabled ? '켜짐' : '꺼짐'}
+					</span>
+				</div>
+				<div class="mt-4 flex items-center justify-between gap-3">
+					<span class="lc-text-muted text-xs">알림 수신</span>
+					<button
+						type="button"
+						on:click={() => (isNoticeNotificationsEnabled ? disableWebPush() : enableWebPush())}
+						disabled={isSubmitting || isSolvingPoW}
+						class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+						role="switch"
+						aria-checked={isNoticeNotificationsEnabled}
+						aria-label={isNoticeNotificationsEnabled ? '입법예고 알림 끄기' : '입법예고 알림 켜기'}
+						title={isNoticeNotificationsEnabled ? '입법예고 알림 끄기' : '입법예고 알림 켜기'}
+					>
+						<span
+							class={`lc-theme-switch-track ${isNoticeNotificationsEnabled ? 'is-dark' : ''}`}
+							aria-hidden="true"
+						>
+							<span
+								class={`lc-theme-switch-thumb ${isNoticeNotificationsEnabled ? 'is-dark' : ''}`}
+							>
+								<FontAwesomeIcon icon={faBell} class="h-3 w-3" />
+							</span>
+						</span>
+					</button>
+				</div>
+			</section>
 
-			<button
-				type="button"
-				on:click={disableWebPush}
-				disabled={isSubmitting || !isSubscribed}
-				class="lc-button-secondary inline-flex cursor-pointer items-center justify-center rounded-xl border px-6 py-3 font-semibold transition-all duration-200 hover:-translate-y-0.5 disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				{#if isSubmitting && isSubscribed}
-					<FontAwesomeIcon icon={faSpinner} class="pointer-events-none mr-2 h-4 w-4 animate-spin" />
-					처리 중...
-				{:else}
-					<FontAwesomeIcon icon={faBellSlash} class="pointer-events-none mr-2 h-4 w-4" />
-					웹 푸시 해지
-				{/if}
-			</button>
-		</div>
+			{#if showFullUnsubscribeControl && isSubscribed}
+				<div class="mt-4 rounded-xl border border-(--lc-border-soft) px-4 py-3">
+					<button
+						type="button"
+						class="lc-text-secondary flex w-full cursor-pointer items-center justify-between text-left text-xs font-semibold"
+						aria-expanded={isFullUnsubscribeOpen}
+						on:click={() => (isFullUnsubscribeOpen = !isFullUnsubscribeOpen)}
+					>
+						<span>고급 설정: 브라우저 구독 전체 해지</span>
+						<FontAwesomeIcon
+							icon={faChevronDown}
+							class={`h-3 w-3 transition-transform duration-200 ${isFullUnsubscribeOpen ? 'rotate-180' : ''}`}
+						/>
+					</button>
+
+					{#if isFullUnsubscribeOpen}
+						<div transition:slide={{ duration: 180 }}>
+							<p
+								class="lc-text-muted mt-2 text-xs leading-relaxed"
+								transition:fade={{ duration: 140 }}
+							>
+								입법예고 알림과 모든 토론 인용 알림을 이 브라우저에서 함께 해지합니다.
+							</p>
+							<button
+								type="button"
+								on:click={openFullUnsubscribeConfirm}
+								disabled={isSubmitting || !isSubscribed}
+								class="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-400"
+							>
+								<FontAwesomeIcon icon={faBellSlash} class="mr-2 h-3.5 w-3.5" />
+								모든 웹 푸시 구독 해지
+							</button>
+						</div>
+					{/if}
+				</div>
+			{/if}
+		{:else}
+			<section class="rounded-xl border border-(--lc-border-soft) bg-(--lc-surface-inset) p-4">
+				<div class="flex flex-wrap items-start justify-between gap-3">
+					<div>
+						<h3 class="lc-text-primary text-sm font-bold">이 스레드의 인용 알림</h3>
+						<p class="lc-text-muted mt-1 text-xs">
+							내 의견이 이 스레드에서 인용될 때만 알려드립니다.
+						</p>
+					</div>
+					<span
+						class={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+							isDiscussionBound
+								? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+								: 'bg-(--lc-surface-primary) text-(--lc-text-muted)'
+						}`}
+					>
+						{isDiscussionBound ? '이 스레드에서 켜짐' : '꺼짐'}
+					</span>
+				</div>
+				<div class="mt-4 flex items-center justify-between gap-3">
+					<span class="lc-text-muted text-xs">이 스레드에서 수신</span>
+					<button
+						type="button"
+						on:click={() => (isDiscussionBound ? disableDiscussionWebPush() : enableWebPush())}
+						disabled={isSubmitting || isSolvingPoW}
+						class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+						role="switch"
+						aria-checked={isDiscussionBound}
+						aria-label={isDiscussionBound ? '이 스레드 인용 알림 끄기' : '이 스레드 인용 알림 켜기'}
+						title={isDiscussionBound ? '이 스레드 인용 알림 끄기' : '이 스레드 인용 알림 켜기'}
+					>
+						<span
+							class={`lc-theme-switch-track ${isDiscussionBound ? 'is-dark' : ''}`}
+							aria-hidden="true"
+						>
+							<span class={`lc-theme-switch-thumb ${isDiscussionBound ? 'is-dark' : ''}`}>
+								<FontAwesomeIcon icon={faBell} class="h-3 w-3" />
+							</span>
+						</span>
+					</button>
+				</div>
+			</section>
+		{/if}
 
 		{#if isSolvingPoW}
 			<PoWChallengeStatus
@@ -326,10 +543,6 @@
 				metricsSpacingClass="mt-2"
 			/>
 		{/if}
-
-		<p class="lc-text-muted mt-3 text-sm">
-			현재 상태: {isSubscribed ? '활성화됨' : '비활성화됨'}
-		</p>
 
 		{#if dev}
 			<div class="mt-4 rounded-xl border border-slate-300/70 bg-slate-50/70 p-3 text-xs">
@@ -372,3 +585,14 @@
 		{/if}
 	{/if}
 </div>
+
+{#if FullUnsubscribeConfirmModalComponent}
+	<svelte:component
+		this={FullUnsubscribeConfirmModalComponent}
+		isOpen={isFullUnsubscribeConfirmOpen}
+		{isSubmitting}
+		{isSubscribed}
+		onConfirm={confirmFullUnsubscribe}
+		onClose={() => (isFullUnsubscribeConfirmOpen = false)}
+	></svelte:component>
+{/if}

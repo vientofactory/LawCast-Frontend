@@ -23,10 +23,21 @@ import type {
 	WebhookRegistrationRequest,
 	WebPushPublicConfig,
 	WebPushSubscriptionRequest,
+	DiscussionWebPushStatus,
+	WebPushNoticeStatus,
 	ApiError,
 	CrawlingTransparencyData,
 	ProposalStatisticsData,
-	ProposalStatisticsGranularity
+	ProposalStatisticsGranularity,
+	DiscussionThread,
+	DiscussionComment,
+	DiscussionThreadListResponse,
+	DiscussionThreadDetailResponse,
+	CreateThreadPayload,
+	CreateCommentPayload,
+	UpdateCommentPayload,
+	DeleteCommentPayload,
+	UpdateThreadStatusPayload
 } from '../types/api';
 
 const BASE_URL = '/api';
@@ -126,7 +137,10 @@ async function request<T>(
 			const errorData = {
 				status: response.status,
 				message: data?.message,
-				errors: data?.errors
+				errors: data?.errors,
+				retryAfter:
+					parseRetryAfter(response.headers.get('retry-after')) ??
+					parseRetryAfterValue(data?.retryAfter)
 			};
 			throw errorData;
 		}
@@ -193,8 +207,28 @@ function normalizeError(error: unknown): ApiError {
 	const apiError: ApiError = new Error(message);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	apiError.status = (error as any)?.status;
+	apiError.retryAfter = (error as { retryAfter?: number } | undefined)?.retryAfter;
 	// 필요하다면 원본 response나 data를 첨부할 수 있음
 	return apiError;
+}
+
+function parseRetryAfter(value: string | null): number | undefined {
+	if (!value) return undefined;
+	const seconds = Number.parseInt(value, 10);
+	return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
+}
+
+function parseRetryAfterValue(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+export function isRateLimitError(error: unknown): error is ApiError {
+	return (error as { status?: number } | undefined)?.status === 429;
+}
+
+export function getRateLimitRetryAfter(error: unknown, fallbackSeconds = 60): number {
+	const retryAfter = (error as { retryAfter?: number } | undefined)?.retryAfter;
+	return typeof retryAfter === 'number' && retryAfter > 0 ? retryAfter : fallbackSeconds;
 }
 
 /**
@@ -554,6 +588,79 @@ export async function registerWebPushSubscription(
 	}
 }
 
+export async function getDiscussionWebPushStatus(
+	threadId: number,
+	endpoint: string,
+	customFetch?: Fetch
+): Promise<DiscussionWebPushStatus> {
+	try {
+		return await request<DiscussionWebPushStatus>(
+			`/push/subscriptions/discussions/${threadId}/status?endpoint=${encodeURIComponent(endpoint)}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load discussion web push status:', error);
+		throw normalizeError(error);
+	}
+}
+
+export async function getWebPushNoticeStatus(
+	endpoint: string,
+	customFetch?: Fetch
+): Promise<WebPushNoticeStatus> {
+	try {
+		return await request<WebPushNoticeStatus>(
+			`/push/subscriptions/notice-status?endpoint=${encodeURIComponent(endpoint)}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load notice web push status:', error);
+		throw normalizeError(error);
+	}
+}
+
+export async function updateWebPushNoticePreference(
+	endpoint: string,
+	enabled: boolean,
+	customFetch?: Fetch
+): Promise<void> {
+	try {
+		await request(
+			'/push/subscriptions/preferences',
+			{
+				method: 'PATCH',
+				body: JSON.stringify({ endpoint, noticeNotificationsEnabled: enabled })
+			},
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to update notice web push preference:', error);
+		throw normalizeError(error);
+	}
+}
+
+export async function unregisterDiscussionWebPushBinding(
+	threadId: number,
+	endpoint: string,
+	customFetch?: Fetch
+): Promise<void> {
+	try {
+		await request(
+			`/push/subscriptions/discussions/${threadId}`,
+			{
+				method: 'DELETE',
+				body: JSON.stringify({ endpoint })
+			},
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to unregister discussion web push binding:', error);
+		throw normalizeError(error);
+	}
+}
+
 export async function unregisterWebPushSubscription(
 	endpoint: string,
 	customFetch?: Fetch
@@ -625,6 +732,175 @@ export async function getProposalStatistics(
 	}
 }
 
+// ── Discussions API ─────────────────────────────────────────────────────
+
+/**
+ * 법률안별 토론 스레드 목록 조회
+ */
+export async function getNoticeDiscussions(
+	noticeNum: number,
+	params: { page?: number; limit?: number } = {},
+	customFetch?: Fetch
+): Promise<DiscussionThreadListResponse> {
+	try {
+		const query = new URLSearchParams();
+		if (params.page && params.page > 0) query.set('page', String(params.page));
+		if (params.limit && params.limit > 0) query.set('limit', String(params.limit));
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<DiscussionThreadListResponse>(
+			`/notices/${noticeNum}/discussions${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load notice discussions:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 새 토론 스레드 개설 및 #1 의견 등록
+ */
+export async function createNoticeDiscussion(
+	noticeNum: number,
+	payload: CreateThreadPayload,
+	customFetch?: Fetch
+): Promise<DiscussionThreadDetailResponse> {
+	try {
+		return await request<DiscussionThreadDetailResponse>(
+			`/notices/${noticeNum}/discussions`,
+			{
+				method: 'POST',
+				body: JSON.stringify(payload)
+			},
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to create notice discussion:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 토론 스레드 상세 및 댓글 페이지 조회
+ */
+export async function getDiscussionThread(
+	threadId: number,
+	params: { cursor?: number; limit?: number } = {},
+	customFetch?: Fetch
+): Promise<DiscussionThreadDetailResponse> {
+	try {
+		const query = new URLSearchParams();
+		if (params.cursor !== undefined && params.cursor >= 0) {
+			query.set('cursor', String(params.cursor));
+		}
+		if (params.limit !== undefined && params.limit > 0) {
+			query.set('limit', String(params.limit));
+		}
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<DiscussionThreadDetailResponse>(
+			`/discussions/threads/${threadId}${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load discussion thread:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 토론 스레드에 새 의견(#N) 등록
+ */
+export async function addDiscussionComment(
+	threadId: number,
+	payload: CreateCommentPayload,
+	customFetch?: Fetch
+): Promise<DiscussionComment> {
+	try {
+		return await request<DiscussionComment>(
+			`/discussions/threads/${threadId}/comments`,
+			{
+				method: 'POST',
+				body: JSON.stringify(payload)
+			},
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to add discussion comment:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 의견 수정 (비밀번호 일치 확인)
+ */
+export async function updateDiscussionComment(
+	commentId: number,
+	payload: UpdateCommentPayload,
+	customFetch?: Fetch
+): Promise<DiscussionComment> {
+	try {
+		return await request<DiscussionComment>(
+			`/discussions/comments/${commentId}`,
+			{
+				method: 'PATCH',
+				body: JSON.stringify(payload)
+			},
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to update discussion comment:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 의견 소프트 삭제 (비밀번호 일치 확인)
+ */
+export async function deleteDiscussionComment(
+	commentId: number,
+	payload: DeleteCommentPayload,
+	customFetch?: Fetch
+): Promise<DiscussionComment> {
+	try {
+		return await request<DiscussionComment>(
+			`/discussions/comments/${commentId}`,
+			{
+				method: 'DELETE',
+				body: JSON.stringify(payload)
+			},
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to delete discussion comment:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 토론 스레드 상태 변경 (열림/닫힘)
+ */
+export async function updateDiscussionThreadStatus(
+	threadId: number,
+	payload: UpdateThreadStatusPayload,
+	customFetch?: Fetch
+): Promise<DiscussionThread> {
+	try {
+		return await request<DiscussionThread>(
+			`/discussions/threads/${threadId}/status`,
+			{
+				method: 'PATCH',
+				body: JSON.stringify(payload)
+			},
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to update discussion thread status:', error);
+		throw normalizeError(error);
+	}
+}
+
 // 기존 코드와의 호환성을 위한 객체 export
 export const apiClient = {
 	getRecentNotices,
@@ -640,7 +916,18 @@ export const apiClient = {
 	registerWebhook,
 	getWebPushPublicConfig,
 	registerWebPushSubscription,
+	getDiscussionWebPushStatus,
+	getWebPushNoticeStatus,
+	updateWebPushNoticePreference,
+	unregisterDiscussionWebPushBinding,
 	unregisterWebPushSubscription,
 	getCrawlingTransparency,
-	getProposalStatistics
+	getProposalStatistics,
+	getNoticeDiscussions,
+	createNoticeDiscussion,
+	getDiscussionThread,
+	addDiscussionComment,
+	updateDiscussionComment,
+	deleteDiscussionComment,
+	updateDiscussionThreadStatus
 };
