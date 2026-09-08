@@ -182,6 +182,7 @@
 		'isDone sync': '입법예고 종료 마커 동기화',
 		'webhook cleanup': '웹훅 정리',
 		'web push cleanup': '웹 푸시 정리',
+		'discussion web push cleanup': '비활성 토론 웹 푸시 정리',
 		'webhook optimization': '웹훅 최적화',
 		'snapshot artifact backfill': '스냅샷 아티팩트 백필',
 		'integrity re-scan': '아카이브 무결성 재검증',
