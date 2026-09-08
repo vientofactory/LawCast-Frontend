@@ -201,22 +201,20 @@
 		</div>
 
 		<!-- Action Buttons -->
-		{#if !comment.isDeleted && comment.messageType !== DiscussionMessageType.SYSTEM}
+		{#if !comment.isDeleted && comment.messageType !== DiscussionMessageType.SYSTEM && !isThreadClosed}
 			<div
 				class="flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
 			>
-				{#if !isThreadClosed}
-					<button
-						type="button"
-						on:click={handleQuote}
-						title={`#${comment.sequence} 인용하여 답글`}
-						data-testid={`discussion-comment-quote-${comment.sequence}`}
-						class="lc-text-muted hover:lc-text-primary inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
-					>
-						<FontAwesomeIcon icon={faQuoteRight} class="h-3 w-3" />
-						<span class="hidden sm:inline">인용</span>
-					</button>
-				{/if}
+				<button
+					type="button"
+					on:click={handleQuote}
+					title={`#${comment.sequence} 인용하여 답글`}
+					data-testid={`discussion-comment-quote-${comment.sequence}`}
+					class="lc-text-muted hover:lc-text-primary inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
+				>
+					<FontAwesomeIcon icon={faQuoteRight} class="h-3 w-3" />
+					<span class="hidden sm:inline">인용</span>
+				</button>
 				<button
 					type="button"
 					on:click={handleEdit}

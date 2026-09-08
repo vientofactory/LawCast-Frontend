@@ -108,7 +108,7 @@
 			목록으로
 		</button>
 		<div class="flex items-center gap-2">
-			{#if showQuotePushControl}
+			{#if showQuotePushControl && thread.status === DiscussionThreadStatus.OPEN}
 				<button
 					type="button"
 					on:click={() => onOpenQuotePushConsent?.()}
