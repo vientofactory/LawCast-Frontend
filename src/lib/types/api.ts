@@ -517,6 +517,17 @@ export interface DiscussionThreadListResponse {
 	limit: number;
 }
 
+export interface DiscussionThreadWithNotice extends DiscussionThread {
+	noticeSubject: string | null;
+}
+
+export interface DiscussionThreadWithNoticeListResponse {
+	items: DiscussionThreadWithNotice[];
+	total: number;
+	page: number;
+	limit: number;
+}
+
 export interface DiscussionThreadDetailResponse {
 	thread: DiscussionThread;
 	comments: DiscussionComment[];

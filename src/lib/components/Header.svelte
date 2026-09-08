@@ -8,6 +8,7 @@
 		faHouse,
 		faBars,
 		faCodeCompare,
+		faComments,
 		faMoon,
 		faSun,
 		faBell,
@@ -25,20 +26,30 @@
 		{ href: '/', label: '홈', icon: faHouse },
 		{ href: '/notices', label: '입법예고', icon: faFileLines },
 		{ href: '/notices/changes', label: '변경 내역', icon: faCodeCompare },
+		{ href: '/discussions', label: '토론', icon: faComments },
 		{ href: '/proposals', label: '발의 통계', icon: faChartBar },
 		{ href: '/webhook', label: '알림 설정', icon: faBell }
 	];
 
 	function isActive(href: string): boolean {
 		const currentPath = page.url.pathname.replace(/\/+$/, '') || '/';
+		const isNoticeDiscussionPath = /^\/notices\/[^/]+\/discussions(?:\/|$)/.test(currentPath);
 		if (href === '/') return currentPath === '/';
 		if (href === '/notices/changes') {
 			return currentPath === '/notices/changes' || currentPath.startsWith('/notices/changes/');
+		}
+		if (href === '/discussions') {
+			return (
+				isNoticeDiscussionPath ||
+				currentPath === '/discussions' ||
+				currentPath.startsWith('/discussions/')
+			);
 		}
 		if (href === '/notices') {
 			return (
 				currentPath === '/notices' ||
 				(currentPath.startsWith('/notices/') &&
+					!isNoticeDiscussionPath &&
 					currentPath !== '/notices/changes' &&
 					!currentPath.startsWith('/notices/changes/'))
 			);
@@ -174,11 +185,11 @@
 
 			<!-- 데스크톱 메뉴 -->
 			<nav
-				class="hidden w-full rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-2 md:absolute md:top-1/2 md:left-1/2 md:block md:w-auto md:-translate-x-1/2 md:-translate-y-1/2"
+				class="hidden max-w-[min(92vw,48rem)] rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-2 md:absolute md:top-1/2 md:left-1/2 md:block md:w-auto md:-translate-x-1/2 md:-translate-y-1/2"
 				aria-label="주요 메뉴"
 				data-testid="primary-navigation"
 			>
-				<ul class="flex flex-wrap items-center justify-center gap-1.5 text-sm font-semibold">
+				<ul class="flex flex-nowrap items-center justify-center gap-1 text-sm font-semibold">
 					{#each menuItems as item (item.href)}
 						<li>
 							<a
@@ -186,7 +197,8 @@
 								aria-current={isActive(item.href) ? 'page' : undefined}
 								data-testid={`nav-link-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').replace(/[/]+/g, '-')}`}
 								data-nav-target={item.href}
-								class={`group/menu inline-flex items-center gap-2 rounded-md px-3 py-3 transition-all duration-200 ${
+								title={item.label}
+								class={`group/menu inline-flex items-center gap-2 rounded-md px-2.5 py-2.5 whitespace-nowrap transition-all duration-200 lg:px-3 lg:py-3 ${
 									isActive(item.href)
 										? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
 										: 'text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-accent)]'
@@ -198,7 +210,7 @@
 								>
 									<FontAwesomeIcon icon={item.icon} class="h-3.5 w-3.5" />
 								</span>
-								<span>{item.label}</span>
+								<span class="hidden lg:inline">{item.label}</span>
 							</a>
 						</li>
 					{/each}

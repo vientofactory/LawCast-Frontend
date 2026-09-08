@@ -90,7 +90,7 @@
 						<a
 							id="recent-notice-{notice.num}"
 							href="/notices/{notice.num}"
-							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150"
+							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150 hover:text-blue-600 hover:underline group-hover:text-blue-600"
 						>
 							{notice.subject}
 						</a>

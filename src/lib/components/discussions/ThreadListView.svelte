@@ -130,10 +130,10 @@
 					<div class="flex items-center gap-2 self-end sm:self-center">
 						<span
 							class="lc-chip-blue inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
-							title={`의견 ${thread.commentCount}개`}
+							title={`의견 ${thread.commentCount.toLocaleString('ko-KR')}개`}
 						>
 							<FontAwesomeIcon icon={faComments} class="h-3 w-3" />
-							<span>{thread.commentCount}</span>
+							<span>{thread.commentCount.toLocaleString('ko-KR')}</span>
 						</span>
 						<FontAwesomeIcon
 							icon={faChevronRight}

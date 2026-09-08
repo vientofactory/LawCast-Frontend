@@ -76,12 +76,14 @@
 	let rateLimitRemaining = data.discussionError?.retryAfter ?? 0;
 	let rateLimitTimer: ReturnType<typeof setInterval> | null = null;
 	let isQuotePushConsentOpen = false;
+	let isWebPushAvailableByServer = false;
 	const quotePushDismissalKey = `lawcast-quote-push-dismissed:${data.threadId}`;
 	const newThreadMarkerKey = `lawcast-new-discussion:${data.threadId}`;
 
 	function canPromptForQuotePush(): boolean {
 		return (
 			typeof window !== 'undefined' &&
+			isWebPushAvailableByServer &&
 			'serviceWorker' in navigator &&
 			'PushManager' in window &&
 			'Notification' in window &&
@@ -91,6 +93,7 @@
 	}
 
 	async function ensureQuotePushConsentModal(): Promise<void> {
+		if (!isWebPushAvailableByServer) return;
 		if (DiscussionPushConsentModalComponent) return;
 
 		const mod = await import('$lib/components/discussions/DiscussionPushConsentModal.svelte');
@@ -99,6 +102,7 @@
 	}
 
 	async function openQuotePushConsent(): Promise<void> {
+		if (!canPromptForQuotePush()) return;
 		if (typeof localStorage !== 'undefined') {
 			localStorage.removeItem(quotePushDismissalKey);
 		}
@@ -126,7 +130,14 @@
 		}, 1000);
 	}
 
-	onMount(() => {
+	onMount(async () => {
+		try {
+			const config = await apiClient.getWebPushPublicConfig();
+			isWebPushAvailableByServer = config.enabled && !!config.publicKey;
+		} catch {
+			isWebPushAvailableByServer = false;
+		}
+
 		if (data.discussionError) {
 			startRateLimitCooldown(data.discussionError.retryAfter ?? 60);
 		}
@@ -521,6 +532,7 @@
 						onDeleteComment={openDeleteCommentModal}
 						onToggleStatus={openToggleThreadStatusModal}
 						onOpenQuotePushConsent={openQuotePushConsent}
+						showQuotePushControl={isWebPushAvailableByServer}
 					/>
 				{/key}
 			</section>

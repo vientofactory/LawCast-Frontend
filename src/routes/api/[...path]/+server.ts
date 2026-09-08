@@ -1,8 +1,30 @@
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
+import { getMockDiscussionThread, isDiffchainUiMockEnabled } from '$lib/server/diffchain-ui-mock';
 
 const BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
+
+function parseNonNegativeInteger(value: string | null, fallback: number): number {
+	if (value === null) return fallback;
+	const parsed = Number.parseInt(value, 10);
+	return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function getMockResponse(path: string, url: URL): Response | null {
+	if (!isDiffchainUiMockEnabled()) return null;
+
+	const threadDetailMatch = path.match(/^discussions\/threads\/(\d+)$/);
+	if (!threadDetailMatch) return null;
+
+	const threadId = Number.parseInt(threadDetailMatch[1], 10);
+	const cursor = parseNonNegativeInteger(url.searchParams.get('cursor'), 0);
+	const limit = parseNonNegativeInteger(url.searchParams.get('limit'), 20);
+	return Response.json({
+		success: true,
+		data: getMockDiscussionThread(threadId, undefined, { cursor, limit })
+	});
+}
 
 async function forwardRequest(
 	method: string,
@@ -11,6 +33,11 @@ async function forwardRequest(
 	fetch: typeof globalThis.fetch,
 	url: URL
 ) {
+	if (method === 'GET') {
+		const mockResponse = getMockResponse(path, url);
+		if (mockResponse) return mockResponse;
+	}
+
 	const targetUrl = `${BASE_URL}/${path}${url.search}`;
 
 	try {

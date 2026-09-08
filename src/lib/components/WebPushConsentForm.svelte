@@ -345,6 +345,7 @@
 </script>
 
 <div
+	class:hidden={!isPushEnabledByServer}
 	class={compact
 		? 'space-y-4'
 		: 'lc-panel-card mt-6 rounded-2xl border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl'}
@@ -392,13 +393,6 @@
 		>
 			<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
 			현재 브라우저는 웹 푸시를 지원하지 않습니다.
-		</div>
-	{:else if !isPushEnabledByServer}
-		<div
-			class="lc-text-danger flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm"
-		>
-			<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
-			서버에서 웹 푸시가 비활성화되어 있습니다.
 		</div>
 	{:else}
 		{#if isPermissionDenied}
@@ -586,7 +580,7 @@
 	{/if}
 </div>
 
-{#if FullUnsubscribeConfirmModalComponent}
+{#if isPushEnabledByServer && FullUnsubscribeConfirmModalComponent}
 	<svelte:component
 		this={FullUnsubscribeConfirmModalComponent}
 		isOpen={isFullUnsubscribeConfirmOpen}

@@ -2,6 +2,7 @@
 	import { env } from '$env/dynamic/public';
 	import Header from '$lib/components/Header.svelte';
 	import RecentNotices from '$lib/components/RecentNotices.svelte';
+	import RecentDiscussions from '$lib/components/RecentDiscussions.svelte';
 	import { formatDate } from '$lib/utils/helpers';
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { page } from '$app/state';
@@ -33,6 +34,7 @@
 	});
 
 	$: ({ recentNotices, stats } = data);
+	$: recentDiscussions = data.recentDiscussions;
 	$: quickKeywords = data.quickKeywords;
 	$: archiveTotalCount = stats?.archive?.count ?? 0;
 	$: archiveCountLabel =
@@ -384,6 +386,7 @@
 							<li><a href="#home-overview">소개</a></li>
 							<li><a href="#home-quick-search">빠른 검색</a></li>
 							<li><a href="#recent-notices">최근 입법예고</a></li>
+							<li><a href="#recent-discussions">최근 토론</a></li>
 						</ul>
 					</nav>
 
@@ -413,6 +416,17 @@
 			>
 				<h2 id="recent-notices-heading" class="sr-only">최근 입법예고</h2>
 				<RecentNotices notices={recentNotices} {stats} />
+			</section>
+
+			<!-- Recent Discussions -->
+			<section
+				id="recent-discussions"
+				aria-labelledby="recent-discussions-heading"
+				data-testid="recent-discussions-region"
+				class="lc-defer-render"
+			>
+				<h2 id="recent-discussions-heading" class="sr-only">최근 토론</h2>
+				<RecentDiscussions threads={recentDiscussions} />
 			</section>
 
 			{#if discordCommunityUrl}

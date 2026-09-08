@@ -30,6 +30,7 @@
 	export let onDeleteComment: ((comment: DiscussionComment) => void) | undefined = undefined;
 	export let onToggleStatus: ((thread: DiscussionThread) => void) | undefined = undefined;
 	export let onOpenQuotePushConsent: (() => void) | undefined = undefined;
+	export let showQuotePushControl = false;
 	export let onLoadMoreComments: (() => void | Promise<void>) | undefined = undefined;
 	export let isLoadingMoreComments = false;
 
@@ -107,16 +108,18 @@
 			목록으로
 		</button>
 		<div class="flex items-center gap-2">
-			<button
-				type="button"
-				on:click={() => onOpenQuotePushConsent?.()}
-				class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1 text-xs font-medium"
-				data-testid="discussion-quote-push-settings"
-				title="인용 알림 설정"
-			>
-				<FontAwesomeIcon icon={faBell} class="h-3 w-3" />
-				<span class="hidden sm:inline">인용 알림</span>
-			</button>
+			{#if showQuotePushControl}
+				<button
+					type="button"
+					on:click={() => onOpenQuotePushConsent?.()}
+					class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1 text-xs font-medium"
+					data-testid="discussion-quote-push-settings"
+					title="인용 알림 설정"
+				>
+					<FontAwesomeIcon icon={faBell} class="h-3 w-3" />
+					<span class="hidden sm:inline">인용 알림</span>
+				</button>
+			{/if}
 			<button
 				type="button"
 				on:click={() => onToggleStatus?.(thread)}
@@ -156,7 +159,7 @@
 				class="lc-chip-blue inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
 			>
 				<FontAwesomeIcon icon={faComments} class="h-2.5 w-2.5" />
-				의견 {thread.commentCount}개
+				의견 {thread.commentCount.toLocaleString('ko-KR')}개
 			</span>
 		</div>
 		<h2 class="lc-text-primary mt-2 text-lg font-bold">

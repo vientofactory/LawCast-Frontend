@@ -10,6 +10,7 @@ import type {
 	NoticeDetail,
 	SystemStats,
 	DiscussionThreadListResponse,
+	DiscussionThreadWithNoticeListResponse,
 	DiscussionThreadDetailResponse
 } from '$lib/types/api';
 import { NoticeChangeSource } from '$lib/types/change-source';
@@ -405,17 +406,49 @@ function getNoticeNumFromMockThreadId(threadId: number): number {
 	return threadId > 100 ? Math.floor((threadId - 1) / 100) : 2210001;
 }
 
+function buildMockDiscussionComments(threadId: number, noticeNum: number) {
+	return Array.from({ length: 54 }, (_, index) => {
+		const sequence = index + 1;
+		const isSystemMessage = sequence % 17 === 0;
+		return {
+			id: threadId * 1000 + sequence,
+			threadId,
+			noticeNum,
+			sequence,
+			messageType: isSystemMessage ? DiscussionMessageType.SYSTEM : DiscussionMessageType.USER,
+			authorNickname: isSystemMessage ? 'LawCast' : sequence % 3 === 0 ? '익명 정책검토자' : '익명',
+			authorIpMasked: isSystemMessage ? '' : `127.0.${sequence % 10}.***`,
+			content:
+				sequence === 1
+					? '모의 토론 시작 의견입니다.'
+					: sequence % 9 === 0
+						? `>>#${sequence - 2}\n앞선 의견을 바탕으로 조문 적용 범위와 시행 시점을 함께 검토해야 한다고 봅니다. mock 의견 #${sequence}입니다.`
+						: isSystemMessage
+							? `토론 상태 확인용 시스템 메시지입니다. mock 의견 #${sequence}입니다.`
+							: `무한 로딩 검증을 위한 mock 의견 #${sequence}입니다. 스크롤하면 다음 의견 묶음이 순서대로 추가됩니다.`,
+			isDeleted: sequence % 23 === 0,
+			isEdited: sequence % 11 === 0,
+			editedAt: sequence % 11 === 0 ? hoursAgo(Math.max(1, 60 - sequence)) : null,
+			createdAt: hoursAgo(Math.max(1, 60 - sequence)),
+			updatedAt: hoursAgo(Math.max(1, 60 - sequence))
+		};
+	});
+}
+
 export function getMockNoticeDiscussions(noticeNum: number): DiscussionThreadListResponse {
+	const threadId = getMockDiscussionThreadId(noticeNum);
+	const commentCount = buildMockDiscussionComments(threadId, noticeNum).length;
+
 	return {
 		items: [
 			{
-				id: getMockDiscussionThreadId(noticeNum),
+				id: threadId,
 				noticeNum,
 				title: '모의 토론 주제',
 				status: DiscussionThreadStatus.OPEN,
 				authorNickname: '익명',
 				authorIpMasked: '127.0.***.***',
-				commentCount: 1,
+				commentCount,
 				createdAt: hoursAgo(2),
 				updatedAt: hoursAgo(1)
 			}
@@ -426,11 +459,45 @@ export function getMockNoticeDiscussions(noticeNum: number): DiscussionThreadLis
 	};
 }
 
+export function getMockAllDiscussionThreads(): DiscussionThreadWithNoticeListResponse {
+	const mockNoticeNum = 2210001;
+	const threadId = getMockDiscussionThreadId(mockNoticeNum);
+	const commentCount = buildMockDiscussionComments(threadId, mockNoticeNum).length;
+
+	return {
+		items: [
+			{
+				id: threadId,
+				noticeNum: mockNoticeNum,
+				title: '모의 토론 주제',
+				status: DiscussionThreadStatus.OPEN,
+				authorNickname: '익명',
+				authorIpMasked: '127.0.***.***',
+				commentCount,
+				createdAt: hoursAgo(2),
+				updatedAt: hoursAgo(1),
+				noticeSubject: '모의 법률안 제목'
+			}
+		],
+		total: 1,
+		page: 1,
+		limit: 20
+	};
+}
+
 export function getMockDiscussionThread(
 	threadId: number,
-	noticeNum?: number
+	noticeNum?: number,
+	params: { cursor?: number; limit?: number } = {}
 ): DiscussionThreadDetailResponse {
 	const resolvedNoticeNum = noticeNum ?? getNoticeNumFromMockThreadId(threadId);
+	const allComments = buildMockDiscussionComments(threadId, resolvedNoticeNum);
+	const safeCursor = Math.max(0, params.cursor ?? 0);
+	const safeLimit = Math.max(1, Math.min(100, params.limit ?? 20));
+	const comments = allComments
+		.filter((comment) => comment.sequence > safeCursor)
+		.slice(0, safeLimit);
+	const lastSequence = comments[comments.length - 1]?.sequence ?? null;
 
 	return {
 		thread: {
@@ -440,27 +507,14 @@ export function getMockDiscussionThread(
 			status: DiscussionThreadStatus.OPEN,
 			authorNickname: '익명',
 			authorIpMasked: '127.0.***.***',
-			commentCount: 1,
+			commentCount: allComments.length,
 			createdAt: hoursAgo(2),
 			updatedAt: hoursAgo(1)
 		},
-		comments: [
-			{
-				id: 1,
-				threadId,
-				noticeNum: resolvedNoticeNum,
-				sequence: 1,
-				messageType: DiscussionMessageType.USER,
-				authorNickname: '익명',
-				authorIpMasked: '127.0.***.***',
-				content: '모의 토론 시작 의견입니다.',
-				isDeleted: false,
-				isEdited: false,
-				editedAt: null,
-				createdAt: hoursAgo(2),
-				updatedAt: hoursAgo(2)
-			}
-		]
+		comments,
+		hasMore:
+			lastSequence !== null && allComments.some((comment) => comment.sequence > lastSequence),
+		nextCursor: lastSequence
 	};
 }
 

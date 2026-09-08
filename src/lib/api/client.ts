@@ -31,7 +31,9 @@ import type {
 	ProposalStatisticsGranularity,
 	DiscussionThread,
 	DiscussionComment,
+	DiscussionThreadStatus,
 	DiscussionThreadListResponse,
+	DiscussionThreadWithNoticeListResponse,
 	DiscussionThreadDetailResponse,
 	CreateThreadPayload,
 	CreateCommentPayload,
@@ -759,6 +761,30 @@ export async function getNoticeDiscussions(
 }
 
 /**
+ * 전체 법률안에 걸친 토론 스레드 통합 목록 조회
+ */
+export async function getAllDiscussionThreads(
+	params: { page?: number; limit?: number; status?: DiscussionThreadStatus } = {},
+	customFetch?: Fetch
+): Promise<DiscussionThreadWithNoticeListResponse> {
+	try {
+		const query = new URLSearchParams();
+		if (params.page && params.page > 0) query.set('page', String(params.page));
+		if (params.limit && params.limit > 0) query.set('limit', String(params.limit));
+		if (params.status) query.set('status', params.status);
+		const suffix = query.toString() ? `?${query.toString()}` : '';
+		return await request<DiscussionThreadWithNoticeListResponse>(
+			`/discussions/threads${suffix}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load all discussion threads:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
  * 새 토론 스레드 개설 및 #1 의견 등록
  */
 export async function createNoticeDiscussion(
@@ -924,6 +950,7 @@ export const apiClient = {
 	getCrawlingTransparency,
 	getProposalStatistics,
 	getNoticeDiscussions,
+	getAllDiscussionThreads,
 	createNoticeDiscussion,
 	getDiscussionThread,
 	addDiscussionComment,

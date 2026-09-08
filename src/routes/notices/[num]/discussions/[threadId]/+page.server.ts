@@ -35,7 +35,8 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 				noticeNum,
 				threadId,
 				detail: getMockNoticeDetail(noticeNum),
-				discussion: getMockDiscussionThread(threadId, noticeNum)
+				discussion: getMockDiscussionThread(threadId, noticeNum, { limit: 20 }),
+				uiMockEnabled: true
 			};
 		}
 
@@ -68,7 +69,8 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 			noticeNum,
 			threadId,
 			detail,
-			discussion
+			discussion,
+			uiMockEnabled: false
 		};
 	} catch (err) {
 		console.error(

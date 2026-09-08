@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+const noticeNum = 2210001;
+const threadId = noticeNum * 100 + 1;
+
 test.describe('Global Navigation', () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/');
@@ -21,7 +24,7 @@ test.describe('Global Navigation', () => {
 		await expect(nav).toBeVisible();
 
 		const navLinks = nav.locator('a');
-		await expect(navLinks).toHaveCount(5);
+		await expect(navLinks).toHaveCount(6);
 
 		await expect(page.getByTestId('nav-link-home')).toHaveAttribute('href', '/');
 		await expect(page.getByTestId('nav-link-notices')).toHaveAttribute('href', '/notices');
@@ -29,6 +32,7 @@ test.describe('Global Navigation', () => {
 			'href',
 			'/notices/changes'
 		);
+		await expect(page.getByTestId('nav-link-discussions')).toHaveAttribute('href', '/discussions');
 		await expect(page.getByTestId('nav-link-proposals')).toHaveAttribute('href', '/proposals');
 		await expect(page.getByTestId('nav-link-webhook')).toHaveAttribute('href', '/webhook');
 	});
@@ -37,6 +41,7 @@ test.describe('Global Navigation', () => {
 		await expect(page.getByTestId('nav-link-home')).toContainText('홈');
 		await expect(page.getByTestId('nav-link-notices')).toContainText('입법예고');
 		await expect(page.getByTestId('nav-link-notices-changes')).toContainText('변경 내역');
+		await expect(page.getByTestId('nav-link-discussions')).toContainText('토론');
 		await expect(page.getByTestId('nav-link-proposals')).toContainText('발의 통계');
 		await expect(page.getByTestId('nav-link-webhook')).toContainText('알림 설정');
 	});
@@ -45,6 +50,13 @@ test.describe('Global Navigation', () => {
 		await page.goto('/notices');
 		const noticesLink = page.getByTestId('nav-link-notices');
 		await expect(noticesLink).toHaveAttribute('aria-current', 'page');
+	});
+
+	test('notice discussion detail route highlights discussions nav section', async ({ page }) => {
+		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+
+		await expect(page.getByTestId('nav-link-discussions')).toHaveAttribute('aria-current', 'page');
+		await expect(page.getByTestId('nav-link-notices')).not.toHaveAttribute('aria-current', 'page');
 	});
 
 	test('navigating between pages updates active state', async ({ page }) => {

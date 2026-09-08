@@ -4,7 +4,8 @@ import {
 	isDiffchainUiMockEnabled,
 	getMockRecentNotices,
 	getMockQuickKeywordSuggestions,
-	getMockSystemStats
+	getMockSystemStats,
+	getMockAllDiscussionThreads
 } from '$lib/server/diffchain-ui-mock';
 
 const DEFAULT_STATS = {
@@ -15,16 +16,19 @@ const DEFAULT_STATS = {
 	aiSummaryEnabled: false
 };
 
+const RECENT_DISCUSSIONS_LIMIT = 5;
+
 export const load: PageServerLoad = async ({ fetch }) => {
 	if (isDiffchainUiMockEnabled()) {
 		return {
 			recentNotices: getMockRecentNotices(),
 			quickKeywords: getMockQuickKeywordSuggestions(),
-			stats: getMockSystemStats()
+			stats: getMockSystemStats(),
+			recentDiscussions: getMockAllDiscussionThreads().items
 		};
 	}
 
-	const [recentNotices, quickKeywords, stats] = await Promise.all([
+	const [recentNotices, quickKeywords, stats, recentDiscussions] = await Promise.all([
 		apiClient.getRecentNotices(fetch).catch(() => []),
 		apiClient.getQuickKeywordSuggestions({ limit: 8 }, fetch).catch(() => ({
 			items: [],
@@ -32,8 +36,12 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			sourceNoticeCount: 0,
 			refreshIntervalMs: 60 * 60 * 1000
 		})),
-		apiClient.getSystemStats(fetch).catch(() => DEFAULT_STATS)
+		apiClient.getSystemStats(fetch).catch(() => DEFAULT_STATS),
+		apiClient
+			.getAllDiscussionThreads({ limit: RECENT_DISCUSSIONS_LIMIT }, fetch)
+			.then((res) => res.items)
+			.catch(() => [])
 	]);
 
-	return { recentNotices, quickKeywords, stats };
+	return { recentNotices, quickKeywords, stats, recentDiscussions };
 };
