@@ -102,7 +102,7 @@
 	}
 
 	async function openQuotePushConsent(): Promise<void> {
-		if (!canPromptForQuotePush()) return;
+		if (!isWebPushAvailableByServer) return;
 		if (typeof localStorage !== 'undefined') {
 			localStorage.removeItem(quotePushDismissalKey);
 		}

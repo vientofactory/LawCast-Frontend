@@ -44,6 +44,12 @@ async function forwardRequest(
 		const headers = new Headers(request.headers);
 		headers.delete('host');
 		headers.delete('connection');
+		headers.delete('x-lawcast-client-ip');
+
+		const clientIp = request.headers.get('cf-connecting-ip');
+		if (clientIp) {
+			headers.set('x-lawcast-client-ip', clientIp);
+		}
 
 		// Body stream forwarding
 		const body = method === 'GET' || method === 'HEAD' ? undefined : await request.blob();
