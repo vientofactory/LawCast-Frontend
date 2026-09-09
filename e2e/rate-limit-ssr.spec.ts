@@ -61,8 +61,7 @@ test.describe('SSR rate-limit handling', () => {
 		// a __data.json request (the /api fetch itself happens server-side).
 		const dataRequest = page.waitForRequest(
 			(request) =>
-				request.method() === 'GET' &&
-				request.url().includes('/notices/changes/__data.json'),
+				request.method() === 'GET' && request.url().includes('/notices/changes/__data.json'),
 			{ timeout: 15000 }
 		);
 		await retryButton.click();

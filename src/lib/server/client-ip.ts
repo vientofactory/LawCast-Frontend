@@ -45,10 +45,7 @@ export function resolveClientIp(request: Request): string | null {
  *   prevents stale or spoofed values from surviving the hop and gives the
  *   backend exactly one authoritative header to key on.
  */
-export function buildBackendForwardHeaders(
-	request: Request,
-	clientIp: string | null
-): Headers {
+export function buildBackendForwardHeaders(request: Request, clientIp: string | null): Headers {
 	const headers = new Headers(request.headers);
 
 	headers.delete('host');

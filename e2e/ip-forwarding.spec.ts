@@ -39,9 +39,7 @@ async function findRecorded(
 	const deadline = Date.now() + timeoutMs;
 	for (;;) {
 		const records = await fetchRecords();
-		const match = records
-			.slice(baselineCount)
-			.find((entry) => entry.url.includes(urlSubstring));
+		const match = records.slice(baselineCount).find((entry) => entry.url.includes(urlSubstring));
 		if (match) return match;
 		if (Date.now() > deadline) {
 			throw new Error(`echo backend never received a request matching ${urlSubstring}`);
