@@ -24,5 +24,19 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 
 	const targetUrl = `${API_BASE_URL.replace(/\/$/, '')}${requestUrl.pathname.slice('/api'.length)}${requestUrl.search}`;
 
-	return fetch(new Request(targetUrl, request), { headers });
+	// IMPORTANT: the sanitized headers must be passed in the Request init —
+	// SvelteKit's handleFetch normalization ignores a separate fetch() init
+	// when the first argument is already a Request object, which silently
+	// dropped every forwarded header (and collapsed all users into the edge
+	// IP's shared rate-limit bucket).
+	const body =
+		request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.arrayBuffer();
+
+	return fetch(
+		new Request(targetUrl, {
+			method: request.method,
+			headers,
+			body
+		})
+	);
 };

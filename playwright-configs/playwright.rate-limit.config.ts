@@ -26,7 +26,7 @@ const FORCE_429_PATHS = [
 ].join(',');
 
 export default defineConfig({
-	testDir: 'e2e',
+	testDir: '../e2e',
 	testMatch: 'rate-limit-ssr.spec.ts',
 	fullyParallel: false,
 	forbidOnly: !!process.env.CI,
