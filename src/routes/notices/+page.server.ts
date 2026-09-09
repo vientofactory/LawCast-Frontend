@@ -3,6 +3,7 @@ import {
 	isDiffchainUiMockEnabled,
 	getMockArchiveNoticesResponse
 } from '$lib/server/diffchain-ui-mock';
+import { toLoadErrorPayload } from '$lib/server/load-error';
 import type { PageServerLoad } from '../$types';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
@@ -110,7 +111,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				isDigestContext,
 				noticeNums
 			},
-			error: '입법예고 데이터를 불러오는데 실패했습니다.'
+			error: toLoadErrorPayload(err, '입법예고 데이터를 불러오는데 실패했습니다.').message
 		};
 	}
 };

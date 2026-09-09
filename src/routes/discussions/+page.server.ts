@@ -4,6 +4,7 @@ import {
 	isDiffchainUiMockEnabled,
 	getMockAllDiscussionThreads
 } from '$lib/server/diffchain-ui-mock';
+import { toLoadErrorPayload } from '$lib/server/load-error';
 import type { PageServerLoad } from './$types';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -38,7 +39,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		return {
 			threads: { items: [], total: 0, page, limit: DEFAULT_PAGE_SIZE },
 			status,
-			error: '토론 목록을 불러오는 중 오류가 발생했습니다.'
+			error: toLoadErrorPayload(err, '토론 목록을 불러오는 중 오류가 발생했습니다.').message
 		};
 	}
 };

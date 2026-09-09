@@ -1,6 +1,7 @@
 import { apiClient } from '$lib/api/client';
 import type { PageServerLoad } from './$types';
 import { isDiffchainUiMockEnabled, getMockSystemStats } from '$lib/server/diffchain-ui-mock';
+import { toLoadErrorPayload } from '$lib/server/load-error';
 
 export const load: PageServerLoad = async ({ fetch }) => {
 	if (isDiffchainUiMockEnabled()) {
@@ -70,7 +71,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				}
 			},
 			fetchedAt: new Date().toISOString(),
-			error: '상태 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
+			error: toLoadErrorPayload(err, '상태 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
+				.message
 		};
 	}
 };

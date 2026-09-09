@@ -138,7 +138,8 @@ async function request<T>(
 			// 에러 데이터 구성
 			const errorData = {
 				status: response.status,
-				message: data?.message,
+				// 레이트리밋은 서버 메시지(영문) 대신 표준 한국어 문구를 사용한다.
+				message: response.status === 429 ? undefined : data?.message,
 				errors: data?.errors,
 				retryAfter:
 					parseRetryAfter(response.headers.get('retry-after')) ??
@@ -231,6 +232,13 @@ export function isRateLimitError(error: unknown): error is ApiError {
 export function getRateLimitRetryAfter(error: unknown, fallbackSeconds = 60): number {
 	const retryAfter = (error as { retryAfter?: number } | undefined)?.retryAfter;
 	return typeof retryAfter === 'number' && retryAfter > 0 ? retryAfter : fallbackSeconds;
+}
+
+export function getRateLimitErrorMessage(retryAfter?: number): string {
+	if (retryAfter !== undefined && retryAfter > 0) {
+		return `요청이 너무 많습니다. ${retryAfter}초 후 다시 시도해주세요.`;
+	}
+	return '너무 많은 요청입니다. 잠시 후 다시 시도해주세요.';
 }
 
 /**

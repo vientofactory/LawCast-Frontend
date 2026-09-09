@@ -2,7 +2,7 @@
 	import Header from '$lib/components/Header.svelte';
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
-	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
+	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
@@ -11,8 +11,10 @@
 		faFileCircleXmark,
 		faMagnifyingGlass,
 		faRotate,
+		faRotateRight,
 		faSquarePollHorizontal,
-		faTableList
+		faTableList,
+		faTriangleExclamation
 	} from '@fortawesome/free-solid-svg-icons';
 	import type {
 		ChangeEventType,
@@ -39,12 +41,17 @@
 			fromDetectedAt: string | null;
 			toDetectedAt: string | null;
 		};
+		loadError?: {
+			message: string;
+			retryAfter?: number;
+		};
 	};
 
 	$: changes = data.changes;
 	$: summary = data.summary;
 	$: filters = data.filters;
 	$: digestContext = data.digestContext;
+	$: loadError = data.loadError;
 	$: currentPage = changes.page || 1;
 	$: totalPages = changes.totalPages || 1;
 	$: totalItems = changes.total || 0;
@@ -62,6 +69,61 @@
 		selectedEventType !== null ||
 		sortOrder === 'asc' ||
 		includeIsDoneChanges === false;
+
+	let retryCountdown = 0;
+	let retryTimer: ReturnType<typeof setInterval> | null = null;
+	let isRetrying = false;
+
+	function stopRetryCountdown(): void {
+		if (retryTimer) {
+			clearInterval(retryTimer);
+			retryTimer = null;
+		}
+		retryCountdown = 0;
+	}
+
+	function startRetryCountdown(seconds: number): void {
+		stopRetryCountdown();
+		retryCountdown = seconds;
+		retryTimer = setInterval(() => {
+			retryCountdown = Math.max(0, retryCountdown - 1);
+			if (retryCountdown === 0 && retryTimer) {
+				clearInterval(retryTimer);
+				retryTimer = null;
+			}
+		}, 1000);
+	}
+
+	// Track loadError by identity so a fresh load error (e.g. another 429 after
+	// a retry) restarts the countdown, and a successful retry clears it.
+	let lastSeenLoadError: { message: string; retryAfter?: number } | null | undefined;
+	$: {
+		if (data.loadError !== lastSeenLoadError) {
+			lastSeenLoadError = data.loadError;
+			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
+				startRetryCountdown(data.loadError.retryAfter);
+			} else {
+				stopRetryCountdown();
+			}
+		}
+	}
+
+	function isRateLimitLoadError(): boolean {
+		return loadError?.retryAfter !== undefined;
+	}
+
+	async function handleRetry(): Promise<void> {
+		if (retryCountdown > 0 || isRetrying) return;
+
+		isRetrying = true;
+		try {
+			// goto() to the same URL would reuse the cached load result, so we
+			// must force-invalidate to actually re-run the server load.
+			await invalidateAll();
+		} finally {
+			isRetrying = false;
+		}
+	}
 
 	let isServerLoading = false;
 
@@ -339,6 +401,37 @@
 			</span>
 		</div>
 
+		{#if loadError}
+			<div
+				class="lc-banner-warning mb-4 flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 text-sm"
+				role="alert"
+				data-testid="changes-load-error"
+				data-rate-limited={isRateLimitLoadError() ? 'true' : 'false'}
+			>
+				<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4 shrink-0" />
+				<span class="flex-1">{loadError.message}</span>
+				<button
+					type="button"
+					on:click={handleRetry}
+					disabled={retryCountdown > 0 || isRetrying}
+					data-testid="changes-retry-button"
+					class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					<FontAwesomeIcon
+						icon={faRotateRight}
+						class={`h-3.5 w-3.5 ${isRetrying ? 'animate-spin' : retryCountdown > 0 ? 'animate-pulse' : ''}`}
+					/>
+					{#if isRetrying}
+						다시 시도 중...
+					{:else if retryCountdown > 0}
+						{retryCountdown}초 후 재시도 가능
+					{:else}
+						다시 시도
+					{/if}
+				</button>
+			</div>
+		{/if}
+
 		{#if isDigestContext}
 			<div class="lc-banner-warning mb-4 flex items-start rounded-xl border px-4 py-3 text-sm">
 				<FontAwesomeIcon icon={faCircleInfo} class="mt-0.5 mr-2 h-4 w-4 shrink-0" />
@@ -427,7 +520,8 @@
 
 						<button
 							type="submit"
-							class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold"
+							disabled={isServerLoading}
+							class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							검색
 						</button>

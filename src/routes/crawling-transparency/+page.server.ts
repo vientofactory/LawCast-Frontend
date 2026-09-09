@@ -1,5 +1,6 @@
 import { apiClient } from '$lib/api/client';
 import type { CrawlingTransparencyData } from '$lib/types/api';
+import { toLoadErrorPayload } from '$lib/server/load-error';
 import type { PageServerLoad } from './$types';
 const FALLBACK: CrawlingTransparencyData = {
 	noticeSources: [
@@ -52,7 +53,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		return {
 			transparency: FALLBACK,
 			fetchedAt: new Date().toISOString(),
-			error: '투명성 정보를 불러오지 못했습니다.'
+			error: toLoadErrorPayload(err, '투명성 정보를 불러오지 못했습니다.').message
 		};
 	}
 };

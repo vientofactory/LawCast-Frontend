@@ -1,5 +1,6 @@
 import { apiClient } from '$lib/api/client';
 import type { ProposalStatisticsData, ProposalStatisticsGranularity } from '$lib/types/api';
+import { toLoadErrorPayload } from '$lib/server/load-error';
 import type { PageServerLoad } from './$types';
 
 const FALLBACK: ProposalStatisticsData = {
@@ -30,7 +31,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		return {
 			statistics: { ...FALLBACK, granularity },
 			fetchedAt: new Date().toISOString(),
-			error: '발의 통계를 불러오지 못했습니다.'
+			error: toLoadErrorPayload(err, '발의 통계를 불러오지 못했습니다.').message
 		};
 	}
 };

@@ -8,6 +8,7 @@ import {
 	getMockNoticeDetail,
 	getMockNoticeDiscussions
 } from '$lib/server/diffchain-ui-mock';
+import { toLoadErrorPayload } from '$lib/server/load-error';
 
 type DiscussionLoadResult = {
 	items: DiscussionThread[];
@@ -109,6 +110,69 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 
 		if (status === 404) {
 			throw error(404, '요청한 법률안 원문 정보를 찾을 수 없습니다.');
+		}
+
+		// 레이트리밋(429)은 일시적 상황이므로 에러 페이지 대신
+		// 안내 배너가 있는 페이지를 렌더링한다.
+		if (status === 429) {
+			const loadError = toLoadErrorPayload(err, '요청이 너무 많습니다.');
+			return {
+				detail: {
+					notice: {
+						num: noticeNum,
+						subject: '법률안 정보를 불러올 수 없습니다',
+						proposerCategory: '-',
+						committee: '',
+						link: '',
+						attachments: { pdfFile: '', hwpFile: '' }
+					},
+					originalContent: {
+						contentId: '',
+						title: '법률안 정보를 불러올 수 없습니다',
+						proposalReason: loadError.message,
+						billNumber: null,
+						proposer: null,
+						proposalDate: null,
+						committee: null,
+						referralDate: null,
+						noticePeriod: null,
+						proposalSession: null
+					},
+					archiveMetadata: {
+						archivedAt: null,
+						sourceHtmlSha256: null,
+						sourceHtmlSize: 0,
+						integrity: {
+							checkedAt: null,
+							passed: null,
+							calculatedSha256: null
+						},
+						http: {
+							fetchedAt: null,
+							statusCode: null,
+							contentType: null,
+							etag: null,
+							lastModified: null
+						}
+					},
+					screenshotMeta: {
+						hasScreenshot: false,
+						format: null
+					}
+				},
+				changes: {
+					noticeNum,
+					items: [],
+					count: 0
+				},
+				discussions: {
+					items: [],
+					total: 0,
+					page: 1,
+					limit: 20
+				},
+				loadError
+			};
 		}
 
 		if (status && status >= 400 && status < 500) {

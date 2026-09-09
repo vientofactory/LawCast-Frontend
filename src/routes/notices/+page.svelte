@@ -678,7 +678,7 @@
 									type="submit"
 									disabled={isServerLoading}
 									data-testid="notices-search-submit"
-									class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold"
+									class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
 								>
 									{#if isServerLoading}
 										<FontAwesomeIcon icon={faSpinner} class="mr-2 h-4 w-4 animate-spin" />

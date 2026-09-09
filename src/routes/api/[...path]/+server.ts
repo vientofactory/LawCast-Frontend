@@ -2,6 +2,7 @@ import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
 import { getMockDiscussionThread, isDiffchainUiMockEnabled } from '$lib/server/diffchain-ui-mock';
+import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
 
 const BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 
@@ -36,6 +37,12 @@ async function forwardRequest(
 	if (method === 'GET') {
 		const mockResponse = getMockResponse(path, url);
 		if (mockResponse) return mockResponse;
+	}
+
+	// Test-only: deterministic 429 simulation for e2e suites (see e2e-rate-limit-sim.ts).
+	const forced429 = matchForced429(url.pathname);
+	if (forced429) {
+		return buildForced429Response(forced429.retryAfter);
 	}
 
 	const targetUrl = `${BASE_URL}/${path}${url.search}`;

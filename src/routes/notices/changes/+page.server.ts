@@ -4,6 +4,7 @@ import {
 	isDiffchainUiMockEnabled,
 	getMockRecentNoticeChangesResponse
 } from '$lib/server/diffchain-ui-mock';
+import { toLoadErrorPayload } from '$lib/server/load-error';
 import type { PageServerLoad } from './$types';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
@@ -158,45 +159,78 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			}
 		}
 	}
+	const changesPromise = apiClient.getRecentNoticeChanges(
+		{
+			page,
+			limit,
+			search,
+			noticeNum: noticeNum ?? undefined,
+			eventType,
+			sortOrder,
+			excludeLegacyGenesisSource: true,
+			excludeIsDoneEvents: !includeIsDoneChanges,
+			comparableOnly: true,
+			fromEventId: fromEventId ?? undefined,
+			toEventId: toEventId ?? undefined,
+			fromDetectedAt: fromDetectedAt ?? undefined,
+			toDetectedAt: toDetectedAt ?? undefined
+		},
+		fetch
+	);
+	const summaryPromise = apiClient.getComparableNoticeChangesSummary(fetch);
 
-	const [changes, summary] = await Promise.all([
-		apiClient.getRecentNoticeChanges(
-			{
+	// 백엔드 429(레이트리밋) 등으로 목록 조회가 실패해도 페이지 전체가
+	// 500으로 떨어지지 않도록 에러 상태를 데이터로 전달한다.
+	try {
+		const [changes, summary] = await Promise.all([changesPromise, summaryPromise]);
+		return {
+			changes,
+			summary,
+			filters: {
+				search,
+				noticeNum,
+				eventType: eventType ?? null,
+				sortOrder,
+				includeIsDoneChanges
+			},
+			digestContext: {
+				isDigestContext,
+				fromEventId,
+				toEventId,
+				fromDetectedAt,
+				toDetectedAt
+			}
+		};
+	} catch (err) {
+		console.error('Failed to load recent notice changes page:', err);
+		const loadError = toLoadErrorPayload(err, '변경 내역을 불러오지 못했습니다.');
+		return {
+			changes: {
+				items: [],
 				page,
 				limit,
-				search,
-				noticeNum: noticeNum ?? undefined,
-				eventType,
-				sortOrder,
-				excludeLegacyGenesisSource: true,
-				excludeIsDoneEvents: !includeIsDoneChanges,
-				comparableOnly: true,
-				fromEventId: fromEventId ?? undefined,
-				toEventId: toEventId ?? undefined,
-				fromDetectedAt: fromDetectedAt ?? undefined,
-				toDetectedAt: toDetectedAt ?? undefined
+				total: 0,
+				totalPages: 1
 			},
-			fetch
-		),
-		apiClient.getComparableNoticeChangesSummary(fetch)
-	]);
-
-	return {
-		changes,
-		summary,
-		filters: {
-			search,
-			noticeNum,
-			eventType: eventType ?? null,
-			sortOrder,
-			includeIsDoneChanges
-		},
-		digestContext: {
-			isDigestContext,
-			fromEventId,
-			toEventId,
-			fromDetectedAt,
-			toDetectedAt
-		}
-	};
+			summary: {
+				comparableEventTotal: 0,
+				comparableNoticeCount: 0
+			},
+			filters: {
+				search,
+				noticeNum,
+				eventType: eventType ?? null,
+				sortOrder,
+				includeIsDoneChanges
+			},
+			digestContext: {
+				isDigestContext,
+				fromEventId,
+				toEventId,
+				fromDetectedAt,
+				toDetectedAt
+			},
+			loadError
+		};
+	}
 };
