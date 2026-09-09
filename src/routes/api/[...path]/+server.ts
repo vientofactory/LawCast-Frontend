@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
 import { getMockDiscussionThread, isDiffchainUiMockEnabled } from '$lib/server/diffchain-ui-mock';
 import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
+import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
 
 const BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 
@@ -48,15 +49,9 @@ async function forwardRequest(
 	const targetUrl = `${BASE_URL}/${path}${url.search}`;
 
 	try {
-		const headers = new Headers(request.headers);
-		headers.delete('host');
-		headers.delete('connection');
-		headers.delete('x-lawcast-client-ip');
-
-		const clientIp = request.headers.get('cf-connecting-ip');
-		if (clientIp) {
-			headers.set('x-lawcast-client-ip', clientIp);
-		}
+		// Forward the original visitor's IP so the backend rate-limits per user
+		// instead of per edge/proxy address (see lib/server/client-ip.ts).
+		const headers = buildBackendForwardHeaders(request, resolveClientIp(request));
 
 		// Body stream forwarding
 		const body = method === 'GET' || method === 'HEAD' ? undefined : await request.blob();

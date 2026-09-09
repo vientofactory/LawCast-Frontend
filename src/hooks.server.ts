@@ -1,6 +1,7 @@
 import type { HandleFetch } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
+import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
 
 const API_PATH_PREFIX = '/api/';
 const API_BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
@@ -17,15 +18,9 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 		return buildForced429Response(forced429.retryAfter);
 	}
 
-	const headers = new Headers(request.headers);
-	headers.delete('cf-connecting-ip');
-	headers.delete('x-forwarded-for');
-	headers.delete('x-lawcast-client-ip');
-
-	const clientIp = event.request.headers.get('cf-connecting-ip');
-	if (clientIp) {
-		headers.set('x-lawcast-client-ip', clientIp);
-	}
+	// Forward the original visitor's IP so the backend rate-limits per user
+	// instead of per edge/proxy address (see lib/server/client-ip.ts).
+	const headers = buildBackendForwardHeaders(request, resolveClientIp(event.request));
 
 	const targetUrl = `${API_BASE_URL.replace(/\/$/, '')}${requestUrl.pathname.slice('/api'.length)}${requestUrl.search}`;
 

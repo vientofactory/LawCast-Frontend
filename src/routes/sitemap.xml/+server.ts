@@ -1,12 +1,20 @@
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import type { Notice, ArchiveNoticeListResponse } from '$lib/types/api';
+import { buildBackendForwardHeaders } from '$lib/server/client-ip';
 
 const BACKEND_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 const BATCH_SIZE = 100;
 const MAX_NOTICES = 5000; // Google 권장 상한 50,000 이내
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간
 const KST_TIMEZONE = 'Asia/Seoul';
+
+/**
+ * Bot traffic to /sitemap.xml bursts up to 50 archive requests at once. Tag it
+ * with a fixed identity so search crawlers share one bucket instead of
+ * consuming the bucket of whichever real user's edge IP is the peer address.
+ */
+const SITEMAP_CLIENT_ID = 'sitemap-bot';
 
 let cachedXml: string | null = null;
 let cacheExpiresAt = 0;
@@ -35,12 +43,16 @@ function formatKstDate(value: string | Date): string {
 	}).format(parsed);
 }
 
-async function fetchAllNoticeEntries(customFetch: typeof fetch): Promise<NoticeEntry[]> {
+async function fetchAllNoticeEntries(
+	customFetch: typeof fetch,
+	forwardHeaders?: Headers
+): Promise<NoticeEntry[]> {
 	const entries: NoticeEntry[] = [];
 
 	// 첫 번째 페이지로 전체 개수 파악
 	const firstRes = await customFetch(
-		`${BACKEND_URL}/notices/archive?page=1&limit=${BATCH_SIZE}&sortOrder=desc`
+		`${BACKEND_URL}/notices/archive?page=1&limit=${BATCH_SIZE}&sortOrder=desc`,
+		{ headers: forwardHeaders }
 	);
 	if (!firstRes.ok) return entries;
 
@@ -61,7 +73,10 @@ async function fetchAllNoticeEntries(customFetch: typeof fetch): Promise<NoticeE
 	const pageNums = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
 	const results = await Promise.all(
 		pageNums.map((page) =>
-			customFetch(`${BACKEND_URL}/notices/archive?page=${page}&limit=${BATCH_SIZE}&sortOrder=desc`)
+			customFetch(
+				`${BACKEND_URL}/notices/archive?page=${page}&limit=${BATCH_SIZE}&sortOrder=desc`,
+				{ headers: forwardHeaders }
+			)
 				.then((r) => (r.ok ? r.json() : null))
 				.catch(() => null)
 		)
@@ -95,7 +110,7 @@ function urlTag(loc: string, lastmod: string, changefreq: string, priority: stri
   </url>`;
 }
 
-export const GET: RequestHandler = async ({ fetch, url }) => {
+export const GET: RequestHandler = async ({ fetch, request, url }) => {
 	const now = Date.now();
 	if (cachedXml && now < cacheExpiresAt) {
 		return new Response(cachedXml, {
@@ -105,6 +120,10 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
 			}
 		});
 	}
+
+	// Sitemap generation is a bot-facing endpoint: key its backend traffic to a
+	// fixed identity rather than the (edge) peer IP or any visitor header.
+	const forwardHeaders = buildBackendForwardHeaders(request, SITEMAP_CLIENT_ID);
 
 	const origin = url.origin;
 	const today = formatKstDate(new Date());
@@ -116,7 +135,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
 
 	let noticeEntries: string[] = [];
 	try {
-		const notices = await fetchAllNoticeEntries(fetch);
+		const notices = await fetchAllNoticeEntries(fetch, forwardHeaders);
 		noticeEntries = notices.map((n) =>
 			urlTag(`${origin}/notices/${n.num}`, n.lastmod, 'weekly', '0.7')
 		);
