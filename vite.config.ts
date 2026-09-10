@@ -12,8 +12,9 @@ export default defineConfig({
 		host: true,
 		allowedHosts: true,
 		hmr: {
-			protocol: 'wss',
-			clientPort: 443
+			// Use wss for remote/ngrok, ws for local
+			protocol: process.env.REMOTE_DEV ? 'wss' : 'ws',
+			clientPort: process.env.REMOTE_DEV ? 443 : undefined
 		}
 	}
 });

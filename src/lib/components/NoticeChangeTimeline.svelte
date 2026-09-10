@@ -153,7 +153,7 @@
 										{:else}
 											<a
 												href={buildRevisionLink(event.eventHeight)}
-												class="lc-button-neutral inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold hover:cursor-pointer"
+												class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
 											>
 												리비전 보기
 											</a>
@@ -163,7 +163,7 @@
 												<button
 													type="button"
 													on:click={() => onSelectCompare(event.eventHeight, null)}
-													class="lc-button-neutral inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold hover:cursor-pointer"
+													class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
 												>
 													기준으로 선택
 												</button>
@@ -171,7 +171,7 @@
 												<button
 													type="button"
 													on:click={() => onSelectCompare(selectedFromRev, event.eventHeight)}
-													class="lc-button-neutral inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold hover:cursor-pointer"
+													class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
 												>
 													비교 대상으로 선택
 												</button>

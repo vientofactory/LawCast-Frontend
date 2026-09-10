@@ -681,7 +681,7 @@
 			<div class="lc-banner-warning mb-6 rounded-xl border px-4 py-3 text-sm">
 				현재 Rev #{activeRevision} 시점 원문을 열람 중입니다.
 				{#if headRevision !== null}
-					<a href={buildRevisionLink(null)} class="ml-2 font-semibold underline">
+					<a href={buildRevisionLink(null)} class="ml-2 font-semibold lc-link">
 						최신 리비전 #{headRevision} 보기
 					</a>
 				{/if}

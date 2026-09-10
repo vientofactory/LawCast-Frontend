@@ -117,7 +117,7 @@
 				{#if showRefresh}
 					<button
 						on:click={handleRefresh}
-						class="flex cursor-pointer items-center space-x-1 text-sm {config.buttonClass} underline"
+						class="flex cursor-pointer items-center space-x-1 text-sm {config.buttonClass}"
 						title="페이지 새로고침"
 					>
 						<FontAwesomeIcon icon={faRefresh} class="h-3 w-3" />

@@ -600,12 +600,7 @@
 											class="lc-chip-blue inline-flex items-center rounded-full px-2 py-1 font-semibold"
 										>
 											키워드: {searchQuery.trim()}
-											<a
-												href={buildFilterLink({ search: '' })}
-												class="lc-link ml-2 underline underline-offset-2"
-											>
-												해제
-											</a>
+											<a href={buildFilterLink({ search: '' })} class="lc-link ml-2"> 해제 </a>
 										</span>
 									{/if}
 									{#if startDate.trim() || endDate.trim()}
@@ -615,7 +610,7 @@
 											기간: {startDate || '처음'} ~ {endDate || '현재'}
 											<a
 												href={buildFilterLink({ startDate: '', endDate: '' })}
-												class="lc-link ml-2 underline underline-offset-2"
+												class="lc-link ml-2"
 											>
 												해제
 											</a>
@@ -663,10 +658,7 @@
 									>
 										정렬: {sortOrder === 'asc' ? '오름차순' : '내림차순'}
 										{#if sortOrder !== 'desc'}
-											<a
-												href={buildFilterLink({ sortOrder: 'desc' })}
-												class="lc-link ml-2 underline underline-offset-2"
-											>
+											<a href={buildFilterLink({ sortOrder: 'desc' })} class="lc-link ml-2">
 												기본값
 											</a>
 										{/if}

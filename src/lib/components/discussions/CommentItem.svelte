@@ -290,7 +290,7 @@
 								<button
 									type="button"
 									on:click={(e) => scrollToComment(token.sequence, e)}
-									class="lc-chip-blue mx-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs font-semibold hover:underline cursor-pointer align-baseline"
+									class="lc-chip-blue mx-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs font-semibold transition-opacity hover:opacity-80 cursor-pointer align-baseline"
 									title={`#${token.sequence}번 의견으로 이동`}
 								>
 									<FontAwesomeIcon icon={faQuoteRight} class="h-2.5 w-2.5 opacity-70" />

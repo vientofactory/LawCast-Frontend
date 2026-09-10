@@ -213,7 +213,7 @@
 				disabled={isSubmitting || isRateLimited}
 				class={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold ${
 					mode === 'delete-comment'
-						? 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50'
+						? 'bg-red-600 text-white transition-colors hover:bg-red-700 disabled:opacity-50'
 						: 'lc-button-primary disabled:opacity-50'
 				}`}
 			>

@@ -105,7 +105,7 @@
 							href={source.url}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="lc-text-info mb-2 inline-flex items-center gap-1 text-xs hover:underline"
+							class="lc-text-info mb-2 inline-flex items-center gap-1 text-xs transition-opacity hover:opacity-75"
 						>
 							{source.url.replace('https://', '')}
 							<FontAwesomeIcon icon={faGlobe} class="h-3 w-3" />

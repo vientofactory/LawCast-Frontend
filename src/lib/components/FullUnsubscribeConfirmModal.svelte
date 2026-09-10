@@ -34,7 +34,7 @@
 			</button>
 			<button
 				type="button"
-				class="inline-flex cursor-pointer items-center rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+				class="inline-flex cursor-pointer items-center rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
 				disabled={isSubmitting || !isSubscribed}
 				on:click={() => onConfirm?.()}
 			>

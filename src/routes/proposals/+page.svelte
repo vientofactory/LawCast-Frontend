@@ -707,18 +707,15 @@
 				</p>
 				<p class="font-semibold">
 					정확한 법률안 발의 통계는
-					<a
-						href="https://kosis.kr"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="lc-link underline">통계청(KOSIS)</a
+					<a href="https://kosis.kr" target="_blank" rel="noopener noreferrer" class="lc-link"
+						>통계청(KOSIS)</a
 					>
 					또는
 					<a
 						href="https://pal.assembly.go.kr"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="lc-link underline">국회 입법예고 시스템</a
+						class="lc-link">국회 입법예고 시스템</a
 					>의 공식 정보를 확인하시기 바랍니다.
 				</p>
 			</div>

@@ -51,7 +51,7 @@
 						<a
 							id="recent-discussion-{thread.id}"
 							href="/notices/{thread.noticeNum}/discussions/{thread.id}"
-							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150 hover:text-blue-600 hover:underline group-hover:text-blue-600"
+							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150 hover:text-blue-600 group-hover:text-blue-600"
 						>
 							{thread.title}
 						</a>

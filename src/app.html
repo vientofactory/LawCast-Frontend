@@ -25,7 +25,14 @@
 				root.dataset.theme = preferredTheme;
 				root.style.colorScheme = preferredTheme;
 				const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-				metaThemeColor?.setAttribute('content', preferredTheme === 'dark' ? '#08111f' : '#3b82f6');
+				if (metaThemeColor) {
+					metaThemeColor.setAttribute('content', preferredTheme === 'dark' ? '#08111f' : '#3b82f6');
+				} else {
+					const meta = document.createElement('meta');
+					meta.name = 'theme-color';
+					meta.content = preferredTheme === 'dark' ? '#08111f' : '#3b82f6';
+					document.head.appendChild(meta);
+				}
 			})();
 		</script>
 		%sveltekit.head%
