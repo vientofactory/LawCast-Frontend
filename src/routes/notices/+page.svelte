@@ -51,7 +51,7 @@
 	$: currentPage = archive?.page || 1;
 	$: totalPages = archive?.totalPages || 1;
 	$: totalItems = archive?.total || 0;
-	$: limit = archive?.limit || 20;
+	$: limit = archive?.limit || DEFAULT_PAGE_SIZE;
 	$: searchQuery = archive?.search || '';
 	$: startDate = archive?.startDate || '';
 	$: endDate = archive?.endDate || '';
@@ -129,6 +129,7 @@
 	$: hasDateReversed =
 		startDate.trim().length > 0 && endDate.trim().length > 0 && startDate > endDate;
 	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
+	const DEFAULT_PAGE_SIZE = 20;
 
 	let pendingPaginationPage: number | null = null;
 	let wasServerLoading = false;
@@ -250,7 +251,7 @@
 			requestedLimit as (typeof PAGE_SIZE_OPTIONS)[number]
 		)
 			? requestedLimit
-			: 10;
+			: DEFAULT_PAGE_SIZE;
 		params.set('limit', String(nextLimit));
 		const search = (formData.get('search') || '').toString().trim();
 		const startDate = (formData.get('startDate') || '').toString().trim();

@@ -10,6 +10,7 @@ import { env } from '$env/dynamic/private';
  * `seconds` overrides the default Retry-After (60).
  *
  * Example: E2E_FORCE_429_PATHS=/api/notices/changes:120,/api/stats
+ * The changes page default limit is 20 now, matching the frontend changes.
  */
 export function matchForced429(pathname: string): { retryAfter: number } | null {
 	const raw = env.E2E_FORCE_429_PATHS?.trim();

@@ -46,7 +46,6 @@
 			retryAfter?: number;
 		};
 	};
-
 	$: changes = data.changes;
 	$: summary = data.summary;
 	$: filters = data.filters;
@@ -55,7 +54,7 @@
 	$: currentPage = changes.page || 1;
 	$: totalPages = changes.totalPages || 1;
 	$: totalItems = changes.total || 0;
-	$: limit = changes.limit || 10;
+	$: limit = changes.limit || DEFAULT_PAGE_SIZE;
 	$: isDigestContext = digestContext?.isDigestContext === true;
 	$: searchQuery = filters?.search || '';
 	$: noticeNumFilter = filters?.noticeNum ?? null;
@@ -63,6 +62,7 @@
 	$: sortOrder = filters?.sortOrder === 'asc' ? 'asc' : 'desc';
 	$: includeIsDoneChanges = filters?.includeIsDoneChanges === true;
 	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
+	const DEFAULT_PAGE_SIZE = 20;
 	$: hasActiveFilters =
 		searchQuery.trim().length > 0 ||
 		noticeNumFilter !== null ||
@@ -192,7 +192,7 @@
 			requestedLimit as (typeof PAGE_SIZE_OPTIONS)[number]
 		)
 			? requestedLimit
-			: 10;
+			: DEFAULT_PAGE_SIZE;
 		const resolvedSearch = (overrides.search ?? searchQuery).trim();
 		const resolvedNoticeNum = overrides.noticeNum ?? noticeNumFilter;
 		const resolvedEventType = overrides.eventType ?? selectedEventType;
@@ -316,7 +316,7 @@
 			requestedLimit as (typeof PAGE_SIZE_OPTIONS)[number]
 		)
 			? requestedLimit
-			: 10;
+			: DEFAULT_PAGE_SIZE;
 		const nextIncludeIsDoneChanges = formData.get('includeIsDoneChanges') === 'true';
 
 		goto(
