@@ -49,7 +49,7 @@
 		}
 	});
 
-	let { children } = $props();
+	let { children, data } = $props();
 	const routePath = $derived(page.url.pathname);
 	const routeId = $derived(
 		routePath === '/' ? 'home' : routePath.replace(/^\//, '').replace(/[/]+/g, '-')
@@ -159,4 +159,4 @@
 <div data-route-path={routePath} data-route-id={routeId} data-testid="app-route-container">
 	{@render children()}
 </div>
-<Footer />
+<Footer frontendVersion={data.frontendVersion} backendVersion={data.backendVersion} />

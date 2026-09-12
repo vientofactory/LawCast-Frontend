@@ -2,6 +2,11 @@
 	import { env } from '$env/dynamic/public';
 	import { faGithub } from '@fortawesome/free-brands-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+
+	let {
+		frontendVersion = 'unknown',
+		backendVersion = 'unknown'
+	}: { frontendVersion?: string; backendVersion?: string } = $props();
 </script>
 
 <footer
@@ -45,6 +50,9 @@
 							>
 						</p>
 					{/if}
+					<p class="lc-text-muted text-xs">
+						v{frontendVersion} / API v{backendVersion}
+					</p>
 				</div>
 			</div>
 			<a
