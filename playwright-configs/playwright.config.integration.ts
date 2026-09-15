@@ -1,5 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * Integration Playwright config — runs against a live backend.
+ *
+ * Usage: npm run test:e2e:integration
+ *
+ * Requires a running dev server with a real backend (or DIFFCHAIN_UI_MOCK=0).
+ * Tests that use mock-specific data will skip via their own guard.
+ * Tests that do NOT check for mock mode will run against real API responses.
+ *
+ * To run against a specific URL:
+ *   PLAYWRIGHT_BASE_URL=http://localhost:3002 npm run test:e2e:integration
+ */
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
 
 export default defineConfig({
@@ -27,9 +39,8 @@ export default defineConfig({
 		timeout: 120_000,
 		env: {
 			NODE_ENV: 'development',
-			// Default to mock mode so e2e tests never hit the real backend.
-			// Set DIFFCHAIN_UI_MOCK=0 to disable (see playwright.config.integration.ts).
-			DIFFCHAIN_UI_MOCK: process.env.DIFFCHAIN_UI_MOCK ?? '1'
+			// Explicitly disable mock mode for integration tests.
+			DIFFCHAIN_UI_MOCK: '0'
 		}
 	}
 });

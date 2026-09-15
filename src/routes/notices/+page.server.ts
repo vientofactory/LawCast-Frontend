@@ -34,6 +34,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			? requestedLimit
 			: DEFAULT_PAGE_SIZE;
 	const search = (url.searchParams.get('search') || '').trim();
+	const proposer = (url.searchParams.get('proposer') || '').trim();
 	const startDate = (url.searchParams.get('startDate') || '').trim();
 	const endDate = (url.searchParams.get('endDate') || '').trim();
 	const sortOrder = url.searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
@@ -50,6 +51,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				page,
 				limit,
 				search,
+				proposer,
 				startDate,
 				endDate,
 				sortOrder,
@@ -69,6 +71,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				page,
 				limit,
 				search,
+				proposer,
 				startDate,
 				endDate,
 				sortOrder,
@@ -96,6 +99,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				total: 0,
 				totalPages: 1,
 				search,
+				proposer,
 				startDate,
 				endDate,
 				sortOrder,

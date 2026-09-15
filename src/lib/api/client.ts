@@ -282,6 +282,7 @@ export async function getArchivedNotices(
 		page?: number;
 		limit?: number;
 		search?: string;
+		proposer?: string;
 		startDate?: string;
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
@@ -304,6 +305,10 @@ export async function getArchivedNotices(
 
 		if (params.search?.trim()) {
 			query.set('search', params.search.trim());
+		}
+
+		if (params.proposer?.trim()) {
+			query.set('proposer', params.proposer.trim());
 		}
 
 		if (params.startDate?.trim()) {

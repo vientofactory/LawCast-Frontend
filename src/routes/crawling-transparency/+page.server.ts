@@ -1,5 +1,9 @@
 import { apiClient } from '$lib/api/client';
 import type { CrawlingTransparencyData } from '$lib/types/api';
+import {
+	isDiffchainUiMockEnabled,
+	getMockCrawlingTransparencyData
+} from '$lib/server/diffchain-ui-mock';
 import { toLoadErrorPayload } from '$lib/server/load-error';
 import type { PageServerLoad } from './$types';
 const FALLBACK: CrawlingTransparencyData = {
@@ -42,6 +46,13 @@ const FALLBACK: CrawlingTransparencyData = {
 };
 
 export const load: PageServerLoad = async ({ fetch }) => {
+	if (isDiffchainUiMockEnabled()) {
+		return {
+			transparency: getMockCrawlingTransparencyData(),
+			fetchedAt: new Date().toISOString()
+		};
+	}
+
 	try {
 		const transparency = await apiClient.getCrawlingTransparency(fetch);
 		return {
