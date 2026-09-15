@@ -1,5 +1,9 @@
 import { env } from '$env/dynamic/private';
-import { DiscussionMessageType, DiscussionThreadStatus } from '$lib/types/api';
+import {
+	DiscussionMessageType,
+	DiscussionThreadStatus,
+	type NoticeLifecycleStatus
+} from '$lib/types/api';
 import type {
 	ArchiveNoticeListResponse,
 	QuickKeywordSuggestionsResponse,
@@ -11,7 +15,10 @@ import type {
 	SystemStats,
 	DiscussionThreadListResponse,
 	DiscussionThreadWithNoticeListResponse,
-	DiscussionThreadDetailResponse
+	DiscussionThreadDetailResponse,
+	CrawlingTransparencyData,
+	ProposalStatisticsData,
+	ProposalStatisticsGranularity
 } from '$lib/types/api';
 import { NoticeChangeSource } from '$lib/types/change-source';
 
@@ -287,22 +294,142 @@ function buildMockNoticeDetail(noticeNum: number, requestedRev?: number): Notice
 	};
 }
 
+/** Archive-only overrides for diverse mock data used in e2e filter tests. */
+const MOCK_ARCHIVE_OVERRIDE_CONFIG: {
+	num: number;
+	subject: string;
+	committee: string;
+	archiveDaysAgo: number;
+	isDoneOverride?: boolean;
+	proposalReason?: string;
+}[] = [
+	// ── Core 4 notices (varied isDone, committees, dates, fullText keywords) ──
+	{
+		num: 2210001,
+		subject: 'AI·데이터 산업 진흥에 관한 법률안',
+		committee: '과학기술정보방송통신위원회',
+		archiveDaysAgo: 3,
+		isDoneOverride: false,
+		proposalReason: 'AI 산업의 건전한 성장과 개인정보 보호를 위한 제도적 기반을 마련하기 위함.'
+	},
+	{
+		num: 2210002,
+		subject: '개인정보 보호법 일부개정법률안',
+		committee: '법제사법위원회',
+		archiveDaysAgo: 10,
+		isDoneOverride: true,
+		proposalReason: '개인정보 침해 사고의 신속한 대응과 피해 구제를 강화하기 위함.'
+	},
+	{
+		num: 2210003,
+		subject: '중대재해 처벌 등에 관한 법률안',
+		committee: '환경노동위원회',
+		archiveDaysAgo: 1,
+		isDoneOverride: false,
+		proposalReason: '중대 산업재해 예방과 안전보건 확보 의무를 강화하기 위함.'
+	},
+	{
+		num: 2210004,
+		subject: '플랫폼 공정화에 관한 법률안',
+		committee: '정무위원회',
+		archiveDaysAgo: 20,
+		isDoneOverride: true,
+		proposalReason: '플랫폼 경제에서의 공정한 거래 질서를 확립하기 위함.'
+	},
+	// ── Additional notices for pagination testing (limit=10 triggers page 2) ──
+	{
+		num: 2210005,
+		subject: '근로기준법 일부개정법률안',
+		committee: '환경노동위원회',
+		archiveDaysAgo: 5,
+		isDoneOverride: false,
+		proposalReason: '근로자의 안전보건과 근로 환경 개선을 위한 제도적 장치를 마련하기 위함.'
+	},
+	{
+		num: 2210006,
+		subject: '부패방지 및 국민권익위원회의 운영에 관한 법률안',
+		committee: '법제사법위원회',
+		archiveDaysAgo: 8,
+		isDoneOverride: true,
+		proposalReason: '공공기관의 부패 예방과 투명한 행정을 강화하기 위함.'
+	},
+	{
+		num: 2210007,
+		subject: '학교폭력 예방 및 대책에 관한 법률안',
+		committee: '교육위원회',
+		archiveDaysAgo: 2,
+		isDoneOverride: false,
+		proposalReason: '학교폭력 예방 교육의 실효성을 높이고 피해 학생 보호를 강화하기 위함.'
+	},
+	{
+		num: 2210008,
+		subject: '전자상거래 소비자보호에 관한 법률안',
+		committee: '정무위원회',
+		archiveDaysAgo: 15,
+		isDoneOverride: true,
+		proposalReason: '전자상거래 시장에서의 소비자 권익 보호를 강화하기 위함.'
+	},
+	{
+		num: 2210009,
+		subject: ' Renewable Energy法案',
+		committee: '산업통상자원중소벤처기업위원회',
+		archiveDaysAgo: 7,
+		isDoneOverride: false,
+		proposalReason: '재생에너지 산업의 경쟁력 강화와 에너지 전환 정책 지원을 위함.'
+	},
+	{
+		num: 2210010,
+		subject: '국가재정법 일부개정법률안',
+		committee: '기획재정위원회',
+		archiveDaysAgo: 12,
+		isDoneOverride: true,
+		proposalReason: '국가 재정 운용의 투명성과 책임성을 강화하기 위함.'
+	},
+	{
+		num: 2210011,
+		subject: '화학물질 관리법 일부개정법률안',
+		committee: '환경노동위원회',
+		archiveDaysAgo: 4,
+		isDoneOverride: false,
+		proposalReason: '유해 화학물질의 안전 관리 체계를 강화하기 위함.'
+	},
+	{
+		num: 2210012,
+		subject: '금융소비자 보호에 관한 법률안',
+		committee: '정무위원회',
+		archiveDaysAgo: 6,
+		isDoneOverride: true,
+		proposalReason: '금융거래에서의 소비자 보호 제도를 선진화하기 위함.'
+	}
+];
+
 function buildMockArchiveNotices(): Notice[] {
-	return [2210001, 2210002, 2210003, 2210004].map((noticeNum) => {
-		const record = buildMockNoticeRecord(noticeNum);
+	return MOCK_ARCHIVE_OVERRIDE_CONFIG.map((override) => {
+		const record = buildMockNoticeRecord(override.num);
 		const { notice } = record;
+		const archiveStartedAt = daysAgo(override.archiveDaysAgo);
+		const isDone = override.isDoneOverride ?? notice.isDone;
+
+		// Override lifecycleStatus based on isDoneOverride for correct filter behavior.
+		const lifecycleStatus: NoticeLifecycleStatus =
+			override.isDoneOverride === true
+				? 'renumbered'
+				: override.isDoneOverride === false
+					? 'active'
+					: (notice.lifecycleStatus ?? 'active');
+
 		return {
-			num: notice.num,
-			subject: notice.subject,
+			num: override.num,
+			subject: override.subject,
 			proposerCategory: notice.proposerCategory,
-			committee: notice.committee,
+			committee: override.committee,
 			link: notice.link,
-			isDone: notice.isDone,
-			archiveStartedAt: notice.archiveStartedAt,
+			isDone,
+			archiveStartedAt,
 			lastUpdatedAt: notice.lastUpdatedAt,
 			aiSummary: notice.aiSummary,
 			aiSummaryStatus: notice.aiSummaryStatus,
-			lifecycleStatus: notice.lifecycleStatus,
+			lifecycleStatus,
 			sourceDeletedAt: notice.sourceDeletedAt,
 			contentId: notice.contentId,
 			changeEventCount: record.changes.count,
@@ -334,6 +461,7 @@ export function getMockArchiveNoticesResponse(params: {
 	page: number;
 	limit: number;
 	search?: string;
+	proposer?: string;
 	startDate?: string;
 	endDate?: string;
 	sortOrder?: 'asc' | 'desc';
@@ -342,14 +470,57 @@ export function getMockArchiveNoticesResponse(params: {
 }): ArchiveNoticeListResponse {
 	const allNotices = buildMockArchiveNotices();
 	const search = (params.search || '').trim().toLowerCase();
+	const proposerFilter = (params.proposer || '').trim().toLowerCase();
+	const fullText = params.fullText === true;
+
+	// Build a map of num → proposalReason for fullText search expansion.
+	const proposalReasonMap = new Map<number, string>();
+	for (const config of MOCK_ARCHIVE_OVERRIDE_CONFIG) {
+		if (config.proposalReason) {
+			proposalReasonMap.set(config.num, config.proposalReason.toLowerCase());
+		}
+	}
+
 	let filtered = [...allNotices];
 
 	if (search) {
 		filtered = filtered.filter((notice) => {
-			const haystack = [notice.subject, notice.committee, notice.proposerCategory, notice.contentId]
+			const baseHaystack = [
+				notice.subject,
+				notice.committee,
+				notice.proposerCategory,
+				notice.contentId
+			]
 				.join(' ')
 				.toLowerCase();
-			return haystack.includes(search);
+			if (fullText) {
+				const proposalReason = proposalReasonMap.get(notice.num) || '';
+				return baseHaystack.includes(search) || proposalReason.includes(search);
+			}
+			return baseHaystack.includes(search);
+		});
+	}
+
+	if (proposerFilter) {
+		filtered = filtered.filter((notice) => {
+			const haystack = [notice.subject, notice.proposerCategory].join(' ').toLowerCase();
+			return haystack.includes(proposerFilter);
+		});
+	}
+
+	// Apply date range filtering based on archiveStartedAt.
+	if (params.startDate) {
+		const startMs = new Date(params.startDate).getTime();
+		filtered = filtered.filter((notice) => {
+			if (!notice.archiveStartedAt) return false;
+			return new Date(notice.archiveStartedAt).getTime() >= startMs;
+		});
+	}
+	if (params.endDate) {
+		const endMs = new Date(params.endDate + 'T23:59:59').getTime();
+		filtered = filtered.filter((notice) => {
+			if (!notice.archiveStartedAt) return false;
+			return new Date(notice.archiveStartedAt).getTime() <= endMs;
 		});
 	}
 
@@ -376,6 +547,7 @@ export function getMockArchiveNoticesResponse(params: {
 		total,
 		totalPages: Math.max(1, Math.ceil(total / limit)),
 		search: params.search ?? '',
+		proposer: params.proposer ?? '',
 		startDate: params.startDate,
 		endDate: params.endDate,
 		sortOrder: params.sortOrder,
@@ -796,5 +968,79 @@ export function getMockSystemStats(): SystemStats {
 				}
 			]
 		}
+	};
+}
+
+export function getMockCrawlingTransparencyData(): CrawlingTransparencyData {
+	return {
+		noticeSources: [
+			{
+				id: 'pal',
+				name: '국회 입법예고 게시판',
+				url: 'https://pal.assembly.go.kr',
+				description: '국회에서 발의된 법률안과 입법예고 정보를 수집합니다.',
+				noticeCount: 12,
+				intervalMs: 600000,
+				intervalLabel: '매 10분'
+			},
+			{
+				id: 'nsm',
+				name: '국민참여입법센터 입법진행현황',
+				url: 'https://opinion.lawmaking.go.kr',
+				description: '국민참여입법센터의 입법진행현황(국회입법현황)을 수집합니다.',
+				noticeCount: 4,
+				intervalMs: 1200000,
+				intervalLabel: '매 20분'
+			}
+		],
+		collection: {
+			totalNotices: 12,
+			byLifecycle: { active: 6, renumbered: 4, source_deleted: 2 },
+			bySource: { pal: 12, nsm: 4 }
+		},
+		changeTracking: {
+			totalEvents: 36,
+			byType: { created: 12, updated: 18, invalidated: 6 }
+		},
+		schedules: [
+			{
+				id: 'pal-crawl',
+				name: '입법예고 크롤링',
+				intervalMs: 600000,
+				intervalLabel: '매 10분',
+				description: '국회 입법예고 게시판에서 새 의안을 수집합니다.'
+			},
+			{
+				id: 'nsm-crawl',
+				name: '국민참여입법센터 크롤링',
+				intervalMs: 1200000,
+				intervalLabel: '매 20분',
+				description: '국민참여입법센터에서 입법진행현황을 수집합니다.'
+			}
+		],
+		transferFlow: {
+			description:
+				'국민참여입법센터의 입법진행현황에서 국회입법현황으로 이관된 의안이 있으면, 크롤러가 이를 자동으로 감지하여 동기화합니다.',
+			nsmToPalIndicator:
+				'국회입법현황에서 의안으로 등록된 경우, 크롤러가 자동으로 동기화하여 관리합니다.'
+		}
+	};
+}
+
+export function getMockProposalStatisticsData(params: {
+	granularity?: string;
+}): ProposalStatisticsData {
+	const granularity = (params.granularity as ProposalStatisticsGranularity) || 'daily';
+	const buckets = Array.from({ length: 14 }, (_, i) => ({
+		period: `2026-09-${String(i + 1).padStart(2, '0')}`,
+		count: Math.floor(Math.random() * 5) + 1
+	}));
+
+	return {
+		granularity,
+		startDate: '2026-09-01',
+		endDate: '2026-09-14',
+		totalCount: buckets.reduce((sum, b) => sum + b.count, 0),
+		buckets
 	};
 }

@@ -148,6 +148,7 @@ export interface ArchiveNoticeListResponse {
 	total: number;
 	totalPages: number;
 	search: string;
+	proposer?: string;
 	startDate?: string;
 	endDate?: string;
 	sortOrder?: 'asc' | 'desc';

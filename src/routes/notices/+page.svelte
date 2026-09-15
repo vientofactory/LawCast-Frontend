@@ -5,6 +5,7 @@
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
+	import { extractProposerFromSubject } from '$lib/utils/proposer';
 	import { page } from '$app/state';
 	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
 	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
@@ -20,7 +21,8 @@
 		faMagnifyingGlass,
 		faRotate,
 		faSpinner,
-		faTriangleExclamation
+		faTriangleExclamation,
+		faUser
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { ArchiveNoticeListResponse } from '$lib/types/api';
 	import { KST_TIMEZONE } from '$lib/utils/helpers';
@@ -53,6 +55,7 @@
 	$: totalItems = archive?.total || 0;
 	$: limit = archive?.limit || DEFAULT_PAGE_SIZE;
 	$: searchQuery = archive?.search || '';
+	$: proposerQuery = archive?.proposer || '';
 	$: startDate = archive?.startDate || '';
 	$: endDate = archive?.endDate || '';
 	$: sortOrder = archive?.sortOrder === 'asc' ? 'asc' : 'desc';
@@ -67,6 +70,7 @@
 	$: aiSummaryEnabled = archive?.aiSummaryEnabled !== false;
 	$: hasActiveFilters =
 		searchQuery.trim().length > 0 ||
+		proposerQuery.trim().length > 0 ||
 		startDate.trim().length > 0 ||
 		endDate.trim().length > 0 ||
 		isDoneFilter !== undefined ||
@@ -146,6 +150,7 @@
 		page?: number;
 		limit?: number;
 		search?: string;
+		proposer?: string;
 		startDate?: string;
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
@@ -157,6 +162,7 @@
 		const pg = overrides.page !== undefined ? overrides.page : currentPage;
 		const lim = overrides.limit !== undefined ? overrides.limit : limit;
 		const q = (overrides.search !== undefined ? overrides.search : searchQuery).trim();
+		const pr = (overrides.proposer !== undefined ? overrides.proposer : proposerQuery).trim();
 		const sd = (overrides.startDate !== undefined ? overrides.startDate : startDate).trim();
 		const ed = (overrides.endDate !== undefined ? overrides.endDate : endDate).trim();
 		const so = overrides.sortOrder !== undefined ? overrides.sortOrder : sortOrder;
@@ -168,6 +174,8 @@
 		params.set('limit', String(lim));
 		if (q) params.set('search', q);
 		else params.delete('search');
+		if (pr) params.set('proposer', pr);
+		else params.delete('proposer');
 		if (sd) params.set('startDate', sd);
 		else params.delete('startDate');
 		if (ed) params.set('endDate', ed);
@@ -190,6 +198,7 @@
 		(_ft: boolean, _id: boolean | undefined) =>
 		(overrides: {
 			search?: string;
+			proposer?: string;
 			startDate?: string;
 			endDate?: string;
 			sortOrder?: 'asc' | 'desc';
@@ -263,14 +272,20 @@
 		if (endDate) params.set('endDate', endDate);
 		if (sortOrder) params.set('sortOrder', sortOrder);
 		if (fullTextVal) params.set('fullText', 'true');
-		// isDone 필터는 링크 기반이므로 현재 URL에서 그대로 전달
-		const currentIsDone = currentUrl.searchParams.get('isDone');
-		if (currentIsDone) params.set('isDone', currentIsDone);
-		const digestRaw = currentUrl.searchParams.get('digest');
+		// Hidden form fields carry link-based params (isDone, proposer) via FormData.
+		const isDoneRaw = (formData.get('isDone') || '').toString().trim();
+		if (isDoneRaw === 'true' || isDoneRaw === 'false') {
+			params.set('isDone', isDoneRaw);
+		}
+		const proposerRaw = (formData.get('proposer') || '').toString().trim();
+		if (proposerRaw) params.set('proposer', proposerRaw);
+		// digest/noticeNums are read from URL as fallback (no hidden field).
+		const liveUrl = new URL(window.location.href);
+		const digestRaw = liveUrl.searchParams.get('digest');
 		if (digestRaw === '1' || digestRaw === 'true') {
 			params.set('digest', '1');
 		}
-		const noticeNumsRaw = currentUrl.searchParams.get('noticeNums');
+		const noticeNumsRaw = liveUrl.searchParams.get('noticeNums');
 		if (noticeNumsRaw?.trim()) {
 			params.set('noticeNums', noticeNumsRaw.trim());
 		}
@@ -499,8 +514,8 @@
 										value={searchQuery}
 										enterkeyhint="search"
 										placeholder={fullText
-											? '법률안명, 소관위원회, 원문 키워드 검색'
-											: '법률안명, 소관위원회 검색'}
+											? '법률안명, 소관위원회, 제안자, 원문 키워드 검색'
+											: '법률안명, 소관위원회, 제안자 검색'}
 										data-testid="notices-search-input"
 										class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
 										on:keydown={handleSearchInputKeydown}
@@ -554,6 +569,12 @@
 								</select>
 								<input type="hidden" name="page" value="1" />
 								<input type="hidden" name="fullText" value={String(fullText)} />
+								{#if isDoneFilter !== undefined}
+									<input type="hidden" name="isDone" value={String(isDoneFilter)} />
+								{/if}
+								{#if proposerQuery.trim()}
+									<input type="hidden" name="proposer" value={proposerQuery.trim()} />
+								{/if}
 							</div>
 							<div class="mt-1.5 flex items-center">
 								<a
@@ -602,6 +623,15 @@
 										>
 											키워드: {searchQuery.trim()}
 											<a href={buildFilterLink({ search: '' })} class="lc-link ml-2"> 해제 </a>
+										</span>
+									{/if}
+									{#if proposerQuery.trim()}
+										<span
+											class="lc-chip-cyan inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold"
+										>
+											<FontAwesomeIcon icon={faUser} class="h-2.5 w-2.5" />
+											제안자: {proposerQuery.trim()}
+											<a href={buildFilterLink({ proposer: '' })} class="lc-link ml-1"> ✕ </a>
 										</span>
 									{/if}
 									{#if startDate.trim() || endDate.trim()}
@@ -754,6 +784,8 @@
 							data-testid="notices-results-list"
 						>
 							{#each notices as notice, index (notice.num)}
+								{@const proposerNames = extractProposerFromSubject(notice.subject)}
+								{@const proposerDisplay = proposerNames.join(', ')}
 								<article
 									aria-labelledby="notice-heading-{notice.num}"
 									data-testid={`notice-card-${notice.num}`}
@@ -833,6 +865,19 @@
 													<div class="flex items-center">
 														<FontAwesomeIcon icon={faBell} class="mr-1 h-4 w-4" />
 														소관위원회: {notice.committee}
+													</div>
+												{/if}
+												{#if proposerNames.length > 0}
+													<div class="flex items-center">
+														<FontAwesomeIcon icon={faUser} class="mr-1 h-4 w-4" />
+														<a
+															href={buildFilterLink({ proposer: proposerNames[0] })}
+															class="lc-link hover:underline"
+															title="{proposerDisplay} 제안자 검색"
+															data-testid={`notice-proposer-link-${notice.num}`}
+														>
+															{proposerDisplay}
+														</a>
 													</div>
 												{/if}
 											</div>

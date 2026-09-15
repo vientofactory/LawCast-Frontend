@@ -1,5 +1,9 @@
 import { apiClient } from '$lib/api/client';
 import type { ProposalStatisticsData, ProposalStatisticsGranularity } from '$lib/types/api';
+import {
+	isDiffchainUiMockEnabled,
+	getMockProposalStatisticsData
+} from '$lib/server/diffchain-ui-mock';
 import { toLoadErrorPayload } from '$lib/server/load-error';
 import type { PageServerLoad } from './$types';
 
@@ -16,6 +20,13 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		(url.searchParams.get('granularity') as ProposalStatisticsGranularity) || 'daily';
 	const startDate = url.searchParams.get('startDate') || undefined;
 	const endDate = url.searchParams.get('endDate') || undefined;
+
+	if (isDiffchainUiMockEnabled()) {
+		return {
+			statistics: getMockProposalStatisticsData({ granularity }),
+			fetchedAt: new Date().toISOString()
+		};
+	}
 
 	try {
 		const statistics = await apiClient.getProposalStatistics(
