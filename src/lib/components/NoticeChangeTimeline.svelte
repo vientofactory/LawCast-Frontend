@@ -125,83 +125,108 @@
 					아직 기록된 변경 이벤트가 없습니다.
 				</div>
 			{:else}
-				<div class="space-y-3">
+				{@const isCompareActive =
+					isCompareMode && (selectedFromRev !== null || selectedToRev !== null)}
+				<div class={`lc-timeline ${isCompareActive ? 'lc-timeline--compare-active' : ''}`}>
 					{#each changes.items as event (event.id)}
+						{@const isEmphasis = isEmphasisEvent(event.eventType)}
+						{@const isActive = event.eventHeight === activeRevisionForUi}
+						{@const isCompareFrom = isCompareMode && selectedFromRev === event.eventHeight}
+						{@const isCompareTo = isCompareMode && selectedToRev === event.eventHeight}
 						<div
-							class={`lc-panel-inset overflow-hidden rounded-xl border px-4 py-3 ${isEmphasisEvent(event.eventType) ? 'lc-banner-warning' : ''}`}
+							class={`lc-timeline-item ${isEmphasis ? 'lc-timeline-item--emphasis' : ''} ${isActive ? 'lc-timeline-item--active' : ''} ${isCompareFrom ? 'lc-timeline-item--compare-from' : ''} ${isCompareTo ? 'lc-timeline-item--compare-to' : ''}`}
 						>
-							<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-								<div class="min-w-0 space-y-1">
-									<div class="flex flex-wrap items-center gap-2">
-										<span
-											class="lc-chip-blue inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-										>
-											<FontAwesomeIcon icon={faRotate} class="mr-1.5 h-3 w-3" />
-											Rev #{event.eventHeight}
-										</span>
-										<span
-											class={`${eventTypeChipClass(event.eventType)} inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold`}
-										>
-											{eventTypeLabel(event.eventType)}
-										</span>
-										{#if event.eventHeight === activeRevisionForUi}
+							<div class="lc-timeline-dot" aria-hidden="true"></div>
+							<div
+								class={`lc-panel-inset overflow-hidden rounded-xl border px-4 py-3 ${isEmphasis ? 'lc-banner-warning' : ''}`}
+							>
+								<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+									<div class="min-w-0 space-y-1">
+										<div class="flex flex-wrap items-center gap-2">
 											<span
-												class="lc-chip-success inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+												class="lc-chip-blue inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
 											>
-												현재 리비전
+												<FontAwesomeIcon icon={faRotate} class="mr-1.5 h-3 w-3" />
+												Rev #{event.eventHeight}
 											</span>
-										{:else}
-											<a
-												href={buildRevisionLink(event.eventHeight)}
-												class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
+											<span
+												class={`${eventTypeChipClass(event.eventType)} inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold`}
 											>
-												리비전 보기
-											</a>
-										{/if}
-										{#if canSelectCompareBase}
-											{#if selectedFromRev === null}
-												<button
-													type="button"
-													on:click={() => onSelectCompare(event.eventHeight, null)}
-													class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-												>
-													기준으로 선택
-												</button>
-											{:else if selectedFromRev !== event.eventHeight}
-												<button
-													type="button"
-													on:click={() => onSelectCompare(selectedFromRev, event.eventHeight)}
-													class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-												>
-													비교 대상으로 선택
-												</button>
-											{:else}
+												{eventTypeLabel(event.eventType)}
+											</span>
+											{#if isCompareFrom}
 												<span
-													class="lc-chip-muted inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+													class="inline-flex items-center rounded-full bg-blue-500 px-2.5 py-1 text-xs font-semibold text-white dark:bg-blue-600"
 												>
 													비교 기준
 												</span>
+											{:else if isCompareTo}
+												<span
+													class="inline-flex items-center rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white dark:bg-emerald-600"
+												>
+													비교 대상
+												</span>
+											{:else if isActive}
+												<span
+													class="lc-chip-success inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+												>
+													현재 리비전
+												</span>
+											{:else}
+												<a
+													href={buildRevisionLink(event.eventHeight)}
+													class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
+												>
+													리비전 보기
+												</a>
 											{/if}
-										{/if}
-									</div>
-									<p
-										class="lc-text-secondary flex flex-wrap items-center gap-1.5 text-xs leading-relaxed wrap-break-word"
-									>
-										<span>{formatDateTimeKST(event.detectedAt)}</span>
-										<span aria-hidden="true">·</span>
-										<span class="min-w-0 break-all">{toReadableSourceLabel(event.source)}</span>
-										<span aria-hidden="true">·</span>
-										<span class="lc-text-muted">hash</span>
-										<span
-											class="lc-inline-code rounded px-1 py-0.5 font-mono break-all"
-											title={event.eventHash}
+											{#if canSelectCompareBase}
+												{#if selectedFromRev === null}
+													<button
+														type="button"
+														on:click={() => onSelectCompare(event.eventHeight, null)}
+														class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
+													>
+														기준으로 선택
+													</button>
+												{:else if selectedFromRev !== event.eventHeight && selectedToRev === null}
+													<button
+														type="button"
+														on:click={() => onSelectCompare(selectedFromRev, event.eventHeight)}
+														class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
+													>
+														비교 대상으로 선택
+													</button>
+												{:else if isCompareFrom || isCompareTo}
+													<button
+														type="button"
+														on:click={() => onSelectCompare(null, null)}
+														class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
+													>
+														비교 해제
+													</button>
+												{/if}
+											{/if}
+										</div>
+										<p
+											class="lc-text-secondary flex flex-wrap items-center gap-1.5 text-xs leading-relaxed wrap-break-word"
 										>
-											{shortenHash(event.eventHash)}
-										</span>
-									</p>
-								</div>
-								<div class="lc-text-secondary shrink-0 text-xs">
-									필드 {event.changedFieldCount}개 변경
+											<span>{formatDateTimeKST(event.detectedAt)}</span>
+											<span aria-hidden="true">·</span>
+											<span class="min-w-0 break-all">{toReadableSourceLabel(event.source)}</span>
+											<span aria-hidden="true">·</span>
+											<span class="lc-text-muted">hash</span>
+											<span
+												class="lc-inline-code rounded px-1 py-0.5 font-mono break-all"
+												title={event.eventHash}
+											>
+												{shortenHash(event.eventHash)}
+											</span>
+										</p>
+									</div>
+									<div class="lc-text-secondary shrink-0 text-xs">
+										필드 {event.changedFieldCount}개 변경
+									</div>
 								</div>
 							</div>
 						</div>

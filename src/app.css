@@ -1565,3 +1565,241 @@ html[data-theme='dark'] .lc-alert {
 		transition-duration: 0.01ms !important;
 	}
 }
+
+/* ── Timeline ────────────────────────────────────────────────────────── */
+
+.lc-timeline {
+	position: relative;
+	padding-left: 1.5rem;
+}
+
+/* Vertical connecting line */
+.lc-timeline::before {
+	content: '';
+	position: absolute;
+	left: 0.4375rem;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	background: linear-gradient(to bottom, var(--lc-border-soft), rgba(148, 163, 184, 0.2));
+}
+
+.lc-timeline-item {
+	position: relative;
+	padding-bottom: 0.75rem;
+}
+
+.lc-timeline-item:last-child {
+	padding-bottom: 0;
+}
+
+/* Timeline dot */
+.lc-timeline-dot {
+	position: absolute;
+	left: -1.0625rem;
+	top: 0.75rem;
+	width: 0.625rem;
+	height: 0.625rem;
+	border-radius: 9999px;
+	background: var(--lc-text-dim);
+	border: 2px solid var(--lc-surface-primary);
+	box-shadow: 0 0 0 2px var(--lc-border-soft);
+	transition: all 0.2s ease;
+}
+
+/* Emphasized event (invalidated) */
+.lc-timeline-item--emphasis .lc-timeline-dot {
+	background: #f59e0b;
+	box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+	width: 0.75rem;
+	height: 0.75rem;
+	left: -1.125rem;
+	top: 0.6875rem;
+}
+
+/* Active/current revision dot */
+.lc-timeline-item--active .lc-timeline-dot {
+	background: #10b981;
+	box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+	width: 0.75rem;
+	height: 0.75rem;
+	left: -1.125rem;
+	top: 0.6875rem;
+}
+
+/* Hover effect on timeline items */
+.lc-timeline-item:hover .lc-timeline-dot {
+	transform: scale(1.2);
+	box-shadow: 0 0 0 3px var(--lc-border-soft);
+}
+
+.lc-timeline-item--active:hover .lc-timeline-dot {
+	box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.4);
+}
+
+.lc-timeline-item--emphasis:hover .lc-timeline-dot {
+	box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.4);
+}
+
+/* Dark mode timeline */
+html[data-theme='dark'] .lc-timeline::before {
+	background: linear-gradient(to bottom, rgba(100, 116, 139, 0.4), rgba(71, 85, 105, 0.2));
+}
+
+html[data-theme='dark'] .lc-timeline-dot {
+	background: rgba(100, 116, 139, 0.8);
+	border-color: rgba(30, 41, 59, 0.9);
+	box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.3);
+}
+
+html[data-theme='dark'] .lc-timeline-item--emphasis .lc-timeline-dot {
+	background: #fbbf24;
+	box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3);
+}
+
+html[data-theme='dark'] .lc-timeline-item--active .lc-timeline-dot {
+	background: #34d399;
+	box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.3);
+}
+
+/* Responsive timeline adjustments */
+@media (max-width: 640px) {
+	.lc-timeline {
+		padding-left: 1.25rem;
+	}
+
+	.lc-timeline::before {
+		left: 0.375rem;
+	}
+
+	.lc-timeline-dot {
+		left: -0.875rem;
+		width: 0.5rem;
+		height: 0.5rem;
+		top: 0.8125rem;
+	}
+
+	.lc-timeline-item--emphasis .lc-timeline-dot,
+	.lc-timeline-item--active .lc-timeline-dot {
+		left: -0.9375rem;
+		width: 0.625rem;
+		height: 0.625rem;
+		top: 0.75rem;
+	}
+
+	.lc-timeline-item--compare-from .lc-timeline-dot,
+	.lc-timeline-item--compare-to .lc-timeline-dot {
+		left: -0.9375rem;
+		width: 0.625rem;
+		height: 0.625rem;
+		top: 0.75rem;
+	}
+}
+
+/* ── Compare Mode ────────────────────────────────────────────────────── */
+
+/* Compare base (from) - Blue highlight */
+.lc-timeline-item--compare-from {
+	background: rgba(59, 130, 246, 0.08);
+	border-radius: 0.75rem;
+	margin-left: -0.5rem;
+	margin-right: -0.5rem;
+	padding-left: 0.5rem;
+	padding-right: 0.5rem;
+}
+
+.lc-timeline-item--compare-from .lc-timeline-dot {
+	background: #3b82f6;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+	width: 0.75rem;
+	height: 0.75rem;
+	left: -1.125rem;
+	top: 0.6875rem;
+}
+
+/* Compare target (to) - Green highlight */
+.lc-timeline-item--compare-to {
+	background: rgba(16, 185, 129, 0.08);
+	border-radius: 0.75rem;
+	margin-left: -0.5rem;
+	margin-right: -0.5rem;
+	padding-left: 0.5rem;
+	padding-right: 0.5rem;
+}
+
+.lc-timeline-item--compare-to .lc-timeline-dot {
+	background: #10b981;
+	box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+	width: 0.75rem;
+	height: 0.75rem;
+	left: -1.125rem;
+	top: 0.6875rem;
+}
+
+/* Compare range indicator - line between from and to */
+.lc-timeline-item--compare-from + .lc-timeline-item--compare-to::before,
+.lc-timeline-item--compare-to + .lc-timeline-item--compare-from::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: -0.375rem;
+	height: 0.25rem;
+	background: linear-gradient(90deg, rgba(59, 130, 246, 0.4), rgba(16, 185, 129, 0.4));
+	border-radius: 0.125rem;
+}
+
+/* Hover effects for compare items */
+.lc-timeline-item--compare-from:hover {
+	background: rgba(59, 130, 246, 0.12);
+}
+
+.lc-timeline-item--compare-to:hover {
+	background: rgba(16, 185, 129, 0.12);
+}
+
+.lc-timeline-item--compare-from:hover .lc-timeline-dot {
+	box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.lc-timeline-item--compare-to:hover .lc-timeline-dot {
+	box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.4);
+}
+
+/* Dark mode compare styles */
+html[data-theme='dark'] .lc-timeline-item--compare-from {
+	background: rgba(59, 130, 246, 0.15);
+}
+
+html[data-theme='dark'] .lc-timeline-item--compare-to {
+	background: rgba(16, 185, 129, 0.15);
+}
+
+html[data-theme='dark'] .lc-timeline-item--compare-from .lc-timeline-dot {
+	background: #60a5fa;
+	box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.4);
+}
+
+html[data-theme='dark'] .lc-timeline-item--compare-to .lc-timeline-dot {
+	background: #34d399;
+	box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.4);
+}
+
+html[data-theme='dark'] .lc-timeline-item--compare-from:hover {
+	background: rgba(59, 130, 246, 0.2);
+}
+
+html[data-theme='dark'] .lc-timeline-item--compare-to:hover {
+	background: rgba(16, 185, 129, 0.2);
+}
+
+/* Compare mode active state - dim non-compared items */
+.lc-timeline--compare-active
+	.lc-timeline-item:not(.lc-timeline-item--compare-from):not(.lc-timeline-item--compare-to) {
+	opacity: 0.5;
+}
+
+.lc-timeline--compare-active
+	.lc-timeline-item:not(.lc-timeline-item--compare-from):not(.lc-timeline-item--compare-to):hover {
+	opacity: 0.75;
+}
