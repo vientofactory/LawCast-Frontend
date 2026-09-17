@@ -4,6 +4,8 @@
 	import { browser } from '$app/environment';
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
+	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { invalidateAll } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -26,13 +28,34 @@
 
 	$: stats = data.stats as import('$lib/types/api').SystemStats;
 	$: fetchedAt = data.fetchedAt;
-	$: error = data.error;
+	$: loadError = data.loadError;
 
 	let isRefreshing = false;
 	let lastRefreshAt = 0;
 	let lastTimerRefreshAt = 0;
 	const REFRESH_COOLDOWN_MS = 30_000;
 	const TIMER_REFRESH_COOLDOWN_MS = 20_000;
+
+	let countdown = 0;
+	let isRetrying = false;
+	const retry = new RetryCountdown(
+		() => invalidateAll(),
+		(v) => {
+			countdown = v;
+		},
+		(v) => {
+			isRetrying = v;
+		}
+	);
+
+	$: if (loadError !== retry.lastSeenError) {
+		retry.lastSeenError = loadError;
+		if (loadError?.retryAfter && loadError.retryAfter > 0) {
+			retry.start(loadError.retryAfter);
+		} else {
+			retry.stop();
+		}
+	}
 
 	$: crawlers = stats.crawlers;
 	$: isDoneSync = stats.archive.isDoneSync as IsDoneSyncStatus | null | undefined;
@@ -155,6 +178,7 @@
 	});
 
 	onDestroy(() => {
+		retry.destroy();
 		if (!browser) return;
 		stopTick();
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -324,7 +348,7 @@
 <div class="page-shell">
 	<Header />
 
-	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+	<main id="main-content" class="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
@@ -358,8 +382,13 @@
 			</div>
 		</div>
 
-		{#if error}
-			<Alert type="error" message={error} onDismiss={() => {}} />
+		{#if loadError}
+			<RateLimitOverlay
+				visible={Boolean(loadError)}
+				retryAfter={countdown}
+				onRetry={() => retry.retry()}
+				{isRetrying}
+			/>
 		{/if}
 
 		{#if hasCacheIssue || hasOllamaIssue}

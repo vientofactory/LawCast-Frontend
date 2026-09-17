@@ -36,10 +36,11 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		return { threads, status };
 	} catch (err) {
 		console.error('Failed to load all discussion threads:', err);
+		const loadError = toLoadErrorPayload(err, '토론 목록을 불러오는 중 오류가 발생했습니다.');
 		return {
 			threads: { items: [], total: 0, page, limit: DEFAULT_PAGE_SIZE },
 			status,
-			error: toLoadErrorPayload(err, '토론 목록을 불러오는 중 오류가 발생했습니다.').message
+			loadError
 		};
 	}
 };

@@ -1,5 +1,8 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
+	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faDatabase,
@@ -7,19 +10,40 @@
 		faArrowRight,
 		faCodeCompare,
 		faCalendarCheck,
-		faInfoCircle,
-		faExclamationTriangle,
-		faScaleBalanced
+		faInfoCircle
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
 	import type { CrawlingTransparencyData } from '$lib/types/api';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import { invalidateAll } from '$app/navigation';
 
 	export let data: PageData;
 
 	$: transparency = data.transparency as CrawlingTransparencyData;
 	$: fetchedAt = data.fetchedAt;
-	$: error = data.error;
+	$: loadError = data.loadError;
+
+	let countdown = 0;
+	let isRetrying = false;
+	const retry = new RetryCountdown(
+		() => invalidateAll(),
+		(v) => {
+			countdown = v;
+		},
+		(v) => {
+			isRetrying = v;
+		}
+	);
+	onDestroy(() => retry.destroy());
+
+	$: if (loadError !== retry.lastSeenError) {
+		retry.lastSeenError = loadError;
+		if (loadError?.retryAfter && loadError.retryAfter > 0) {
+			retry.start(loadError.retryAfter);
+		} else {
+			retry.stop();
+		}
+	}
 
 	function formatNumber(n: number): string {
 		return n.toLocaleString('ko-KR');
@@ -63,7 +87,7 @@
 <div class="page-shell">
 	<Header />
 
-	<main id="main-content" class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+	<main id="main-content" class="relative mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
 		<!-- Hero -->
 		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
 			<div class="flex flex-wrap items-start justify-between gap-3">
@@ -82,13 +106,13 @@
 			</div>
 		</div>
 
-		{#if error}
-			<div
-				class="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
-			>
-				<FontAwesomeIcon icon={faExclamationTriangle} class="mr-2 h-4 w-4" />
-				{error}
-			</div>
+		{#if loadError}
+			<RateLimitOverlay
+				visible={Boolean(loadError)}
+				retryAfter={countdown}
+				onRetry={() => retry.retry()}
+				{isRetrying}
+			/>
 		{/if}
 
 		<!-- ── 데이터 수집 소스 ────────────────────────────────────────── -->

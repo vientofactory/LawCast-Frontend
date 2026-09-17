@@ -2,7 +2,7 @@
 	import Header from '$lib/components/Header.svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onMount, tick } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { DiscussionThreadStatus } from '$lib/types/api';
 	import {
@@ -21,6 +21,7 @@
 	} from '$lib/types/api';
 	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '$lib/api/client';
 	import ThreadDetailView from '$lib/components/discussions/ThreadDetailView.svelte';
+	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import type { Component, ComponentProps } from 'svelte';
 	import type CommentActionModal from '$lib/components/discussions/CommentActionModal.svelte';
 	import type DiscussionPushConsentModal from '$lib/components/discussions/DiscussionPushConsentModal.svelte';
@@ -76,6 +77,7 @@
 	let successTimer: ReturnType<typeof setTimeout> | null = null;
 	let threadDetailViewComponent: ThreadDetailView;
 	let isLoading = false;
+	let isRetryingLoad = false;
 	let isLoadingMoreComments = false;
 	let rateLimitRemaining = data.discussionError?.retryAfter ?? 0;
 	let rateLimitTimer: ReturnType<typeof setInterval> | null = null;
@@ -153,6 +155,11 @@
 		}
 	});
 
+	onDestroy(() => {
+		if (rateLimitTimer) clearInterval(rateLimitTimer);
+		if (successTimer) clearTimeout(successTimer);
+	});
+
 	function discussionErrorMessage(error: unknown, fallback: string): string {
 		if (!isRateLimitError(error)) {
 			return error instanceof Error ? error.message : fallback;
@@ -172,6 +179,7 @@
 
 	async function reloadThread() {
 		isLoading = true;
+		isRetryingLoad = true;
 		errorMessage = '';
 		try {
 			discussionData = await apiClient.getDiscussionThread(data.threadId, { limit: 20 });
@@ -181,6 +189,7 @@
 			errorMessage = discussionErrorMessage(err, '토론 내용을 새로고침하지 못했습니다.');
 		} finally {
 			isLoading = false;
+			isRetryingLoad = false;
 		}
 	}
 
@@ -528,6 +537,9 @@
 						{comments}
 						{isSubmittingComment}
 						isRateLimited={rateLimitRemaining > 0}
+						{rateLimitRemaining}
+						onRetryRateLimit={reloadThread}
+						isRetryingRateLimit={isRetryingLoad}
 						onLoadMoreComments={loadMoreComments}
 						{isLoadingMoreComments}
 						onBack={handleBack}
@@ -541,21 +553,46 @@
 				{/key}
 			</section>
 		{:else}
-			<section class="lc-banner-warning rounded-2xl border p-6 text-center" aria-live="polite">
-				<p class="text-sm font-semibold">토론을 잠시 불러올 수 없습니다.</p>
-				<p class="mt-1 text-xs">
-					{rateLimitRemaining > 0
-						? `${rateLimitRemaining}초 후 다시 시도해주세요.`
-						: '잠시 후 다시 시도해주세요.'}
-				</p>
-				<button
-					type="button"
-					on:click={reloadThread}
-					disabled={isLoading || rateLimitRemaining > 0}
-					class="lc-button-neutral mt-4 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
-				>
-					다시 시도
-				</button>
+			<section
+				class="relative rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-6"
+			>
+				<RateLimitOverlay
+					visible={rateLimitRemaining > 0}
+					retryAfter={rateLimitRemaining}
+					onRetry={reloadThread}
+					isRetrying={isRetryingLoad}
+				/>
+				<div class="space-y-4 opacity-40" aria-hidden="true">
+					<div class="flex items-center gap-3 border-b border-[var(--lc-border-soft)] pb-3">
+						<div class="h-8 w-20 animate-pulse rounded-lg bg-[var(--lc-surface-muted)]"></div>
+					</div>
+					<div
+						class="rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4"
+					>
+						<div class="mb-2 flex gap-2">
+							<div class="h-5 w-20 animate-pulse rounded-full bg-[var(--lc-surface-muted)]"></div>
+							<div class="h-5 w-16 animate-pulse rounded-full bg-[var(--lc-surface-muted)]"></div>
+						</div>
+						<div class="h-5 w-48 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+						<div class="mt-2 h-3 w-32 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+					</div>
+					<div class="space-y-3">
+						{#each [0, 1] as skeleton (skeleton)}
+							<div
+								class="rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4"
+							>
+								<div class="mb-2 flex items-center gap-2">
+									<div class="h-4 w-12 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+									<div class="h-3 w-20 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+								</div>
+								<div class="space-y-1.5">
+									<div class="h-3 w-full animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+									<div class="h-3 w-3/4 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
 			</section>
 		{/if}
 	</main>

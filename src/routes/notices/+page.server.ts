@@ -91,6 +91,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		};
 	} catch (err) {
 		console.error('Failed to load notices:', err);
+		const loadError = toLoadErrorPayload(err, '입법예고 데이터를 불러오는데 실패했습니다.');
 		return {
 			archive: {
 				items: [],
@@ -115,7 +116,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				isDigestContext,
 				noticeNums
 			},
-			error: toLoadErrorPayload(err, '입법예고 데이터를 불러오는데 실패했습니다.').message
+			loadError
 		};
 	}
 };

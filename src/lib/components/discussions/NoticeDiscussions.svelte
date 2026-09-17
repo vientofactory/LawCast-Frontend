@@ -189,7 +189,6 @@
 		{threads}
 		total={totalThreads}
 		isLoading={isLoadingThreads}
-		hasError={Boolean(errorMessage || initialDiscussionError)}
 		{rateLimitRemaining}
 		onOpenNewThreadModal={openNewThreadModal}
 		onSelectThread={handleSelectThread}
