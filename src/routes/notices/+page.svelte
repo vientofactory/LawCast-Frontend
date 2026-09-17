@@ -1,13 +1,16 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
+	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
 	import { extractProposerFromSubject } from '$lib/utils/proposer';
+	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { page } from '$app/state';
-	import { afterNavigate, beforeNavigate, goto } from '$app/navigation';
+	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
 	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -22,7 +25,8 @@
 		faRotate,
 		faSpinner,
 		faTriangleExclamation,
-		faUser
+		faUser,
+		faXmark
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { ArchiveNoticeListResponse } from '$lib/types/api';
 	import { KST_TIMEZONE } from '$lib/utils/helpers';
@@ -33,11 +37,35 @@
 			isDigestContext: boolean;
 			noticeNums: number[];
 		};
-		error?: string;
+		loadError?: {
+			message: string;
+			retryAfter?: number;
+		};
 	};
 
 	let currentUrl = page.url;
 	let isServerLoading = false;
+	let countdown = 0;
+	let isRetrying = false;
+	const retry = new RetryCountdown(
+		() => invalidateAll(),
+		(v) => {
+			countdown = v;
+		},
+		(v) => {
+			isRetrying = v;
+		}
+	);
+	onDestroy(() => retry.destroy());
+
+	$: if (data.loadError !== retry.lastSeenError) {
+		retry.lastSeenError = data.loadError;
+		if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
+			retry.start(data.loadError.retryAfter);
+		} else {
+			retry.stop();
+		}
+	}
 
 	beforeNavigate(({ to }) => {
 		isServerLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
@@ -91,7 +119,7 @@
 
 	let error = '';
 	$: if (data) {
-		error = data.error || '';
+		error = data.loadError?.message || '';
 	}
 
 	function addDays(base: Date, amount: number) {
@@ -343,7 +371,7 @@
 
 	<main
 		id="main-content"
-		class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
+		class="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
 		aria-labelledby="notices-page-title"
 		data-testid="notices-main"
 	>
@@ -398,10 +426,18 @@
 			</p>
 		</section>
 
-		{#if error}
-			<Alert type="error" message={error} dismissible={false} />
-		{:else}
-			<section aria-labelledby="notices-page-title" data-testid="notices-page-region">
+		<section
+			class="relative"
+			aria-labelledby="notices-page-title"
+			data-testid="notices-page-region"
+		>
+			<RateLimitOverlay
+				visible={Boolean(data.loadError)}
+				retryAfter={countdown}
+				onRetry={() => retry.retry()}
+				{isRetrying}
+			/>
+			<div class:opacity-60={Boolean(data.loadError)}>
 				<h1 id="notices-page-title" class="sr-only">전체 입법예고</h1>
 				{#if !isDigestContext}
 					<section class="lc-panel-card mb-5 rounded-xl border p-4 shadow-sm">
@@ -622,7 +658,9 @@
 											class="lc-chip-blue inline-flex items-center rounded-full px-2 py-1 font-semibold"
 										>
 											키워드: {searchQuery.trim()}
-											<a href={buildFilterLink({ search: '' })} class="lc-link ml-2"> 해제 </a>
+											<a href={buildFilterLink({ search: '' })} class="lc-link ml-2">
+												<FontAwesomeIcon icon={faXmark} class="h-2.5 w-2.5" />
+											</a>
 										</span>
 									{/if}
 									{#if proposerQuery.trim()}
@@ -631,7 +669,9 @@
 										>
 											<FontAwesomeIcon icon={faUser} class="h-2.5 w-2.5" />
 											제안자: {proposerQuery.trim()}
-											<a href={buildFilterLink({ proposer: '' })} class="lc-link ml-1"> ✕ </a>
+											<a href={buildFilterLink({ proposer: '' })} class="lc-link ml-1">
+												<FontAwesomeIcon icon={faXmark} class="h-2.5 w-2.5" />
+											</a>
 										</span>
 									{/if}
 									{#if startDate.trim() || endDate.trim()}
@@ -665,7 +705,7 @@
 												class="ml-1 opacity-60 hover:opacity-100"
 												aria-label="상태 필터 해제"
 											>
-												✕
+												<FontAwesomeIcon icon={faXmark} class="h-2.5 w-2.5" />
 											</a>
 										</span>
 									{/if}
@@ -680,7 +720,7 @@
 												class="ml-1 opacity-60 hover:opacity-100"
 												aria-label="원문 포함 검색 해제"
 											>
-												✕
+												<FontAwesomeIcon icon={faXmark} class="h-2.5 w-2.5" />
 											</a>
 										</span>
 									{/if}
@@ -968,8 +1008,8 @@
 
 					<LoadingOverlay visible={isServerLoading} />
 				</section>
-			</section>
-		{/if}
+			</div>
+		</section>
 	</main>
 </div>
 

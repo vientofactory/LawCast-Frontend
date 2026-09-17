@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
+	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -70,59 +73,32 @@
 		sortOrder === 'asc' ||
 		includeIsDoneChanges === false;
 
-	let retryCountdown = 0;
-	let retryTimer: ReturnType<typeof setInterval> | null = null;
+	let countdown = 0;
 	let isRetrying = false;
-
-	function stopRetryCountdown(): void {
-		if (retryTimer) {
-			clearInterval(retryTimer);
-			retryTimer = null;
+	const retry = new RetryCountdown(
+		async () => {
+			await invalidateAll();
+		},
+		(v) => {
+			countdown = v;
+		},
+		(v) => {
+			isRetrying = v;
 		}
-		retryCountdown = 0;
-	}
+	);
+	onDestroy(() => retry.destroy());
 
-	function startRetryCountdown(seconds: number): void {
-		stopRetryCountdown();
-		retryCountdown = seconds;
-		retryTimer = setInterval(() => {
-			retryCountdown = Math.max(0, retryCountdown - 1);
-			if (retryCountdown === 0 && retryTimer) {
-				clearInterval(retryTimer);
-				retryTimer = null;
-			}
-		}, 1000);
-	}
-
-	// Track loadError by identity so a fresh load error (e.g. another 429 after
-	// a retry) restarts the countdown, and a successful retry clears it.
-	let lastSeenLoadError: { message: string; retryAfter?: number } | null | undefined;
-	$: {
-		if (data.loadError !== lastSeenLoadError) {
-			lastSeenLoadError = data.loadError;
-			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
-				startRetryCountdown(data.loadError.retryAfter);
-			} else {
-				stopRetryCountdown();
-			}
+	$: if (data.loadError !== retry.lastSeenError) {
+		retry.lastSeenError = data.loadError;
+		if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
+			retry.start(data.loadError.retryAfter);
+		} else {
+			retry.stop();
 		}
 	}
 
 	function isRateLimitLoadError(): boolean {
 		return loadError?.retryAfter !== undefined;
-	}
-
-	async function handleRetry(): Promise<void> {
-		if (retryCountdown > 0 || isRetrying) return;
-
-		isRetrying = true;
-		try {
-			// goto() to the same URL would reuse the cached load result, so we
-			// must force-invalidate to actually re-run the server load.
-			await invalidateAll();
-		} finally {
-			isRetrying = false;
-		}
 	}
 
 	let isServerLoading = false;
@@ -358,7 +334,7 @@
 <div class="page-shell">
 	<Header />
 
-	<main id="main-content" class="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
+	<main id="main-content" class="relative mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
 		<nav class="mt-6 mb-6 flex items-center gap-2 text-sm" aria-label="이동 경로">
 			<a href="/" class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2">
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-3.5 w-3.5" />
@@ -402,34 +378,12 @@
 		</div>
 
 		{#if loadError}
-			<div
-				class="lc-banner-warning mb-4 flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 text-sm"
-				role="alert"
-				data-testid="changes-load-error"
-				data-rate-limited={isRateLimitLoadError() ? 'true' : 'false'}
-			>
-				<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4 shrink-0" />
-				<span class="flex-1">{loadError.message}</span>
-				<button
-					type="button"
-					on:click={handleRetry}
-					disabled={retryCountdown > 0 || isRetrying}
-					data-testid="changes-retry-button"
-					class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-				>
-					<FontAwesomeIcon
-						icon={faRotateRight}
-						class={`h-3.5 w-3.5 ${isRetrying ? 'animate-spin' : retryCountdown > 0 ? 'animate-pulse' : ''}`}
-					/>
-					{#if isRetrying}
-						다시 시도 중...
-					{:else if retryCountdown > 0}
-						{retryCountdown}초 후 재시도 가능
-					{:else}
-						다시 시도
-					{/if}
-				</button>
-			</div>
+			<RateLimitOverlay
+				visible={Boolean(loadError)}
+				retryAfter={countdown}
+				onRetry={() => retry.retry()}
+				{isRetrying}
+			/>
 		{/if}
 
 		{#if isDigestContext}

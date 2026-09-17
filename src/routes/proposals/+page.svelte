@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import Header from '$lib/components/Header.svelte';
+	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faCalendarDays,
@@ -27,7 +29,7 @@
 
 	$: statistics = data.statistics as ProposalStatisticsData;
 	$: fetchedAt = data.fetchedAt;
-	$: error = data.error;
+	$: loadError = data.loadError;
 
 	let chartCanvas: HTMLCanvasElement | null = null;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,6 +43,26 @@
 	let exportError: string | null = null;
 	let isExportMenuOpen = false;
 	let exportMenuEl: HTMLDivElement | null = null;
+	let countdown = 0;
+	let isRetrying = false;
+	const retry = new RetryCountdown(
+		() => invalidateAll(),
+		(v) => {
+			countdown = v;
+		},
+		(v) => {
+			isRetrying = v;
+		}
+	);
+
+	$: if (loadError !== retry.lastSeenError) {
+		retry.lastSeenError = loadError;
+		if (loadError?.retryAfter && loadError.retryAfter > 0) {
+			retry.start(loadError.retryAfter);
+		} else {
+			retry.stop();
+		}
+	}
 
 	const EXPORT_OPTIONS: Array<{
 		format: 'json' | 'xlsx';
@@ -361,6 +383,7 @@
 	});
 
 	onDestroy(() => {
+		retry.destroy();
 		if (browser) destroyChart();
 	});
 </script>
@@ -384,7 +407,7 @@
 <div class="page-shell">
 	<Header />
 
-	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+	<main id="main-content" class="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 		<!-- Hero -->
 		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
 			<div class="flex flex-wrap items-start justify-between gap-3">
@@ -403,12 +426,13 @@
 			</div>
 		</div>
 
-		{#if error}
-			<div
-				class="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
-			>
-				{error}
-			</div>
+		{#if loadError}
+			<RateLimitOverlay
+				visible={Boolean(loadError)}
+				retryAfter={countdown}
+				onRetry={() => retry.retry()}
+				{isRetrying}
+			/>
 		{/if}
 
 		<!-- ── 필터 컨트롤 ─────────────────────────────────────────── -->

@@ -157,7 +157,9 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 					},
 					screenshotMeta: {
 						hasScreenshot: false,
-						format: null
+						format: null,
+						captureStatus: null,
+						captureError: null
 					}
 				},
 				changes: {

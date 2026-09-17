@@ -39,10 +39,11 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		};
 	} catch (err) {
 		console.error('Failed to load proposal statistics:', err);
+		const loadError = toLoadErrorPayload(err, '발의 통계를 불러오지 못했습니다.');
 		return {
 			statistics: { ...FALLBACK, granularity },
 			fetchedAt: new Date().toISOString(),
-			error: toLoadErrorPayload(err, '발의 통계를 불러오지 못했습니다.').message
+			loadError
 		};
 	}
 };

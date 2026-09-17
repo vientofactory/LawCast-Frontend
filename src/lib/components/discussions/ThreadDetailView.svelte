@@ -18,12 +18,16 @@
 		type DiscussionThread,
 		type CreateCommentPayload
 	} from '$lib/types/api';
+	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import CommentItem from './CommentItem.svelte';
 
 	export let thread: DiscussionThread;
 	export let comments: DiscussionComment[] = [];
 	export let isSubmittingComment = false;
 	export let isRateLimited = false;
+	export let rateLimitRemaining = 0;
+	export let onRetryRateLimit: (() => void | Promise<void>) | undefined = undefined;
+	export let isRetryingRateLimit = false;
 	export let onBack: (() => void) | undefined = undefined;
 	export let onSubmitComment: ((payload: CreateCommentPayload) => void) | undefined = undefined;
 	export let onEditComment: ((comment: DiscussionComment) => void) | undefined = undefined;
@@ -96,7 +100,13 @@
 	}
 </script>
 
-<div class="space-y-4" data-testid="discussion-thread-detail">
+<div class="relative space-y-4" data-testid="discussion-thread-detail">
+	<RateLimitOverlay
+		visible={isRateLimited}
+		retryAfter={rateLimitRemaining}
+		onRetry={onRetryRateLimit}
+		isRetrying={isRetryingRateLimit}
+	/>
 	<!-- Top Navigation and Thread Header -->
 	<div class="flex items-center justify-between gap-3 border-b border-[var(--lc-border-soft)] pb-3">
 		<button

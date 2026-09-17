@@ -61,10 +61,11 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		};
 	} catch (err) {
 		console.error('Failed to load crawling transparency data:', err);
+		const loadError = toLoadErrorPayload(err, '투명성 정보를 불러오지 못했습니다.');
 		return {
 			transparency: FALLBACK,
 			fetchedAt: new Date().toISOString(),
-			error: toLoadErrorPayload(err, '투명성 정보를 불러오지 못했습니다.').message
+			loadError
 		};
 	}
 };

@@ -281,7 +281,9 @@ function buildMockNoticeDetail(noticeNum: number, requestedRev?: number): Notice
 		archiveMetadata: record.archiveMetadata,
 		screenshotMeta: {
 			hasScreenshot: true,
-			format: 'jpeg'
+			format: 'jpeg',
+			captureStatus: 'captured',
+			captureError: null
 		},
 		aiSummaryEnabled: true,
 		revision: {

@@ -64,6 +64,8 @@ export interface NoticeDetail {
 	screenshotMeta: {
 		hasScreenshot: boolean;
 		format: string | null;
+		captureStatus: string | null;
+		captureError: string | null;
 	};
 	aiSummaryEnabled?: boolean;
 	revision?: {

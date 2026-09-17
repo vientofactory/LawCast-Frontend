@@ -1,10 +1,11 @@
 <script lang="ts">
 	import Header from '$lib/components/Header.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
+	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
 	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onMount, tick } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import NoticeChangeTimeline from '$lib/components/NoticeChangeTimeline.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -33,6 +34,7 @@
 		NoticeChangeTimelineResponse,
 		DiscussionThreadListResponse
 	} from '$lib/types/api';
+	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import NoticeDiscussions from '$lib/components/discussions/NoticeDiscussions.svelte';
@@ -57,17 +59,25 @@
 	$: loadError = data.loadError;
 	$: aiSummaryEnabled = detail.aiSummaryEnabled !== false;
 
+	let countdown = 0;
 	let isRetrying = false;
+	const retry = new RetryCountdown(
+		() => invalidateAll(),
+		(v) => {
+			countdown = v;
+		},
+		(v) => {
+			isRetrying = v;
+		}
+	);
+	onDestroy(() => retry.destroy());
 
-	async function handleRetry(): Promise<void> {
-		if (isRetrying) return;
-		isRetrying = true;
-		try {
-			// A plain link to the same URL would reuse the cached load result,
-			// so force-invalidate to actually re-run the server load.
-			await invalidateAll();
-		} finally {
-			isRetrying = false;
+	$: if (loadError !== retry.lastSeenError) {
+		retry.lastSeenError = loadError;
+		if (loadError?.retryAfter && loadError.retryAfter > 0) {
+			retry.start(loadError.retryAfter);
+		} else {
+			retry.stop();
 		}
 	}
 
@@ -357,6 +367,7 @@
 
 	$: screenshotUrl = `/api/notices/${detail.notice.num}/screenshot`;
 	$: hasScreenshot = detail.screenshotMeta?.hasScreenshot ?? false;
+	$: screenshotCaptureError = detail.screenshotMeta?.captureError ?? null;
 
 	let isChangeTimelineOpen = false;
 
@@ -636,7 +647,7 @@
 
 	<main
 		id="main-content"
-		class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8"
+		class="relative mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8"
 		aria-labelledby="notice-detail-title"
 		data-testid="notice-detail-main"
 	>
@@ -654,27 +665,12 @@
 		</nav>
 
 		{#if loadError}
-			<div
-				class="lc-banner-warning mb-6 flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 text-sm"
-				role="alert"
-				data-testid="notice-detail-load-error"
-			>
-				<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4 shrink-0" />
-				<span class="flex-1">{loadError.message}</span>
-				<button
-					type="button"
-					on:click={handleRetry}
-					disabled={isRetrying}
-					data-testid="notice-detail-retry-link"
-					class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-				>
-					<FontAwesomeIcon
-						icon={faRotate}
-						class={`h-3.5 w-3.5 ${isRetrying ? 'animate-spin' : ''}`}
-					/>
-					{isRetrying ? '다시 시도 중...' : '다시 시도'}
-				</button>
-			</div>
+			<RateLimitOverlay
+				visible={Boolean(loadError)}
+				retryAfter={countdown}
+				onRetry={() => retry.retry()}
+				{isRetrying}
+			/>
 		{/if}
 
 		{#if isHistoricalView && activeRevision !== null}
@@ -1027,6 +1023,21 @@
 						</div>
 						{#if exportArchiveError}
 							<p class="lc-text-danger mb-3 text-right text-xs">{exportArchiveError}</p>
+						{/if}
+
+						{#if !hasScreenshot && screenshotCaptureError}
+							<div
+								class="mb-3 flex items-start gap-2 rounded-lg border border-amber-300/40 bg-amber-50 px-3 py-2 text-xs dark:border-amber-500/30 dark:bg-amber-900/20"
+								data-testid="notice-detail-screenshot-capture-error"
+							>
+								<FontAwesomeIcon
+									icon={faTriangleExclamation}
+									class="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500"
+								/>
+								<span class="lc-text-secondary">
+									스크린샷 캡처 실패: {screenshotCaptureError}
+								</span>
+							</div>
 						{/if}
 
 						{#if hasScreenshot && isScreenshotExpanded}
