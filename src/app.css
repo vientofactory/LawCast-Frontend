@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 .lc-theme-switch {
 	background: var(--lc-surface-primary);
 	border-color: var(--lc-border-soft);
