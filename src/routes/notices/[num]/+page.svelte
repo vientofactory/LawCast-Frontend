@@ -1035,7 +1035,7 @@
 									class="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500"
 								/>
 								<span class="lc-text-secondary">
-									스크린샷 캡처 실패: {screenshotCaptureError}
+									{screenshotCaptureError}
 								</span>
 							</div>
 						{/if}
