@@ -38,10 +38,12 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import NoticeDiscussions from '$lib/components/discussions/NoticeDiscussions.svelte';
+	import { getNoticeChanges } from '$lib/api/client';
+	import { isRateLimitError, getRateLimitRetryAfter } from '$lib/api/client';
 
 	export let data: {
 		detail: NoticeDetail;
-		changes: NoticeChangeTimelineResponse;
+		changes?: NoticeChangeTimelineResponse;
 		discussions?: DiscussionThreadListResponse;
 		discussionError?: {
 			status: number;
@@ -55,7 +57,10 @@
 	};
 
 	$: detail = data.detail;
-	$: changes = data.changes;
+	const EMPTY_CHANGES: NoticeChangeTimelineResponse = { noticeNum: 0, items: [], count: 0 };
+	let lazyLoadedChanges: NoticeChangeTimelineResponse | null = null;
+	$: changes = lazyLoadedChanges ??
+		data.changes ?? { ...EMPTY_CHANGES, noticeNum: detail.notice.num };
 	$: loadError = data.loadError;
 	$: aiSummaryEnabled = detail.aiSummaryEnabled !== false;
 
@@ -370,6 +375,32 @@
 	$: screenshotCaptureError = detail.screenshotMeta?.captureError ?? null;
 
 	let isChangeTimelineOpen = false;
+	let timelineLoaded = data.changes !== undefined && data.changes !== null;
+	let timelineLoading = false;
+	let timelineError: string | null = null;
+
+	async function loadTimeline(): Promise<void> {
+		if (timelineLoaded || timelineLoading) {
+			return;
+		}
+
+		timelineLoading = true;
+		timelineError = null;
+
+		try {
+			const result = await getNoticeChanges(detail.notice.num, { limit: 100 });
+			lazyLoadedChanges = result;
+			timelineLoaded = true;
+		} catch (err) {
+			if (isRateLimitError(err)) {
+				timelineError = `요청이 너무 많습니다. ${getRateLimitRetryAfter(err)}초 후 다시 시도해주세요.`;
+			} else {
+				timelineError = '변경 추적 타임라인을 불러오는 중 오류가 발생했습니다.';
+			}
+		} finally {
+			timelineLoading = false;
+		}
+	}
 
 	function getPositiveIntQueryParam(raw: string | null): number | null {
 		if (!raw) {
@@ -433,6 +464,10 @@
 		if (screenshotFromQuery !== null && hasScreenshot) {
 			isScreenshotExpanded = screenshotFromQuery;
 		}
+	}
+
+	$: if (isChangeTimelineOpen) {
+		void loadTimeline();
 	}
 
 	const CHANGE_FIELD_LABELS: Record<string, string> = {
@@ -501,6 +536,9 @@
 	$: toSnapshot = selectedToRev === null ? {} : (snapshotsByRevision[selectedToRev] ?? {});
 	$: comparableRevisionCount = Object.keys(snapshotsByRevision).length;
 	$: canSelectCompareBase = comparableRevisionCount > 1;
+	$: if (selectedFromRev !== null || selectedToRev !== null) {
+		void loadTimeline();
+	}
 	$: revisionDiffItems = (() => {
 		const keys = new Set<string>([
 			...Object.keys(CHANGE_FIELD_LABELS),
@@ -966,6 +1004,14 @@
 				{revisionDiffItems}
 				{canSelectCompareBase}
 				onSelectCompare={updateCompareQuery}
+				isLoading={timelineLoading}
+				errorMessage={timelineError}
+				onRetry={() => {
+					timelineLoaded = false;
+					timelineError = null;
+					lazyLoadedChanges = null;
+					void loadTimeline();
+				}}
 			/>
 		</section>
 
