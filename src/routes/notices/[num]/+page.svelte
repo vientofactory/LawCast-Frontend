@@ -1043,13 +1043,8 @@
 								class="mb-3 flex items-start gap-2 rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-secondary)] px-3 py-2 text-xs"
 								data-testid="notice-detail-screenshot-pending"
 							>
-								<FontAwesomeIcon
-									icon={faImage}
-									class="mt-0.5 h-3.5 w-3.5 shrink-0 lc-text-muted"
-								/>
-								<span class="lc-text-secondary">
-									스크린샷이 아직 캡처되지 않았습니다
-								</span>
+								<FontAwesomeIcon icon={faImage} class="mt-0.5 h-3.5 w-3.5 shrink-0 lc-text-muted" />
+								<span class="lc-text-secondary"> 스크린샷이 아직 캡처되지 않았습니다 </span>
 							</div>
 						{/if}
 

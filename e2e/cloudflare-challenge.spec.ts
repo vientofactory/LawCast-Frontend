@@ -85,9 +85,7 @@ test.describe('Cloudflare Under Attack challenge handling', () => {
 			expect(Number(marks.detect)).toBeGreaterThan(0);
 		});
 
-		test('detects implicit challenge (non-JSON 403) and sets sessionStorage', async ({
-			page
-		}) => {
+		test('detects implicit challenge (non-JSON 403) and sets sessionStorage', async ({ page }) => {
 			await page.goto('/');
 			await expect(page.getByTestId('site-header')).toBeVisible();
 
@@ -158,9 +156,7 @@ test.describe('Cloudflare Under Attack challenge handling', () => {
 				timeout: 10_000
 			});
 
-			const reloadPromise = page.waitForURL('**/cf-challenge-test', { timeout: 15_000 });
 			await page.getByRole('button', { name: '지금 새로고침' }).click();
-			const response = await reloadPromise;
 
 			await expect(page).toHaveURL(/\/cf-challenge-test/);
 			await expect(page.getByTestId('site-header')).toBeVisible({ timeout: 10_000 });
