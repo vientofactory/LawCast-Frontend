@@ -1,8 +1,5 @@
 <script lang="ts">
-	import {
-		CF_CHALLENGE_MARK_KEY,
-		CF_RELOAD_GUARD_KEY
-	} from '$lib/utils/cloudflare-challenge';
+	import { CF_CHALLENGE_MARK_KEY, CF_RELOAD_GUARD_KEY } from '$lib/utils/cloudflare-challenge';
 	import { onMount } from 'svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faArrowLeft, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
