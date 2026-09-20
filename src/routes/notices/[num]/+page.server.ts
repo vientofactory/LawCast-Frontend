@@ -64,16 +64,6 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 		}
 
 		const detail = await apiClient.getNoticeDetail(noticeNum, { rev: resolvedRev }, fetch);
-		const changes =
-			detail.changes ??
-			(await apiClient.getNoticeChanges(noticeNum, { limit: 100 }, fetch).catch((err) => {
-				console.warn(`Failed to load notice changes (${noticeNum}):`, err);
-				return {
-					noticeNum,
-					items: [],
-					count: 0
-				};
-			}));
 		const discussions: DiscussionLoadResult = await apiClient
 			.getNoticeDiscussions(noticeNum, {}, fetch)
 			.catch((err): DiscussionLoadResult => {
@@ -96,7 +86,6 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 		const { discussionError, ...discussionList } = discussions;
 		return {
 			detail,
-			changes,
 			discussions: discussionList,
 			...(discussionError ? { discussionError } : {})
 		};
@@ -161,11 +150,6 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 						captureStatus: null,
 						captureError: null
 					}
-				},
-				changes: {
-					noticeNum,
-					items: [],
-					count: 0
 				},
 				discussions: {
 					items: [],
