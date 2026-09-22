@@ -88,7 +88,7 @@
 		if (targetStatus) {
 			params.set('status', targetStatus);
 		} else {
-			params.delete('status');
+			params.set('status', 'all');
 		}
 		return `/discussions?${params.toString()}`;
 	}

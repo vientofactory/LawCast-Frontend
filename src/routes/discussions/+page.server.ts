@@ -10,10 +10,16 @@ import type { PageServerLoad } from './$types';
 const DEFAULT_PAGE_SIZE = 20;
 
 function parseStatus(raw: string | null): DiscussionThreadStatus | undefined {
-	if (raw === DiscussionThreadStatus.OPEN || raw === DiscussionThreadStatus.CLOSED) {
-		return raw;
+	if (raw === DiscussionThreadStatus.OPEN) {
+		return DiscussionThreadStatus.OPEN;
 	}
-	return undefined;
+	if (raw === DiscussionThreadStatus.CLOSED) {
+		return DiscussionThreadStatus.CLOSED;
+	}
+	if (raw === 'all') {
+		return undefined;
+	}
+	return DiscussionThreadStatus.OPEN;
 }
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
