@@ -64,6 +64,11 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 		}
 
 		const detail = await apiClient.getNoticeDetail(noticeNum, { rev: resolvedRev }, fetch);
+		const changes = await apiClient.getNoticeChanges(noticeNum, {}, fetch).catch(() => ({
+			noticeNum,
+			items: [],
+			count: 0
+		}));
 		const discussions: DiscussionLoadResult = await apiClient
 			.getNoticeDiscussions(noticeNum, {}, fetch)
 			.catch((err): DiscussionLoadResult => {
@@ -86,6 +91,7 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 		const { discussionError, ...discussionList } = discussions;
 		return {
 			detail,
+			changes,
 			discussions: discussionList,
 			...(discussionError ? { discussionError } : {})
 		};
@@ -150,6 +156,11 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 						captureStatus: null,
 						captureError: null
 					}
+				},
+				changes: {
+					noticeNum,
+					items: [],
+					count: 0
 				},
 				discussions: {
 					items: [],
