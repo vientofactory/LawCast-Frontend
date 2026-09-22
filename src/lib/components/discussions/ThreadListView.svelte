@@ -12,14 +12,23 @@
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 
-	export let threads: DiscussionThread[] = [];
-	export let total = 0;
-	export let isLoading = false;
-	export let rateLimitRemaining = 0;
-	export let onOpenNewThreadModal: (() => void) | undefined = undefined;
-	export let onSelectThread: ((threadId: number) => void) | undefined = undefined;
+	let {
+		threads = [],
+		total = 0,
+		isLoading = false,
+		rateLimitRemaining = 0,
+		onOpenNewThreadModal,
+		onSelectThread
+	}: {
+		threads?: DiscussionThread[];
+		total?: number;
+		isLoading?: boolean;
+		rateLimitRemaining?: number;
+		onOpenNewThreadModal?: () => void;
+		onSelectThread?: (threadId: number) => void;
+	} = $props();
 
-	$: isRateLimitError = rateLimitRemaining > 0;
+	let isRateLimitError = $derived(rateLimitRemaining > 0);
 </script>
 
 <div class="relative space-y-4" data-testid="discussion-thread-list">
@@ -40,7 +49,7 @@
 		</div>
 		<button
 			type="button"
-			on:click={() => onOpenNewThreadModal?.()}
+			onclick={() => onOpenNewThreadModal?.()}
 			disabled={isRateLimitError}
 			data-testid="discussion-new-thread-button"
 			class="lc-button-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
@@ -64,7 +73,7 @@
 			<p class="lc-text-muted mt-1 text-xs">이 법률안에 대한 첫 번째 토론을 시작해보세요.</p>
 			<button
 				type="button"
-				on:click={() => onOpenNewThreadModal?.()}
+				onclick={() => onOpenNewThreadModal?.()}
 				disabled={isRateLimitError}
 				class="lc-button-primary mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
 			>
@@ -82,7 +91,7 @@
 					href={`/notices/${thread.noticeNum}/discussions/${thread.id}`}
 					data-testid={`discussion-thread-link-${thread.id}`}
 					class="group flex cursor-pointer flex-col justify-between gap-2 p-4 transition-colors hover:bg-[var(--lc-surface-hover)] sm:flex-row sm:items-center no-underline text-inherit"
-					on:click={(e) => {
+					onclick={(e) => {
 						if (onSelectThread) {
 							e.preventDefault();
 							onSelectThread(thread.id);

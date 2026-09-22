@@ -1,12 +1,21 @@
 <script lang="ts">
 	import { formatPowHashRate, formatPowRemainingTime } from '$lib/utils/pow-status';
 
-	export let message = '';
-	export let estimatedRemainingMs: number | null = null;
-	export let hashRate: number | null = null;
-	export let difficultyBits: number | null = null;
-	export let messageSpacingClass = '';
-	export let metricsSpacingClass = '';
+	let {
+		message = '',
+		estimatedRemainingMs = null,
+		hashRate = null,
+		difficultyBits = null,
+		messageSpacingClass = '',
+		metricsSpacingClass = ''
+	}: {
+		message?: string;
+		estimatedRemainingMs?: number | null;
+		hashRate?: number | null;
+		difficultyBits?: number | null;
+		messageSpacingClass?: string;
+		metricsSpacingClass?: string;
+	} = $props();
 </script>
 
 <p class={`lc-text-muted animate-pulse text-center text-xs ${messageSpacingClass}`.trim()}>

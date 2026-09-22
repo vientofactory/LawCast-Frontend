@@ -21,27 +21,46 @@
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import CommentItem from './CommentItem.svelte';
 
-	export let thread: DiscussionThread;
-	export let comments: DiscussionComment[] = [];
-	export let isSubmittingComment = false;
-	export let isRateLimited = false;
-	export let rateLimitRemaining = 0;
-	export let onRetryRateLimit: (() => void | Promise<void>) | undefined = undefined;
-	export let isRetryingRateLimit = false;
-	export let onBack: (() => void) | undefined = undefined;
-	export let onSubmitComment: ((payload: CreateCommentPayload) => void) | undefined = undefined;
-	export let onEditComment: ((comment: DiscussionComment) => void) | undefined = undefined;
-	export let onDeleteComment: ((comment: DiscussionComment) => void) | undefined = undefined;
-	export let onToggleStatus: ((thread: DiscussionThread) => void) | undefined = undefined;
-	export let onOpenQuotePushConsent: (() => void) | undefined = undefined;
-	export let showQuotePushControl = false;
-	export let onLoadMoreComments: (() => void | Promise<void>) | undefined = undefined;
-	export let isLoadingMoreComments = false;
+	let {
+		thread,
+		comments = [],
+		isSubmittingComment = false,
+		isRateLimited = false,
+		rateLimitRemaining = 0,
+		onRetryRateLimit,
+		isRetryingRateLimit = false,
+		onBack,
+		onSubmitComment,
+		onEditComment,
+		onDeleteComment,
+		onToggleStatus,
+		onOpenQuotePushConsent,
+		showQuotePushControl = false,
+		onLoadMoreComments,
+		isLoadingMoreComments = false
+	}: {
+		thread: DiscussionThread;
+		comments?: DiscussionComment[];
+		isSubmittingComment?: boolean;
+		isRateLimited?: boolean;
+		rateLimitRemaining?: number;
+		onRetryRateLimit?: () => void | Promise<void>;
+		isRetryingRateLimit?: boolean;
+		onBack?: () => void;
+		onSubmitComment?: (payload: CreateCommentPayload) => void;
+		onEditComment?: (comment: DiscussionComment) => void;
+		onDeleteComment?: (comment: DiscussionComment) => void;
+		onToggleStatus?: (thread: DiscussionThread) => void;
+		onOpenQuotePushConsent?: () => void;
+		showQuotePushControl?: boolean;
+		onLoadMoreComments?: () => void | Promise<void>;
+		isLoadingMoreComments?: boolean;
+	} = $props();
 
-	let replyNickname = '';
-	let replyPassword = '';
-	let replyContent = '';
-	let replyErrorMessage = '';
+	let replyNickname = $state('');
+	let replyPassword = $state('');
+	let replyContent = $state('');
+	let replyErrorMessage = $state('');
 	let commentsLoadSentinel: HTMLDivElement;
 
 	onMount(() => {
@@ -111,7 +130,7 @@
 	<div class="flex items-center justify-between gap-3 border-b border-[var(--lc-border-soft)] pb-3">
 		<button
 			type="button"
-			on:click={handleBack}
+			onclick={handleBack}
 			class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-3 py-1.5 text-xs font-semibold"
 		>
 			<FontAwesomeIcon icon={faArrowLeft} class="h-3 w-3" />
@@ -121,7 +140,7 @@
 			{#if showQuotePushControl && thread.status === DiscussionThreadStatus.OPEN}
 				<button
 					type="button"
-					on:click={() => onOpenQuotePushConsent?.()}
+					onclick={() => onOpenQuotePushConsent?.()}
 					class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1 text-xs font-medium"
 					data-testid="discussion-quote-push-settings"
 					title="인용 알림 설정"
@@ -142,7 +161,7 @@
 			{:else}
 				<button
 					type="button"
-					on:click={() => onToggleStatus?.(thread)}
+					onclick={() => onToggleStatus?.(thread)}
 					class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1 text-xs font-medium"
 				>
 					<FontAwesomeIcon
@@ -266,7 +285,13 @@
 				</div>
 			{/if}
 
-			<form on:submit|preventDefault={handleCommentSubmit} class="space-y-3">
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					handleCommentSubmit();
+				}}
+				class="space-y-3"
+			>
 				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 					<div>
 						<label

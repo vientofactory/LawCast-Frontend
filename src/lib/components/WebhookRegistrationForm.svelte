@@ -10,19 +10,27 @@
 	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 	import type { SystemStats } from '$lib/types/api';
 
-	// Props
-	export let isInitialLoading = false;
-	export let stats: SystemStats | undefined = undefined;
-	export let onSuccess: (message: string) => void = () => {};
-	export let onError: (message: string) => void = () => {};
-	export let onClearMessage: () => void = () => {};
-	export let onWebhookRegistered: () => void = () => {};
+	let {
+		isInitialLoading = false,
+		stats,
+		onSuccess = () => {},
+		onError = () => {},
+		onClearMessage = () => {},
+		onWebhookRegistered = () => {}
+	}: {
+		isInitialLoading?: boolean;
+		stats?: SystemStats;
+		onSuccess?: (message: string) => void;
+		onError?: (message: string) => void;
+		onClearMessage?: () => void;
+		onWebhookRegistered?: () => void;
+	} = $props();
 
-	let newWebhookUrl = '';
-	let isSubmitting = false;
-	let isSolvingPoW = false;
-	let feedback: { type: 'success' | 'error'; message: string } | null = null;
-	let powState = createPowDisplayState();
+	let newWebhookUrl = $state('');
+	let isSubmitting = $state(false);
+	let isSolvingPoW = $state(false);
+	let feedback: { type: 'success' | 'error'; message: string } | null = $state(null);
+	let powState = $state(createPowDisplayState());
 
 	function clearFeedback() {
 		feedback = null;
@@ -140,7 +148,13 @@
 		{/if}
 	</ul>
 
-	<form on:submit|preventDefault={addWebhook} class="space-y-4">
+	<form
+		onsubmit={(e) => {
+			e.preventDefault();
+			addWebhook();
+		}}
+		class="space-y-4"
+	>
 		<div>
 			<label for="webhook-url" class="lc-text-secondary mb-2 block text-sm font-medium">
 				웹훅 URL <span class="text-red-400">*</span>

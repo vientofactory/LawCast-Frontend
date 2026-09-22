@@ -7,28 +7,41 @@
 	import { NoticeChangeSource } from '$lib/types/change-source';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 
-	export let isOpen = false;
-	export let changes: NoticeChangeTimelineResponse;
-	export let activeRevisionForUi: number | null;
-	export let buildRevisionLink: (rev: number | null) => string;
-	export let isCompareMode: boolean;
-	export let selectedFromRev: number | null;
-	export let selectedToRev: number | null;
-	export let showAllCompareFields: boolean;
-	export let clearCompareHref: string;
-	export let onToggleCompareShowAll: () => Promise<void> | void;
-	export let revisionDiffItems: {
-		fieldPath: string;
-		fieldLabel: string;
-		changeType: 'added' | 'removed' | 'modified' | 'unchanged';
-		beforeValue: string | null;
-		afterValue: string | null;
-	}[];
-	export let canSelectCompareBase: boolean;
-	export let onSelectCompare: (
-		fromRev: number | null,
-		toRev: number | null
-	) => Promise<void> | void;
+	let {
+		isOpen = $bindable(false),
+		changes,
+		activeRevisionForUi,
+		buildRevisionLink,
+		isCompareMode,
+		selectedFromRev,
+		selectedToRev,
+		showAllCompareFields,
+		clearCompareHref,
+		onToggleCompareShowAll,
+		revisionDiffItems,
+		canSelectCompareBase,
+		onSelectCompare
+	}: {
+		isOpen?: boolean;
+		changes: NoticeChangeTimelineResponse;
+		activeRevisionForUi: number | null;
+		buildRevisionLink: (rev: number | null) => string;
+		isCompareMode: boolean;
+		selectedFromRev: number | null;
+		selectedToRev: number | null;
+		showAllCompareFields: boolean;
+		clearCompareHref: string;
+		onToggleCompareShowAll: () => Promise<void> | void;
+		revisionDiffItems: {
+			fieldPath: string;
+			fieldLabel: string;
+			changeType: 'added' | 'removed' | 'modified' | 'unchanged';
+			beforeValue: string | null;
+			afterValue: string | null;
+		}[];
+		canSelectCompareBase: boolean;
+		onSelectCompare: (fromRev: number | null, toRev: number | null) => Promise<void> | void;
+	} = $props();
 
 	function eventTypeLabel(eventType: string): string {
 		switch (eventType) {
@@ -184,7 +197,7 @@
 												{#if selectedFromRev === null}
 													<button
 														type="button"
-														on:click={() => onSelectCompare(event.eventHeight, null)}
+														onclick={() => onSelectCompare(event.eventHeight, null)}
 														class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
 													>
 														기준으로 선택
@@ -192,7 +205,7 @@
 												{:else if selectedFromRev !== event.eventHeight && selectedToRev === null}
 													<button
 														type="button"
-														on:click={() => onSelectCompare(selectedFromRev, event.eventHeight)}
+														onclick={() => onSelectCompare(selectedFromRev, event.eventHeight)}
 														class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
 													>
 														비교 대상으로 선택
@@ -200,7 +213,7 @@
 												{:else if isCompareFrom || isCompareTo}
 													<button
 														type="button"
-														on:click={() => onSelectCompare(null, null)}
+														onclick={() => onSelectCompare(null, null)}
 														class="lc-button-neutral inline-flex cursor-pointer items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
 													>
 														비교 해제

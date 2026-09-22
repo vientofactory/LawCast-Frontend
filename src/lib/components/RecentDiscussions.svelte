@@ -10,7 +10,7 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
-	export let threads: DiscussionThreadWithNotice[] = [];
+	let { threads = [] }: { threads?: DiscussionThreadWithNotice[] } = $props();
 </script>
 
 <section

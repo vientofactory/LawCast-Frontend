@@ -57,8 +57,8 @@
 		return currentPath === href || currentPath.startsWith(`${href}/`);
 	}
 
-	let mobileMenuOpen = false;
-	let headerScrolled = false;
+	let mobileMenuOpen = $state(false);
+	let headerScrolled = $state(false);
 	let menuButton: HTMLButtonElement;
 
 	onMount(() => {
@@ -82,7 +82,7 @@
 		menuButton?.focus();
 	}
 
-	$: isDarkTheme = $theme === 'dark';
+	let isDarkTheme = $derived($theme === 'dark');
 
 	function trapFocus(node: HTMLElement) {
 		const focusableSelectors = [
@@ -148,7 +148,7 @@
 			<div class="hidden items-center md:ml-auto md:flex">
 				<button
 					type="button"
-					on:click={() => theme.toggle()}
+					onclick={() => theme.toggle()}
 					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full transition-all duration-200"
 					role="switch"
 					aria-checked={isDarkTheme}
@@ -172,7 +172,7 @@
 				bind:this={menuButton}
 				class="ml-auto inline-flex items-center justify-center rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-[var(--lc-text-secondary)] transition-all duration-200 hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] md:hidden"
 				aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
-				on:click={toggleMobileMenu}
+				onclick={toggleMobileMenu}
 				aria-expanded={mobileMenuOpen}
 				aria-controls="mobile-menu-panel"
 			>
@@ -229,7 +229,7 @@
 			class="lc-overlay-backdrop absolute inset-0 cursor-default backdrop-blur-[2px]"
 			aria-label="메뉴 닫기"
 			tabindex="-1"
-			on:click={closeMobileMenu}
+			onclick={closeMobileMenu}
 		></button>
 		<!-- 메뉴 패널 -->
 		<nav
@@ -243,7 +243,7 @@
 			<div class="mb-4 flex items-center justify-end">
 				<button
 					type="button"
-					on:click={() => theme.toggle()}
+					onclick={() => theme.toggle()}
 					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full border p-1 transition-all duration-200"
 					role="switch"
 					aria-checked={isDarkTheme}
@@ -274,7 +274,7 @@
 									: 'text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-accent)]'
 							}`}
 							style="min-height:44px"
-							on:click={closeMobileMenu}
+							onclick={closeMobileMenu}
 						>
 							<span
 								class={`inline-flex h-6 w-6 items-center justify-center rounded-lg ${isActive(item.href) ? 'bg-[var(--lc-surface-primary)] text-[var(--lc-text-accent)]' : 'bg-[var(--lc-surface-muted)] text-[var(--lc-text-accent)] group-hover/menu:bg-[var(--lc-surface-accent)]'}`}

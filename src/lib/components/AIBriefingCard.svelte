@@ -2,10 +2,15 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faRobot, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 
-	export let summary: string | null = null;
-	export let status: 'ready' | 'unavailable' | 'not_supported' | 'not_requested' = 'ready';
+	let {
+		summary = null,
+		status = 'ready'
+	}: {
+		summary?: string | null;
+		status?: 'ready' | 'unavailable' | 'not_supported' | 'not_requested';
+	} = $props();
 
-	$: isReady = status === 'ready' && !!summary?.trim();
+	let isReady = $derived(status === 'ready' && !!summary?.trim());
 </script>
 
 {#if isReady}

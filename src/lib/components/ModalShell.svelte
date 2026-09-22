@@ -1,18 +1,35 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faXmark } from '@fortawesome/free-solid-svg-icons';
 
-	export let isOpen = false;
-	export let labelledBy = 'modal-title';
-	export let maxWidthClass = 'max-w-lg';
-	export let testId: string | undefined = undefined;
-	export let closeDisabled = false;
-	export let onClose: (() => void) | undefined = undefined;
+	let {
+		isOpen = false,
+		labelledBy = 'modal-title',
+		maxWidthClass = 'max-w-lg',
+		testId,
+		closeDisabled = false,
+		onClose,
+		icon,
+		title,
+		subtitle,
+		children
+	}: {
+		isOpen?: boolean;
+		labelledBy?: string;
+		maxWidthClass?: string;
+		testId?: string;
+		closeDisabled?: boolean;
+		onClose?: () => void;
+		icon?: Snippet;
+		title?: Snippet;
+		subtitle?: Snippet;
+		children?: Snippet;
+	} = $props();
 
 	function handleClose() {
 		if (closeDisabled) return;
-		isOpen = false;
 		onClose?.();
 	}
 
@@ -23,7 +40,7 @@
 	}
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
 	<div
@@ -33,7 +50,7 @@
 	>
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="absolute inset-0" on:click={handleClose}></div>
+		<div class="absolute inset-0" onclick={handleClose}></div>
 
 		<div
 			class={`relative w-full ${maxWidthClass} max-h-[90vh] overflow-y-auto rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-6 shadow-xl`}
@@ -48,20 +65,20 @@
 			>
 				<div class="flex min-w-0 items-center gap-2">
 					<div class="shrink-0 rounded-lg p-2">
-						<slot name="icon" />
+						{@render icon?.()}
 					</div>
 					<div class="min-w-0">
 						<h2 id={labelledBy} class="lc-text-primary text-base font-bold">
-							<slot name="title" />
+							{@render title?.()}
 						</h2>
-						{#if $$slots.subtitle}
-							<p class="lc-text-muted text-xs"><slot name="subtitle" /></p>
+						{#if subtitle}
+							<p class="lc-text-muted text-xs">{@render subtitle()}</p>
 						{/if}
 					</div>
 				</div>
 				<button
 					type="button"
-					on:click={handleClose}
+					onclick={handleClose}
 					disabled={closeDisabled}
 					class="lc-text-muted hover:lc-text-primary cursor-pointer p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 					aria-label="닫기"
@@ -70,7 +87,7 @@
 				</button>
 			</div>
 
-			<slot />
+			{@render children?.()}
 		</div>
 	</div>
 {/if}

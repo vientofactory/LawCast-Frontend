@@ -19,10 +19,10 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	let currentUrl = page.url;
-	let isQuickSearchLoading = false;
+	let currentUrl = $state(page.url);
+	let isQuickSearchLoading = $state(false);
 
 	beforeNavigate(({ to }) => {
 		isQuickSearchLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
@@ -33,38 +33,46 @@
 		isQuickSearchLoading = false;
 	});
 
-	$: ({ recentNotices, stats } = data);
-	$: recentDiscussions = data.recentDiscussions;
-	$: quickKeywords = data.quickKeywords;
-	$: archiveTotalCount = stats?.archive?.count ?? 0;
-	$: archiveCountLabel =
-		archiveTotalCount > 0 ? `${archiveTotalCount.toLocaleString('ko-KR')}건` : '기록 수집 중';
-	$: aiSummaryEnabled =
-		(stats as { aiSummaryEnabled?: boolean } | undefined)?.aiSummaryEnabled !== false;
-	$: comparableChangeTotal =
+	let recentNotices = $derived(data.recentNotices);
+	let stats = $derived(data.stats);
+	let recentDiscussions = $derived(data.recentDiscussions);
+	let quickKeywords = $derived(data.quickKeywords);
+	let archiveTotalCount = $derived(stats?.archive?.count ?? 0);
+	let archiveCountLabel = $derived(
+		archiveTotalCount > 0 ? `${archiveTotalCount.toLocaleString('ko-KR')}건` : '기록 수집 중'
+	);
+	let aiSummaryEnabled = $derived(
+		(stats as { aiSummaryEnabled?: boolean } | undefined)?.aiSummaryEnabled !== false
+	);
+	let comparableChangeTotal = $derived(
 		(stats as { changeTracking?: { comparableEventTotal?: number } } | undefined)?.changeTracking
-			?.comparableEventTotal ?? 0;
-	$: comparableChangeTotalLabel = `${comparableChangeTotal.toLocaleString('ko-KR')}건`;
-	$: aiReviewModeLabel = aiSummaryEnabled ? 'AI 요약 검토' : '원문 중심 검토';
-	$: pageDescription = aiSummaryEnabled
-		? '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, AI 요약과 함께 빠르게 확인할 수 있습니다.'
-		: '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, 원문 정보와 함께 빠르게 확인할 수 있습니다.';
-	$: lastUpdatedLabel = stats?.cache?.lastUpdated
-		? formatDate(stats.cache.lastUpdated)
-		: '업데이트 대기 중';
+			?.comparableEventTotal ?? 0
+	);
+	let comparableChangeTotalLabel = $derived(`${comparableChangeTotal.toLocaleString('ko-KR')}건`);
+	let aiReviewModeLabel = $derived(aiSummaryEnabled ? 'AI 요약 검토' : '원문 중심 검토');
+	let pageDescription = $derived(
+		aiSummaryEnabled
+			? '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, AI 요약과 함께 빠르게 확인할 수 있습니다.'
+			: '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, 원문 정보와 함께 빠르게 확인할 수 있습니다.'
+	);
+	let lastUpdatedLabel = $derived(
+		stats?.cache?.lastUpdated ? formatDate(stats.cache.lastUpdated) : '업데이트 대기 중'
+	);
 	const fallbackHeroSearchSuggestions = ['중대재해', '개인정보', 'AI', '플랫폼', '근로기준'];
-	$: dynamicHeroSearchSuggestions =
+	let dynamicHeroSearchSuggestions = $derived(
 		quickKeywords?.items
 			?.map((item) => item.keyword)
 			.filter(Boolean)
-			.slice(0, 8) ?? [];
-	$: heroSearchSuggestions =
+			.slice(0, 8) ?? []
+	);
+	let heroSearchSuggestions = $derived(
 		dynamicHeroSearchSuggestions.length > 0
 			? dynamicHeroSearchSuggestions
-			: fallbackHeroSearchSuggestions;
-	$: quickKeywordUpdatedLabel = quickKeywords?.updatedAt
-		? formatDate(quickKeywords.updatedAt)
-		: null;
+			: fallbackHeroSearchSuggestions
+	);
+	let quickKeywordUpdatedLabel = $derived(
+		quickKeywords?.updatedAt ? formatDate(quickKeywords.updatedAt) : null
+	);
 
 	const discordCommunityUrl = env.PUBLIC_DISCORD_SERVER_URL?.trim() ?? null;
 	const discordServerId = env.PUBLIC_DISCORD_SERVER_ID?.trim() ?? null;
@@ -81,23 +89,25 @@
 			.replace(/&/g, '\\u0026');
 	}
 
-	$: pageUrl = currentUrl.origin + '/';
-	$: websiteJsonLd = safeJsonLd({
-		'@context': 'https://schema.org',
-		'@type': 'WebSite',
-		name: 'LawCast',
-		url: pageUrl,
-		description: '국회 입법예고 스냅샷 무결성 검증 아카이브 서비스',
-		inLanguage: 'ko',
-		potentialAction: {
-			'@type': 'SearchAction',
-			target: {
-				'@type': 'EntryPoint',
-				urlTemplate: `${currentUrl.origin}/notices?search={search_term_string}`
-			},
-			'query-input': 'required name=search_term_string'
-		}
-	});
+	let pageUrl = $derived(currentUrl.origin + '/');
+	let websiteJsonLd = $derived(
+		safeJsonLd({
+			'@context': 'https://schema.org',
+			'@type': 'WebSite',
+			name: 'LawCast',
+			url: pageUrl,
+			description: '국회 입법예고 스냅샷 무결성 검증 아카이브 서비스',
+			inLanguage: 'ko',
+			potentialAction: {
+				'@type': 'SearchAction',
+				target: {
+					'@type': 'EntryPoint',
+					urlTemplate: `${currentUrl.origin}/notices?search={search_term_string}`
+				},
+				'query-input': 'required name=search_term_string'
+			}
+		})
+	);
 </script>
 
 <svelte:head>

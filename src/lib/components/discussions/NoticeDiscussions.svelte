@@ -18,25 +18,38 @@
 	import type { Component, ComponentProps } from 'svelte';
 	import type NewThreadModal from './NewThreadModal.svelte';
 
-	export let noticeNum: number;
-	export let initialDiscussions: DiscussionThreadListResponse | undefined = undefined;
-	export let initialDiscussionError:
-		{ status: number; message: string; retryAfter?: number } | undefined = undefined;
+	let {
+		noticeNum,
+		initialDiscussions = undefined,
+		initialDiscussionError = undefined
+	}: {
+		noticeNum: number;
+		initialDiscussions?: DiscussionThreadListResponse;
+		initialDiscussionError?: { status: number; message: string; retryAfter?: number };
+	} = $props();
 
-	let threads: DiscussionThread[] = initialDiscussions?.items ?? [];
-	let totalThreads = initialDiscussions?.total ?? 0;
-	let isLoadingThreads = false;
+	let threads: DiscussionThread[] = $state([]);
+	let totalThreads = $state(0);
+	let isLoadingThreads = $state(false);
 
-	let isNewThreadModalOpen = false;
-	let isSubmittingNewThread = false;
-	let newThreadErrorMessage = '';
-	let NewThreadModalComponent: Component<ComponentProps<typeof NewThreadModal>> | null = null;
+	let isNewThreadModalOpen = $state(false);
+	let isSubmittingNewThread = $state(false);
+	let newThreadErrorMessage = $state('');
+	let NewThreadModalComponent: Component<ComponentProps<typeof NewThreadModal>> | null =
+		$state(null);
 
-	let errorMessage = initialDiscussionError?.message ?? '';
-	let successMessage = '';
-	let successTimer: ReturnType<typeof setTimeout> | null = null;
-	let rateLimitRemaining = initialDiscussionError?.retryAfter ?? 0;
-	let rateLimitTimer: ReturnType<typeof setInterval> | null = null;
+	let errorMessage = $state('');
+	let successMessage = $state('');
+	let successTimer: ReturnType<typeof setTimeout> | null = $state(null);
+	let rateLimitRemaining = $state(0);
+	let rateLimitTimer: ReturnType<typeof setInterval> | null = $state(null);
+
+	$effect(() => {
+		threads = initialDiscussions?.items ?? [];
+		totalThreads = initialDiscussions?.total ?? 0;
+		errorMessage = initialDiscussionError?.message ?? '';
+		rateLimitRemaining = initialDiscussionError?.retryAfter ?? 0;
+	});
 
 	function showSuccess(msg: string) {
 		successMessage = msg;
@@ -66,11 +79,6 @@
 				rateLimitTimer = null;
 			}
 		}, 1000);
-	}
-
-	$: if (initialDiscussions && threads.length === 0 && totalThreads === 0) {
-		threads = initialDiscussions.items;
-		totalThreads = initialDiscussions.total;
 	}
 
 	async function loadThreads() {
@@ -151,7 +159,7 @@
 		</div>
 		<button
 			type="button"
-			on:click={loadThreads}
+			onclick={loadThreads}
 			disabled={isLoadingThreads || rateLimitRemaining > 0}
 			title="새로고침"
 			class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1.5 text-xs font-semibold"
@@ -197,8 +205,7 @@
 
 <!-- Modals -->
 {#if NewThreadModalComponent}
-	<svelte:component
-		this={NewThreadModalComponent}
+	<NewThreadModalComponent
 		isOpen={isNewThreadModalOpen}
 		isSubmitting={isSubmittingNewThread}
 		isRateLimited={rateLimitRemaining > 0}

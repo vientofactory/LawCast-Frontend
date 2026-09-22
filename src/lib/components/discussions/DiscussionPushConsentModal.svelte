@@ -4,11 +4,17 @@
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import WebPushConsentForm from '$lib/components/WebPushConsentForm.svelte';
 
-	export let isOpen = false;
-	export let threadId: number;
-	export let onClose: (() => void) | undefined = undefined;
+	let {
+		isOpen = false,
+		threadId,
+		onClose
+	}: {
+		isOpen?: boolean;
+		threadId: number;
+		onClose?: () => void;
+	} = $props();
 
-	let feedback: { type: 'success' | 'error'; message: string } | null = null;
+	let feedback: { type: 'success' | 'error'; message: string } | null = $state(null);
 
 	function close() {
 		if (typeof localStorage !== 'undefined') {
@@ -35,9 +41,15 @@
 	testId="discussion-push-consent-modal"
 	onClose={close}
 >
-	<FontAwesomeIcon slot="icon" icon={faBell} class="h-4 w-4 text-blue-500" />
-	<span slot="title">인용 알림을 받아보시겠어요?</span>
-	<span slot="subtitle">작성하신 의견이 인용되면 브라우저 알림을 받을 수 있습니다.</span>
+	{#snippet icon()}
+		<FontAwesomeIcon icon={faBell} class="h-4 w-4 text-blue-500" />
+	{/snippet}
+	{#snippet title()}
+		<span>인용 알림을 받아보시겠어요?</span>
+	{/snippet}
+	{#snippet subtitle()}
+		<span>작성하신 의견이 인용되면 브라우저 알림을 받을 수 있습니다.</span>
+	{/snippet}
 
 	{#if feedback}
 		<div
@@ -64,7 +76,7 @@
 	<button
 		type="button"
 		class="lc-button-secondary mt-3 w-full cursor-pointer rounded-xl border px-4 py-2 text-sm"
-		on:click={close}
+		onclick={close}
 	>
 		나중에
 	</button>

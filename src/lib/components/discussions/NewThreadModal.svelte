@@ -10,28 +10,41 @@
 	import type { CreateThreadPayload } from '$lib/types/api';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 
-	export let isOpen = false;
-	export let isSubmitting = false;
-	export let isRateLimited = false;
-	export let externalErrorMessage = '';
-	export let onSubmit: ((payload: CreateThreadPayload) => void) | undefined = undefined;
-	export let onClose: (() => void) | undefined = undefined;
+	let {
+		isOpen = false,
+		isSubmitting = false,
+		isRateLimited = false,
+		externalErrorMessage = '',
+		onSubmit,
+		onClose
+	}: {
+		isOpen?: boolean;
+		isSubmitting?: boolean;
+		isRateLimited?: boolean;
+		externalErrorMessage?: string;
+		onSubmit?: (payload: CreateThreadPayload) => void;
+		onClose?: () => void;
+	} = $props();
 
-	let title = '';
-	let authorNickname = '';
-	let password = '';
-	let content = '';
-	let errorMessage = '';
+	let title = $state('');
+	let authorNickname = $state('');
+	let password = $state('');
+	let content = $state('');
+	let errorMessage = $state('');
 
-	$: if (externalErrorMessage) {
-		errorMessage = externalErrorMessage;
-	}
-
-	$: if (isOpen) {
-		if (!externalErrorMessage) {
-			errorMessage = '';
+	$effect(() => {
+		if (externalErrorMessage) {
+			errorMessage = externalErrorMessage;
 		}
-	}
+	});
+
+	$effect(() => {
+		if (isOpen) {
+			if (!externalErrorMessage) {
+				errorMessage = '';
+			}
+		}
+	});
 
 	function handleClose() {
 		if (isSubmitting) return;
@@ -40,7 +53,6 @@
 		password = '';
 		content = '';
 		errorMessage = '';
-		isOpen = false;
 		onClose?.();
 	}
 
@@ -74,11 +86,17 @@
 	closeDisabled={isSubmitting}
 	onClose={handleClose}
 >
-	<div slot="icon" class="lc-chip-blue rounded-lg">
-		<FontAwesomeIcon icon={faComments} class="h-4 w-4" />
-	</div>
-	<span slot="title">새 토론 주제 개설</span>
-	<span slot="subtitle">법률안에 대한 새로운 토론 주제를 등록합니다.</span>
+	{#snippet icon()}
+		<div class="lc-chip-blue rounded-lg">
+			<FontAwesomeIcon icon={faComments} class="h-4 w-4" />
+		</div>
+	{/snippet}
+	{#snippet title()}
+		<span>새 토론 주제 개설</span>
+	{/snippet}
+	{#snippet subtitle()}
+		<span>법률안에 대한 새로운 토론 주제를 등록합니다.</span>
+	{/snippet}
 
 	{#if errorMessage}
 		<div
@@ -88,7 +106,13 @@
 		</div>
 	{/if}
 
-	<form on:submit|preventDefault={handleSubmit} class="space-y-4">
+	<form
+		onsubmit={(e) => {
+			e.preventDefault();
+			handleSubmit();
+		}}
+		class="space-y-4"
+	>
 		<div>
 			<label for="thread-title-input" class="lc-text-primary mb-1 block text-xs font-semibold">
 				토론 주제 <span class="text-red-500">*</span>
@@ -160,7 +184,7 @@
 		<div class="flex justify-end gap-2 pt-2">
 			<button
 				type="button"
-				on:click={handleClose}
+				onclick={handleClose}
 				disabled={isSubmitting}
 				class="lc-button-neutral cursor-pointer rounded-lg border border-[var(--lc-border-soft)] px-4 py-2 text-xs font-semibold"
 			>

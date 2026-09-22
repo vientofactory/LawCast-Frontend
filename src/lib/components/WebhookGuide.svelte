@@ -9,7 +9,7 @@
 <div class="mt-6 border-t border-[var(--lc-border-soft)] pt-6">
 	<button
 		type="button"
-		on:click={() => (isExpanded = !isExpanded)}
+		onclick={() => (isExpanded = !isExpanded)}
 		class="lc-panel-inset group flex w-full cursor-pointer items-center justify-between rounded-lg border px-4 py-3 text-left transition-all duration-300 hover:bg-[var(--lc-surface-hover)] hover:shadow-sm focus:ring-2 focus:ring-[var(--lc-border-strong)] focus:ring-offset-2 focus:outline-none"
 	>
 		<div class="flex items-center">

@@ -22,19 +22,23 @@
 	} from '$lib/types/api';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 
-	export let data: {
-		threads: DiscussionThreadWithNoticeListResponse;
-		status?: DiscussionThreadStatus;
-		loadError?: {
-			message: string;
-			retryAfter?: number;
+	let {
+		data
+	}: {
+		data: {
+			threads: DiscussionThreadWithNoticeListResponse;
+			status?: DiscussionThreadStatus;
+			loadError?: {
+				message: string;
+				retryAfter?: number;
+			};
 		};
-	};
+	} = $props();
 
-	let currentUrl = page.url;
-	let pendingPage: number | null = null;
-	let countdown = 0;
-	let isRetrying = false;
+	let currentUrl = $state(page.url);
+	let pendingPage: number | null = $state(null);
+	let countdown = $state(0);
+	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
 		() => invalidateAll(),
 		(v) => {
@@ -46,26 +50,28 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$: if (data.loadError !== retry.lastSeenError) {
-		retry.lastSeenError = data.loadError;
-		if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
-			retry.start(data.loadError.retryAfter);
-		} else {
-			retry.stop();
+	$effect(() => {
+		if (data.loadError !== retry.lastSeenError) {
+			retry.lastSeenError = data.loadError;
+			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
+				retry.start(data.loadError.retryAfter);
+			} else {
+				retry.stop();
+			}
 		}
-	}
+	});
 
 	afterNavigate(() => {
 		currentUrl = page.url;
 		pendingPage = null;
 	});
 
-	$: threads = data.threads.items;
-	$: total = data.threads.total;
-	$: limit = data.threads.limit || 20;
-	$: currentPage = data.threads.page || 1;
-	$: totalPages = Math.max(1, Math.ceil(total / limit));
-	$: activeStatus = data.status;
+	let threads = $derived(data.threads.items);
+	let total = $derived(data.threads.total);
+	let limit = $derived(data.threads.limit || 20);
+	let currentPage = $derived(data.threads.page || 1);
+	let totalPages = $derived(Math.max(1, Math.ceil(total / limit)));
+	let activeStatus = $derived(data.status);
 
 	const statusTabs: Array<{ label: string; value: DiscussionThreadStatus | undefined }> = [
 		{ label: '전체', value: undefined },

@@ -9,16 +9,28 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { onMount } from 'svelte';
 
-	export let type: 'error' | 'success' | 'warning' | 'info' = 'info';
-	export let message: string;
-	export let dismissible: boolean = true;
-	export let showRefresh: boolean = false;
-	export let onDismiss: (() => void) | undefined = undefined;
-	export let onRefresh: (() => void) | undefined = undefined;
-	export let customAction: { label: string; handler: () => void } | undefined = undefined;
-	export let autoHide: boolean = false;
-	export let autoHideDelay: number = 5000;
-	let visible = true;
+	let {
+		type = 'info',
+		message,
+		dismissible = true,
+		showRefresh = false,
+		onDismiss,
+		onRefresh,
+		customAction,
+		autoHide = false,
+		autoHideDelay = 5000
+	}: {
+		type?: 'error' | 'success' | 'warning' | 'info';
+		message: string;
+		dismissible?: boolean;
+		showRefresh?: boolean;
+		onDismiss?: () => void;
+		onRefresh?: () => void;
+		customAction?: { label: string; handler: () => void };
+		autoHide?: boolean;
+		autoHideDelay?: number;
+	} = $props();
+	let visible = $state(true);
 	let autoHideTimer: NodeJS.Timeout | undefined;
 
 	const typeConfig = {
@@ -56,7 +68,7 @@
 		}
 	};
 
-	$: config = typeConfig[type];
+	let config = $derived(typeConfig[type]);
 
 	// Setup auto hide functionality on mount
 	onMount(() => {
@@ -116,7 +128,7 @@
 			<div class="ml-4 flex items-center space-x-2">
 				{#if showRefresh}
 					<button
-						on:click={handleRefresh}
+						onclick={handleRefresh}
 						class="flex cursor-pointer items-center space-x-1 text-sm {config.buttonClass}"
 						title="페이지 새로고침"
 					>
@@ -127,7 +139,7 @@
 
 				{#if customAction}
 					<button
-						on:click={handleCustomAction}
+						onclick={handleCustomAction}
 						class="rounded-lg px-3 py-1.5 text-sm font-semibold {config.customButtonClass} cursor-pointer shadow-sm focus:ring-2 focus:ring-offset-2 focus:outline-none"
 					>
 						{customAction.label}
@@ -136,7 +148,7 @@
 
 				{#if dismissible}
 					<button
-						on:click={handleDismiss}
+						onclick={handleDismiss}
 						class="lc-hover-subtle-bg rounded-full p-1 {config.buttonClass} cursor-pointer transition-all duration-200 hover:scale-110 focus:ring-2 focus:ring-offset-2 focus:outline-none"
 						aria-label="알림 닫기"
 						title="닫기"

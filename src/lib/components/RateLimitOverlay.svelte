@@ -2,10 +2,17 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faRotateRight, faClock } from '@fortawesome/free-solid-svg-icons';
 
-	export let visible = false;
-	export let retryAfter = 0;
-	export let onRetry: (() => void | Promise<void>) | undefined = undefined;
-	export let isRetrying = false;
+	let {
+		visible = false,
+		retryAfter = 0,
+		onRetry,
+		isRetrying = false
+	}: {
+		visible?: boolean;
+		retryAfter?: number;
+		onRetry?: () => void | Promise<void>;
+		isRetrying?: boolean;
+	} = $props();
 </script>
 
 {#if visible}
@@ -27,7 +34,7 @@
 				{#if onRetry}
 					<button
 						type="button"
-						on:click={onRetry}
+						onclick={onRetry}
 						disabled={retryAfter > 0 || isRetrying}
 						class="lc-rate-limit-overlay-btn"
 					>
