@@ -1,4 +1,5 @@
 import { apiClient } from '$lib/api/client';
+import { DiscussionThreadStatus } from '$lib/types/api';
 import type { PageServerLoad } from './$types';
 import {
 	isDiffchainUiMockEnabled,
@@ -38,7 +39,10 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		})),
 		apiClient.getSystemStats(fetch).catch(() => DEFAULT_STATS),
 		apiClient
-			.getAllDiscussionThreads({ limit: RECENT_DISCUSSIONS_LIMIT }, fetch)
+			.getAllDiscussionThreads(
+				{ limit: RECENT_DISCUSSIONS_LIMIT, status: DiscussionThreadStatus.OPEN },
+				fetch
+			)
 			.then((res) => res.items)
 			.catch(() => [])
 	]);

@@ -24,12 +24,10 @@
 			</div>
 			최근 토론
 		</h2>
-		{#if threads.length > 0}
-			<a href="/discussions" class="lc-link flex items-center text-sm font-medium">
-				전체 토론 보기
-				<FontAwesomeIcon icon={faExternalLink} class="ml-1 h-4 w-4" />
-			</a>
-		{/if}
+		<a href="/discussions?status=all" class="lc-link flex items-center text-sm font-medium">
+			전체 토론 보기
+			<FontAwesomeIcon icon={faExternalLink} class="ml-1 h-4 w-4" />
+		</a>
 	</div>
 
 	{#if threads.length === 0}
@@ -37,7 +35,7 @@
 			<div class="lc-text-dim mb-2">
 				<FontAwesomeIcon icon={faComments} class="mx-auto h-8 w-8" />
 			</div>
-			<p class="lc-text-muted">아직 등록된 토론이 없습니다.</p>
+			<p class="lc-text-muted">최근 진행 중인 토론이 없습니다.</p>
 		</div>
 	{:else}
 		<div class="space-y-3">
