@@ -38,34 +38,33 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import NoticeDiscussions from '$lib/components/discussions/NoticeDiscussions.svelte';
-	import { getNoticeChanges } from '$lib/api/client';
-	import { isRateLimitError, getRateLimitRetryAfter } from '$lib/api/client';
 
-	export let data: {
-		detail: NoticeDetail;
-		changes?: NoticeChangeTimelineResponse;
-		discussions?: DiscussionThreadListResponse;
-		discussionError?: {
-			status: number;
-			message: string;
-			retryAfter?: number;
+	let {
+		data
+	}: {
+		data: {
+			detail: NoticeDetail;
+			changes: NoticeChangeTimelineResponse;
+			discussions?: DiscussionThreadListResponse;
+			discussionError?: {
+				status: number;
+				message: string;
+				retryAfter?: number;
+			};
+			loadError?: {
+				message: string;
+				retryAfter?: number;
+			};
 		};
-		loadError?: {
-			message: string;
-			retryAfter?: number;
-		};
-	};
+	} = $props();
 
-	$: detail = data.detail;
-	const EMPTY_CHANGES: NoticeChangeTimelineResponse = { noticeNum: 0, items: [], count: 0 };
-	let lazyLoadedChanges: NoticeChangeTimelineResponse | null = null;
-	$: changes = lazyLoadedChanges ??
-		data.changes ?? { ...EMPTY_CHANGES, noticeNum: detail.notice.num };
-	$: loadError = data.loadError;
-	$: aiSummaryEnabled = detail.aiSummaryEnabled !== false;
+	let detail = $derived(data.detail);
+	let changes = $derived(data.changes);
+	let loadError = $derived(data.loadError);
+	let aiSummaryEnabled = $derived(detail.aiSummaryEnabled !== false);
 
-	let countdown = 0;
-	let isRetrying = false;
+	let countdown = $state(0);
+	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
 		() => invalidateAll(),
 		(v) => {
@@ -77,14 +76,16 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$: if (loadError !== retry.lastSeenError) {
-		retry.lastSeenError = loadError;
-		if (loadError?.retryAfter && loadError.retryAfter > 0) {
-			retry.start(loadError.retryAfter);
-		} else {
-			retry.stop();
+	$effect(() => {
+		if (loadError !== retry.lastSeenError) {
+			retry.lastSeenError = loadError;
+			if (loadError?.retryAfter && loadError.retryAfter > 0) {
+				retry.start(loadError.retryAfter);
+			} else {
+				retry.stop();
+			}
 		}
-	}
+	});
 
 	let currentUrl = page.url;
 	afterNavigate(() => {
@@ -105,11 +106,48 @@
 		return formatDateTimeKST(value);
 	}
 
-	$: pageTitle = `${displayContent.title} - 제안이유 및 주요내용 원문 | LawCast`;
-	$: pageDescription = buildExcerpt(
-		aiSummaryEnabled
-			? (detail.notice.aiSummary ?? displayContent.proposalReason)
-			: displayContent.proposalReason
+	type DisplayContent = {
+		title: string;
+		proposalReason: string;
+		billNumber: string | null;
+		proposer: string | null;
+		proposerCategory: string | null;
+		proposalDate: string | null;
+		committee: string | null;
+		referralDate: string | null;
+		noticePeriod: string | null;
+		proposalSession: string | null;
+		isDone: boolean | null;
+		lifecycleStatus: string | null;
+		sourceDeletedAt: string | null;
+	};
+
+	function buildDisplayContentFromDetail(input: NoticeDetail): DisplayContent {
+		return {
+			title: input.notice.subject,
+			proposalReason: input.originalContent.proposalReason,
+			billNumber: input.originalContent.billNumber,
+			proposer: input.originalContent.proposer,
+			proposerCategory: input.notice.proposerCategory,
+			proposalDate: input.originalContent.proposalDate,
+			committee: input.originalContent.committee ?? input.notice.committee,
+			referralDate: input.originalContent.referralDate,
+			noticePeriod: input.originalContent.noticePeriod,
+			proposalSession: input.originalContent.proposalSession,
+			isDone: input.notice.isDone ?? null,
+			lifecycleStatus: input.notice.lifecycleStatus ?? null,
+			sourceDeletedAt: input.notice.sourceDeletedAt ?? null
+		};
+	}
+
+	let displayContent = $derived(buildDisplayContentFromDetail(detail));
+	let pageTitle = $derived(`${displayContent.title} - 제안이유 및 주요내용 원문 | LawCast`);
+	let pageDescription = $derived(
+		buildExcerpt(
+			aiSummaryEnabled
+				? (detail.notice.aiSummary ?? displayContent.proposalReason)
+				: displayContent.proposalReason
+		)
 	);
 
 	function safeJsonLd(data: object): string {
@@ -119,124 +157,137 @@
 			.replace(/&/g, '\\u0026');
 	}
 
-	$: pageUrl = currentUrl.origin + currentUrl.pathname;
-	$: publishedTime = detail.archiveMetadata.archivedAt ?? detail.notice.archiveStartedAt ?? null;
-	$: modifiedTime = detail.notice.lastUpdatedAt ?? publishedTime;
-	$: pageKeywords = [
-		displayContent.title,
-		displayContent.committee,
-		displayContent.proposer,
-		displayContent.billNumber,
-		'입법예고',
-		'국회 법률안',
-		'제안이유 및 주요내용',
-		'법률안 원문',
-		'의안번호'
-	]
-		.filter(Boolean)
-		.join(', ');
-	$: articleJsonLd = safeJsonLd({
-		'@context': 'https://schema.org',
-		'@graph': [
-			{
-				'@type': 'BreadcrumbList',
-				itemListElement: [
-					{ '@type': 'ListItem', position: 1, name: '홈', item: `${currentUrl.origin}/` },
-					{
-						'@type': 'ListItem',
-						position: 2,
-						name: '전체 입법예고',
-						item: `${currentUrl.origin}/notices`
-					},
-					{
-						'@type': 'ListItem',
-						position: 3,
-						name: detail.notice.subject,
-						item: pageUrl
-					}
-				]
-			},
-			{
-				'@type': 'Article',
-				headline: displayContent.title,
-				description: pageDescription,
-				url: pageUrl,
-				...(publishedTime ? { datePublished: publishedTime } : {}),
-				...(modifiedTime ? { dateModified: modifiedTime } : {}),
-				author: displayContent.proposer
-					? { '@type': 'Organization', name: displayContent.proposer }
-					: undefined,
-				publisher: { '@type': 'Organization', name: 'LawCast' },
-				inLanguage: 'ko',
-				isPartOf: { '@type': 'WebSite', name: 'LawCast', url: `${currentUrl.origin}/` }
-			}
+	let pageUrl = $derived(currentUrl.origin + currentUrl.pathname);
+	let publishedTime = $derived(
+		detail.archiveMetadata.archivedAt ?? detail.notice.archiveStartedAt ?? null
+	);
+	let modifiedTime = $derived(detail.notice.lastUpdatedAt ?? publishedTime);
+	let pageKeywords = $derived(
+		[
+			displayContent.title,
+			displayContent.committee,
+			displayContent.proposer,
+			displayContent.billNumber,
+			'입법예고',
+			'국회 법률안',
+			'제안이유 및 주요내용',
+			'법률안 원문',
+			'의안번호'
 		]
-	});
+			.filter(Boolean)
+			.join(', ')
+	);
+	let articleJsonLd = $derived(
+		safeJsonLd({
+			'@context': 'https://schema.org',
+			'@graph': [
+				{
+					'@type': 'BreadcrumbList',
+					itemListElement: [
+						{ '@type': 'ListItem', position: 1, name: '홈', item: `${currentUrl.origin}/` },
+						{
+							'@type': 'ListItem',
+							position: 2,
+							name: '전체 입법예고',
+							item: `${currentUrl.origin}/notices`
+						},
+						{
+							'@type': 'ListItem',
+							position: 3,
+							name: detail.notice.subject,
+							item: pageUrl
+						}
+					]
+				},
+				{
+					'@type': 'Article',
+					headline: displayContent.title,
+					description: pageDescription,
+					url: pageUrl,
+					...(publishedTime ? { datePublished: publishedTime } : {}),
+					...(modifiedTime ? { dateModified: modifiedTime } : {}),
+					author: displayContent.proposer
+						? { '@type': 'Organization', name: displayContent.proposer }
+						: undefined,
+					publisher: { '@type': 'Organization', name: 'LawCast' },
+					inLanguage: 'ko',
+					isPartOf: { '@type': 'WebSite', name: 'LawCast', url: `${currentUrl.origin}/` }
+				}
+			]
+		})
+	);
 
-	$: shouldShowAIBriefing =
+	let shouldShowAIBriefing = $derived(
 		aiSummaryEnabled &&
-		(detail.notice.aiSummaryStatus === 'ready' || detail.notice.aiSummaryStatus === 'unavailable');
-	$: integrityStatus =
+			(detail.notice.aiSummaryStatus === 'ready' || detail.notice.aiSummaryStatus === 'unavailable')
+	);
+	let integrityStatus = $derived(
 		detail.archiveMetadata.integrity.status ??
-		(detail.archiveMetadata.integrity.passed === true
-			? 'passed'
-			: detail.archiveMetadata.integrity.passed === false
-				? 'failed'
-				: 'pending');
-	$: integrityStatusLabel =
+			(detail.archiveMetadata.integrity.passed === true
+				? 'passed'
+				: detail.archiveMetadata.integrity.passed === false
+					? 'failed'
+					: 'pending')
+	);
+	let integrityStatusLabel = $derived(
 		integrityStatus === 'passed'
 			? '검증 통과'
 			: integrityStatus === 'failed'
 				? '검증 실패'
 				: integrityStatus === 'skipped'
 					? '검증 스킵'
-					: '검증 대기';
-	$: lifecycleStatus = displayContent.lifecycleStatus ?? 'active';
-	$: isSourceDeleted = lifecycleStatus === 'source_deleted';
-	$: isRenumbered = lifecycleStatus === 'renumbered';
+					: '검증 대기'
+	);
+	let lifecycleStatus = $derived(displayContent.lifecycleStatus ?? 'active');
+	let isSourceDeleted = $derived(lifecycleStatus === 'source_deleted');
+	let isRenumbered = $derived(lifecycleStatus === 'renumbered');
 
-	$: contentFacts = [
-		{ label: '의안번호', value: displayContent.billNumber },
-		// Remove unnecessary prefix from proposer field if present
-		{ label: '제안자', value: displayContent.proposer?.replace('제안자목록', '').trim() },
-		{ label: '제안일', value: displayContent.proposalDate },
-		{ label: '소관위원회', value: displayContent.committee },
-		{ label: '회부일', value: displayContent.referralDate },
-		{ label: '입법예고기간', value: displayContent.noticePeriod },
-		{ label: '제안회기', value: displayContent.proposalSession }
-	].filter((item) => !!item.value);
+	let contentFacts = $derived(
+		[
+			{ label: '의안번호', value: displayContent.billNumber },
+			// Remove unnecessary prefix from proposer field if present
+			{ label: '제안자', value: displayContent.proposer?.replace('제안자목록', '').trim() },
+			{ label: '제안일', value: displayContent.proposalDate },
+			{ label: '소관위원회', value: displayContent.committee },
+			{ label: '회부일', value: displayContent.referralDate },
+			{ label: '입법예고기간', value: displayContent.noticePeriod },
+			{ label: '제안회기', value: displayContent.proposalSession }
+		].filter((item) => !!item.value)
+	);
 
-	$: pageParam = currentUrl.searchParams.get('page');
-	$: limitParam = currentUrl.searchParams.get('limit');
-	$: searchParam = currentUrl.searchParams.get('search');
-	$: startDateParam = currentUrl.searchParams.get('startDate');
-	$: endDateParam = currentUrl.searchParams.get('endDate');
-	$: sortOrderParam = currentUrl.searchParams.get('sortOrder');
-	$: currentRevision = detail.revision;
-	$: headRevision = currentRevision?.headRev ?? null;
-	$: activeRevision = currentRevision?.resolvedRev ?? null;
-	$: isHistoricalView = currentRevision?.isHistorical ?? false;
-	$: activeRevisionForUi = activeRevision ?? headRevision;
-	$: hasLegacyGenesisBoundary = currentRevision?.hasLegacyGenesisBoundary ?? false;
-	$: legacyGenesisBoundaryAt = currentRevision?.legacyGenesisBoundaryAt ?? null;
+	let pageParam = $derived(currentUrl.searchParams.get('page'));
+	let limitParam = $derived(currentUrl.searchParams.get('limit'));
+	let searchParam = $derived(currentUrl.searchParams.get('search'));
+	let startDateParam = $derived(currentUrl.searchParams.get('startDate'));
+	let endDateParam = $derived(currentUrl.searchParams.get('endDate'));
+	let sortOrderParam = $derived(currentUrl.searchParams.get('sortOrder'));
+	let currentRevision = $derived(detail.revision);
+	let headRevision = $derived(currentRevision?.headRev ?? null);
+	let activeRevision = $derived(currentRevision?.resolvedRev ?? null);
+	let isHistoricalView = $derived(currentRevision?.isHistorical ?? false);
+	let activeRevisionForUi = $derived(activeRevision ?? headRevision);
+	let hasLegacyGenesisBoundary = $derived(currentRevision?.hasLegacyGenesisBoundary ?? false);
+	let legacyGenesisBoundaryAt = $derived(currentRevision?.legacyGenesisBoundaryAt ?? null);
 
-	$: backLink = (() => {
-		const params = new SvelteURLSearchParams();
-		if (pageParam) params.set('page', pageParam);
-		if (limitParam) params.set('limit', limitParam);
-		if (searchParam) params.set('search', searchParam);
-		if (startDateParam) params.set('startDate', startDateParam);
-		if (endDateParam) params.set('endDate', endDateParam);
-		if (sortOrderParam) params.set('sortOrder', sortOrderParam);
-		const query = params.toString();
-		return query ? `/notices?${query}` : '/notices';
-	})();
+	let backLink = $derived(
+		(() => {
+			const params = new SvelteURLSearchParams();
+			if (pageParam) params.set('page', pageParam);
+			if (limitParam) params.set('limit', limitParam);
+			if (searchParam) params.set('search', searchParam);
+			if (startDateParam) params.set('startDate', startDateParam);
+			if (endDateParam) params.set('endDate', endDateParam);
+			if (sortOrderParam) params.set('sortOrder', sortOrderParam);
+			const query = params.toString();
+			return query ? `/notices?${query}` : '/notices';
+		})()
+	);
 
-	let isArchiveMetaOpen = false;
-	let isScreenshotExpanded = false;
-	let isExportingArchive = false;
-	let shareState: 'idle' | 'copied' = 'idle';
-	let exportArchiveError: string | null = null;
+	let isArchiveMetaOpen = $state(false);
+	let isScreenshotExpanded = $state(false);
+	let isExportingArchive = $state(false);
+	let shareState: 'idle' | 'copied' = $state('idle');
+	let exportArchiveError: string | null = $state(null);
 	let timelineSectionElement: HTMLElement | null = null;
 	let hasAutoScrolledToTimeline = false;
 
@@ -370,37 +421,11 @@
 		}
 	}
 
-	$: screenshotUrl = `/api/notices/${detail.notice.num}/screenshot`;
-	$: hasScreenshot = detail.screenshotMeta?.hasScreenshot ?? false;
-	$: screenshotCaptureError = detail.screenshotMeta?.captureError ?? null;
+	let screenshotUrl = $derived(`/api/notices/${detail.notice.num}/screenshot`);
+	let hasScreenshot = $derived(detail.screenshotMeta?.hasScreenshot ?? false);
+	let screenshotCaptureError = $derived(detail.screenshotMeta?.captureError ?? null);
 
-	let isChangeTimelineOpen = false;
-	let timelineLoaded = data.changes !== undefined && data.changes !== null;
-	let timelineLoading = false;
-	let timelineError: string | null = null;
-
-	async function loadTimeline(): Promise<void> {
-		if (timelineLoaded || timelineLoading) {
-			return;
-		}
-
-		timelineLoading = true;
-		timelineError = null;
-
-		try {
-			const result = await getNoticeChanges(detail.notice.num, { limit: 100 });
-			lazyLoadedChanges = result;
-			timelineLoaded = true;
-		} catch (err) {
-			if (isRateLimitError(err)) {
-				timelineError = `요청이 너무 많습니다. ${getRateLimitRetryAfter(err)}초 후 다시 시도해주세요.`;
-			} else {
-				timelineError = '변경 추적 타임라인을 불러오는 중 오류가 발생했습니다.';
-			}
-		} finally {
-			timelineLoading = false;
-		}
-	}
+	let isChangeTimelineOpen = $state(false);
 
 	function getPositiveIntQueryParam(raw: string | null): number | null {
 		if (!raw) {
@@ -415,41 +440,7 @@
 		return parsed;
 	}
 
-	type DisplayContent = {
-		title: string;
-		proposalReason: string;
-		billNumber: string | null;
-		proposer: string | null;
-		proposerCategory: string | null;
-		proposalDate: string | null;
-		committee: string | null;
-		referralDate: string | null;
-		noticePeriod: string | null;
-		proposalSession: string | null;
-		isDone: boolean | null;
-		lifecycleStatus: string | null;
-		sourceDeletedAt: string | null;
-	};
-
-	function buildDisplayContentFromDetail(input: NoticeDetail): DisplayContent {
-		return {
-			title: input.notice.subject,
-			proposalReason: input.originalContent.proposalReason,
-			billNumber: input.originalContent.billNumber,
-			proposer: input.originalContent.proposer,
-			proposerCategory: input.notice.proposerCategory,
-			proposalDate: input.originalContent.proposalDate,
-			committee: input.originalContent.committee ?? input.notice.committee,
-			referralDate: input.originalContent.referralDate,
-			noticePeriod: input.originalContent.noticePeriod,
-			proposalSession: input.originalContent.proposalSession,
-			isDone: input.notice.isDone ?? null,
-			lifecycleStatus: input.notice.lifecycleStatus ?? null,
-			sourceDeletedAt: input.notice.sourceDeletedAt ?? null
-		};
-	}
-
-	$: {
+	$effect(() => {
 		const timelineFromQuery = parseBooleanParam(currentUrl.searchParams.get('timeline'));
 		if (timelineFromQuery !== null) {
 			isChangeTimelineOpen = timelineFromQuery;
@@ -464,11 +455,7 @@
 		if (screenshotFromQuery !== null && hasScreenshot) {
 			isScreenshotExpanded = screenshotFromQuery;
 		}
-	}
-
-	$: if (isChangeTimelineOpen) {
-		void loadTimeline();
-	}
+	});
 
 	const CHANGE_FIELD_LABELS: Record<string, string> = {
 		num: '의안번호',
@@ -525,57 +512,61 @@
 		return snapshots;
 	}
 
-	$: snapshotsByRevision = buildSnapshotsByRevision(changes.items);
-	$: displayContent = buildDisplayContentFromDetail(detail);
-	$: selectedFromRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpFrom'));
-	$: selectedToRev = getPositiveIntQueryParam(currentUrl.searchParams.get('cmpTo'));
-	$: showAllCompareFields =
+	let snapshotsByRevision = $derived(buildSnapshotsByRevision(changes.items));
+	let selectedFromRev = $derived(getPositiveIntQueryParam(currentUrl.searchParams.get('cmpFrom')));
+	let selectedToRev = $derived(getPositiveIntQueryParam(currentUrl.searchParams.get('cmpTo')));
+	let showAllCompareFields = $derived(
 		currentUrl.searchParams.get('cmpShowAll') === '1' ||
-		currentUrl.searchParams.get('cmpShowAll') === 'true';
-	$: fromSnapshot = selectedFromRev === null ? {} : (snapshotsByRevision[selectedFromRev] ?? {});
-	$: toSnapshot = selectedToRev === null ? {} : (snapshotsByRevision[selectedToRev] ?? {});
-	$: comparableRevisionCount = Object.keys(snapshotsByRevision).length;
-	$: canSelectCompareBase = comparableRevisionCount > 1;
-	$: if (selectedFromRev !== null || selectedToRev !== null) {
-		void loadTimeline();
-	}
-	$: revisionDiffItems = (() => {
-		const keys = new Set<string>([
-			...Object.keys(CHANGE_FIELD_LABELS),
-			...Object.keys(fromSnapshot),
-			...Object.keys(toSnapshot)
-		]);
-		const items: RevisionDiffItem[] = [];
+			currentUrl.searchParams.get('cmpShowAll') === 'true'
+	);
+	let fromSnapshot = $derived(
+		selectedFromRev === null ? {} : (snapshotsByRevision[selectedFromRev] ?? {})
+	);
+	let toSnapshot = $derived(
+		selectedToRev === null ? {} : (snapshotsByRevision[selectedToRev] ?? {})
+	);
+	let comparableRevisionCount = $derived(Object.keys(snapshotsByRevision).length);
+	let canSelectCompareBase = $derived(comparableRevisionCount > 1);
+	let revisionDiffItems = $derived(
+		(() => {
+			const keys = new Set<string>([
+				...Object.keys(CHANGE_FIELD_LABELS),
+				...Object.keys(fromSnapshot),
+				...Object.keys(toSnapshot)
+			]);
+			const items: RevisionDiffItem[] = [];
 
-		for (const key of keys) {
-			const beforeValue = fromSnapshot[key] ?? null;
-			const afterValue = toSnapshot[key] ?? null;
-			if (!showAllCompareFields && beforeValue === afterValue) {
-				continue;
+			for (const key of keys) {
+				const beforeValue = fromSnapshot[key] ?? null;
+				const afterValue = toSnapshot[key] ?? null;
+				if (!showAllCompareFields && beforeValue === afterValue) {
+					continue;
+				}
+
+				const changeType: RevisionDiffItem['changeType'] =
+					beforeValue === afterValue
+						? 'unchanged'
+						: beforeValue === null
+							? 'added'
+							: afterValue === null
+								? 'removed'
+								: 'modified';
+
+				items.push({
+					fieldPath: key,
+					fieldLabel: toReadableFieldLabel(key),
+					changeType,
+					beforeValue,
+					afterValue
+				});
 			}
 
-			const changeType: RevisionDiffItem['changeType'] =
-				beforeValue === afterValue
-					? 'unchanged'
-					: beforeValue === null
-						? 'added'
-						: afterValue === null
-							? 'removed'
-							: 'modified';
-
-			items.push({
-				fieldPath: key,
-				fieldLabel: toReadableFieldLabel(key),
-				changeType,
-				beforeValue,
-				afterValue
-			});
-		}
-
-		return items.sort((a, b) => a.fieldLabel.localeCompare(b.fieldLabel, 'ko-KR'));
-	})();
-	$: isCompareMode =
-		selectedFromRev !== null && selectedToRev !== null && selectedFromRev !== selectedToRev;
+			return items.sort((a, b) => a.fieldLabel.localeCompare(b.fieldLabel, 'ko-KR'));
+		})()
+	);
+	let isCompareMode = $derived(
+		selectedFromRev !== null && selectedToRev !== null && selectedFromRev !== selectedToRev
+	);
 
 	function buildRevisionLink(rev: number | null): string {
 		const params = new SvelteURLSearchParams(currentUrl.searchParams);
@@ -861,7 +852,7 @@
 						{/if}
 					</a>
 					<button
-						on:click={shareNotice}
+						onclick={shareNotice}
 						data-testid="notice-detail-share"
 						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors"
 					>
@@ -872,7 +863,7 @@
 						{shareState === 'copied' ? '링크 복사됨' : '공유'}
 					</button>
 					<button
-						on:click={() => openExternalLink(detail.notice.link)}
+						onclick={() => openExternalLink(detail.notice.link)}
 						data-testid="notice-detail-open-source"
 						class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold"
 					>
@@ -1004,14 +995,6 @@
 				{revisionDiffItems}
 				{canSelectCompareBase}
 				onSelectCompare={updateCompareQuery}
-				isLoading={timelineLoading}
-				errorMessage={timelineError}
-				onRetry={() => {
-					timelineLoaded = false;
-					timelineError = null;
-					lazyLoadedChanges = null;
-					void loadTimeline();
-				}}
 			/>
 		</section>
 
@@ -1047,7 +1030,7 @@
 						<div class="mb-3 flex flex-wrap justify-end gap-2">
 							{#if hasScreenshot}
 								<button
-									on:click={() => (isScreenshotExpanded = !isScreenshotExpanded)}
+									onclick={() => (isScreenshotExpanded = !isScreenshotExpanded)}
 									data-testid="notice-detail-screenshot-toggle"
 									class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-xs font-semibold transition-colors"
 									aria-expanded={isScreenshotExpanded}
@@ -1058,7 +1041,7 @@
 							{/if}
 							<button
 								type="button"
-								on:click={downloadArchiveZip}
+								onclick={downloadArchiveZip}
 								disabled={isExportingArchive}
 								data-testid="notice-detail-download-archive"
 								class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"

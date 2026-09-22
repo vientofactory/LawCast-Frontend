@@ -25,26 +25,26 @@
 	import { formatDateTimeKST, downloadBlob } from '$lib/utils/helpers';
 	import { SvelteDate } from 'svelte/reactivity';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	$: statistics = data.statistics as ProposalStatisticsData;
-	$: fetchedAt = data.fetchedAt;
-	$: loadError = data.loadError;
+	let statistics = $derived(data.statistics as ProposalStatisticsData);
+	let fetchedAt = $derived(data.fetchedAt);
+	let loadError = $derived(data.loadError);
 
-	let chartCanvas: HTMLCanvasElement | null = null;
+	let chartCanvas: HTMLCanvasElement | null = $state(null);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let chartInstance: any = null;
-	let currentGranularity: ProposalStatisticsGranularity = 'daily';
-	let chartType: 'bar' | 'line' = 'bar';
-	let startDate = '';
-	let endDate = '';
-	let isLoading = false;
-	let isExporting = false;
-	let exportError: string | null = null;
-	let isExportMenuOpen = false;
-	let exportMenuEl: HTMLDivElement | null = null;
-	let countdown = 0;
-	let isRetrying = false;
+	let chartInstance: any = $state(null);
+	let currentGranularity: ProposalStatisticsGranularity = $state('daily');
+	let chartType: 'bar' | 'line' = $state('bar');
+	let startDate = $state('');
+	let endDate = $state('');
+	let isLoading = $state(false);
+	let isExporting = $state(false);
+	let exportError: string | null = $state(null);
+	let isExportMenuOpen = $state(false);
+	let exportMenuEl: HTMLDivElement | null = $state(null);
+	let countdown = $state(0);
+	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
 		() => invalidateAll(),
 		(v) => {
@@ -55,14 +55,16 @@
 		}
 	);
 
-	$: if (loadError !== retry.lastSeenError) {
-		retry.lastSeenError = loadError;
-		if (loadError?.retryAfter && loadError.retryAfter > 0) {
-			retry.start(loadError.retryAfter);
-		} else {
-			retry.stop();
+	$effect(() => {
+		if (loadError !== retry.lastSeenError) {
+			retry.lastSeenError = loadError;
+			if (loadError?.retryAfter && loadError.retryAfter > 0) {
+				retry.start(loadError.retryAfter);
+			} else {
+				retry.stop();
+			}
 		}
-	}
+	});
 
 	const EXPORT_OPTIONS: Array<{
 		format: 'json' | 'xlsx';
@@ -360,10 +362,12 @@
 		});
 	}
 
-	$: if (browser && statistics?.buckets?.length) {
-		// Defer to next tick so canvas is in DOM
-		Promise.resolve().then(() => renderChart());
-	}
+	$effect(() => {
+		if (browser && statistics?.buckets?.length) {
+			// Defer to next tick so canvas is in DOM
+			Promise.resolve().then(() => renderChart());
+		}
+	});
 
 	// Watch for theme changes to re-render chart
 	function handleThemeChange() {
@@ -388,7 +392,7 @@
 	});
 </script>
 
-<svelte:window on:click={handleClickOutsideExportMenu} />
+<svelte:window onclick={handleClickOutsideExportMenu} />
 
 <svelte:head>
 	<title>LawCast - 법률안 발의 통계</title>
@@ -445,7 +449,7 @@
 				<div class="relative" bind:this={exportMenuEl}>
 					<button
 						type="button"
-						on:click={toggleExportMenu}
+						onclick={toggleExportMenu}
 						disabled={isExporting || !statistics?.buckets?.length}
 						aria-haspopup="true"
 						aria-expanded={isExportMenuOpen}
@@ -466,7 +470,7 @@
 								<button
 									type="button"
 									role="menuitem"
-									on:click={() => handleExportSelect(option.format)}
+									onclick={() => handleExportSelect(option.format)}
 									class="lc-text-secondary hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs font-semibold transition-colors"
 								>
 									<FontAwesomeIcon icon={option.icon} class="h-3.5 w-3.5" />
@@ -493,7 +497,7 @@
 					{#each GRANULARITY_OPTIONS as option (option.value)}
 						<button
 							type="button"
-							on:click={() => updateGranularity(option.value)}
+							onclick={() => updateGranularity(option.value)}
 							disabled={isLoading}
 							class={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
 								currentGranularity === option.value
@@ -515,7 +519,7 @@
 					{#each CHART_TYPE_OPTIONS as option (option.value)}
 						<button
 							type="button"
-							on:click={() => updateChartType(option.value)}
+							onclick={() => updateChartType(option.value)}
 							class={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
 								chartType === option.value
 									? 'border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
@@ -536,7 +540,7 @@
 					{#each QUICK_RANGES as range (range.days)}
 						<button
 							type="button"
-							on:click={() => applyQuickRange(range.days)}
+							onclick={() => applyQuickRange(range.days)}
 							disabled={isLoading}
 							class="lc-chip-cyan inline-flex cursor-pointer items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
 						>
@@ -546,7 +550,7 @@
 					{#if startDate || endDate}
 						<button
 							type="button"
-							on:click={clearRange}
+							onclick={clearRange}
 							disabled={isLoading}
 							class="lc-chip-muted inline-flex cursor-pointer items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
 						>
@@ -580,7 +584,7 @@
 				</div>
 				<button
 					type="button"
-					on:click={loadStatistics}
+					onclick={loadStatistics}
 					disabled={isLoading}
 					class="lc-button-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 				>

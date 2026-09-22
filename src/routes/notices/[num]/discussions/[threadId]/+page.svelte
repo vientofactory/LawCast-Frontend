@@ -26,65 +26,76 @@
 	import type CommentActionModal from '$lib/components/discussions/CommentActionModal.svelte';
 	import type DiscussionPushConsentModal from '$lib/components/discussions/DiscussionPushConsentModal.svelte';
 
-	export let data: {
-		noticeNum: number;
-		threadId: number;
-		detail: NoticeDetail;
-		discussion: DiscussionThreadDetailResponse | null;
-		discussionError?: {
-			status: number;
-			message: string;
-			retryAfter?: number;
+	let {
+		data
+	}: {
+		data: {
+			noticeNum: number;
+			threadId: number;
+			detail: NoticeDetail;
+			discussion: DiscussionThreadDetailResponse | null;
+			discussionError?: {
+				status: number;
+				message: string;
+				retryAfter?: number;
+			};
 		};
-	};
+	} = $props();
 
-	let discussionData: DiscussionThreadDetailResponse | null;
-	// Re-sync with fresh server data whenever SvelteKit reruns load for this
-	// route (e.g. client-side re-navigation), not just on a full page reload.
-	$: discussionData = data.discussion;
+	let discussionData: DiscussionThreadDetailResponse | null = $state(
+		null
+	) as DiscussionThreadDetailResponse | null;
 
-	$: detail = data.detail;
-	$: thread = discussionData?.thread ?? {
-		id: data.threadId,
-		noticeNum: data.noticeNum,
-		title: '토론 스레드',
-		status: DiscussionThreadStatus.OPEN,
-		isLocked: false,
-		authorNickname: '익명',
-		authorIpMasked: '',
-		commentCount: 0,
-		createdAt: new Date(0).toISOString(),
-		updatedAt: new Date(0).toISOString()
-	};
-	$: comments = discussionData?.comments ?? [];
+	let detail = $derived(data.detail);
+	let thread = $derived(
+		discussionData?.thread ?? {
+			id: data.threadId,
+			noticeNum: data.noticeNum,
+			title: '토론 스레드',
+			status: DiscussionThreadStatus.OPEN,
+			isLocked: false,
+			authorNickname: '익명',
+			authorIpMasked: '',
+			commentCount: 0,
+			createdAt: new Date(0).toISOString(),
+			updatedAt: new Date(0).toISOString()
+		}
+	);
+	let comments = $derived(discussionData?.comments ?? []);
 
-	let isSubmittingComment = false;
-	let isActionModalOpen = false;
+	let isSubmittingComment = $state(false);
+	let isActionModalOpen = $state(false);
 	let actionModalMode: 'edit-comment' | 'delete-comment' | 'toggle-thread-status' =
-		'delete-comment';
-	let actionTargetComment: DiscussionComment | null = null;
-	let actionTargetThread: DiscussionThread | null = null;
-	let isSubmittingAction = false;
-	let actionErrorMessage = '';
+		$state('delete-comment');
+	let actionTargetComment: DiscussionComment | null = $state(null);
+	let actionTargetThread: DiscussionThread | null = $state(null);
+	let isSubmittingAction = $state(false);
+	let actionErrorMessage = $state('');
 	let CommentActionModalComponent: Component<ComponentProps<typeof CommentActionModal>> | null =
-		null;
+		$state(null);
 	let DiscussionPushConsentModalComponent: Component<
 		ComponentProps<typeof DiscussionPushConsentModal>
-	> | null = null;
+	> | null = $state(null);
 
-	let errorMessage = data.discussionError?.message ?? '';
-	let successMessage = '';
-	let successTimer: ReturnType<typeof setTimeout> | null = null;
-	let threadDetailViewComponent: ThreadDetailView;
-	let isLoading = false;
-	let isRetryingLoad = false;
-	let isLoadingMoreComments = false;
-	let rateLimitRemaining = data.discussionError?.retryAfter ?? 0;
-	let rateLimitTimer: ReturnType<typeof setInterval> | null = null;
-	let isQuotePushConsentOpen = false;
-	let isWebPushAvailableByServer = false;
-	const quotePushDismissalKey = `lawcast-quote-push-dismissed:${data.threadId}`;
-	const newThreadMarkerKey = `lawcast-new-discussion:${data.threadId}`;
+	let errorMessage = $state('');
+	let successMessage = $state('');
+	let successTimer: ReturnType<typeof setTimeout> | null = $state(null);
+	let threadDetailViewComponent: ThreadDetailView | undefined = $state();
+	let isLoading = $state(false);
+	let isRetryingLoad = $state(false);
+	let isLoadingMoreComments = $state(false);
+	let rateLimitRemaining = $state(0);
+	let rateLimitTimer: ReturnType<typeof setInterval> | null = $state(null);
+	let isQuotePushConsentOpen = $state(false);
+	let isWebPushAvailableByServer = $state(false);
+	const quotePushDismissalKey = $derived(`lawcast-quote-push-dismissed:${data.threadId}`);
+	const newThreadMarkerKey = $derived(`lawcast-new-discussion:${data.threadId}`);
+
+	$effect(() => {
+		discussionData = data.discussion;
+		errorMessage = data.discussionError?.message ?? '';
+		rateLimitRemaining = data.discussionError?.retryAfter ?? 0;
+	});
 
 	function canPromptForQuotePush(): boolean {
 		return (
@@ -400,13 +411,13 @@
 		}
 	}
 
-	let currentUrl = page.url;
+	let currentUrl = $state(page.url);
 	afterNavigate(() => {
 		currentUrl = page.url;
 	});
 
-	$: pageTitle = `${thread.title} - 의안 "${detail.notice.subject}" 토론 | LawCast`;
-	$: pageUrl = currentUrl.origin + currentUrl.pathname;
+	let pageTitle = $derived(`${thread.title} - 의안 "${detail.notice.subject}" 토론 | LawCast`);
+	let pageUrl = $derived(currentUrl.origin + currentUrl.pathname);
 </script>
 
 <svelte:head>
@@ -488,7 +499,7 @@
 					</a>
 					<button
 						type="button"
-						on:click={reloadThread}
+						onclick={reloadThread}
 						disabled={isLoading || rateLimitRemaining > 0}
 						title="새로고침"
 						class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1.5 text-xs font-semibold"
@@ -599,8 +610,7 @@
 </div>
 
 {#if CommentActionModalComponent}
-	<svelte:component
-		this={CommentActionModalComponent}
+	<CommentActionModalComponent
 		isOpen={isActionModalOpen && discussionData !== null}
 		mode={actionModalMode}
 		targetComment={actionTargetComment}
@@ -616,8 +626,7 @@
 {/if}
 
 {#if DiscussionPushConsentModalComponent}
-	<svelte:component
-		this={DiscussionPushConsentModalComponent}
+	<DiscussionPushConsentModalComponent
 		isOpen={isQuotePushConsentOpen}
 		threadId={data.threadId}
 		onClose={() => (isQuotePushConsentOpen = false)}

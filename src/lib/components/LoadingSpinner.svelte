@@ -2,8 +2,13 @@
 	import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
-	export let message: string = '데이터를 불러오는 중...';
-	export let size: 'sm' | 'md' | 'lg' = 'md';
+	let {
+		message = '데이터를 불러오는 중...',
+		size = 'md'
+	}: {
+		message?: string;
+		size?: 'sm' | 'md' | 'lg';
+	} = $props();
 
 	const sizeClasses = {
 		sm: 'h-4 w-4',

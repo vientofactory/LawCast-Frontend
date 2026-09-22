@@ -27,54 +27,59 @@
 	import { NoticeChangeSource } from '$lib/types/change-source';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 
-	export let data: {
-		changes: RecentNoticeChangesResponse;
-		summary: ComparableChangeSummary;
-		filters: {
-			search: string;
-			noticeNum: number | null;
-			eventType: ChangeEventType | null;
-			sortOrder: 'asc' | 'desc';
-			includeIsDoneChanges: boolean;
+	let {
+		data
+	}: {
+		data: {
+			changes: RecentNoticeChangesResponse;
+			summary: ComparableChangeSummary;
+			filters: {
+				search: string;
+				noticeNum: number | null;
+				eventType: ChangeEventType | null;
+				sortOrder: 'asc' | 'desc';
+				includeIsDoneChanges: boolean;
+			};
+			digestContext: {
+				isDigestContext: boolean;
+				fromEventId: number | null;
+				toEventId: number | null;
+				fromDetectedAt: string | null;
+				toDetectedAt: string | null;
+			};
+			loadError?: {
+				message: string;
+				retryAfter?: number;
+			};
 		};
-		digestContext: {
-			isDigestContext: boolean;
-			fromEventId: number | null;
-			toEventId: number | null;
-			fromDetectedAt: string | null;
-			toDetectedAt: string | null;
-		};
-		loadError?: {
-			message: string;
-			retryAfter?: number;
-		};
-	};
-	$: changes = data.changes;
-	$: summary = data.summary;
-	$: filters = data.filters;
-	$: digestContext = data.digestContext;
-	$: loadError = data.loadError;
-	$: currentPage = changes.page || 1;
-	$: totalPages = changes.totalPages || 1;
-	$: totalItems = changes.total || 0;
-	$: limit = changes.limit || DEFAULT_PAGE_SIZE;
-	$: isDigestContext = digestContext?.isDigestContext === true;
-	$: searchQuery = filters?.search || '';
-	$: noticeNumFilter = filters?.noticeNum ?? null;
-	$: selectedEventType = filters?.eventType ?? null;
-	$: sortOrder = filters?.sortOrder === 'asc' ? 'asc' : 'desc';
-	$: includeIsDoneChanges = filters?.includeIsDoneChanges === true;
+	} = $props();
 	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
 	const DEFAULT_PAGE_SIZE = 20;
-	$: hasActiveFilters =
+	let changes = $derived(data.changes);
+	let summary = $derived(data.summary);
+	let filters = $derived(data.filters);
+	let digestContext = $derived(data.digestContext);
+	let loadError = $derived(data.loadError);
+	let currentPage = $derived(changes.page || 1);
+	let totalPages = $derived(changes.totalPages || 1);
+	let totalItems = $derived(changes.total || 0);
+	let limit = $derived(changes.limit || DEFAULT_PAGE_SIZE);
+	let isDigestContext = $derived(digestContext?.isDigestContext === true);
+	let searchQuery = $derived(filters?.search || '');
+	let noticeNumFilter = $derived(filters?.noticeNum ?? null);
+	let selectedEventType = $derived(filters?.eventType ?? null);
+	let sortOrder = $derived(filters?.sortOrder === 'asc' ? 'asc' : 'desc');
+	let includeIsDoneChanges = $derived(filters?.includeIsDoneChanges === true);
+	let hasActiveFilters = $derived(
 		searchQuery.trim().length > 0 ||
-		noticeNumFilter !== null ||
-		selectedEventType !== null ||
-		sortOrder === 'asc' ||
-		includeIsDoneChanges === false;
+			noticeNumFilter !== null ||
+			selectedEventType !== null ||
+			sortOrder === 'asc' ||
+			includeIsDoneChanges === false
+	);
 
-	let countdown = 0;
-	let isRetrying = false;
+	let countdown = $state(0);
+	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
 		async () => {
 			await invalidateAll();
@@ -88,20 +93,22 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$: if (data.loadError !== retry.lastSeenError) {
-		retry.lastSeenError = data.loadError;
-		if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
-			retry.start(data.loadError.retryAfter);
-		} else {
-			retry.stop();
+	$effect(() => {
+		if (data.loadError !== retry.lastSeenError) {
+			retry.lastSeenError = data.loadError;
+			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
+				retry.start(data.loadError.retryAfter);
+			} else {
+				retry.stop();
+			}
 		}
-	}
+	});
 
 	function isRateLimitLoadError(): boolean {
 		return loadError?.retryAfter !== undefined;
 	}
 
-	let isServerLoading = false;
+	let isServerLoading = $state(false);
 
 	beforeNavigate(({ to }) => {
 		isServerLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices/changes';
@@ -111,11 +118,13 @@
 		isServerLoading = false;
 	});
 
-	let pendingPaginationPage: number | null = null;
+	let pendingPaginationPage: number | null = $state(null);
 
-	$: if (pendingPaginationPage === currentPage) {
-		pendingPaginationPage = null;
-	}
+	$effect(() => {
+		if (pendingPaginationPage === currentPage) {
+			pendingPaginationPage = null;
+		}
+	});
 
 	function eventTypeLabel(eventType: string, source: string | null): string {
 		switch (eventType) {
@@ -253,7 +262,9 @@
 		return true;
 	}
 
-	$: digestMatchedCount = changes.items.filter((item) => isDigestMatchedItem(item)).length;
+	let digestMatchedCount = $derived(
+		changes.items.filter((item) => isDigestMatchedItem(item)).length
+	);
 
 	function handlePaginationClick(event: MouseEvent, targetPage: number) {
 		if (
@@ -398,7 +409,7 @@
 
 		{#if !isDigestContext}
 			<section class="lc-panel-card mb-5 rounded-xl border p-4 shadow-sm">
-				<form method="GET" action="/notices/changes" on:submit={handleFilterSubmit}>
+				<form method="GET" action="/notices/changes" onsubmit={handleFilterSubmit}>
 					<div class="grid gap-2 md:grid-cols-[1.2fr_0.7fr_0.8fr_0.9fr_0.8fr_auto] md:items-center">
 						<div class="relative">
 							<label for="changes-search" class="sr-only">검색어</label>
@@ -413,7 +424,7 @@
 								value={searchQuery}
 								placeholder="의안번호, 제목, 위원회, 제안이유 검색"
 								class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
-								on:keydown={handleSearchInputKeydown}
+								onkeydown={handleSearchInputKeydown}
 							/>
 						</div>
 

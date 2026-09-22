@@ -19,35 +19,45 @@
 		faShieldHalved
 	} from '@fortawesome/free-solid-svg-icons';
 
-	export let onSuccess: (message: string) => void = () => {};
-	export let onError: (message: string) => void = () => {};
-	export let onClearMessage: () => void = () => {};
-	export let threadId: number | undefined = undefined;
-	export let showFullUnsubscribeControl = true;
-	export let compact = false;
-	export let showInlineFeedback = true;
+	let {
+		onSuccess = () => {},
+		onError = () => {},
+		onClearMessage = () => {},
+		threadId,
+		showFullUnsubscribeControl = true,
+		compact = false,
+		showInlineFeedback = true
+	}: {
+		onSuccess?: (message: string) => void;
+		onError?: (message: string) => void;
+		onClearMessage?: () => void;
+		threadId?: number;
+		showFullUnsubscribeControl?: boolean;
+		compact?: boolean;
+		showInlineFeedback?: boolean;
+	} = $props();
 
-	let isSupported = false;
-	let isPermissionDenied = false;
-	let isPushEnabledByServer = false;
-	let vapidPublicKey: string | null = null;
-	let isSubscribed = false;
-	let isNoticeNotificationsEnabled = false;
-	let isDiscussionBound = false;
-	let isLoading = true;
-	let isSubmitting = false;
-	let swScope: string | null = null;
-	let swActiveState: string | null = null;
-	let subscriptionEndpointPreview: string | null = null;
-	let lastDebugUpdatedAt: string | null = null;
-	let isSolvingPoW = false;
-	let isFullUnsubscribeOpen = false;
-	let isFullUnsubscribeConfirmOpen = false;
-	let feedback: { type: 'success' | 'error'; message: string } | null = null;
+	let isSupported = $state(false);
+	let isPermissionDenied = $state(false);
+	let isPushEnabledByServer = $state(false);
+	let vapidPublicKey: string | null = $state(null);
+	let isSubscribed = $state(false);
+	let isNoticeNotificationsEnabled = $state(false);
+	let isDiscussionBound = $state(false);
+	let isLoading = $state(true);
+	let isSubmitting = $state(false);
+	let swScope: string | null = $state(null);
+	let swActiveState: string | null = $state(null);
+	let subscriptionEndpointPreview: string | null = $state(null);
+	let lastDebugUpdatedAt: string | null = $state(null);
+	let isSolvingPoW = $state(false);
+	let isFullUnsubscribeOpen = $state(false);
+	let isFullUnsubscribeConfirmOpen = $state(false);
+	let feedback: { type: 'success' | 'error'; message: string } | null = $state(null);
 	let FullUnsubscribeConfirmModalComponent: Component<
 		ComponentProps<typeof FullUnsubscribeConfirmModal>
-	> | null = null;
-	let powState = createPowDisplayState();
+	> | null = $state(null);
+	let powState = $state(createPowDisplayState());
 
 	function updatePowStatus(status: PowStatus) {
 		powState = applyPowStatus(powState, status);
@@ -425,7 +435,7 @@
 					<span class="lc-text-muted text-xs">알림 수신</span>
 					<button
 						type="button"
-						on:click={() => (isNoticeNotificationsEnabled ? disableWebPush() : enableWebPush())}
+						onclick={() => (isNoticeNotificationsEnabled ? disableWebPush() : enableWebPush())}
 						disabled={isSubmitting || isSolvingPoW}
 						class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
 						role="switch"
@@ -453,7 +463,7 @@
 						type="button"
 						class="lc-text-secondary flex w-full cursor-pointer items-center justify-between text-left text-xs font-semibold"
 						aria-expanded={isFullUnsubscribeOpen}
-						on:click={() => (isFullUnsubscribeOpen = !isFullUnsubscribeOpen)}
+						onclick={() => (isFullUnsubscribeOpen = !isFullUnsubscribeOpen)}
 					>
 						<span>고급 설정: 브라우저 구독 전체 해지</span>
 						<FontAwesomeIcon
@@ -472,7 +482,7 @@
 							</p>
 							<button
 								type="button"
-								on:click={openFullUnsubscribeConfirm}
+								onclick={openFullUnsubscribeConfirm}
 								disabled={isSubmitting || !isSubscribed}
 								class="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-400"
 							>
@@ -506,7 +516,7 @@
 					<span class="lc-text-muted text-xs">이 스레드에서 수신</span>
 					<button
 						type="button"
-						on:click={() => (isDiscussionBound ? disableDiscussionWebPush() : enableWebPush())}
+						onclick={() => (isDiscussionBound ? disableDiscussionWebPush() : enableWebPush())}
 						disabled={isSubmitting || isSolvingPoW}
 						class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
 						role="switch"
@@ -581,12 +591,11 @@
 </div>
 
 {#if isPushEnabledByServer && FullUnsubscribeConfirmModalComponent}
-	<svelte:component
-		this={FullUnsubscribeConfirmModalComponent}
+	<FullUnsubscribeConfirmModalComponent
 		isOpen={isFullUnsubscribeConfirmOpen}
 		{isSubmitting}
 		{isSubscribed}
 		onConfirm={confirmFullUnsubscribe}
 		onClose={() => (isFullUnsubscribeConfirmOpen = false)}
-	></svelte:component>
+	/>
 {/if}

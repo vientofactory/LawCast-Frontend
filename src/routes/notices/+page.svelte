@@ -31,22 +31,26 @@
 	import type { ArchiveNoticeListResponse } from '$lib/types/api';
 	import { KST_TIMEZONE } from '$lib/utils/helpers';
 
-	export let data: {
-		archive: ArchiveNoticeListResponse;
-		digestContext?: {
-			isDigestContext: boolean;
-			noticeNums: number[];
+	let {
+		data
+	}: {
+		data: {
+			archive: ArchiveNoticeListResponse;
+			digestContext?: {
+				isDigestContext: boolean;
+				noticeNums: number[];
+			};
+			loadError?: {
+				message: string;
+				retryAfter?: number;
+			};
 		};
-		loadError?: {
-			message: string;
-			retryAfter?: number;
-		};
-	};
+	} = $props();
 
 	let currentUrl = page.url;
-	let isServerLoading = false;
-	let countdown = 0;
-	let isRetrying = false;
+	let isServerLoading = $state(false);
+	let countdown = $state(0);
+	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
 		() => invalidateAll(),
 		(v) => {
@@ -58,14 +62,16 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$: if (data.loadError !== retry.lastSeenError) {
-		retry.lastSeenError = data.loadError;
-		if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
-			retry.start(data.loadError.retryAfter);
-		} else {
-			retry.stop();
+	$effect(() => {
+		if (data.loadError !== retry.lastSeenError) {
+			retry.lastSeenError = data.loadError;
+			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
+				retry.start(data.loadError.retryAfter);
+			} else {
+				retry.stop();
+			}
 		}
-	}
+	});
 
 	beforeNavigate(({ to }) => {
 		isServerLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
@@ -76,51 +82,58 @@
 		isServerLoading = false;
 	});
 
-	$: archive = data.archive;
-	$: notices = archive?.items || [];
-	$: currentPage = archive?.page || 1;
-	$: totalPages = archive?.totalPages || 1;
-	$: totalItems = archive?.total || 0;
-	$: limit = archive?.limit || DEFAULT_PAGE_SIZE;
-	$: searchQuery = archive?.search || '';
-	$: proposerQuery = archive?.proposer || '';
-	$: startDate = archive?.startDate || '';
-	$: endDate = archive?.endDate || '';
-	$: sortOrder = archive?.sortOrder === 'asc' ? 'asc' : 'desc';
-	$: isDoneFilter = (() => {
-		const v = currentUrl.searchParams.get('isDone');
-		return v === 'true' ? true : v === 'false' ? false : undefined;
-	})();
-	$: fullText = currentUrl.searchParams.get('fullText') === 'true';
-	$: digestContext = data.digestContext;
-	$: isDigestContext = digestContext?.isDigestContext === true;
-	$: digestNoticeNums = digestContext?.noticeNums ?? [];
-	$: aiSummaryEnabled = archive?.aiSummaryEnabled !== false;
-	$: hasActiveFilters =
+	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
+	const DEFAULT_PAGE_SIZE = 20;
+
+	let archive = $derived(data.archive);
+	let notices = $derived(archive?.items || []);
+	let currentPage = $derived(archive?.page || 1);
+	let totalPages = $derived(archive?.totalPages || 1);
+	let totalItems = $derived(archive?.total || 0);
+	let limit = $derived(archive?.limit || DEFAULT_PAGE_SIZE);
+	let searchQuery = $derived(archive?.search || '');
+	let proposerQuery = $derived(archive?.proposer || '');
+	let startDate = $derived(archive?.startDate || '');
+	let endDate = $derived(archive?.endDate || '');
+	let sortOrder = $derived(archive?.sortOrder === 'asc' ? 'asc' : 'desc');
+	let isDoneFilter = $derived(
+		(() => {
+			const v = currentUrl.searchParams.get('isDone');
+			return v === 'true' ? true : v === 'false' ? false : undefined;
+		})()
+	);
+	let fullText = $derived(currentUrl.searchParams.get('fullText') === 'true');
+	let digestContext = $derived(data.digestContext);
+	let isDigestContext = $derived(digestContext?.isDigestContext === true);
+	let digestNoticeNums = $derived(digestContext?.noticeNums ?? []);
+	let aiSummaryEnabled = $derived(archive?.aiSummaryEnabled !== false);
+	let hasActiveFilters = $derived(
 		searchQuery.trim().length > 0 ||
-		proposerQuery.trim().length > 0 ||
-		startDate.trim().length > 0 ||
-		endDate.trim().length > 0 ||
-		isDoneFilter !== undefined ||
-		fullText;
-	$: archiveCount = archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0;
+			proposerQuery.trim().length > 0 ||
+			startDate.trim().length > 0 ||
+			endDate.trim().length > 0 ||
+			isDoneFilter !== undefined ||
+			fullText
+	);
+	let archiveCount = $derived(
+		archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0
+	);
 
-	$: canonicalUrl = (() => {
-		const base = currentUrl.origin + currentUrl.pathname;
-		if (!hasActiveFilters && currentPage > 1) {
-			return `${base}?page=${currentPage}&limit=${limit}&sortOrder=${sortOrder}`;
-		}
-		return base;
-	})();
+	let canonicalUrl = $derived(
+		(() => {
+			const base = currentUrl.origin + currentUrl.pathname;
+			if (!hasActiveFilters && currentPage > 1) {
+				return `${base}?page=${currentPage}&limit=${limit}&sortOrder=${sortOrder}`;
+			}
+			return base;
+		})()
+	);
 
-	$: pageDescription = aiSummaryEnabled
-		? '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.'
-		: '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고 원문을 확인할 수 있습니다.';
-
-	let error = '';
-	$: if (data) {
-		error = data.loadError?.message || '';
-	}
+	let pageDescription = $derived(
+		aiSummaryEnabled
+			? '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.'
+			: '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고 원문을 확인할 수 있습니다.'
+	);
 
 	function addDays(base: Date, amount: number) {
 		const dayMillis = 24 * 60 * 60 * 1000;
@@ -154,25 +167,25 @@
 	const quickStart30Days = toKstInputDate(addDays(today, -29));
 	const kstTodayParts = getKstDateParts(today);
 	const quickMonthStart = `${kstTodayParts.year}-${String(kstTodayParts.month).padStart(2, '0')}-01`;
-	$: isQuick7DaysActive = startDate === quickStart7Days && endDate === todayInputDate;
-	$: isQuick30DaysActive = startDate === quickStart30Days && endDate === todayInputDate;
-	$: isQuickThisMonthActive = startDate === quickMonthStart && endDate === todayInputDate;
-	$: isQuickClearRangeActive = !startDate.trim() && !endDate.trim();
-	$: hasDateReversed =
-		startDate.trim().length > 0 && endDate.trim().length > 0 && startDate > endDate;
-	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
-	const DEFAULT_PAGE_SIZE = 20;
+	let isQuick7DaysActive = $derived(startDate === quickStart7Days && endDate === todayInputDate);
+	let isQuick30DaysActive = $derived(startDate === quickStart30Days && endDate === todayInputDate);
+	let isQuickThisMonthActive = $derived(
+		startDate === quickMonthStart && endDate === todayInputDate
+	);
+	let isQuickClearRangeActive = $derived(!startDate.trim() && !endDate.trim());
+	let hasDateReversed = $derived(
+		startDate.trim().length > 0 && endDate.trim().length > 0 && startDate > endDate
+	);
+	let pendingPaginationPage: number | null = $state(null);
+	let wasServerLoading = $state(false);
 
-	let pendingPaginationPage: number | null = null;
-	let wasServerLoading = false;
-
-	$: {
+	$effect(() => {
 		if (wasServerLoading && !isServerLoading) {
 			pendingPaginationPage = null;
 		}
-		// eslint-disable-next-line no-useless-assignment
+
 		wasServerLoading = isServerLoading;
-	}
+	});
 
 	type QueryLinkOverrides = {
 		page?: number;
@@ -222,24 +235,28 @@
 		return `/notices?${params.toString()}`;
 	}
 
-	$: buildFilterLink = (
-		(_ft: boolean, _id: boolean | undefined) =>
-		(overrides: {
-			search?: string;
-			proposer?: string;
-			startDate?: string;
-			endDate?: string;
-			sortOrder?: 'asc' | 'desc';
-			isDone?: boolean | null;
-			fullText?: boolean | null;
-		}) =>
-			buildQueryLink({ page: 1, ...overrides })
-	)(fullText, isDoneFilter);
+	let buildFilterLink = $derived(
+		(
+			(_ft: boolean, _id: boolean | undefined) =>
+			(overrides: {
+				search?: string;
+				proposer?: string;
+				startDate?: string;
+				endDate?: string;
+				sortOrder?: 'asc' | 'desc';
+				isDone?: boolean | null;
+				fullText?: boolean | null;
+			}) =>
+				buildQueryLink({ page: 1, ...overrides })
+		)(fullText, isDoneFilter)
+	);
 
-	$: buildPageLink = (
-		(_ft: boolean, _id: boolean | undefined) => (pg: number) =>
-			buildQueryLink({ page: pg })
-	)(fullText, isDoneFilter);
+	let buildPageLink = $derived(
+		(
+			(_ft: boolean, _id: boolean | undefined) => (pg: number) =>
+				buildQueryLink({ page: pg })
+		)(fullText, isDoneFilter)
+	);
 
 	function shouldShowAIBriefing(notice: (typeof notices)[number]) {
 		if (!aiSummaryEnabled) {
@@ -279,6 +296,7 @@
 	}
 
 	function handleFilterSubmit(event: Event) {
+		event.preventDefault();
 		const form = event.currentTarget as HTMLFormElement;
 		const formData = new FormData(form);
 		const params = new SvelteURLSearchParams();
@@ -449,7 +467,7 @@
 							aria-busy={isServerLoading}
 							aria-describedby="notices-filter-help"
 							data-testid="notices-filter-form"
-							on:submit|preventDefault={handleFilterSubmit}
+							onsubmit={handleFilterSubmit}
 						>
 							<p id="notices-filter-help" class="sr-only">
 								키워드, 기간, 상태, 정렬, 원문 포함 여부로 입법예고 목록을 필터링합니다.
@@ -554,7 +572,7 @@
 											: '법률안명, 소관위원회, 제안자 검색'}
 										data-testid="notices-search-input"
 										class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
-										on:keydown={handleSearchInputKeydown}
+										onkeydown={handleSearchInputKeydown}
 									/>
 								</div>
 								<label for="archive-start-date" class="sr-only">시작일</label>
@@ -956,7 +974,7 @@
 												<div class="flex items-center gap-1">
 													{#if isDownloadable(notice.attachments.pdfFile)}
 														<button
-															on:click={() =>
+															onclick={() =>
 																downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
 															aria-label="PDF 다운로드"
 															data-testid={`notice-download-pdf-${notice.num}`}
@@ -967,7 +985,7 @@
 													{/if}
 													{#if isDownloadable(notice.attachments.hwpFile)}
 														<button
-															on:click={() =>
+															onclick={() =>
 																downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
 															aria-label="HWP 다운로드"
 															data-testid={`notice-download-hwp-${notice.num}`}
@@ -980,7 +998,7 @@
 												</div>
 											{/if}
 											<button
-												on:click={() => openExternalLink(notice.link)}
+												onclick={() => openExternalLink(notice.link)}
 												aria-label="자세히 보기 (새 탭)"
 												data-testid={`notice-open-external-${notice.num}`}
 												class="lc-button-neutral cursor-pointer rounded-md p-2.5 transition-colors"

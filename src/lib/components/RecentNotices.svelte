@@ -14,9 +14,8 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
-	export let notices: Notice[] = [];
-	export let stats: SystemStats | undefined = undefined;
-	$: aiSummaryEnabled = stats?.aiSummaryEnabled !== false;
+	let { notices = [], stats = undefined }: { notices?: Notice[]; stats?: SystemStats } = $props();
+	let aiSummaryEnabled = $derived(stats?.aiSummaryEnabled !== false);
 
 	function isSourceDeleted(notice: Notice): boolean {
 		return notice.lifecycleStatus === 'source_deleted';
@@ -100,7 +99,7 @@
 								<div class="flex gap-1">
 									{#if isDownloadable(notice.attachments.pdfFile)}
 										<button
-											on:click={() => downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
+											onclick={() => downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
 											aria-label="PDF 다운로드"
 											class="lc-action-chip-red cursor-pointer rounded-md p-1.5 transition-colors"
 										>
@@ -109,7 +108,7 @@
 									{/if}
 									{#if isDownloadable(notice.attachments.hwpFile)}
 										<button
-											on:click={() => downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
+											onclick={() => downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
 											aria-label="HWP 다운로드"
 											class="lc-action-chip-blue cursor-pointer rounded-md p-1.5 transition-colors"
 										>
@@ -121,7 +120,7 @@
 							{/if}
 							<!-- 상세보기 버튼 -->
 							<button
-								on:click={() => openExternalLink(notice.link)}
+								onclick={() => openExternalLink(notice.link)}
 								aria-label="온라인 원문 보기 (새 탭)"
 								class="lc-button-neutral cursor-pointer rounded-md p-1.5 transition-colors"
 							>

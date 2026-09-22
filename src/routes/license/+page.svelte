@@ -4,9 +4,9 @@
 	import { faScaleBalanced, faServer, faDesktop } from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	$: ({ backendPackages, frontendPackages } = data);
+	let { backendPackages, frontendPackages } = $derived(data);
 
 	const licenseBadgeStyle: Record<string, string> = {
 		MIT: 'lc-chip-success',

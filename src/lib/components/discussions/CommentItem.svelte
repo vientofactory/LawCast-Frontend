@@ -16,13 +16,21 @@
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import { onMount } from 'svelte';
 
-	export let comment: DiscussionComment;
-	export let isThreadClosed = false;
-	export let allComments: DiscussionComment[] = [];
-	export let onQuote: ((detail: { sequence: number; nickname: string }) => void) | undefined =
-		undefined;
-	export let onEdit: ((comment: DiscussionComment) => void) | undefined = undefined;
-	export let onDelete: ((comment: DiscussionComment) => void) | undefined = undefined;
+	let {
+		comment,
+		isThreadClosed = false,
+		allComments = [],
+		onQuote,
+		onEdit,
+		onDelete
+	}: {
+		comment: DiscussionComment;
+		isThreadClosed?: boolean;
+		allComments?: DiscussionComment[];
+		onQuote?: (detail: { sequence: number; nickname: string }) => void;
+		onEdit?: (comment: DiscussionComment) => void;
+		onDelete?: (comment: DiscussionComment) => void;
+	} = $props();
 
 	function handleQuote() {
 		onQuote?.({
@@ -151,10 +159,11 @@
 		return allComments.find((c) => c.sequence === seq);
 	}
 
-	$: contentBlocks = parseCommentContent(comment.content);
-	$: isNonUserMessage =
+	let contentBlocks = $derived(parseCommentContent(comment.content));
+	let isNonUserMessage = $derived(
 		comment.messageType === DiscussionMessageType.SYSTEM ||
-		comment.messageType === DiscussionMessageType.ADMIN;
+			comment.messageType === DiscussionMessageType.ADMIN
+	);
 </script>
 
 <div
@@ -177,7 +186,7 @@
 		<div class="flex flex-wrap items-center gap-2 text-xs">
 			<button
 				type="button"
-				on:click={(e) => scrollToComment(comment.sequence, e)}
+				onclick={(e) => scrollToComment(comment.sequence, e)}
 				class="lc-chip-blue inline-flex items-center rounded-md px-2 py-0.5 font-mono text-xs font-bold hover:opacity-80 cursor-pointer"
 				title="댓글 번호"
 			>
@@ -217,7 +226,7 @@
 			>
 				<button
 					type="button"
-					on:click={handleQuote}
+					onclick={handleQuote}
 					title={`#${comment.sequence} 인용하여 답글`}
 					data-testid={`discussion-comment-quote-${comment.sequence}`}
 					class="lc-text-muted hover:lc-text-primary inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
@@ -227,7 +236,7 @@
 				</button>
 				<button
 					type="button"
-					on:click={handleEdit}
+					onclick={handleEdit}
 					title="의견 수정"
 					class="lc-text-muted hover:lc-text-primary inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
 				>
@@ -236,7 +245,7 @@
 				</button>
 				<button
 					type="button"
-					on:click={handleDelete}
+					onclick={handleDelete}
 					title="의견 삭제"
 					class="lc-text-muted hover:text-red-500 inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-red-500/10"
 				>
@@ -260,7 +269,7 @@
 					{@const quoted = getQuotedComment(block.sequence)}
 					<button
 						type="button"
-						on:click={(e) => scrollToComment(block.sequence, e)}
+						onclick={(e) => scrollToComment(block.sequence, e)}
 						class="my-1.5 flex w-full max-w-sm items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium text-blue-600 transition-colors hover:bg-blue-500/20 dark:text-blue-400 cursor-pointer"
 					>
 						<span class="inline-flex items-center gap-1.5 font-semibold">
@@ -289,7 +298,7 @@
 							{:else if token.type === 'mention'}
 								<button
 									type="button"
-									on:click={(e) => scrollToComment(token.sequence, e)}
+									onclick={(e) => scrollToComment(token.sequence, e)}
 									class="lc-chip-blue mx-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs font-semibold transition-opacity hover:opacity-80 cursor-pointer align-baseline"
 									title={`#${token.sequence}번 의견으로 이동`}
 								>

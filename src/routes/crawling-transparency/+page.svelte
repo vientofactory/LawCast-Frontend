@@ -17,14 +17,14 @@
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import { invalidateAll } from '$app/navigation';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	$: transparency = data.transparency as CrawlingTransparencyData;
-	$: fetchedAt = data.fetchedAt;
-	$: loadError = data.loadError;
+	let transparency = $derived(data.transparency as CrawlingTransparencyData);
+	let fetchedAt = $derived(data.fetchedAt);
+	let loadError = $derived(data.loadError);
 
-	let countdown = 0;
-	let isRetrying = false;
+	let countdown = $state(0);
+	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
 		() => invalidateAll(),
 		(v) => {
@@ -36,14 +36,16 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$: if (loadError !== retry.lastSeenError) {
-		retry.lastSeenError = loadError;
-		if (loadError?.retryAfter && loadError.retryAfter > 0) {
-			retry.start(loadError.retryAfter);
-		} else {
-			retry.stop();
+	$effect(() => {
+		if (loadError !== retry.lastSeenError) {
+			retry.lastSeenError = loadError;
+			if (loadError?.retryAfter && loadError.retryAfter > 0) {
+				retry.start(loadError.retryAfter);
+			} else {
+				retry.stop();
+			}
 		}
-	}
+	});
 
 	function formatNumber(n: number): string {
 		return n.toLocaleString('ko-KR');

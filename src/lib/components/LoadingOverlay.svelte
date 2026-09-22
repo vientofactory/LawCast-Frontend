@@ -1,7 +1,13 @@
 <script lang="ts">
-	export let visible = false;
-	export let message = '불러오는 중...';
-	export let overlayRadiusClass = 'rounded-2xl';
+	let {
+		visible = false,
+		message = '불러오는 중...',
+		overlayRadiusClass = 'rounded-2xl'
+	}: {
+		visible?: boolean;
+		message?: string;
+		overlayRadiusClass?: string;
+	} = $props();
 </script>
 
 {#if visible}

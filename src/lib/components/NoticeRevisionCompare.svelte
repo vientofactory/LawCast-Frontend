@@ -7,13 +7,23 @@
 		afterValue: string | null;
 	};
 
-	export let isCompareMode: boolean;
-	export let selectedFromRev: number | null;
-	export let selectedToRev: number | null;
-	export let showAllCompareFields: boolean;
-	export let clearCompareHref: string;
-	export let onToggleCompareShowAll: () => Promise<void> | void;
-	export let revisionDiffItems: RevisionDiffItem[];
+	let {
+		isCompareMode,
+		selectedFromRev,
+		selectedToRev,
+		showAllCompareFields,
+		clearCompareHref,
+		onToggleCompareShowAll,
+		revisionDiffItems
+	}: {
+		isCompareMode: boolean;
+		selectedFromRev: number | null;
+		selectedToRev: number | null;
+		showAllCompareFields: boolean;
+		clearCompareHref: string;
+		onToggleCompareShowAll: () => Promise<void> | void;
+		revisionDiffItems: RevisionDiffItem[];
+	} = $props();
 
 	function changeTypeLabel(changeType: RevisionDiffItem['changeType']): string {
 		switch (changeType) {
@@ -99,7 +109,7 @@
 			<div class="flex flex-wrap items-center gap-2">
 				<button
 					type="button"
-					on:click={onToggleCompareShowAll}
+					onclick={onToggleCompareShowAll}
 					class="lc-button-neutral cursor-pointer rounded-md border px-2 py-1.5 text-xs font-semibold"
 				>
 					{showAllCompareFields ? '변경 필드만 보기' : '전체 필드 보기'}

@@ -8,58 +8,74 @@
 		faSpinner
 	} from '@fortawesome/free-solid-svg-icons';
 
-	export let currentPage: number;
-	export let totalPages: number;
-	export let totalItems: number;
-	export let limit: number;
-	export let pendingPage: number | null = null;
-	export let buildHref: (page: number) => string;
-	export let onPageClick: (event: MouseEvent, targetPage: number) => void;
-	export let ariaLabel = '페이지 내비게이션';
-	export let testId: string | undefined = undefined;
+	let {
+		currentPage,
+		totalPages,
+		totalItems,
+		limit,
+		pendingPage = null,
+		buildHref,
+		onPageClick,
+		ariaLabel = '페이지 내비게이션',
+		testId
+	}: {
+		currentPage: number;
+		totalPages: number;
+		totalItems: number;
+		limit: number;
+		pendingPage?: number | null;
+		buildHref: (page: number) => string;
+		onPageClick: (event: MouseEvent, targetPage: number) => void;
+		ariaLabel?: string;
+		testId?: string;
+	} = $props();
 
-	$: paginationItems = (() => {
-		if (totalPages <= 7) {
-			return Array.from({ length: totalPages }, (_, idx) => idx + 1);
-		}
+	let paginationItems = $derived(
+		(() => {
+			if (totalPages <= 7) {
+				return Array.from({ length: totalPages }, (_, idx) => idx + 1);
+			}
 
-		const items: Array<number | 'left-ellipsis' | 'right-ellipsis'> = [1];
-		let start = Math.max(2, currentPage - 1);
-		let end = Math.min(totalPages - 1, currentPage + 1);
+			const items: Array<number | 'left-ellipsis' | 'right-ellipsis'> = [1];
+			let start = Math.max(2, currentPage - 1);
+			let end = Math.min(totalPages - 1, currentPage + 1);
 
-		if (currentPage <= 3) {
-			start = 2;
-			end = 4;
-		} else if (currentPage >= totalPages - 2) {
-			start = totalPages - 3;
-			end = totalPages - 1;
-		}
+			if (currentPage <= 3) {
+				start = 2;
+				end = 4;
+			} else if (currentPage >= totalPages - 2) {
+				start = totalPages - 3;
+				end = totalPages - 1;
+			}
 
-		if (start > 2) {
-			items.push('left-ellipsis');
-		}
+			if (start > 2) {
+				items.push('left-ellipsis');
+			}
 
-		for (let page = start; page <= end; page++) {
-			items.push(page);
-		}
+			for (let page = start; page <= end; page++) {
+				items.push(page);
+			}
 
-		if (end < totalPages - 1) {
-			items.push('right-ellipsis');
-		}
+			if (end < totalPages - 1) {
+				items.push('right-ellipsis');
+			}
 
-		items.push(totalPages);
-		return items;
-	})();
+			items.push(totalPages);
+			return items;
+		})()
+	);
 
-	$: paginationInfo = (() => {
-		if (totalItems === 0) {
-			return '0개';
-		}
+	let paginationInfo = $derived(
+		(() => {
+			if (totalItems === 0) {
+				return '0개';
+			}
 
-		const start = (currentPage - 1) * limit + 1;
-		const end = Math.min(currentPage * limit, totalItems);
-		return `${start.toLocaleString('ko-KR')}-${end.toLocaleString('ko-KR')} / ${totalItems.toLocaleString('ko-KR')}개`;
-	})();
+			const start = (currentPage - 1) * limit + 1;
+			const end = Math.min(currentPage * limit, totalItems);
+			return `${start.toLocaleString('ko-KR')}-${end.toLocaleString('ko-KR')} / ${totalItems.toLocaleString('ko-KR')}개`;
+		})()
+	);
 </script>
 
 {#if totalPages > 1 && totalItems > limit}
@@ -71,7 +87,7 @@
 		{#if currentPage > 1}
 			<a
 				href={buildHref(1)}
-				on:click={(event) => onPageClick(event, 1)}
+				onclick={(event) => onPageClick(event, 1)}
 				aria-label="첫 페이지로 이동"
 				title="첫 페이지"
 				class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
@@ -94,7 +110,7 @@
 		{#if currentPage > 1}
 			<a
 				href={buildHref(currentPage - 1)}
-				on:click={(event) => onPageClick(event, currentPage - 1)}
+				onclick={(event) => onPageClick(event, currentPage - 1)}
 				aria-label="이전 페이지로 이동"
 				title="이전 페이지"
 				class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
@@ -118,7 +134,7 @@
 			{#if typeof item === 'number'}
 				<a
 					href={buildHref(item)}
-					on:click={(event) => onPageClick(event, item)}
+					onclick={(event) => onPageClick(event, item)}
 					class={`rounded-xl px-3 py-2 text-xs font-bold shadow-sm transition-all duration-200 hover:shadow-md sm:px-4 sm:py-3 sm:text-sm ${
 						currentPage === item
 							? 'lc-pagination-active scale-105 border'
@@ -139,7 +155,7 @@
 		{#if currentPage < totalPages}
 			<a
 				href={buildHref(currentPage + 1)}
-				on:click={(event) => onPageClick(event, currentPage + 1)}
+				onclick={(event) => onPageClick(event, currentPage + 1)}
 				aria-label="다음 페이지로 이동"
 				title="다음 페이지"
 				class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"
@@ -162,7 +178,7 @@
 		{#if currentPage < totalPages}
 			<a
 				href={buildHref(totalPages)}
-				on:click={(event) => onPageClick(event, totalPages)}
+				onclick={(event) => onPageClick(event, totalPages)}
 				aria-label="마지막 페이지로 이동"
 				title="마지막 페이지"
 				class="lc-pagination-btn rounded-xl border-2 px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 sm:px-4 sm:py-3 sm:text-sm"

@@ -15,39 +15,56 @@
 	} from '$lib/types/api';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 
-	export let isOpen = false;
-	export let mode: 'edit-comment' | 'delete-comment' | 'toggle-thread-status' = 'delete-comment';
-	export let targetComment: DiscussionComment | null = null;
-	export let targetThread: DiscussionThread | null = null;
-	export let isSubmitting = false;
-	export let isRateLimited = false;
-	export let externalErrorMessage = '';
-	export let onSubmitEdit:
-		((data: { commentId: number; password: string; content: string }) => void) | undefined =
-		undefined;
-	export let onSubmitDelete: ((data: { commentId: number; password: string }) => void) | undefined =
-		undefined;
-	export let onSubmitToggleStatus:
-		| ((data: { threadId: number; password: string; status: DiscussionThreadStatus }) => void)
-		| undefined = undefined;
-	export let onClose: (() => void) | undefined = undefined;
+	let {
+		isOpen = $bindable(false),
+		mode = 'delete-comment',
+		targetComment = null,
+		targetThread = null,
+		isSubmitting = false,
+		isRateLimited = false,
+		externalErrorMessage = '',
+		onSubmitEdit,
+		onSubmitDelete,
+		onSubmitToggleStatus,
+		onClose
+	}: {
+		isOpen?: boolean;
+		mode?: 'edit-comment' | 'delete-comment' | 'toggle-thread-status';
+		targetComment?: DiscussionComment | null;
+		targetThread?: DiscussionThread | null;
+		isSubmitting?: boolean;
+		isRateLimited?: boolean;
+		externalErrorMessage?: string;
+		onSubmitEdit?: (data: { commentId: number; password: string; content: string }) => void;
+		onSubmitDelete?: (data: { commentId: number; password: string }) => void;
+		onSubmitToggleStatus?: (data: {
+			threadId: number;
+			password: string;
+			status: DiscussionThreadStatus;
+		}) => void;
+		onClose?: () => void;
+	} = $props();
 
-	let password = '';
-	let editContent = '';
-	let errorMessage = '';
+	let password = $state('');
+	let editContent = $state('');
+	let errorMessage = $state('');
 
-	$: if (externalErrorMessage) {
-		errorMessage = externalErrorMessage;
-	}
+	$effect(() => {
+		if (externalErrorMessage) {
+			errorMessage = externalErrorMessage;
+		}
+	});
 
-	$: if (isOpen && targetComment && mode === 'edit-comment') {
-		editContent = targetComment.content;
-		password = '';
-		errorMessage = externalErrorMessage || '';
-	} else if (isOpen) {
-		password = '';
-		errorMessage = externalErrorMessage || '';
-	}
+	$effect(() => {
+		if (isOpen && targetComment && mode === 'edit-comment') {
+			editContent = targetComment.content;
+			password = '';
+			errorMessage = externalErrorMessage || '';
+		} else if (isOpen) {
+			password = '';
+			errorMessage = externalErrorMessage || '';
+		}
+	});
 
 	function handleClose() {
 		if (isSubmitting) return;
@@ -101,39 +118,44 @@
 	closeDisabled={isSubmitting}
 	onClose={handleClose}
 >
-	<div
-		slot="icon"
-		class={`rounded-lg p-2 ${
-			mode === 'delete-comment'
-				? 'bg-red-500/10 text-red-500'
-				: mode === 'edit-comment'
-					? 'lc-chip-blue'
-					: 'lc-chip-warning'
-		}`}
-	>
-		<FontAwesomeIcon
-			icon={mode === 'delete-comment'
-				? faTrash
-				: mode === 'edit-comment'
-					? faPenToSquare
-					: targetThread?.status === DiscussionThreadStatus.OPEN
-						? faLock
-						: faLockOpen}
-			class="h-4 w-4"
-		/>
-	</div>
-	<span slot="title">
-		{#if mode === 'edit-comment'}
-			의견 수정 (#{targetComment?.sequence})
-		{:else if mode === 'delete-comment'}
-			의견 삭제 (#{targetComment?.sequence})
-		{:else}
-			토론 상태 변경 ({targetThread?.status === DiscussionThreadStatus.OPEN
-				? '토론 닫기'
-				: '토론 다시 열기'})
-		{/if}
-	</span>
-	<span slot="subtitle">작성 시 등록했던 비밀번호를 입력해주세요.</span>
+	{#snippet icon()}
+		<div
+			class={`rounded-lg p-2 ${
+				mode === 'delete-comment'
+					? 'bg-red-500/10 text-red-500'
+					: mode === 'edit-comment'
+						? 'lc-chip-blue'
+						: 'lc-chip-warning'
+			}`}
+		>
+			<FontAwesomeIcon
+				icon={mode === 'delete-comment'
+					? faTrash
+					: mode === 'edit-comment'
+						? faPenToSquare
+						: targetThread?.status === DiscussionThreadStatus.OPEN
+							? faLock
+							: faLockOpen}
+				class="h-4 w-4"
+			/>
+		</div>
+	{/snippet}
+	{#snippet title()}
+		<span>
+			{#if mode === 'edit-comment'}
+				의견 수정 (#{targetComment?.sequence})
+			{:else if mode === 'delete-comment'}
+				의견 삭제 (#{targetComment?.sequence})
+			{:else}
+				토론 상태 변경 ({targetThread?.status === DiscussionThreadStatus.OPEN
+					? '토론 닫기'
+					: '토론 다시 열기'})
+			{/if}
+		</span>
+	{/snippet}
+	{#snippet subtitle()}
+		<span>작성 시 등록했던 비밀번호를 입력해주세요.</span>
+	{/snippet}
 
 	{#if errorMessage}
 		<div
@@ -143,7 +165,13 @@
 		</div>
 	{/if}
 
-	<form on:submit|preventDefault={handleSubmit} class="space-y-4">
+	<form
+		onsubmit={(e) => {
+			e.preventDefault();
+			handleSubmit();
+		}}
+		class="space-y-4"
+	>
 		{#if mode === 'edit-comment'}
 			<div>
 				<label for="edit-comment-content" class="lc-text-primary mb-1 block text-xs font-semibold">
@@ -202,7 +230,7 @@
 		<div class="flex justify-end gap-2 pt-2">
 			<button
 				type="button"
-				on:click={handleClose}
+				onclick={handleClose}
 				disabled={isSubmitting}
 				class="lc-button-neutral cursor-pointer rounded-lg border border-[var(--lc-border-soft)] px-4 py-2 text-xs font-semibold"
 			>

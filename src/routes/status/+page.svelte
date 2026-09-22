@@ -24,20 +24,20 @@
 	import type { OllamaHealthStatus, IsDoneSyncStatus, CrawlerStatus } from '$lib/types/api';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 
-	$: stats = data.stats as import('$lib/types/api').SystemStats;
-	$: fetchedAt = data.fetchedAt;
-	$: loadError = data.loadError;
+	let stats = $derived(data.stats as import('$lib/types/api').SystemStats);
+	let fetchedAt = $derived(data.fetchedAt);
+	let loadError = $derived(data.loadError);
 
-	let isRefreshing = false;
-	let lastRefreshAt = 0;
-	let lastTimerRefreshAt = 0;
+	let isRefreshing = $state(false);
+	let lastRefreshAt = $state(0);
+	let lastTimerRefreshAt = $state(0);
 	const REFRESH_COOLDOWN_MS = 30_000;
 	const TIMER_REFRESH_COOLDOWN_MS = 20_000;
 
-	let countdown = 0;
-	let isRetrying = false;
+	let countdown = $state(0);
+	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
 		() => invalidateAll(),
 		(v) => {
@@ -48,17 +48,19 @@
 		}
 	);
 
-	$: if (loadError !== retry.lastSeenError) {
-		retry.lastSeenError = loadError;
-		if (loadError?.retryAfter && loadError.retryAfter > 0) {
-			retry.start(loadError.retryAfter);
-		} else {
-			retry.stop();
+	$effect(() => {
+		if (loadError !== retry.lastSeenError) {
+			retry.lastSeenError = loadError;
+			if (loadError?.retryAfter && loadError.retryAfter > 0) {
+				retry.start(loadError.retryAfter);
+			} else {
+				retry.stop();
+			}
 		}
-	}
+	});
 
-	$: crawlers = stats.crawlers;
-	$: isDoneSync = stats.archive.isDoneSync as IsDoneSyncStatus | null | undefined;
+	let crawlers = $derived(stats.crawlers);
+	let isDoneSync = $derived(stats.archive.isDoneSync as IsDoneSyncStatus | null | undefined);
 
 	// ── Optimistic countdown timer ──────────────────────────────────────
 	// Server-provided timestamps are the source of truth. A client-side
@@ -105,10 +107,12 @@
 		return formatDateTimeKST(value);
 	}
 
-	$: palCountdown = crawlers ? countdownLabel(palRemaining, crawlers.palCrawler.status) : '-';
-	$: nsmCountdown = crawlers
-		? countdownLabel(nsmRemaining, crawlers.nsmPendingCrawler.status)
-		: '-';
+	let palCountdown = $derived(
+		crawlers ? countdownLabel(palRemaining, crawlers.palCrawler.status) : '-'
+	);
+	let nsmCountdown = $derived(
+		crawlers ? countdownLabel(nsmRemaining, crawlers.nsmPendingCrawler.status) : '-'
+	);
 
 	/**
 	 * States:
@@ -196,8 +200,8 @@
 		}
 	}
 
-	$: palBadge = crawlers ? crawlerStatusBadge(crawlers.palCrawler.status) : null;
-	$: nsmBadge = crawlers ? crawlerStatusBadge(crawlers.nsmPendingCrawler.status) : null;
+	let palBadge = $derived(crawlers ? crawlerStatusBadge(crawlers.palCrawler.status) : null);
+	let nsmBadge = $derived(crawlers ? crawlerStatusBadge(crawlers.nsmPendingCrawler.status) : null);
 
 	const CRON_JOB_NAME_MAP: Record<string, string> = {
 		'crawling and notification': '국회 입법예고 크롤링 및 알림',
@@ -244,18 +248,24 @@
 		}
 	}
 
-	$: ollamaHealthStatus = (stats.ollama?.health.status ?? 'unknown') as OllamaHealthStatus;
-	$: hasOllamaIssue = ollamaHealthStatus === 'unhealthy' || ollamaHealthStatus === 'misconfigured';
-	$: hasCacheIssue = stats.cache.isInitialized === false;
-	$: hasCrawlerFailure =
+	let ollamaHealthStatus = $derived(
+		(stats.ollama?.health.status ?? 'unknown') as OllamaHealthStatus
+	);
+	let hasOllamaIssue = $derived(
+		ollamaHealthStatus === 'unhealthy' || ollamaHealthStatus === 'misconfigured'
+	);
+	let hasCacheIssue = $derived(stats.cache.isInitialized === false);
+	let hasCrawlerFailure = $derived(
 		crawlers?.palCrawler.status === 'failed' ||
-		crawlers?.nsmPendingCrawler.status === 'failed' ||
-		(crawlers?.cronJobs.some((j) => j.status === 'failed') ?? false);
+			crawlers?.nsmPendingCrawler.status === 'failed' ||
+			(crawlers?.cronJobs.some((j) => j.status === 'failed') ?? false)
+	);
 
-	$: overallStatus = (
-		hasOllamaIssue || hasCacheIssue || hasCrawlerFailure ? 'degraded' : 'healthy'
-	) as 'healthy' | 'degraded';
-	$: overallLabel = overallStatus === 'healthy' ? '정상' : '주의 필요';
+	let overallStatus = $derived(
+		(hasOllamaIssue || hasCacheIssue || hasCrawlerFailure ? 'degraded' : 'healthy') as
+			'healthy' | 'degraded'
+	);
+	let overallLabel = $derived(overallStatus === 'healthy' ? '정상' : '주의 필요');
 
 	function isDoneSyncBadgeStyle(status: IsDoneSyncStatus['status'] | undefined) {
 		switch (status) {
@@ -283,28 +293,32 @@
 		}
 	}
 
-	$: overallStyle = (() => {
-		switch (overallStatus) {
-			case 'healthy':
-				return { badge: 'lc-chip-success', icon: faSquareCheck };
-			case 'degraded':
-				return { badge: 'lc-chip-warning', icon: faTriangleExclamation };
-			default:
-				return { badge: 'lc-chip-muted', icon: faClock };
-		}
-	})();
-	$: ollamaStyle = (() => {
-		switch (ollamaHealthStatus) {
-			case 'healthy':
-				return { badge: 'lc-chip-success', icon: faSquareCheck };
-			case 'unhealthy':
-				return { badge: 'lc-chip-danger', icon: faXmarkCircle };
-			case 'misconfigured':
-				return { badge: 'lc-chip-warning', icon: faTriangleExclamation };
-			default:
-				return { badge: 'lc-chip-muted', icon: faClock };
-		}
-	})();
+	let overallStyle = $derived(
+		(() => {
+			switch (overallStatus) {
+				case 'healthy':
+					return { badge: 'lc-chip-success', icon: faSquareCheck };
+				case 'degraded':
+					return { badge: 'lc-chip-warning', icon: faTriangleExclamation };
+				default:
+					return { badge: 'lc-chip-muted', icon: faClock };
+			}
+		})()
+	);
+	let ollamaStyle = $derived(
+		(() => {
+			switch (ollamaHealthStatus) {
+				case 'healthy':
+					return { badge: 'lc-chip-success', icon: faSquareCheck };
+				case 'unhealthy':
+					return { badge: 'lc-chip-danger', icon: faXmarkCircle };
+				case 'misconfigured':
+					return { badge: 'lc-chip-warning', icon: faTriangleExclamation };
+				default:
+					return { badge: 'lc-chip-muted', icon: faClock };
+			}
+		})()
+	);
 
 	async function refreshStatus(manual = false) {
 		if (isRefreshing) return;
@@ -368,7 +382,7 @@
 						전체 상태 {overallLabel}
 					</span>
 					<button
-						on:click={() => refreshStatus(true)}
+						onclick={() => refreshStatus(true)}
 						disabled={isRefreshing}
 						class="lc-chip-cyan inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 					>
