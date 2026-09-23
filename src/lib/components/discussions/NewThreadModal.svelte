@@ -26,7 +26,10 @@
 		onClose?: () => void;
 	} = $props();
 
-	let title = $state('');
+	// NOTE: must not be named `title` — the `{#snippet title()}` passed to ModalShell below
+	// would shadow it in the children scope, making `bind:value` write to the snippet
+	// function instead of this state (validation then always saw an empty string).
+	let threadTitle = $state('');
 	let authorNickname = $state('');
 	let password = $state('');
 	let content = $state('');
@@ -48,7 +51,7 @@
 
 	function handleClose() {
 		if (isSubmitting) return;
-		title = '';
+		threadTitle = '';
 		authorNickname = '';
 		password = '';
 		content = '';
@@ -58,7 +61,7 @@
 
 	function handleSubmit() {
 		errorMessage = '';
-		if (!title.trim() || title.trim().length < 2) {
+		if (!threadTitle.trim() || threadTitle.trim().length < 2) {
 			errorMessage = '토론 주제를 2자 이상 입력해주세요.';
 			return;
 		}
@@ -72,7 +75,7 @@
 		}
 
 		onSubmit?.({
-			title: title.trim(),
+			title: threadTitle.trim(),
 			authorNickname: authorNickname.trim() || undefined,
 			password,
 			content: content.trim()
@@ -83,6 +86,7 @@
 <ModalShell
 	{isOpen}
 	labelledBy="new-thread-title"
+	testId="discussion-new-thread-modal"
 	closeDisabled={isSubmitting}
 	onClose={handleClose}
 >
@@ -100,6 +104,7 @@
 
 	{#if errorMessage}
 		<div
+			data-testid="discussion-new-thread-error"
 			class="lc-banner-danger mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400"
 		>
 			{errorMessage}
@@ -119,8 +124,9 @@
 			</label>
 			<input
 				id="thread-title-input"
+				data-testid="discussion-new-thread-title"
 				type="text"
-				bind:value={title}
+				bind:value={threadTitle}
 				disabled={isSubmitting || isRateLimited}
 				maxlength="150"
 				placeholder="예: ○○ 개정안의 실효성에 대한 의견"
@@ -136,6 +142,7 @@
 				</label>
 				<input
 					id="thread-author-input"
+					data-testid="discussion-new-thread-nickname"
 					type="text"
 					bind:value={authorNickname}
 					disabled={isSubmitting}
@@ -151,6 +158,7 @@
 				</label>
 				<input
 					id="thread-password-input"
+					data-testid="discussion-new-thread-password"
 					type="password"
 					bind:value={password}
 					disabled={isSubmitting}
@@ -168,6 +176,7 @@
 			</label>
 			<textarea
 				id="thread-content-input"
+				data-testid="discussion-new-thread-content"
 				bind:value={content}
 				disabled={isSubmitting}
 				rows="5"
@@ -192,6 +201,7 @@
 			</button>
 			<button
 				type="submit"
+				data-testid="discussion-new-thread-submit"
 				disabled={isSubmitting || isRateLimited}
 				class="lc-button-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
 			>
