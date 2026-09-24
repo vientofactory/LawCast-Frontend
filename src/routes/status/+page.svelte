@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { writable } from 'svelte/store';
 	import { browser } from '$app/environment';
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
@@ -68,32 +67,27 @@
 	// Auto-refreshes when the data becomes stale or a timer exhausts.
 	let tickInterval: ReturnType<typeof setInterval> | null = null;
 	const STALE_THRESHOLD_MS = 15_000;
-
-	// Writable store guarantees reactivity even in legacy mode.
-	// The $ prefix auto-subscribes in the template.
-	const now = writable(Date.now());
+	let nowMs = $state(Date.now());
 
 	function calcRemaining(lastRunAt: string | null, intervalMs: number, currentNow: number): number {
 		if (!lastRunAt || intervalMs <= 0) return -1;
 		return Math.max(0, intervalMs - (currentNow - new Date(lastRunAt).getTime()));
 	}
 
-	let palRemaining = 0;
-	let nsmRemaining = 0;
-
-	// Update countdowns every tick by subscribing to the store
-	const unsubNow = now.subscribe((t) => {
-		palRemaining = crawlers
-			? calcRemaining(crawlers.palCrawler.lastRunAt, crawlers.palCrawler.cron.intervalMs, t)
-			: -1;
-		nsmRemaining = crawlers
+	let palRemaining = $derived(
+		crawlers
+			? calcRemaining(crawlers.palCrawler.lastRunAt, crawlers.palCrawler.cron.intervalMs, nowMs)
+			: -1
+	);
+	let nsmRemaining = $derived(
+		crawlers
 			? calcRemaining(
 					crawlers.nsmPendingCrawler.lastRunAt,
 					crawlers.nsmPendingCrawler.cron.intervalMs,
-					t
+					nowMs
 				)
-			: -1;
-	});
+			: -1
+	);
 
 	function fmtRemaining(ms: number): string {
 		if (ms < 0) return '-';
@@ -131,7 +125,7 @@
 	function startTick() {
 		if (tickInterval) return;
 		tickInterval = setInterval(() => {
-			now.set(Date.now());
+			nowMs = Date.now();
 
 			// ── Staleness refresh ─────────────────────────────────────
 			const t = Date.now();
@@ -170,7 +164,7 @@
 		if (document.hidden) {
 			stopTick();
 		} else {
-			now.set(Date.now());
+			nowMs = Date.now();
 			startTick();
 		}
 	}
@@ -186,7 +180,6 @@
 		if (!browser) return;
 		stopTick();
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
-		unsubNow();
 	});
 
 	function crawlerStatusBadge(status: CrawlerStatus['status']) {
@@ -335,7 +328,7 @@
 			// Sync now so the countdown recalculates with the fresh lastRunAt
 			// from the server. Without this, palRemaining/nsmRemaining keep
 			// using the old lastRunAt until the next 1-second tick.
-			now.set(Date.now());
+			nowMs = Date.now();
 		}
 	}
 </script>
