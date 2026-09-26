@@ -676,7 +676,11 @@
 											class="lc-chip-blue inline-flex items-center rounded-full px-2 py-1 font-semibold"
 										>
 											키워드: {searchQuery.trim()}
-											<a href={buildFilterLink({ search: '' })} class="lc-link ml-2">
+											<a
+												href={buildFilterLink({ search: '' })}
+												class="lc-link ml-2"
+												aria-label="키워드 검색 해제"
+											>
 												<FontAwesomeIcon icon={faXmark} class="h-2.5 w-2.5" />
 											</a>
 										</span>
@@ -687,7 +691,11 @@
 										>
 											<FontAwesomeIcon icon={faUser} class="h-2.5 w-2.5" />
 											제안자: {proposerQuery.trim()}
-											<a href={buildFilterLink({ proposer: '' })} class="lc-link ml-1">
+											<a
+												href={buildFilterLink({ proposer: '' })}
+												class="lc-link ml-1"
+												aria-label="제안자 검색 해제"
+											>
 												<FontAwesomeIcon icon={faXmark} class="h-2.5 w-2.5" />
 											</a>
 										</span>

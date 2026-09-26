@@ -171,4 +171,39 @@ test.describe('Notice Detail Page', () => {
 		const jsonLd = page.locator('script[type="application/ld+json"]');
 		await expect(jsonLd).toBeAttached();
 	});
+
+	test('renders facts, proposal reason, timeline and archive download sections', async ({
+		page
+	}) => {
+		await page.goto('/notices');
+		const resultsList = page.getByTestId('notices-results-list');
+		const hasResults = await resultsList.isVisible().catch(() => false);
+
+		if (!hasResults) {
+			test.skip(true, 'No notices available');
+			return;
+		}
+
+		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
+		const testId = await firstDetailLink.getAttribute('data-testid');
+		const num = testId?.replace('notice-detail-link-', '');
+		await firstDetailLink.click();
+		await expect(page.getByTestId('notice-detail-main')).toBeVisible();
+
+		// Proposal reason text comes from the mocked detail payload.
+		await expect(page.getByTestId('notice-detail-proposal-reason')).toBeVisible();
+		// Deferred-render sections are attached even before they scroll into view.
+		await expect(page.getByTestId('notice-detail-facts')).toBeAttached();
+		await expect(page.getByTestId('notice-detail-timeline')).toBeAttached();
+		await expect(page.getByTestId('notice-fact-의안번호')).toBeAttached();
+
+		// The archive detail panel starts collapsed and hides its export button.
+		await expect(page.getByTestId('notice-detail-archive-meta')).toBeVisible();
+		await expect(page.getByTestId('notice-detail-download-archive')).toHaveCount(0);
+
+		// The ?archive=true deep link opens the panel (and its ZIP export control).
+		await page.goto(`/notices/${num}?archive=true`);
+		await expect(page.getByTestId('notice-detail-archive-meta')).toHaveAttribute('open', '');
+		await expect(page.getByTestId('notice-detail-download-archive')).toBeVisible();
+	});
 });

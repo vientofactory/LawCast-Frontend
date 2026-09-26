@@ -835,11 +835,11 @@
 						</span>
 					</div>
 				</div>
-				<div class="flex items-center gap-2">
+				<div class="flex flex-wrap items-center gap-2">
 					<a
 						href="#notice-discussions"
 						data-testid="notice-detail-discussions-anchor"
-						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors"
+						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors"
 					>
 						<FontAwesomeIcon icon={faComments} class="mr-2 h-4 w-4" />
 						<span>토론</span>
@@ -854,7 +854,7 @@
 					<button
 						onclick={shareNotice}
 						data-testid="notice-detail-share"
-						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors"
+						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors"
 					>
 						<FontAwesomeIcon
 							icon={shareState === 'copied' ? faCheck : faShareNodes}
@@ -865,7 +865,7 @@
 					<button
 						onclick={() => openExternalLink(detail.notice.link)}
 						data-testid="notice-detail-open-source"
-						class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold"
+						class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap"
 					>
 						<FontAwesomeIcon icon={faExternalLink} class="mr-2 h-4 w-4" />
 						국회 페이지 열기

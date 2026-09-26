@@ -92,4 +92,26 @@ test.describe('Global Navigation', () => {
 		const themeSwitch = page.locator('button[role="switch"]');
 		await expect(themeSwitch.first()).toBeVisible();
 	});
+
+	test('mobile menu opens, navigates and closes itself', async ({ page }) => {
+		// The hamburger only shows below the md breakpoint and the desktop nav is hidden.
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.goto('/');
+
+		await expect(page.getByTestId('primary-navigation')).toBeHidden();
+
+		const menuButton = page.locator('button[aria-controls="mobile-menu-panel"]');
+		await expect(menuButton).toBeVisible();
+		await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+		await expect(page.getByTestId('mobile-navigation')).toHaveCount(0);
+
+		await menuButton.click();
+		await expect(page.getByTestId('mobile-navigation')).toBeVisible();
+		await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+
+		await page.getByTestId('mobile-nav-link-notices').click();
+		await expect(page).toHaveURL(/\/notices$/);
+		// Selecting a link closes the dropdown after navigating.
+		await expect(page.getByTestId('mobile-navigation')).toHaveCount(0);
+	});
 });

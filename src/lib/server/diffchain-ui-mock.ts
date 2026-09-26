@@ -28,6 +28,23 @@ const MOCK_NOW = Date.now();
 
 const DEFAULT_MOCK_PAGE_SIZE = 10;
 
+const LONG_MOCK_NOTICE = {
+	num: 2210001,
+	subject:
+		'AI·데이터 산업의 안전한 활용과 개인정보 보호 및 알고리즘 투명성 확보를 위한 인공지능 책임성 강화에 관한 법률 일부개정법률안',
+	committee: '과학기술정보방송통신위원회·정무위원회 공동심사 및 인공지능 책임성 특별소위원회',
+	proposer: '김가나다 의원 외 123인 및 국가인공지능위원회·개인정보보호위원회 공동발의',
+	proposalReason:
+		'AI 산업의 건전한 성장과 개인정보 보호를 위한 제도적 기반을 마련하기 위함입니다. 인공지능과 데이터 산업의 발전에 따라 국민의 권익을 보호하고 안전하고 신뢰할 수 있는 활용 기반을 마련하려는 것입니다. 이를 위해 고위험 인공지능 시스템의 투명성과 책임성을 강화하고, 개인정보 보호 및 이용자 권리 보장에 필요한 절차를 규정하며, 관계 기관의 협력 체계를 구축하고자 합니다. 또한 기술 발전과 현장의 다양한 의견을 지속적으로 반영하여 산업의 혁신과 기본권 보호가 조화를 이룰 수 있도록 제도적 기반을 마련하려는 것입니다.'
+};
+
+function getMockNoticeSubject(noticeNum: number, lifecycleStatus: string): string {
+	if (noticeNum === LONG_MOCK_NOTICE.num) return LONG_MOCK_NOTICE.subject;
+	if (lifecycleStatus === 'source_deleted') return '원본 소스 미존재 보존 테스트 법률안';
+	if (lifecycleStatus === 'renumbered') return '의안번호 변경 체인 테스트 법률안';
+	return 'Project Diffchain UI 테스트 법률안';
+}
+
 type MockNoticeTemplate = Notice & {
 	revision: {
 		headRev: number;
@@ -180,14 +197,9 @@ function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 
 	const notice: MockNoticeTemplate = {
 		num: noticeNum,
-		subject:
-			lifecycleStatus === 'source_deleted'
-				? '원본 소스 미존재 보존 테스트 법률안'
-				: lifecycleStatus === 'renumbered'
-					? '의안번호 변경 체인 테스트 법률안'
-					: 'Project Diffchain UI 테스트 법률안',
+		subject: getMockNoticeSubject(noticeNum, lifecycleStatus),
 		proposerCategory: '의원',
-		committee: '법제사법위원회',
+		committee: noticeNum === LONG_MOCK_NOTICE.num ? LONG_MOCK_NOTICE.committee : '법제사법위원회',
 		link: `https://example.com/lawcast/mock/${noticeNum}`,
 		contentId: `mock-content-${noticeNum}`,
 		isDone: lifecycleStatus !== 'source_deleted',
@@ -216,9 +228,12 @@ function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 			proposalReason:
 				lifecycleStatus === 'source_deleted'
 					? '소스 삭제 전 제안이유 원문입니다. 현재는 보존 상태이므로 이 내용은 변경 이력에서만 확인할 수 있습니다.'
-					: 'Project Diffchain 기능 검증을 위해 준비한 가짜 제안이유 원문입니다.',
+					: noticeNum === LONG_MOCK_NOTICE.num
+						? LONG_MOCK_NOTICE.proposalReason
+						: 'Project Diffchain 기능 검증을 위해 준비한 가짜 제안이유 원문입니다.',
 			billNumber: String(noticeNum),
-			proposer: '홍길동 의원 외 12인',
+			proposer:
+				noticeNum === LONG_MOCK_NOTICE.num ? LONG_MOCK_NOTICE.proposer : '홍길동 의원 외 12인',
 			proposalDate: '2026-06-14',
 			committee: notice.committee,
 			referralDate: '2026-06-18',
@@ -307,12 +322,12 @@ const MOCK_ARCHIVE_OVERRIDE_CONFIG: {
 }[] = [
 	// ── Core 4 notices (varied isDone, committees, dates, fullText keywords) ──
 	{
-		num: 2210001,
-		subject: 'AI·데이터 산업 진흥에 관한 법률안',
-		committee: '과학기술정보방송통신위원회',
+		num: LONG_MOCK_NOTICE.num,
+		subject: LONG_MOCK_NOTICE.subject,
+		committee: LONG_MOCK_NOTICE.committee,
 		archiveDaysAgo: 3,
 		isDoneOverride: false,
-		proposalReason: 'AI 산업의 건전한 성장과 개인정보 보호를 위한 제도적 기반을 마련하기 위함.'
+		proposalReason: LONG_MOCK_NOTICE.proposalReason
 	},
 	{
 		num: 2210002,
@@ -511,15 +526,19 @@ export function getMockArchiveNoticesResponse(params: {
 	}
 
 	// Apply date range filtering based on archiveStartedAt.
+	// Boundaries are anchored at KST midnight: the page builds startDate/endDate
+	// from KST calendar dates (toKstInputDate), and `new Date('YYYY-MM-DD')` would
+	// otherwise parse as UTC midnight — making inclusion of notices flip with the
+	// runner's timezone and time of day.
 	if (params.startDate) {
-		const startMs = new Date(params.startDate).getTime();
+		const startMs = new Date(`${params.startDate}T00:00:00+09:00`).getTime();
 		filtered = filtered.filter((notice) => {
 			if (!notice.archiveStartedAt) return false;
 			return new Date(notice.archiveStartedAt).getTime() >= startMs;
 		});
 	}
 	if (params.endDate) {
-		const endMs = new Date(params.endDate + 'T23:59:59').getTime();
+		const endMs = new Date(`${params.endDate}T23:59:59+09:00`).getTime();
 		filtered = filtered.filter((notice) => {
 			if (!notice.archiveStartedAt) return false;
 			return new Date(notice.archiveStartedAt).getTime() <= endMs;

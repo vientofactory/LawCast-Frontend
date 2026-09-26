@@ -756,7 +756,16 @@
 	.chart-container {
 		position: relative;
 		width: 100%;
+		min-width: 0;
 		height: 280px;
+	}
+
+	.chart-container :global(canvas) {
+		max-width: 100%;
+	}
+
+	.mt-0.grid > * {
+		min-width: 0;
 	}
 
 	@media (min-width: 640px) {
