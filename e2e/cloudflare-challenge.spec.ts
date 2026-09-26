@@ -4,6 +4,15 @@ const mockEnabled = ['1', 'true', 'yes', 'on'].includes(
 	(process.env.DIFFCHAIN_UI_MOCK ?? '').trim().toLowerCase()
 );
 
+// The dedicated config (playwright.cloudflare-challenge.config.ts) boots a dev server with
+// PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=true and E2E_FORCE_403=1. Without those the client-side
+// detection is compiled off and /cf-challenge-test answers 200, so these tests cannot pass on a
+// plain `npm run test:e2e` dev server — skip instead of failing (same pattern as
+// E2E_RATE_LIMIT_SIM / E2E_IP_ECHO).
+const challengeEnabled = ['1', 'true', 'yes', 'on'].includes(
+	(process.env.E2E_CF_CHALLENGE ?? '').trim().toLowerCase()
+);
+
 const CF_HTML =
 	'<!DOCTYPE html><html><head><title>Just a moment...</title></head><body>Challenge</body></html>';
 
@@ -62,6 +71,10 @@ async function setSessionStorage(
 
 test.describe('Cloudflare Under Attack challenge handling', () => {
 	test.skip(!mockEnabled, 'Cloudflare challenge tests require DIFFCHAIN_UI_MOCK=1.');
+	test.skip(
+		!challengeEnabled,
+		'Set E2E_CF_CHALLENGE=1 (npm run test:e2e:cloudflare-challenge) to run these tests.'
+	);
 
 	test.describe('patched fetch detection (client-side)', () => {
 		test('intercepts navigation __data.json with cf-mitigated header', async ({ page }) => {

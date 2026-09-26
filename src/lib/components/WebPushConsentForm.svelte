@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import type { Component, ComponentProps } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { dev } from '$app/environment';
@@ -329,10 +329,12 @@
 		}
 	}
 
+	// Mount the modal with isOpen=false first so the intro transition still fires on first open.
 	async function openFullUnsubscribeConfirm(): Promise<void> {
 		if (!FullUnsubscribeConfirmModalComponent) {
 			const mod = await import('$lib/components/FullUnsubscribeConfirmModal.svelte');
 			FullUnsubscribeConfirmModalComponent = mod.default;
+			await tick();
 		}
 		isFullUnsubscribeConfirmOpen = true;
 	}
