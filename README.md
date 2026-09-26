@@ -137,29 +137,100 @@ npm run check
 
 프론트엔드에는 Playwright 기반 브라우저 E2E 테스트가 포함되어 있습니다. SvelteKit 개발 서버를 자동으로 시작하고 Chromium 브라우저에서 주요 페이지와 사용자 흐름을 검증합니다.
 
+스펙은 `e2e/*.spec.ts`에 16개가 있고, **스펙마다 필요한 실행 환경(모의 데이터 게이트, 전용 포트, 전용 환경변수)이 다릅니다.** 스펙별 실행 방법은 아래 표를 참고하세요.
+
 ### 사전 요구사항
 
 - Node.js 18 이상
 - `npm install` 완료 상태
 - Chromium 브라우저 (`npx playwright install chromium`으로 설치)
 
-### 테스트 실행
+### 스펙별 실행 방법
+
+"기본"은 아래 `playwright.config.ts`(5173 포트)를 의미합니다. mock 게이트가 있는 스펙은 명령 앞에 `DIFFCHAIN_UI_MOCK=1`을 붙여야 하며, 없으면 `test.skip`으로 전부 건너뜁니다.
+
+| 스펙                             | 검증 내용                                                                       | 실행 방법                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `navigation.spec.ts`             | 헤더/주요 내비게이션, 활성 링크, skip-to-content, 푸터, 테마 토글               | 기본 (`npm run test:e2e`)                                           |
+| `home.spec.ts`                   | 홈 히어로·검색 폼·퀵워드·상태 카드, SEO(JSON-LD, canonical)                     | 기본                                                                |
+| `notices.spec.ts`                | 목록 필터폼/검색/페이지네이션 기본 + 교차 필터 조합                             | 기본, 교차 필터 describe는 `DIFFCHAIN_UI_MOCK=1`                    |
+| `notice-detail.spec.ts`          | 상세(요약·원문·공유·구조화 데이터). 공지 데이터가 없으면 skip                   | 기본                                                                |
+| `changes.spec.ts`                | 변동 이력 필터(이벤트 타입/정렬/의안번호)와 결과 영역                           | 기본                                                                |
+| `proposals.spec.ts`              | 제안 통계 페이지(그래뉼러리티/차트 타입/기간/요약 카드)                         | 기본                                                                |
+| `crawling-transparency.spec.ts`  | 크롤링 투명성 페이지와 출처 정보                                                | 기본                                                                |
+| `status.spec.ts`                 | 시스템 상태(웹훅/캐시/웹푸시/AI 요약) 섹션                                      | 기본                                                                |
+| `license.spec.ts`                | 라이선스 페이지(패키지 라이선스 표)                                             | 기본                                                                |
+| `webhook.spec.ts`                | 알림 설정 페이지 + 웹 푸시 전체 해지 확인 모달(첫 오픈 트랜지션, Esc/취소/확인) | 기본                                                                |
+| `discussions.spec.ts`            | 토론 목록/스레드/답글, 신규 토론·의견 수정/삭제·상태 변경·인용 알림 동의 모달   | **`DIFFCHAIN_UI_MOCK=1` 필수**                                      |
+| `rate-limit-client.spec.ts`      | 클라이언트 429 카운트다운(신규 토론 모달, 스레드 재로딩)                        | **`DIFFCHAIN_UI_MOCK=1` 필수**                                      |
+| `rate-limit-ssr.spec.ts`         | SSR 429 폴백 UI 8종(리트라이 오버레이 포함)                                     | **`npm run test:e2e:rate-limit`**                                   |
+| `ip-forwarding.spec.ts`          | SSR/프록시의 클라이언트 IP 헤더 전달·스푸핑 값 제거                             | **`npm run test:e2e:ip-forwarding`**                                |
+| `dark-mode-color-scheme.spec.ts` | 자동 다크모드 충돌 방지, `color-scheme`/`data-theme` 동기화                     | **`npm run test:e2e:dark-mode`**                                    |
+| `cloudflare-challenge.spec.ts`   | Cloudflare Under Attack 챌린지 감지/복구 UI                                     | **`npm run test:e2e:cloudflare-challenge`** (기본 설정은 자동 스킵) |
+
+### 설정별 실행 방법
+
+설정마다 dev 서버 기동 방식이 다릅니다.
+
+- `rate-limit`(5199), `ip-forwarding`(5223), `cloudflare-challenge`(5201)은 전용 포트에 `reuseExistingServer: false`로 별도 dev 서버를 띄웁니다. 전용 환경변수는 이 서버에만 적용되므로 반드시 해당 스크립트로 실행하세요. (전용 포트가 이미 점유돼 있으면 실행이 실패합니다.)
+- `dark-mode`는 기본 포트 5173을 그대로 사용하며, 기본/통합 설정은 기존에 떠 있는 dev 서버를 재사용합니다.
+
+| npm 스크립트                            | 설정 파일                                   | 포트              | 범위                             | 전용 환경                                                                                          |
+| --------------------------------------- | ------------------------------------------- | ----------------- | -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `npm run test:e2e`                      | `playwright.config.ts`                      | 5173              | 전체 스펙 (기본)                 | dev 서버 mock 기본값 `DIFFCHAIN_UI_MOCK=1`                                                         |
+| `npm run test:e2e:integration`          | `playwright.config.integration.ts`          | 5173              | 전체 스펙, 실제 백엔드           | `DIFFCHAIN_UI_MOCK=0` 고정                                                                         |
+| `npm run test:e2e:rate-limit`           | `playwright.rate-limit.config.ts`           | 5199              | `rate-limit-ssr.spec.ts`         | `E2E_RATE_LIMIT_SIM=1`, `E2E_FORCE_429_PATHS`                                                      |
+| `npm run test:e2e:ip-forwarding`        | `playwright.ip-forwarding.config.ts`        | 5223 (+에코 3999) | `ip-forwarding.spec.ts`          | `E2E_IP_ECHO=1`, `API_BASE_URL=http://127.0.0.1:3999/api`                                          |
+| `npm run test:e2e:dark-mode`            | `playwright.dark-mode.config.ts`            | 5173              | `dark-mode-color-scheme.spec.ts` | Chromium `--force-prefers-color-scheme=light` + `AutoDarkModeForWebContents`                       |
+| `npm run test:e2e:cloudflare-challenge` | `playwright.cloudflare-challenge.config.ts` | 5201              | `cloudflare-challenge.spec.ts`   | `E2E_CF_CHALLENGE=1`(스펙 게이트), `PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=true`, `E2E_FORCE_403=1` |
+
+전체 실행은 기본 설정 하나로 처리됩니다. 전용 설정 스펙(`rate-limit-ssr`, `ip-forwarding`, `cloudflare-challenge`)은 전용 환경변수가 없으면 자동으로 skip되므로, 빠뜨리지 않으려면 전용 스크립트를 한 번씩 더 돌려야 합니다.
 
 ```bash
-# E2E 테스트 실행 (개발 서버 자동 시작)
-npm run test:e2e
+# 1) 전체 실행 (mock 게이트 스펙 포함, 전용 설정 스펙은 자동 skip)
+DIFFCHAIN_UI_MOCK=1 npm run test:e2e
 
-# UI 모드로 실행 (브라우저에서 테스트 조작 가능)
-npm run test:e2e:ui
+# 2) 전용 설정이 필요한 스펙 3종
+npm run test:e2e:rate-limit
+npm run test:e2e:ip-forwarding
+npm run test:e2e:cloudflare-challenge
+```
 
-# 디버그 모드로 실행 (단계별 디버깅)
+### 단일 스펙 / 단일 테스트 실행
+
+```bash
+# mock 게이트 스펙 (discussions, rate-limit-client, notices 교차 필터)
+DIFFCHAIN_UI_MOCK=1 npx playwright test --config playwright-configs/playwright.config.ts e2e/discussions.spec.ts
+
+# mock 게이트가 없는 스펙
+npx playwright test --config playwright-configs/playwright.config.ts e2e/webhook.spec.ts
+
+# 테스트 이름으로 필터 (-g는 정규식, 스펙 파일 필터와 함께 사용)
+npx playwright test --config playwright-configs/playwright.config.ts e2e/webhook.spec.ts -g "Full unsubscribe"
+
+# 전용 설정 스펙은 스크립트 + 파일/제목 필터 조합
+npm run test:e2e:rate-limit -- -g "friendly rate-limit"
+```
+
+### 기타 실행 모드
+
+```bash
+# UI 모드 (브라우저에서 테스트 조작 가능)
+DIFFCHAIN_UI_MOCK=1 npm run test:e2e:ui
+
+# 디버그 모드 (단계별 디버깅, DIFFCHAIN_UI_MOCK=0이라 모의 데이터 스펙은 스킵)
 npm run test:e2e:debug
 
 # 테스트 리포트 열기
 npm run test:e2e:report
 ```
 
-CI 환경에서는 `PLAYWRIGHT_BASE_URL` 환경 변수로 외부 서버 주소를 지정할 수 있습니다.
+### 주의사항
+
+- **`DIFFCHAIN_UI_MOCK=1`은 테스트 프로세스 앞에 붙여야 합니다.** 설정 파일은 dev 서버에 mock 값을 넘기지만, 스펙의 `test.skip` 조건은 테스트 프로세스의 `process.env`를 읽습니다. 플래그가 없으면 해당 스펙이 전부 skip으로 표시됩니다.
+- `rate-limit-ssr.spec.ts`, `ip-forwarding.spec.ts`, `cloudflare-challenge.spec.ts`는 전용 설정이 아닌 기본 설정으로 실행하면 전용 환경변수(`E2E_RATE_LIMIT_SIM`, `E2E_IP_ECHO`, `E2E_CF_CHALLENGE`)가 없어 skip됩니다. 이들 스펙은 반드시 전용 스크립트로 실행하세요.
+- `notice-detail.spec.ts`는 서버에 공지 데이터가 없을 때 `No notices available`로 skip됩니다.
+- CI 환경에서는 `PLAYWRIGHT_BASE_URL` 환경 변수로 외부 서버 주소를 지정할 수 있습니다.
 
 ```bash
 PLAYWRIGHT_BASE_URL=https://your-staging.example.com npm run test:e2e

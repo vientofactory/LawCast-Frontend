@@ -1,7 +1,27 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readModalTransitionSample, startModalTransitionSample } from './helpers/modal-transition';
 
 const noticeNum = 2210001;
 const threadId = noticeNum * 100 + 1;
+
+// Comment ids are derived the same way in the server mock (see
+// lib/server/diffchain-ui-mock.ts buildMockDiscussionComments).
+function mockCommentId(sequence: number): number {
+	return threadId * 1000 + sequence;
+}
+
+// Clicking before hydration completes silently does nothing, so retry until the
+// async-triggered modal is actually on screen.
+async function untilVisible(
+	page: Page,
+	open: () => Promise<void>,
+	predicate: () => Promise<void>
+): Promise<void> {
+	await expect(async () => {
+		await open();
+		await predicate();
+	}).toPass({ timeout: 20_000 });
+}
 const mockEnabled = ['1', 'true', 'yes', 'on'].includes(
 	(process.env.DIFFCHAIN_UI_MOCK ?? '').trim().toLowerCase()
 );
@@ -206,5 +226,252 @@ test.describe('Discussion UI', () => {
 			password: '1234',
 			content: '실효성을 검증하기 위한 첫 발언입니다.'
 		});
+	});
+});
+
+test.describe('Discussion modal behavior', () => {
+	test.skip(!mockEnabled, 'Discussion modal tests require DIFFCHAIN_UI_MOCK=1.');
+
+	test('new thread modal exposes ModalShell a11y and closes via Escape, backdrop and close button', async ({
+		page
+	}) => {
+		await page.goto(`/notices/${noticeNum}`);
+		await expect(page.getByTestId('discussion-new-thread-button')).toBeVisible();
+
+		await startModalTransitionSample(page);
+		await openNewThreadModal(page);
+
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toHaveAttribute('aria-modal', 'true');
+		const labelledBy = await dialog.getAttribute('aria-labelledby');
+		expect(labelledBy).toBeTruthy();
+		await expect(dialog.locator(`#${labelledBy}`)).toHaveText('새 토론 주제 개설');
+
+		// First open goes through the dynamic import: the intro transition must still play.
+		await page.waitForTimeout(300);
+		const firstOpenSample = await readModalTransitionSample(page);
+		expect(firstOpenSample.seen).toBe(true);
+		expect(firstOpenSample.minBackdropOpacity).toBeLessThan(0.9);
+		expect(firstOpenSample.minDialogScale).toBeLessThan(0.99);
+
+		// Escape → ModalShell.handleKeydown
+		await page.keyboard.press('Escape');
+		await expect(dialog).toHaveCount(0);
+
+		// Backdrop click → the transparent inset-0 click catcher
+		await openNewThreadModal(page);
+		await page.mouse.click(5, 5);
+		await expect(dialog).toHaveCount(0);
+
+		// Close (X) button, and the draft state must reset on reopen
+		await openNewThreadModal(page);
+		await page.getByTestId('discussion-new-thread-title').fill('닫힘 검증용 주제');
+		await dialog.getByRole('button', { name: '닫기' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		await openNewThreadModal(page);
+		await expect(page.getByTestId('discussion-new-thread-title')).toHaveValue('');
+	});
+
+	test('comment edit modal validates the password client-side and applies the mocked edit', async ({
+		page
+	}) => {
+		let patchedPayload: Record<string, unknown> | null = null;
+		await page.route(`**/api/discussions/comments/*`, async (route) => {
+			if (route.request().method() !== 'PATCH') {
+				await route.fallback();
+				return;
+			}
+
+			patchedPayload = route.request().postDataJSON();
+			const now = new Date().toISOString();
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					id: mockCommentId(1),
+					threadId,
+					noticeNum,
+					sequence: 1,
+					messageType: 'user',
+					authorNickname: '익명',
+					authorIpMasked: '127.0.0.***',
+					content: '수정된 mock 의견입니다.',
+					isDeleted: false,
+					isEdited: true,
+					editedAt: now,
+					createdAt: now,
+					updatedAt: now
+				})
+			});
+		});
+
+		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+		await page.getByTestId('discussion-comment-1').getByTitle('의견 수정').click();
+
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toContainText('의견 수정 (#1)');
+		await expect(dialog).toHaveAttribute('aria-modal', 'true');
+		// The edit form is pre-filled from the comment it is editing.
+		await expect(page.locator('#edit-comment-content')).toHaveValue('모의 토론 시작 의견입니다.');
+
+		// A short password must fail client-side without any network call.
+		await page.locator('#action-password-input').fill('123');
+		await dialog.getByRole('button', { name: '수정 완료' }).click();
+		await expect(dialog).toContainText('비밀번호를 입력해주세요.');
+		expect(patchedPayload).toBeNull();
+
+		await page.locator('#action-password-input').fill('1234');
+		await page.locator('#edit-comment-content').fill('수정된 mock 의견입니다.');
+		await dialog.getByRole('button', { name: '수정 완료' }).click();
+
+		await expect(dialog).toHaveCount(0);
+		await expect(page.getByText('의견이 성공적으로 수정되었습니다.')).toBeVisible();
+		await expect(page.getByTestId('discussion-comment-1')).toContainText('수정된 mock 의견입니다.');
+		expect(patchedPayload).toMatchObject({
+			password: '1234',
+			content: '수정된 mock 의견입니다.'
+		});
+	});
+
+	test('comment delete modal cancels without a request and soft-deletes on confirm', async ({
+		page
+	}) => {
+		let deleteCalls = 0;
+		await page.route(`**/api/discussions/comments/*`, async (route) => {
+			if (route.request().method() !== 'DELETE') {
+				await route.fallback();
+				return;
+			}
+
+			deleteCalls += 1;
+			const now = new Date().toISOString();
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					id: mockCommentId(2),
+					threadId,
+					noticeNum,
+					sequence: 2,
+					messageType: 'user',
+					authorNickname: '익명',
+					authorIpMasked: '127.0.1.***',
+					content: '삭제된 mock 의견입니다.',
+					isDeleted: true,
+					isEdited: false,
+					editedAt: null,
+					createdAt: now,
+					updatedAt: now
+				})
+			});
+		});
+
+		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+		await page.getByTestId('discussion-comment-2').getByTitle('의견 삭제').click();
+
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toContainText('의견 삭제 (#2)');
+		await expect(dialog).toContainText('본문이 삭제된 상태로 보존');
+
+		// Cancelling must not send a delete request.
+		await dialog.getByRole('button', { name: '취소' }).click();
+		await expect(dialog).toHaveCount(0);
+		expect(deleteCalls).toBe(0);
+
+		await page.getByTestId('discussion-comment-2').getByTitle('의견 삭제').click();
+		await page.locator('#action-password-input').fill('1234');
+		await dialog.getByRole('button', { name: '삭제 확인' }).click();
+
+		await expect(dialog).toHaveCount(0);
+		await expect(page.getByText('의견이 삭제되었습니다.')).toBeVisible();
+		await expect(page.getByTestId('discussion-comment-2')).toContainText('삭제된 mock 의견입니다.');
+		expect(deleteCalls).toBe(1);
+	});
+
+	test('thread status modal closes the thread through the mocked status change', async ({
+		page
+	}) => {
+		let statusPayload: Record<string, unknown> | null = null;
+		await page.route(`**/api/discussions/threads/${threadId}/status`, async (route) => {
+			statusPayload = route.request().postDataJSON();
+			const now = new Date().toISOString();
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					id: threadId,
+					noticeNum,
+					title: '모의 토론 주제',
+					status: 'closed',
+					isLocked: false,
+					authorNickname: '익명',
+					authorIpMasked: '127.0.***.***',
+					commentCount: 54,
+					createdAt: now,
+					updatedAt: now
+				})
+			});
+		});
+
+		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+		await page.getByRole('button', { name: '토론 닫기' }).click();
+
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toContainText('토론 상태 변경 (토론 닫기)');
+		await expect(dialog).toContainText('토론을 닫으면 추가 의견 작성이 제한됩니다.');
+
+		await page.locator('#action-password-input').fill('1234');
+		await dialog.getByRole('button', { name: '확인' }).click();
+
+		await expect(dialog).toHaveCount(0);
+		await expect(page.getByText('토론이 성공적으로 닫혔습니다.')).toBeVisible();
+		expect(statusPayload).toMatchObject({ password: '1234', status: 'closed' });
+	});
+
+	test('quote push consent modal opens with the mocked push config and records the dismissal', async ({
+		page
+	}) => {
+		await page.route('**/api/push/public-key', (route) =>
+			route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					success: true,
+					data: { enabled: true, publicKey: 'BFakeE2EVapidPublicKey' }
+				})
+			})
+		);
+
+		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+
+		// The settings button only renders after the async push config fetch resolves,
+		// and clicking before hydration does nothing — retry both.
+		await untilVisible(
+			page,
+			async () => {
+				await page.getByTestId('discussion-quote-push-settings').click({ timeout: 2_000 });
+			},
+			async () => {
+				await expect(page.getByTestId('discussion-push-consent-modal')).toBeVisible({
+					timeout: 1_000
+				});
+			}
+		);
+
+		const modal = page.getByTestId('discussion-push-consent-modal');
+		await expect(modal).toContainText('인용 알림을 받아보시겠어요?');
+		await expect(modal).toHaveAttribute('aria-modal', 'true');
+		// WebPushConsentForm renders inside the modal in thread (compact) mode.
+		await expect(modal).toContainText('이 스레드의 인용 알림');
+
+		await modal.getByRole('button', { name: '나중에' }).click();
+		await expect(modal).toHaveCount(0);
+
+		const dismissed = await page.evaluate(
+			(key) => localStorage.getItem(key),
+			`lawcast-quote-push-dismissed:${threadId}`
+		);
+		expect(dismissed).toBe('1');
 	});
 });
