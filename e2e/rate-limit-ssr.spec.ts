@@ -41,10 +41,11 @@ test.describe('SSR rate-limit handling', () => {
 		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible();
 		await expect(page.getByText('초 후 다시 시도할 수 있습니다')).toBeVisible();
 
-		// The sim gives /api/notices/changes a 2s cooldown (see
+		// The sim gives /api/notices/changes a 5s cooldown (see
 		// playwright.rate-limit.config.ts) — Playwright's fake clock does not
 		// drive the page's setInterval, so wait it out in real time.
-		const retryButton = page.getByRole('button', { name: /재시도/ });
+		// The overlay button's label is "다시 시도" ("다시 시도 중..." while retrying).
+		const retryButton = page.getByRole('button', { name: /다시 시도/ });
 		await expect(retryButton).toBeEnabled({ timeout: 15000 });
 
 		// invalidateAll re-runs the server load, which the browser observes as

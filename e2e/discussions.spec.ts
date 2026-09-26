@@ -144,6 +144,22 @@ test.describe('Discussion UI', () => {
 		await expect(page.getByTestId('discussion-reply-content')).toHaveValue('');
 	});
 
+	test('quote button inserts a reference into the reply box exactly once', async ({ page }) => {
+		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+		await expect(page.getByTestId('discussion-comment-1')).toBeVisible();
+
+		const reply = page.getByTestId('discussion-reply-content');
+		await page.getByTestId('discussion-comment-quote-1').click();
+
+		// ThreadDetailView prepends `>>#<sequence>\n` and focuses the reply textarea.
+		await expect(reply).toHaveValue('>>#1\n');
+		await expect(page.locator('#reply-content-input')).toBeFocused();
+
+		// Quoting the same comment again must not duplicate the reference.
+		await page.getByTestId('discussion-comment-quote-1').click();
+		await expect(reply).toHaveValue('>>#1\n');
+	});
+
 	test('new thread modal rejects an empty or whitespace-only title', async ({ page }) => {
 		let postCount = 0;
 		await page.route(`**/api/notices/${noticeNum}/discussions`, async (route) => {
@@ -427,6 +443,15 @@ test.describe('Discussion modal behavior', () => {
 		await expect(dialog).toHaveCount(0);
 		await expect(page.getByText('토론이 성공적으로 닫혔습니다.')).toBeVisible();
 		expect(statusPayload).toMatchObject({ password: '1234', status: 'closed' });
+
+		// Closing the thread must flip the status control and hide comment actions.
+		await expect(page.getByRole('button', { name: '토론 다시 열기' })).toBeVisible();
+		await expect(page.getByRole('button', { name: '토론 닫기' })).toHaveCount(0);
+		await expect(page.getByTestId('discussion-comment-1').getByTitle('의견 수정')).toHaveCount(0);
+		await expect(page.getByTestId('discussion-comment-1').getByTitle('의견 삭제')).toHaveCount(0);
+		// The reply box is removed entirely while the thread is closed.
+		await expect(page.getByTestId('discussion-reply-form')).toHaveCount(0);
+		await expect(page.getByTestId('discussion-comment-list')).toBeVisible();
 	});
 
 	test('quote push consent modal opens with the mocked push config and records the dismissal', async ({
@@ -473,5 +498,55 @@ test.describe('Discussion modal behavior', () => {
 			`lawcast-quote-push-dismissed:${threadId}`
 		);
 		expect(dismissed).toBe('1');
+	});
+});
+
+test.describe('Global discussions list page', () => {
+	test.skip(!mockEnabled, 'Discussions list tests require DIFFCHAIN_UI_MOCK=1.');
+
+	test('lists mock threads and opens the thread detail page', async ({ page }) => {
+		await page.goto('/discussions');
+
+		await expect(page.getByTestId('discussions-list')).toBeVisible();
+		const threadLink = page.getByTestId(`discussions-list-link-${threadId}`);
+		await expect(threadLink).toContainText('모의 토론 주제');
+		await expect(threadLink).toContainText('진행 중');
+
+		await threadLink.click();
+		await expect(page).toHaveURL(new RegExp(`/notices/${noticeNum}/discussions/${threadId}`));
+		await expect(page.getByTestId('discussion-thread-detail')).toBeVisible();
+	});
+
+	test('status filter tabs update the query param and the selected tab', async ({ page }) => {
+		await page.goto('/discussions');
+
+		// No status param → the server loader defaults to open threads.
+		await expect(page.getByTestId('discussions-filter-open')).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
+		await expect(page.getByTestId('discussions-filter-all')).toHaveAttribute(
+			'aria-selected',
+			'false'
+		);
+
+		await page.getByTestId('discussions-filter-closed').click();
+		await expect(page).toHaveURL(/status=closed/);
+		await expect(page.getByTestId('discussions-filter-closed')).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
+		await expect(page.getByTestId('discussions-filter-open')).toHaveAttribute(
+			'aria-selected',
+			'false'
+		);
+		await expect(page.getByTestId('discussions-list')).toBeVisible();
+
+		await page.getByTestId('discussions-filter-all').click();
+		await expect(page).toHaveURL(/status=all/);
+		await expect(page.getByTestId('discussions-filter-all')).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 	});
 });

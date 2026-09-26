@@ -152,9 +152,14 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 
 	// ── Helpers ──────────────────────────────────────────────────────────────
 
-	/** Returns a YYYY-MM-DD string for N days ago, using UTC to match the mock's toISOString(). */
+	/**
+	 * Returns a YYYY-MM-DD string for N days ago in KST (UTC+9, no DST).
+	 * The page builds filter dates from KST calendar dates (toKstInputDate) and
+	 * the mock anchors range boundaries at KST midnight, so derive the date in
+	 * KST regardless of the test runner's timezone.
+	 */
 	function daysAgoInputDate(days: number): string {
-		const d = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+		const d = new Date(Date.now() - days * 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000);
 		return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 	}
 
@@ -402,12 +407,15 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			await page.getByTestId('notices-quick-range-7-days').click();
 			await page.waitForURL(/startDate=/, { timeout: 10_000 });
 			const count = await getResultCount(page);
-			// Quick 7-day range = last 6 days: 2210003(1d), 2210001(3d), 2210011(4d),
-			// 2210005(5d), 2210007(2d) = 5 items. 2210009(7d) excluded.
-			expect(count).toBe(5);
+			// Quick 7-day range = 7 calendar days (start = today - 6): 2210003(1d),
+			// 2210007(2d), 2210001(3d), 2210011(4d), 2210005(5d), 2210012(6d) = 6 items.
+			// 2210009(7d) is outside the range.
+			expect(count).toBe(6);
 			const nums = await getVisibleNoticeNums(page);
 			expect(nums).toContain(2210001);
 			expect(nums).toContain(2210003);
+			expect(nums).toContain(2210012);
+			expect(nums).not.toContain(2210009);
 		});
 
 		test('recent 30-day quick range shows all notices', async ({ page }) => {
@@ -703,17 +711,19 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			await page.goto('/notices?search=AI');
 			const filterText = await getActiveFilterText(page);
 			expect(filterText).toContain('키워드: AI');
-			expect(filterText).toContain('해제');
+			// The dismiss affordance is an icon-only link, so assert its accessible name.
+			const dismissLink = page
+				.getByTestId('notices-active-filters')
+				.locator('a[aria-label="키워드 검색 해제"]');
+			await expect(dismissLink).toBeVisible();
 		});
 
 		test('dismissing search chip removes search param', async ({ page }) => {
 			await page.goto('/notices?search=AI');
-			// Click the search chip's dismiss link (text: '해제')
+			// Click the search chip's icon-only dismiss link (identified by aria-label)
 			const dismissLink = page
 				.getByTestId('notices-active-filters')
-				.locator('a')
-				.filter({ hasText: '해제' })
-				.first();
+				.locator('a[aria-label="키워드 검색 해제"]');
 			await dismissLink.click();
 			await page.waitForURL(
 				(url) => !url.searchParams.has('search') || url.searchParams.get('search') === '',

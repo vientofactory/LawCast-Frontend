@@ -526,15 +526,19 @@ export function getMockArchiveNoticesResponse(params: {
 	}
 
 	// Apply date range filtering based on archiveStartedAt.
+	// Boundaries are anchored at KST midnight: the page builds startDate/endDate
+	// from KST calendar dates (toKstInputDate), and `new Date('YYYY-MM-DD')` would
+	// otherwise parse as UTC midnight — making inclusion of notices flip with the
+	// runner's timezone and time of day.
 	if (params.startDate) {
-		const startMs = new Date(params.startDate).getTime();
+		const startMs = new Date(`${params.startDate}T00:00:00+09:00`).getTime();
 		filtered = filtered.filter((notice) => {
 			if (!notice.archiveStartedAt) return false;
 			return new Date(notice.archiveStartedAt).getTime() >= startMs;
 		});
 	}
 	if (params.endDate) {
-		const endMs = new Date(params.endDate + 'T23:59:59').getTime();
+		const endMs = new Date(`${params.endDate}T23:59:59+09:00`).getTime();
 		filtered = filtered.filter((notice) => {
 			if (!notice.archiveStartedAt) return false;
 			return new Date(notice.archiveStartedAt).getTime() <= endMs;
