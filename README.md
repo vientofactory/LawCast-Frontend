@@ -173,12 +173,12 @@ npm run check
 설정마다 dev 서버 기동 방식이 다릅니다.
 
 - `rate-limit`(5199), `ip-forwarding`(5223), `cloudflare-challenge`(5201)은 전용 포트에 `reuseExistingServer: false`로 별도 dev 서버를 띄웁니다. 전용 환경변수는 이 서버에만 적용되므로 반드시 해당 스크립트로 실행하세요. (전용 포트가 이미 점유돼 있으면 실행이 실패합니다.)
-- `dark-mode`는 기본 포트 5173을 그대로 사용하며, 기본/통합 설정은 기존에 떠 있는 dev 서버를 재사용합니다.
+- `dark-mode`는 기본 포트 5173을 그대로 사용하며 기본 설정은 기존에 떠 있는 dev 서버를 재사용합니다. `integration`도 전용 환경변수(`DIFFCHAIN_UI_MOCK=0`, `E2E_DISTINCT_CLIENT_IPS=1`)가 필요하므로 재사용하지 않습니다. 이미 5173에 서버가 떠 있으면 몇 초 내에 `http://localhost:5173 is already used...` 오류로 즉시 실패합니다.
 
 | npm 스크립트                            | 설정 파일                                   | 포트              | 범위                             | 전용 환경                                                                                          |
 | --------------------------------------- | ------------------------------------------- | ----------------- | -------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `npm run test:e2e`                      | `playwright.config.ts`                      | 5173              | 전체 스펙 (기본)                 | dev 서버 mock 기본값 `DIFFCHAIN_UI_MOCK=1`                                                         |
-| `npm run test:e2e:integration`          | `playwright.config.integration.ts`          | 5173              | 전체 스펙, 실제 백엔드           | `DIFFCHAIN_UI_MOCK=0` 고정                                                                         |
+| `npm run test:e2e:integration`          | `playwright.config.integration.ts`          | 5173              | 전체 스펙, 실제 백엔드           | `DIFFCHAIN_UI_MOCK=0`, `E2E_DISTINCT_CLIENT_IPS=1` 고정                                            |
 | `npm run test:e2e:rate-limit`           | `playwright.rate-limit.config.ts`           | 5199              | `rate-limit-ssr.spec.ts`         | `E2E_RATE_LIMIT_SIM=1`, `E2E_FORCE_429_PATHS`                                                      |
 | `npm run test:e2e:ip-forwarding`        | `playwright.ip-forwarding.config.ts`        | 5223 (+에코 3999) | `ip-forwarding.spec.ts`          | `E2E_IP_ECHO=1`, `API_BASE_URL=http://127.0.0.1:3999/api`                                          |
 | `npm run test:e2e:dark-mode`            | `playwright.dark-mode.config.ts`            | 5173              | `dark-mode-color-scheme.spec.ts` | Chromium `--force-prefers-color-scheme=light` + `AutoDarkModeForWebContents`                       |
@@ -229,6 +229,7 @@ npm run test:e2e:report
 
 - **`DIFFCHAIN_UI_MOCK=1`은 테스트 프로세스 앞에 붙여야 합니다.** 설정 파일은 dev 서버에 mock 값을 넘기지만, 스펙의 `test.skip` 조건은 테스트 프로세스의 `process.env`를 읽습니다. 플래그가 없으면 해당 스펙이 전부 skip으로 표시됩니다.
 - `rate-limit-ssr.spec.ts`, `ip-forwarding.spec.ts`, `cloudflare-challenge.spec.ts`는 전용 설정이 아닌 기본 설정으로 실행하면 전용 환경변수(`E2E_RATE_LIMIT_SIM`, `E2E_IP_ECHO`, `E2E_CF_CHALLENGE`)가 없어 skip됩니다. 이들 스펙은 반드시 전용 스크립트로 실행하세요.
+- **통합 설정은 이미 떠 있는 dev 서버를 재사용하지 않습니다** (`reuseExistingServer: false`). 재사용한 서버는 이 설정의 환경변수(`DIFFCHAIN_UI_MOCK=0`, `E2E_DISTINCT_CLIENT_IPS=1`) 없이 기동한 것이므로, 실제 백엔드의 `읽기 30건/60초` 제한이 실행 중간에 걸려 `RateLimitOverlay`가 클릭을 막고 nondeterministic하게 실패합니다(2~10개씩 매번 다르게). 429 로그는 dev 서버 로그에만 남아 테스트 결과에는 보이지 않습니다. 그래서 5173에 서버가 떠 있으면 몇 초 내에 `http://localhost:5173 is already used ...` 오류로 즉시 실패하고, 재사용이 필요하면 `PLAYWRIGHT_BASE_URL=http://localhost:5173` 처럼 대상을 명시해서 실행하세요(그 서버의 환경변수는 사용자가 책임집니다). see `src/lib/server/e2e-client-ip.ts`.
 - `notice-detail.spec.ts`는 서버에 공지 데이터가 없을 때 `No notices available`로 skip됩니다.
 - CI 환경에서는 `PLAYWRIGHT_BASE_URL` 환경 변수로 외부 서버 주소를 지정할 수 있습니다.
 

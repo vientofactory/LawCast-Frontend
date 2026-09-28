@@ -4,6 +4,7 @@ import { minify } from 'html-minifier-terser';
 import { env } from '$env/dynamic/private';
 import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
 import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
+import { resolveE2eReadClientIp } from '$lib/server/e2e-client-ip';
 
 const API_PATH_PREFIX = '/api/';
 const API_BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
@@ -57,8 +58,11 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	}
 
 	// Forward the original visitor's IP so the backend rate-limits per user
-	// instead of per edge/proxy address (see lib/server/client-ip.ts).
-	const headers = buildBackendForwardHeaders(request, resolveClientIp(event.request));
+	// instead of per edge/proxy address (see lib/server/client-ip.ts). The
+	// integration suite swaps in a distinct IP per read (see
+	// lib/server/e2e-client-ip.ts) so one machine is not one rate-limit bucket.
+	const clientIp = resolveE2eReadClientIp(request) ?? resolveClientIp(event.request);
+	const headers = buildBackendForwardHeaders(request, clientIp);
 
 	const targetUrl = `${API_BASE_URL.replace(/\/$/, '')}${requestUrl.pathname.slice('/api'.length)}${requestUrl.search}`;
 
