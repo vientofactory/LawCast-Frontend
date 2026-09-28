@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { routes, viewports } from './helpers/responsive-contracts';
+import { noticeDetailRoute, routes, viewports } from './helpers/responsive-contracts';
+import { discoverFirstNotice } from './helpers/notice-list';
 import {
 	expectRouteWithinBounds,
 	maxTextNodeLines,
@@ -12,7 +13,13 @@ test.describe('Responsive layouts', () => {
 		test(`${viewport.name} (${viewport.width}x${viewport.height})`, async ({ page }) => {
 			await prepareResponsivePage(page, viewport);
 
-			for (const route of routes) {
+			const notice = await discoverFirstNotice(page);
+			if (!notice) {
+				test.skip(true, 'No notices available to exercise the detail route.');
+				return;
+			}
+
+			for (const route of [...routes, noticeDetailRoute(notice.num)]) {
 				await page.goto(route.path);
 				for (const selector of route.visible) {
 					await expect(page.locator(selector), `${route.path}: ${selector}`).toBeVisible();

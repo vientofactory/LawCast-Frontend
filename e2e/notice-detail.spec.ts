@@ -1,24 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { discoverFirstNotice } from './helpers/notice-list';
 
 test.describe('Notice Detail Page', () => {
 	test('renders with valid notice number', async ({ page }) => {
-		// Navigate from notices list to find a valid notice number
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available to test detail page');
 			return;
 		}
 
-		// Click first notice detail link
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		const noticeNum = await firstDetailLink.getAttribute('data-testid');
-		const num = noticeNum?.replace('notice-detail-link-', '');
-
-		await firstDetailLink.click();
-		await expect(page).toHaveURL(new RegExp(`/notices/${num}`));
+		await notice.link.click();
+		await expect(page).toHaveURL(new RegExp(`/notices/${notice.num}`));
 
 		// Main content should be visible
 		const main = page.getByTestId('notice-detail-main');
@@ -26,17 +18,13 @@ test.describe('Notice Detail Page', () => {
 	});
 
 	test('shows back link to notices list', async ({ page }) => {
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available');
 			return;
 		}
 
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		await firstDetailLink.click();
+		await notice.link.click();
 
 		const backLink = page.getByTestId('notice-detail-back-link');
 		await expect(backLink).toBeVisible();
@@ -44,85 +32,65 @@ test.describe('Notice Detail Page', () => {
 	});
 
 	test('displays summary section when loaded', async ({ page }) => {
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available');
 			return;
 		}
 
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		await firstDetailLink.click();
+		await notice.link.click();
 
 		const summary = page.getByTestId('notice-detail-summary');
 		await expect(summary).toBeVisible();
 	});
 
 	test('displays proposal reason section', async ({ page }) => {
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available');
 			return;
 		}
 
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		await firstDetailLink.click();
+		await notice.link.click();
 
 		const content = page.getByTestId('notice-detail-content');
 		await expect(content).toBeVisible();
 	});
 
 	test('share button is functional', async ({ page }) => {
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available');
 			return;
 		}
 
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		await firstDetailLink.click();
+		await notice.link.click();
 
 		const shareBtn = page.getByTestId('notice-detail-share');
 		await expect(shareBtn).toBeVisible();
 	});
 
 	test('open source link is available', async ({ page }) => {
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available');
 			return;
 		}
 
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		await firstDetailLink.click();
+		await notice.link.click();
 
 		const openSourceBtn = page.getByTestId('notice-detail-open-source');
 		await expect(openSourceBtn).toBeVisible();
 	});
 
 	test('archive meta section exists', async ({ page }) => {
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available');
 			return;
 		}
 
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		await firstDetailLink.click();
+		await notice.link.click();
 
 		const archiveMeta = page.getByTestId('notice-detail-archive-meta');
 		await expect(archiveMeta).toBeVisible();
@@ -140,33 +108,25 @@ test.describe('Notice Detail Page', () => {
 	});
 
 	test('notice detail page has correct page title format', async ({ page }) => {
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available');
 			return;
 		}
 
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		await firstDetailLink.click();
+		await notice.link.click();
 
 		await expect(page).toHaveTitle(/LawCast/);
 	});
 
 	test('JSON-LD structured data is present on detail page', async ({ page }) => {
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available');
 			return;
 		}
 
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		await firstDetailLink.click();
+		await notice.link.click();
 
 		const jsonLd = page.locator('script[type="application/ld+json"]');
 		await expect(jsonLd).toBeAttached();
@@ -175,19 +135,13 @@ test.describe('Notice Detail Page', () => {
 	test('renders facts, proposal reason, timeline and archive download sections', async ({
 		page
 	}) => {
-		await page.goto('/notices');
-		const resultsList = page.getByTestId('notices-results-list');
-		const hasResults = await resultsList.isVisible().catch(() => false);
-
-		if (!hasResults) {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
 			test.skip(true, 'No notices available');
 			return;
 		}
 
-		const firstDetailLink = resultsList.locator('a[data-testid^="notice-detail-link-"]').first();
-		const testId = await firstDetailLink.getAttribute('data-testid');
-		const num = testId?.replace('notice-detail-link-', '');
-		await firstDetailLink.click();
+		await notice.link.click();
 		await expect(page.getByTestId('notice-detail-main')).toBeVisible();
 
 		// Proposal reason text comes from the mocked detail payload.
@@ -202,7 +156,7 @@ test.describe('Notice Detail Page', () => {
 		await expect(page.getByTestId('notice-detail-download-archive')).toHaveCount(0);
 
 		// The ?archive=true deep link opens the panel (and its ZIP export control).
-		await page.goto(`/notices/${num}?archive=true`);
+		await page.goto(`/notices/${notice.num}?archive=true`);
 		await expect(page.getByTestId('notice-detail-archive-meta')).toHaveAttribute('open', '');
 		await expect(page.getByTestId('notice-detail-download-archive')).toBeVisible();
 	});

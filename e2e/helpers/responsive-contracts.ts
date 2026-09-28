@@ -12,6 +12,35 @@ export type ResponsiveRoute = {
 	text: { selector: string; maxLines: number }[];
 };
 
+// Mock-only selectors are gated the same way discussions.spec.ts gates its own
+// (the dev server has to serve mock data for them to exist).
+const mockEnabled =
+	(process.env.DIFFCHAIN_UI_MOCK ?? '').trim().toLowerCase() === '1' ||
+	(process.env.DIFFCHAIN_UI_MOCK ?? '').trim().toLowerCase() === 'true';
+
+/** Detail route for the notice the spec discovered live — no id can be pinned. */
+export function noticeDetailRoute(noticeNum: string): ResponsiveRoute {
+	return {
+		path: `/notices/${noticeNum}`,
+		visible: [
+			'[data-testid="notice-detail-main"]',
+			'[data-testid="notice-detail-summary"]',
+			'#notice-detail-title',
+			'[data-testid="notice-detail-discussions-anchor"]',
+			'[data-testid="notice-detail-share"]',
+			'[data-testid="notice-detail-open-source"]',
+			'[data-testid="notice-detail-content"]',
+			'[data-testid="notice-detail-proposal-reason"]'
+		],
+		text: [
+			{ selector: '[data-testid="notice-detail-discussions-anchor"]', maxLines: 1 },
+			{ selector: '[data-testid="notice-detail-share"]', maxLines: 1 },
+			{ selector: '[data-testid="notice-detail-open-source"]', maxLines: 1 }
+		]
+	};
+}
+
+// The detail route is appended by the spec: [...routes, noticeDetailRoute(num)].
 export const routes: ResponsiveRoute[] = [
 	{
 		path: '/',
@@ -49,24 +78,6 @@ export const routes: ResponsiveRoute[] = [
 		]
 	},
 	{
-		path: '/notices/2210001',
-		visible: [
-			'[data-testid="notice-detail-main"]',
-			'[data-testid="notice-detail-summary"]',
-			'#notice-detail-title',
-			'[data-testid="notice-detail-discussions-anchor"]',
-			'[data-testid="notice-detail-share"]',
-			'[data-testid="notice-detail-open-source"]',
-			'[data-testid="notice-detail-content"]',
-			'[data-testid="notice-detail-proposal-reason"]'
-		],
-		text: [
-			{ selector: '[data-testid="notice-detail-discussions-anchor"]', maxLines: 1 },
-			{ selector: '[data-testid="notice-detail-share"]', maxLines: 1 },
-			{ selector: '[data-testid="notice-detail-open-source"]', maxLines: 1 }
-		]
-	},
-	{
 		path: '/notices/changes',
 		visible: ['main h1', '[data-testid="changes-results-region"]'],
 		text: [{ selector: 'main h1', maxLines: 2 }]
@@ -78,8 +89,11 @@ export const routes: ResponsiveRoute[] = [
 			'[data-testid="discussions-filter-all"]',
 			'[data-testid="discussions-filter-open"]',
 			'[data-testid="discussions-filter-closed"]',
-			'[data-testid="discussions-list"]',
-			'[data-testid="discussions-list-link-221000101"]'
+			// The list only appears when threads exist: mock mode always has one,
+			// the real backend may legitimately have none (empty state).
+			...(mockEnabled
+				? ['[data-testid="discussions-list"]', '[data-testid="discussions-list-link-221000101"]']
+				: [])
 		],
 		text: [
 			{ selector: '[data-testid="discussions-filter-all"]', maxLines: 1 },

@@ -31,8 +31,16 @@ async function expectFullText(locator: Locator, text: string): Promise<void> {
 
 const smallViewports = viewports.filter(({ width }) => width <= 768);
 
+// The long fixtures below only exist in the mock archive (see
+// src/lib/server/diffchain-ui-mock.ts); the real backend has no notice 2210001
+// and no notice whose text matches them. Same gate as discussions.spec.ts.
+const mockEnabled =
+	(process.env.DIFFCHAIN_UI_MOCK ?? '').trim().toLowerCase() === '1' ||
+	(process.env.DIFFCHAIN_UI_MOCK ?? '').trim().toLowerCase() === 'true';
+
 for (const viewport of smallViewports) {
 	test(`long notice content stays readable at ${viewport.width}px`, async ({ page }) => {
+		test.skip(!mockEnabled, 'Long-content fixtures require DIFFCHAIN_UI_MOCK=1.');
 		await prepareResponsivePage(page, viewport);
 		const listPath = `/notices?search=${encodeURIComponent('책임성 강화')}&limit=10`;
 		await page.goto(listPath);
