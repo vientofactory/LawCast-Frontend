@@ -1,6 +1,6 @@
 # LawCast 프론트엔드
 
-LawCast 서비스의 웹 프론트엔드 애플리케이션입니다. SvelteKit 기반으로 작성되었고, 사용자가 디스코드 웹훅을 등록하고 입법예고 정보를 확인할 수 있는 인터페이스를 제공합니다.
+LawCast 서비스의 웹 프론트엔드 애플리케이션입니다. SvelteKit 기반으로 만들었습니다. 디스코드 웹훅을 등록하고 입법예고 정보를 확인하는 화면입니다.
 
 ## 기능
 
@@ -96,7 +96,7 @@ src/
 
 ### 전체 입법예고 필터 UX
 
-`/notices` 페이지에서 아래 기능을 제공합니다.
+`/notices` 페이지에는 아래 기능이 들어 있습니다.
 
 - 키워드 검색
 - 날짜 범위 직접 입력 (`startDate`, `endDate`)
@@ -104,7 +104,7 @@ src/
 - 의안번호 정렬 (`desc`, `asc`)
 - 현재 적용된 필터 요약 배지 표시
 
-필터 적용 상태에서 페이지를 이동해도 쿼리 파라미터를 유지해 탐색 흐름이 끊기지 않게 구성했습니다.
+필터를 적용한 채로 페이지를 이동해도 쿼리 파라미터가 유지돼 탐색 흐름이 끊기지 않습니다.
 
 ## 환경 설정
 
@@ -135,7 +135,7 @@ npm run check
 
 ## E2E 테스트 (Playwright)
 
-프론트엔드에는 Playwright 기반 브라우저 E2E 테스트가 포함되어 있습니다. SvelteKit 개발 서버를 자동으로 시작하고 Chromium 브라우저에서 주요 페이지와 사용자 흐름을 검증합니다.
+프론트엔드에는 Playwright 기반 브라우저 E2E 테스트가 들어 있습니다. 실행하면 SvelteKit 개발 서버를 자동으로 띄우고 Chromium 브라우저에서 주요 페이지와 사용자 흐름을 검증합니다.
 
 스펙은 `e2e/*.spec.ts`에 16개가 있고, **스펙마다 필요한 실행 환경(모의 데이터 게이트, 전용 포트, 전용 환경변수)이 다릅니다.** 스펙별 실행 방법은 아래 표를 참고하세요.
 
@@ -147,7 +147,7 @@ npm run check
 
 ### 스펙별 실행 방법
 
-"기본"은 아래 `playwright.config.ts`(5173 포트)를 의미합니다. mock 게이트가 있는 스펙은 명령 앞에 `DIFFCHAIN_UI_MOCK=1`을 붙여야 하며, 없으면 `test.skip`으로 전부 건너뜁니다.
+"기본"은 아래 `playwright.config.ts`(5173 포트)로 돌리는 설정을 뜻합니다. mock 게이트가 있는 스펙은 명령 앞에 `DIFFCHAIN_UI_MOCK=1`을 붙여야 하며, 없으면 `test.skip`으로 전부 건너뜁니다.
 
 | 스펙                             | 검증 내용                                                                       | 실행 방법                                                           |
 | -------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
@@ -238,7 +238,7 @@ PLAYWRIGHT_BASE_URL=https://your-staging.example.com npm run test:e2e
 
 ## 배포
 
-이 프로젝트는 `@sveltejs/adapter-cloudflare`와 `wrangler.jsonc`가 설정되어 있어 Cloudflare Pages에 배포할 수 있습니다. 빌드 결과는 `.svelte-kit/cloudflare` 디렉토리에 생성됩니다.
+이 프로젝트는 `@sveltejs/adapter-cloudflare`와 `wrangler.jsonc` 구성이라 Cloudflare Pages에 배포할 수 있습니다. 빌드 결과는 `.svelte-kit/cloudflare` 디렉토리에 생깁니다.
 
 ### Cloudflare 대시보드에서 배포
 
@@ -261,7 +261,7 @@ PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=false
 
 ### Wrangler CLI로 배포
 
-Cloudflare에 로그인한 뒤 프론트엔드 디렉토리에서 빌드/배포를 진행합니다.
+Cloudflare에 로그인한 뒤 프론트엔드 디렉토리에서 빌드하고 배포합니다.
 
 ```bash
 npm run build
