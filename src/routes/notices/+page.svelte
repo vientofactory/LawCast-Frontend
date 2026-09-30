@@ -10,6 +10,8 @@
 	import { extractProposerFromSubject } from '$lib/utils/proposer';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { page } from '$app/state';
+	import { env } from '$env/dynamic/public';
+	import { isSemanticSearchEnabled } from '$lib/utils/semantic-search';
 	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
 	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -26,6 +28,7 @@
 		faSpinner,
 		faTriangleExclamation,
 		faUser,
+		faWandMagicSparkles,
 		faXmark
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { ArchiveNoticeListResponse } from '$lib/types/api';
@@ -46,6 +49,8 @@
 			};
 		};
 	} = $props();
+
+	const SEMANTIC_SEARCH_ENABLED = isSemanticSearchEnabled(env.PUBLIC_SEMANTIC_SEARCH_ENABLED);
 
 	let currentUrl = page.url;
 	let isServerLoading = $state(false);
@@ -783,6 +788,16 @@
 								>
 									필터 초기화
 								</a>
+								{#if SEMANTIC_SEARCH_ENABLED}
+									<a
+										href="/notices/semantic-search"
+										data-testid="semantic-search-entry"
+										class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
+									>
+										<FontAwesomeIcon icon={faWandMagicSparkles} class="mr-2 h-4 w-4" />
+										의미 검색
+									</a>
+								{/if}
 							</div>
 							{#if isServerLoading}
 								<div

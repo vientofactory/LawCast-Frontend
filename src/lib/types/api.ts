@@ -192,6 +192,29 @@ export interface SearchNoticesResult {
 	source: 'archive' | 'crawler' | 'mixed';
 }
 
+/**
+ * 의미(시맨틱) 검색 응답.
+ * `keyword_fallback`은 백엔드가 의미 검색 엔진을 사용할 수 없을 때
+ * 기존 키워드 검색으로 대체 응답한 상태이며 `fallbackReason`에 사유가 담긴다.
+ */
+export type SemanticSearchMode = 'semantic' | 'keyword_fallback';
+
+export interface SemanticSearchResultItem {
+	noticeNum: number;
+	subject: string;
+	committee: string;
+	section: string | null;
+	score: number | null;
+	excerpt: string | null;
+}
+
+export interface SemanticSearchResponse {
+	query: string;
+	mode: SemanticSearchMode;
+	fallbackReason: string | null;
+	results: SemanticSearchResultItem[];
+}
+
 export interface QuickKeywordSuggestion {
 	keyword: string;
 	score: number;
