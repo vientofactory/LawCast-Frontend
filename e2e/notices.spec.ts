@@ -266,11 +266,22 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 
 		test('fullText toggle via UI navigates with fullText param', async ({ page }) => {
 			await page.goto('/notices?search=제도적 기반');
+			const toggle = page.getByTestId('notices-full-text-toggle');
+			await expect(toggle).toHaveAttribute('aria-checked', 'false');
 			// Click the fullText toggle link
-			await page.getByTestId('notices-full-text-toggle').click();
+			await toggle.click();
 			await page.waitForURL(/fullText=true/, { timeout: 10_000 });
+			// The switch must visibly flip after client-side navigation.
+			await expect(toggle).toHaveAttribute('aria-checked', 'true');
+			const filterText = await getActiveFilterText(page);
+			expect(filterText).toContain('원문 포함 검색');
 			const count = await getResultCount(page);
 			expect(count).toBe(1);
+
+			// Clicking again turns fullText off and flips the switch back.
+			await toggle.click();
+			await page.waitForURL((url) => !url.searchParams.has('fullText'), { timeout: 10_000 });
+			await expect(toggle).toHaveAttribute('aria-checked', 'false');
 		});
 	});
 
