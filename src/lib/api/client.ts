@@ -17,6 +17,7 @@ import type {
 	ArchiveNoticeListResponse,
 	QuickKeywordSuggestionsResponse,
 	SearchNoticesResult,
+	SemanticSearchResponse,
 	SystemStats,
 	SystemHealth,
 	ApiResponse,
@@ -382,6 +383,29 @@ export async function searchNotices(
 		);
 	} catch (error) {
 		console.error('Failed to search notices:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 의미(시맨틱) 검색 (백엔드 /api/notices/semantic-search)
+ * 사이드카 장애 시 백엔드가 mode=keyword_fallback으로 응답한다.
+ */
+export async function semanticSearch(
+	params: { query: string; k?: number },
+	customFetch?: Fetch
+): Promise<SemanticSearchResponse> {
+	try {
+		const query = new URLSearchParams();
+		query.set('query', params.query.trim());
+		if (params.k && params.k > 0) query.set('k', String(params.k));
+		return await request<SemanticSearchResponse>(
+			`/notices/semantic-search?${query.toString()}`,
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to run semantic search:', error);
 		throw normalizeError(error);
 	}
 }
@@ -948,6 +972,7 @@ export const apiClient = {
 	getQuickKeywordSuggestions,
 	getArchivedNotices,
 	searchNotices,
+	semanticSearch,
 	getNoticeDetail,
 	getNoticeChanges,
 	getRecentNoticeChanges,
