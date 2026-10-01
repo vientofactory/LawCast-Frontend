@@ -52,7 +52,9 @@
 
 	const SEMANTIC_SEARCH_ENABLED = isSemanticSearchEnabled(env.PUBLIC_SEMANTIC_SEARCH_ENABLED);
 
-	let currentUrl = page.url;
+	// Reactive URL snapshot: $derived filters (fullText, isDoneFilter, ...) must
+	// recompute when afterNavigate reassigns it after client-side navigation.
+	let currentUrl = $state(page.url);
 	let isServerLoading = $state(false);
 	let countdown = $state(0);
 	let isRetrying = $state(false);
