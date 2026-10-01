@@ -68,7 +68,7 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('semantic-search-entry')).toBeVisible();
 	});
 
-	test('renders semantic results with score and section', async ({ page }) => {
+	test('renders semantic results with percentage score and section', async ({ page }) => {
 		await page.route(SEMANTIC_API, (route) =>
 			route.fulfill({ json: semanticEnvelope([sampleResult]) })
 		);
@@ -76,9 +76,137 @@ test.describe('Semantic Search UI', () => {
 
 		const result = page.getByTestId('semantic-result-2220607');
 		await expect(result).toBeVisible();
-		await expect(result).toContainText('유사도 0.586');
+		// Cosine similarity 0.586 renders as a whole-number percentage, not a decimal.
+		await expect(result).toContainText('유사도 59%');
+		await expect(result).toContainText('의안번호 2220607');
 		await expect(result).toContainText('주요내용');
+		await expect(page.getByTestId('semantic-result-link-2220607')).toContainText(
+			'법률안 상세 보기'
+		);
 		await expect(page.getByTestId('semantic-search-fallback-banner')).toHaveCount(0);
+	});
+
+	test('controls the query through the URL search parameter', async ({ page }) => {
+		await page.route(SEMANTIC_API, (route) =>
+			route.fulfill({ json: semanticEnvelope([sampleResult]) })
+		);
+
+		// Deep link: the input is prefilled and the search runs automatically.
+		await page.goto(
+			`/notices/semantic-search?search=${encodeURIComponent('임대차 계약에서 세입자 보호')}`
+		);
+		await expect(page.getByTestId('semantic-search-input')).toHaveValue(
+			'임대차 계약에서 세입자 보호'
+		);
+		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible();
+
+		// Submitting a new query rewrites ?search= in place (replaceState).
+		await page.getByTestId('semantic-search-input').fill('상가건물 임대차');
+		await page.getByTestId('semantic-search-submit').click();
+		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe('상가건물 임대차');
+	});
+
+	test('runs a search from the example chips and mirrors it into the URL', async ({ page }) => {
+		await page.route(SEMANTIC_API, (route) =>
+			route.fulfill({ json: semanticEnvelope([sampleResult]) })
+		);
+		await page.goto('/notices/semantic-search');
+
+		// Retry: a click landing before hydration does nothing (type="button").
+		await expect(async () => {
+			await page.getByTestId('semantic-search-example').first().click();
+			await expect
+				.poll(() => new URL(page.url()).searchParams.get('search'), { timeout: 1500 })
+				.toBe('해외직구할 때 관세 얼마나 내야 해?');
+		}).toPass();
+
+		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible();
+	});
+
+	test('carries the current keyword search into the semantic entry link', async ({ page }) => {
+		await page.goto(`/notices?search=${encodeURIComponent('임대차')}`);
+		const entry = page.getByTestId('semantic-search-entry');
+		await expect(entry).toBeVisible();
+		await expect(entry).toHaveAttribute(
+			'href',
+			`/notices/semantic-search?search=${encodeURIComponent('임대차')}`
+		);
+	});
+
+	test('keeps URL, input, and results in agreement across back/forward', async ({ page }) => {
+		await page.route(SEMANTIC_API, (route) =>
+			route.fulfill({ json: semanticEnvelope([sampleResult]) })
+		);
+		const query = '임대차 계약에서 세입자 보호';
+		await page.goto('/notices'); // history entry before the search page
+		await search(page, query);
+		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible();
+		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(query);
+
+		// Native back (what a user's Back button triggers) must move off the
+		// current entry. Hydration timing decides how the search page was
+		// entered (SPA pushState vs. plain GET form submit), so the landing
+		// page differs — every landing must still be self-consistent.
+		const beforeBack = page.url();
+		await page.evaluate(() => history.back());
+		await expect.poll(() => page.url(), { timeout: 10000 }).not.toBe(beforeBack);
+
+		if (new URL(page.url()).pathname.replace(/\/+$/, '').endsWith('/notices/semantic-search')) {
+			// Landed on a search-page entry without ?search=: it must show the
+			// initial state, never stale results for a query it no longer has.
+			await expect(page.getByTestId('semantic-search-initial-state')).toBeVisible();
+			await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
+			await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBeNull();
+		} else {
+			await expect
+				.poll(() => new URL(page.url()).pathname.replace(/\/+$/, ''), { timeout: 10000 })
+				.toBe('/notices');
+		}
+
+		// Forward must land on the searched entry with URL, input, and results agreeing.
+		await page.evaluate(() => history.forward());
+		await expect
+			.poll(() => new URL(page.url()).searchParams.get('search'), { timeout: 10000 })
+			.toBe(query);
+		await expect(page.getByTestId('semantic-search-input')).toHaveValue(query);
+		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible({ timeout: 10000 });
+	});
+
+	test('directly loading an edited ?search= URL keeps input, results, and URL in agreement', async ({
+		page
+	}) => {
+		await page.route(SEMANTIC_API, (route) =>
+			route.fulfill({ json: semanticEnvelope([sampleResult]) })
+		);
+		await page.goto(
+			`/notices/semantic-search?search=${encodeURIComponent('임대차 계약에서 세입자 보호')}`
+		);
+		await expect(page.getByTestId('semantic-search-input')).toHaveValue(
+			'임대차 계약에서 세입자 보호'
+		);
+		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible();
+
+		// Address-bar edit to a different query: a fresh load must auto-run the
+		// new query (not show stale results for the old one).
+		const edited = '상가건물 임대차';
+		const autoRan = page.waitForRequest(
+			(req) =>
+				req.url().includes('/api/notices/semantic-search') &&
+				new URL(req.url()).searchParams.get('query') === edited,
+			{ timeout: 10000 }
+		);
+		await page.goto(`/notices/semantic-search?search=${encodeURIComponent(edited)}`);
+		await autoRan;
+		await expect(page.getByTestId('semantic-search-input')).toHaveValue(edited);
+		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible({ timeout: 10000 });
+		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(edited);
+
+		// Address-bar edit removing the parameter resets to the initial state.
+		await page.goto('/notices/semantic-search');
+		await expect(page.getByTestId('semantic-search-input')).toHaveValue('');
+		await expect(page.getByTestId('semantic-search-initial-state')).toBeVisible();
+		await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
+		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBeNull();
 	});
 
 	test('shows the empty state when nothing matches', async ({ page }) => {
