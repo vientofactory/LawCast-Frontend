@@ -87,7 +87,10 @@
 		}
 	});
 
-	let currentUrl = page.url;
+	// Must be $state: every URL-derived value below (compare selection, timeline
+	// query flags, revision links, back link) recomputes only when this updates
+	// after client-side navigation. A plain let stays stale forever in runes mode.
+	let currentUrl = $state(page.url);
 	afterNavigate(() => {
 		currentUrl = page.url;
 	});

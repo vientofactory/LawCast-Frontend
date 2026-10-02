@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
@@ -14,6 +14,8 @@
 		faWandMagicSparkles
 	} from '@fortawesome/free-solid-svg-icons';
 	import { getRateLimitRetryAfter, isRateLimitError, semanticSearch } from '$lib/api/client';
+	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
+	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import type { SemanticSearchResponse } from '$lib/types/api';
 	import {
 		SEMANTIC_MAX_QUERY_LENGTH,
@@ -38,6 +40,19 @@
 	let error = $state<string | null>(null);
 	let rateLimitRetryAfter = $state(0);
 	let isRateLimited = $state(false);
+	let isRetrying = $state(false);
+	// Shared countdown ticks rateLimitRetryAfter every second and gates the
+	// overlay's retry button, mirroring the other rate-limited pages.
+	const retry = new RetryCountdown(
+		() => runSearch(),
+		(v) => {
+			rateLimitRetryAfter = v;
+		},
+		(v) => {
+			isRetrying = v;
+		}
+	);
+	onDestroy(() => retry.destroy());
 
 	let isFallbackMode = $derived(response?.mode === 'keyword_fallback');
 	// The URL is the source of truth for the query: sharing or reloading the
@@ -99,7 +114,7 @@
 		} catch (caught) {
 			if (sequence !== searchSequence) return;
 			if (isRateLimitError(caught)) {
-				rateLimitRetryAfter = getRateLimitRetryAfter(caught);
+				retry.start(getRateLimitRetryAfter(caught));
 				isRateLimited = true;
 			} else {
 				response = null;
@@ -275,6 +290,13 @@
 			data-testid="semantic-search-results-region"
 		>
 			<h2 id="semantic-search-results-heading" class="sr-only">의미 검색 결과</h2>
+			{#if response}
+				<p class="lc-text-dim mb-3 text-xs" data-testid="semantic-search-last-update">
+					마지막 업데이트: {response.lastUpdateAt
+						? formatDateTimeKST(response.lastUpdateAt)
+						: '기록 없음'}
+				</p>
+			{/if}
 			{#if isLoading && !hasSearched}
 				<div
 					class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
@@ -409,10 +431,10 @@
 	<RateLimitOverlay
 		visible={isRateLimited}
 		retryAfter={rateLimitRetryAfter}
-		isRetrying={isLoading}
+		isRetrying={isLoading || isRetrying}
 		onRetry={() => {
 			isRateLimited = false;
-			runSearch();
+			void retry.retry();
 		}}
 	/>
 </div>

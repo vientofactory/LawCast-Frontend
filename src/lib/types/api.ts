@@ -212,6 +212,7 @@ export interface SemanticSearchResponse {
 	query: string;
 	mode: SemanticSearchMode;
 	fallbackReason: string | null;
+	lastUpdateAt: string | null;
 	results: SemanticSearchResultItem[];
 }
 

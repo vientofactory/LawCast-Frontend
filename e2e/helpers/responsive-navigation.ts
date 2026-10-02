@@ -6,9 +6,17 @@ export async function expectResponsiveNavigation(page: Page, width: number): Pro
 	if (width < 768) {
 		await expect(mobileMenuButton).toBeVisible();
 		await expect(page.getByTestId('primary-navigation')).toBeHidden();
-		await mobileMenuButton.click();
 		const mobileNavigation = page.getByTestId('mobile-navigation');
-		await expect(mobileNavigation).toBeVisible();
+		// A click before hydration silently does nothing (the panel state lives in
+		// client JS), and the preceding page.goto may still be hydrating on a cold
+		// dev server — retry the toggle until the panel actually opens.
+		await expect(async () => {
+			if (await mobileNavigation.isVisible().catch(() => false)) {
+				return;
+			}
+			await mobileMenuButton.click({ timeout: 2000 });
+			await expect(mobileNavigation).toBeVisible({ timeout: 1500 });
+		}).toPass({ timeout: 20000 });
 		await expect(mobileNavigation).toBeInViewport();
 		for (const label of await mobileNavigation.locator('a > span:last-child').all()) {
 			expect(await maxTextNodeLines(label), 'mobile navigation label wraps').toBeLessThanOrEqual(1);
