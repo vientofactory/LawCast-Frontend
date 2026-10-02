@@ -23,14 +23,17 @@ const sampleResult = {
 	excerpt: '점유를 회복할 필요가 있는 경우에 임대인이 계약을 해지할 수 있도록 함.'
 };
 
+const STAMP = '2026-10-02T12:00:00+00:00';
+
 function semanticEnvelope(
 	results: unknown[],
 	mode = 'semantic',
-	fallbackReason: string | null = null
+	fallbackReason: string | null = null,
+	lastUpdateAt: string | null = STAMP
 ) {
 	return {
 		success: true,
-		data: { query: '임대차 계약에서 세입자 보호', mode, fallbackReason, results }
+		data: { query: '임대차 계약에서 세입자 보호', mode, fallbackReason, lastUpdateAt, results }
 	};
 }
 
@@ -84,6 +87,20 @@ test.describe('Semantic Search UI', () => {
 			'법률안 상세 보기'
 		);
 		await expect(page.getByTestId('semantic-search-fallback-banner')).toHaveCount(0);
+		// The index time rides the search response: shown when present...
+		const lastUpdate = page.getByTestId('semantic-search-last-update');
+		await expect(lastUpdate).toContainText('마지막 업데이트');
+		await expect(lastUpdate).not.toContainText('기록 없음');
+	});
+
+	test('shows 기록 없음 when the index has no recorded update time', async ({ page }) => {
+		await page.route(SEMANTIC_API, (route) =>
+			route.fulfill({ json: semanticEnvelope([sampleResult], 'semantic', null, null) })
+		);
+		await search(page, '임대차 계약에서 세입자 보호');
+
+		// ...and an honest placeholder when it is null (legacy artifacts).
+		await expect(page.getByTestId('semantic-search-last-update')).toContainText('기록 없음');
 	});
 
 	test('controls the query through the URL search parameter', async ({ page }) => {
@@ -256,5 +273,32 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('semantic-search-error')).toContainText(
 			'검색어를 입력해 주세요.'
 		);
+	});
+
+	test('rate-limit overlay counts down and re-enables the retry button', async ({ page }) => {
+		await page.route(SEMANTIC_API, (route) =>
+			route.fulfill({
+				status: 429,
+				contentType: 'application/json',
+				headers: { 'retry-after': '5' },
+				body: JSON.stringify({ statusCode: 429, message: 'Too many requests.', retryAfter: 5 })
+			})
+		);
+		await search(page, '임대차 계약에서 세입자 보호');
+
+		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible({ timeout: 10000 });
+		// The countdown must tick down to zero instead of freezing at "N초 후...".
+		await expect(page.getByText('잠시 후 다시 시도해주세요')).toBeVisible({ timeout: 15000 });
+		const retryButton = page.getByRole('button', { name: /다시 시도/ });
+		await expect(retryButton).toBeEnabled();
+
+		// The enabled button must re-issue the search and restart the overlay.
+		const retryRequest = page.waitForRequest(
+			(request) => request.url().includes('/api/notices/semantic-search'),
+			{ timeout: 10000 }
+		);
+		await retryButton.click();
+		await retryRequest;
+		await expect(page.getByText('초 후 다시 시도할 수 있습니다')).toBeVisible({ timeout: 10000 });
 	});
 });

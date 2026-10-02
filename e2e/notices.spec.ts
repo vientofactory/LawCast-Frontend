@@ -358,8 +358,10 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 
 		test('search keyword matching done notice with isDone=true', async ({ page }) => {
-			// 개인정보 matches 2210002 (done) — should return 1
-			await page.goto('/notices?search=개인정보&isDone=true');
+			// 개인정보 보호법 matches 2210002 (done) — should return 1. The keyword
+			// is the done notice's distinctive subject term: 2210001's subject also
+			// contains "개인정보", so a bare 개인정보 would match both notices.
+			await page.goto('/notices?search=개인정보 보호법&isDone=true');
 			const count = await getResultCount(page);
 			expect(count).toBe(1);
 			const nums = await getVisibleNoticeNums(page);
@@ -367,8 +369,9 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 
 		test('search keyword matching done notice with isDone=false yields 0', async ({ page }) => {
-			// 개인정보 matches 2210002 but it is done, so isDone=false yields 0
-			await page.goto('/notices?search=개인정보&isDone=false');
+			// 개인정보 보호법 matches only 2210002 and it is done, so isDone=false
+			// must exclude it and yield 0.
+			await page.goto('/notices?search=개인정보 보호법&isDone=false');
 			const count = await getResultCount(page);
 			expect(count).toBe(0);
 		});

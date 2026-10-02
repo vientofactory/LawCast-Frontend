@@ -160,4 +160,56 @@ test.describe('Notice Detail Page', () => {
 		await expect(page.getByTestId('notice-detail-archive-meta')).toHaveAttribute('open', '');
 		await expect(page.getByTestId('notice-detail-download-archive')).toBeVisible();
 	});
+
+	test('change timeline compare mode selects base and target revisions', async ({ page }) => {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
+			test.skip(true, 'No notices available');
+			return;
+		}
+
+		await notice.link.click();
+		await expect(page.getByTestId('notice-detail-main')).toBeVisible();
+
+		// Open the change-tracking timeline panel. Clicks before hydration do
+		// nothing and hydration can re-close a panel opened too early, so toggle
+		// until the panel body renders (same retry pattern as other specs).
+		const summary = page.locator('summary').filter({ hasText: '변경 추적 타임라인' });
+		const timelineDetails = page
+			.locator('details')
+			.filter({ hasText: '변경 추적 타임라인' })
+			.first();
+		const timelineBody = timelineDetails.locator(':scope > div').first();
+		await expect(async () => {
+			if ((await timelineDetails.getAttribute('open')) === null) {
+				await summary.click({ timeout: 2000 });
+			}
+			await expect(timelineBody).toBeVisible({ timeout: 2000 });
+		}).toPass({ timeout: 20000 });
+
+		const baseButton = page.getByRole('button', { name: '기준으로 선택' }).first();
+		if (!(await baseButton.isVisible().catch(() => false))) {
+			test.skip(true, 'Notice has no comparable revisions');
+			return;
+		}
+
+		// Selecting the base must reactively update the UI, not just the URL.
+		await baseButton.click();
+		await expect(page).toHaveURL(/cmpFrom=/);
+		const targetButton = page.getByRole('button', { name: '비교 대상으로 선택' }).first();
+		await expect(targetButton).toBeVisible({ timeout: 5000 });
+
+		// Selecting the target enters compare mode.
+		await targetButton.click();
+		await expect(page).toHaveURL(/cmpTo=/);
+		await expect(page.getByText('리비전 비교 열람 중')).toBeVisible({ timeout: 5000 });
+		await expect(page.getByText('비교 기준', { exact: true }).first()).toBeVisible();
+		await expect(page.getByText('비교 대상', { exact: true }).first()).toBeVisible();
+
+		// The "show all fields" toggle rewrites the URL and must keep both params.
+		await page.getByRole('button', { name: '전체 필드 보기' }).click();
+		await expect(page).toHaveURL(/cmpShowAll=1/);
+		await expect(page).toHaveURL(/cmpFrom=/);
+		await expect(page).toHaveURL(/cmpTo=/);
+	});
 });

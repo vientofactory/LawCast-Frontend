@@ -769,7 +769,7 @@
 									</span>
 								</div>
 							{/if}
-							<div class="mt-2 flex items-center gap-2">
+							<div class="mt-2 flex flex-wrap items-center gap-2">
 								<button
 									type="submit"
 									disabled={isServerLoading}
