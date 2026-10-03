@@ -18,6 +18,7 @@ import type {
 	QuickKeywordSuggestionsResponse,
 	SearchNoticesResult,
 	SemanticSearchResponse,
+	SemanticEngineHealthResponse,
 	SystemStats,
 	SystemHealth,
 	ApiResponse,
@@ -406,6 +407,25 @@ export async function semanticSearch(
 		);
 	} catch (error) {
 		console.error('Failed to run semantic search:', error);
+		throw normalizeError(error);
+	}
+}
+
+/**
+ * 의미 검색 엔진 상태 (백엔드 /api/notices/semantic-search/health)
+ * 사이드카 /health의 청크 인덱스 개수·마지막 업데이트·마지막 업데이트 실행 시각을 가져온다.
+ */
+export async function semanticEngineHealth(
+	customFetch?: Fetch
+): Promise<SemanticEngineHealthResponse> {
+	try {
+		return await request<SemanticEngineHealthResponse>(
+			'/notices/semantic-search/health',
+			{ method: 'GET' },
+			customFetch
+		);
+	} catch (error) {
+		console.error('Failed to load semantic engine health:', error);
 		throw normalizeError(error);
 	}
 }
@@ -973,6 +993,7 @@ export const apiClient = {
 	getArchivedNotices,
 	searchNotices,
 	semanticSearch,
+	semanticEngineHealth,
 	getNoticeDetail,
 	getNoticeChanges,
 	getRecentNoticeChanges,

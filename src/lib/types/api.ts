@@ -216,6 +216,19 @@ export interface SemanticSearchResponse {
 	results: SemanticSearchResultItem[];
 }
 
+/**
+ * 의미 검색 엔진 상태 (백엔드 /api/notices/semantic-search/health가
+ * 사이드카 /health에서 그대로 전달하는 필드).
+ * `indexedChunks`는 FAISS 인덱스의 청크 수, `lastUpdateAt`은 서빙 중인
+ * 세대의 인덱스 마지막 기록 시각, `lastUpdateTriggeredAt`은 가장 최근
+ * 갱신 틱의 실행 시각이다 (없으면 null).
+ */
+export interface SemanticEngineHealthResponse {
+	indexedChunks: number;
+	lastUpdateAt: string | null;
+	lastUpdateTriggeredAt: string | null;
+}
+
 export interface QuickKeywordSuggestion {
 	keyword: string;
 	score: number;
