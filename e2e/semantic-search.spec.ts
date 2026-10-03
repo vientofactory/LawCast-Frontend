@@ -144,20 +144,8 @@ test.describe('Semantic Search UI', () => {
 			'법률안 상세 보기'
 		);
 		await expect(page.getByTestId('semantic-search-fallback-banner')).toHaveCount(0);
-		// The index time rides the search response: shown when present...
-		const lastUpdate = page.getByTestId('semantic-search-last-update');
-		await expect(lastUpdate).toContainText('마지막 업데이트');
-		await expect(lastUpdate).not.toContainText('기록 없음');
-	});
-
-	test('shows 기록 없음 when the index has no recorded update time', async ({ page }) => {
-		await page.route(SEMANTIC_API, (route) =>
-			route.fulfill({ json: semanticEnvelope([sampleResult], 'semantic', null, null) })
-		);
-		await search(page, '임대차 계약에서 세입자 보호');
-
-		// ...and an honest placeholder when it is null (legacy artifacts).
-		await expect(page.getByTestId('semantic-search-last-update')).toContainText('기록 없음');
+		// The index time is owned by the engine status widget now, so the
+		// results list no longer renders a duplicate 마지막 업데이트 line.
 	});
 
 	test('controls the query through the URL search parameter', async ({ page }) => {
@@ -357,6 +345,27 @@ test.describe('Semantic Search UI', () => {
 		// Closing hides the panel again.
 		await page.getByTestId('semantic-search-engine-status-close').click();
 		await expect(page.getByTestId('semantic-search-engine-status-panel')).toHaveCount(0);
+	});
+
+	test('closes the engine status panel when clicking outside it', async ({ page }) => {
+		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+		const hydrated = watchEngineHealth(page);
+		await page.goto('/notices/semantic-search');
+		await openEngineStatus(page, hydrated);
+		await expect(page.getByTestId('semantic-search-engine-status-panel')).toBeVisible();
+
+		// A click outside the widget dismisses the popover...
+		await page.getByTestId('semantic-search-input').click();
+		await expect(page.getByTestId('semantic-search-engine-status-panel')).toHaveCount(0);
+		await expect(page.getByTestId('semantic-search-engine-status-trigger')).toHaveAttribute(
+			'aria-expanded',
+			'false'
+		);
+
+		// ...while clicks inside the widget keep it open.
+		await openEngineStatus(page, Promise.resolve());
+		await page.getByTestId('semantic-search-engine-status-values').click();
+		await expect(page.getByTestId('semantic-search-engine-status-panel')).toBeVisible();
 	});
 
 	test('shows a loading state until the engine status resolves', async ({ page }) => {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import { fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
@@ -51,6 +52,7 @@
 	// Collapsible corner widget: hidden until the user opens it, so the
 	// status never interrupts the normal search flow.
 	let engineStatusOpen = $state(false);
+	let engineStatusRoot = $state<HTMLDivElement | null>(null);
 	let engineStatusDotClass = $derived(
 		engineHealthLoading
 			? 'lc-dot-warning animate-pulse'
@@ -170,6 +172,18 @@
 		}
 	}
 
+	/**
+	 * Close the engine status widget when a click lands outside it, so the
+	 * panel behaves like a popover instead of a modal. Clicks on the widget
+	 * itself (trigger, panel, close button) are ignored.
+	 */
+	function handleWindowClick(event: MouseEvent) {
+		if (!engineStatusOpen) return;
+		const target = event.target;
+		if (target instanceof Node && engineStatusRoot?.contains(target)) return;
+		engineStatusOpen = false;
+	}
+
 	function handleExampleQuery(example: string) {
 		query = example;
 		runSearch();
@@ -212,6 +226,8 @@
 		content="일상 언어로 질문하면 법률안의 제안이유와 주요내용에서 의미가 비슷한 입법예고를 찾아드립니다."
 	/>
 </svelte:head>
+
+<svelte:window onclick={handleWindowClick} />
 
 <div class="page-shell">
 	<Header />
@@ -463,6 +479,7 @@
 	<!-- Engine status: a small fixed corner control so casual readers skip
 	     it, while the full details stay one click away. -->
 	<div
+		bind:this={engineStatusRoot}
 		class="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-2"
 		data-testid="semantic-search-engine-status"
 	>
@@ -473,6 +490,7 @@
 				role="dialog"
 				aria-labelledby="semantic-engine-status-heading"
 				data-testid="semantic-search-engine-status-panel"
+				transition:fly={{ y: 8, duration: 180, opacity: 0 }}
 			>
 				<div class="flex items-center justify-between">
 					<h2 id="semantic-engine-status-heading" class="lc-text-primary text-sm font-semibold">
