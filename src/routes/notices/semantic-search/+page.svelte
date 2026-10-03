@@ -11,12 +11,18 @@
 		faArrowLeft,
 		faMagnifyingGlass,
 		faSpinner,
-		faWandMagicSparkles
+		faWandMagicSparkles,
+		faXmark
 	} from '@fortawesome/free-solid-svg-icons';
-	import { getRateLimitRetryAfter, isRateLimitError, semanticSearch } from '$lib/api/client';
+	import {
+		getRateLimitRetryAfter,
+		isRateLimitError,
+		semanticEngineHealth,
+		semanticSearch
+	} from '$lib/api/client';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
-	import type { SemanticSearchResponse } from '$lib/types/api';
+	import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '$lib/types/api';
 	import {
 		SEMANTIC_MAX_QUERY_LENGTH,
 		SEMANTIC_SEARCH_QUERY_PARAM,
@@ -38,6 +44,20 @@
 	let isLoading = $state(false);
 	let hasSearched = $state(false);
 	let error = $state<string | null>(null);
+	// Engine status block: one /health fetch per mount, independent of searches.
+	let engineHealth = $state<SemanticEngineHealthResponse | null>(null);
+	let engineHealthLoading = $state(true);
+	let engineHealthError = $state<string | null>(null);
+	// Collapsible corner widget: hidden until the user opens it, so the
+	// status never interrupts the normal search flow.
+	let engineStatusOpen = $state(false);
+	let engineStatusDotClass = $derived(
+		engineHealthLoading
+			? 'lc-dot-warning animate-pulse'
+			: engineHealthError
+				? 'lc-text-danger bg-current'
+				: 'lc-dot-success'
+	);
 	let rateLimitRetryAfter = $state(0);
 	let isRateLimited = $state(false);
 	let isRetrying = $state(false);
@@ -132,6 +152,24 @@
 		runSearch();
 	}
 
+	/**
+	 * Load the engine status (청크 인덱스 개수·마지막 업데이트·실행 시간)
+	 * once per page mount. Failures only affect the status block, never the
+	 * search itself.
+	 */
+	async function loadEngineHealth() {
+		engineHealthLoading = true;
+		engineHealthError = null;
+		try {
+			engineHealth = await semanticEngineHealth();
+		} catch (caught) {
+			engineHealth = null;
+			engineHealthError = (caught as Error).message || '엔진 상태를 확인할 수 없습니다.';
+		} finally {
+			engineHealthLoading = false;
+		}
+	}
+
 	function handleExampleQuery(example: string) {
 		query = example;
 		runSearch();
@@ -155,6 +193,7 @@
 	});
 
 	onMount(() => {
+		void loadEngineHealth();
 		// Deep link (?search=...): reproduce the search on load. This also
 		// covers the no-JS form submit fallback, which round-trips through
 		// the same parameter.
@@ -290,13 +329,6 @@
 			data-testid="semantic-search-results-region"
 		>
 			<h2 id="semantic-search-results-heading" class="sr-only">의미 검색 결과</h2>
-			{#if response}
-				<p class="lc-text-dim mb-3 text-xs" data-testid="semantic-search-last-update">
-					마지막 업데이트: {response.lastUpdateAt
-						? formatDateTimeKST(response.lastUpdateAt)
-						: '기록 없음'}
-				</p>
-			{/if}
 			{#if isLoading && !hasSearched}
 				<div
 					class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
@@ -427,6 +459,91 @@
 			{/if}
 		</section>
 	</main>
+
+	<!-- Engine status: a small fixed corner control so casual readers skip
+	     it, while the full details stay one click away. -->
+	<div
+		class="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-2"
+		data-testid="semantic-search-engine-status"
+	>
+		{#if engineStatusOpen}
+			<div
+				id="semantic-engine-status-panel"
+				class="lc-panel-card w-72 rounded-xl border p-4 shadow-lg"
+				role="dialog"
+				aria-labelledby="semantic-engine-status-heading"
+				data-testid="semantic-search-engine-status-panel"
+			>
+				<div class="flex items-center justify-between">
+					<h2 id="semantic-engine-status-heading" class="lc-text-primary text-sm font-semibold">
+						엔진 상태
+					</h2>
+					<button
+						type="button"
+						class="lc-text-dim cursor-pointer rounded p-1 transition-opacity hover:opacity-70"
+						aria-label="엔진 상태 닫기"
+						data-testid="semantic-search-engine-status-close"
+						onclick={() => (engineStatusOpen = false)}
+					>
+						<FontAwesomeIcon icon={faXmark} class="h-3.5 w-3.5" />
+					</button>
+				</div>
+				{#if engineHealthLoading}
+					<p
+						class="lc-text-secondary mt-2 text-sm"
+						role="status"
+						aria-live="polite"
+						data-testid="semantic-search-engine-status-loading"
+					>
+						엔진 상태를 확인하는 중...
+					</p>
+				{:else if engineHealthError}
+					<p class="lc-text-danger mt-2 text-sm" data-testid="semantic-search-engine-status-error">
+						{engineHealthError}
+					</p>
+				{:else if engineHealth}
+					<dl
+						class="mt-2 flex flex-col gap-2 text-sm"
+						data-testid="semantic-search-engine-status-values"
+					>
+						<div>
+							<dt class="lc-text-dim text-xs">청크 인덱스 개수</dt>
+							<dd class="lc-text-primary font-semibold" data-testid="semantic-search-engine-chunks">
+								{engineHealth.indexedChunks.toLocaleString('ko-KR')}
+							</dd>
+						</div>
+						<div>
+							<dt class="lc-text-dim text-xs">마지막 업데이트</dt>
+							<dd class="lc-text-primary" data-testid="semantic-search-engine-last-update">
+								{engineHealth.lastUpdateAt
+									? formatDateTimeKST(engineHealth.lastUpdateAt)
+									: '기록 없음'}
+							</dd>
+						</div>
+						<div>
+							<dt class="lc-text-dim text-xs">마지막 업데이트 실행 시간</dt>
+							<dd class="lc-text-primary" data-testid="semantic-search-engine-last-update-run">
+								{engineHealth.lastUpdateTriggeredAt
+									? formatDateTimeKST(engineHealth.lastUpdateTriggeredAt)
+									: '기록 없음'}
+							</dd>
+						</div>
+					</dl>
+				{/if}
+			</div>
+		{/if}
+		<button
+			type="button"
+			class="lc-panel-card flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs shadow-sm opacity-70 transition-all duration-200 hover:-translate-y-0.5 hover:opacity-100"
+			aria-expanded={engineStatusOpen}
+			aria-controls={engineStatusOpen ? 'semantic-engine-status-panel' : undefined}
+			data-testid="semantic-search-engine-status-trigger"
+			onclick={() => (engineStatusOpen = !engineStatusOpen)}
+		>
+			<span class={`h-1.5 w-1.5 rounded-full ${engineStatusDotClass}`} aria-hidden="true"></span>
+			<span class="lc-text-secondary">엔진 상태</span>
+		</button>
+	</div>
 
 	<RateLimitOverlay
 		visible={isRateLimited}

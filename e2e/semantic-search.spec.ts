@@ -13,6 +13,7 @@ const semanticEnabled = ['1', 'true', 'yes', 'on'].includes(
 );
 
 const SEMANTIC_API = '**/api/notices/semantic-search*';
+const HEALTH_API = '**/api/notices/semantic-search/health';
 
 const sampleResult = {
 	noticeNum: 2220607,
@@ -24,6 +25,34 @@ const sampleResult = {
 };
 
 const STAMP = '2026-10-02T12:00:00+00:00';
+const TRIGGERED_AT = '2026-10-02T13:00:00+00:00';
+
+/**
+ * The engine-status request shares the semantic-search URL prefix, so raw
+ * `includes('/api/notices/semantic-search')` matchers would also accept
+ * `/semantic-search/health` and mistake it for a fired search.
+ */
+function isSearchApiRequest(url: string) {
+	return url.includes('/api/notices/semantic-search') && !url.includes('/health');
+}
+
+function healthEnvelope(
+	overrides: Partial<{
+		indexedChunks: number;
+		lastUpdateAt: string | null;
+		lastUpdateTriggeredAt: string | null;
+	}> = {}
+) {
+	return {
+		success: true,
+		data: {
+			indexedChunks: 93031,
+			lastUpdateAt: STAMP,
+			lastUpdateTriggeredAt: TRIGGERED_AT,
+			...overrides
+		}
+	};
+}
 
 function semanticEnvelope(
 	results: unknown[],
@@ -48,7 +77,7 @@ async function search(page: Page, query: string) {
 	for (let attempt = 1; attempt <= 5; attempt += 1) {
 		await page.getByTestId('semantic-search-input').fill(query);
 		const apiRequested = page
-			.waitForRequest((req) => req.url().includes('/api/notices/semantic-search'), {
+			.waitForRequest((req) => isSearchApiRequest(req.url()), {
 				timeout: 3000
 			})
 			.catch(() => null);
@@ -58,6 +87,34 @@ async function search(page: Page, query: string) {
 		}
 	}
 	throw new Error('semantic search request never fired (hydration race)');
+}
+
+/**
+ * Arm BEFORE goto: the /health request is fired from onMount, i.e. after the
+ * lazily-loaded route chunk has hydrated, so awaiting it guarantees the
+ * trigger button's click handler is attached (a click landing earlier is a
+ * silent no-op, same race as search()).
+ */
+function watchEngineHealth(page: Page) {
+	return page.waitForRequest(HEALTH_API, { timeout: 20000 }).catch(() => null);
+}
+
+async function openEngineStatus(page: Page, hydrated: Promise<unknown>) {
+	await hydrated;
+	for (let attempt = 1; attempt <= 3; attempt += 1) {
+		await page.getByTestId('semantic-search-engine-status-trigger').click();
+		try {
+			// waitFor resolves void on success, so success/failure must be
+			// distinguished by rejection rather than by the resolved value.
+			await page
+				.getByTestId('semantic-search-engine-status-panel')
+				.waitFor({ state: 'visible', timeout: 2000 });
+			return;
+		} catch {
+			// Click landed before the handler attached; retry the toggle.
+		}
+	}
+	throw new Error('engine status panel never opened');
 }
 
 test.describe('Semantic Search UI', () => {
@@ -275,6 +332,83 @@ test.describe('Semantic Search UI', () => {
 		);
 	});
 
+	test('keeps the engine status collapsed until the corner widget is opened', async ({ page }) => {
+		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+		const hydrated = watchEngineHealth(page);
+		await page.goto('/notices/semantic-search');
+
+		// The widget sits in the corner without pushing any status content into
+		// the page flow; details appear only after the user opens it.
+		const status = page.getByTestId('semantic-search-engine-status');
+		await expect(status).toBeVisible();
+		await expect(page.getByTestId('semantic-search-engine-status-panel')).toHaveCount(0);
+		await openEngineStatus(page, hydrated);
+
+		await expect(page.getByTestId('semantic-search-engine-status-panel')).toBeVisible();
+		await expect(page.getByTestId('semantic-search-engine-chunks')).toHaveText('93,031');
+		const lastUpdate = page.getByTestId('semantic-search-engine-last-update');
+		await expect(lastUpdate).toContainText('2026');
+		await expect(lastUpdate).not.toContainText('기록 없음');
+		const lastUpdateRun = page.getByTestId('semantic-search-engine-last-update-run');
+		await expect(lastUpdateRun).toContainText('2026');
+		await expect(lastUpdateRun).not.toContainText('기록 없음');
+		await expect(page.getByTestId('semantic-search-engine-status-error')).toHaveCount(0);
+
+		// Closing hides the panel again.
+		await page.getByTestId('semantic-search-engine-status-close').click();
+		await expect(page.getByTestId('semantic-search-engine-status-panel')).toHaveCount(0);
+	});
+
+	test('shows a loading state until the engine status resolves', async ({ page }) => {
+		await page.route(HEALTH_API, async (route) => {
+			await new Promise((resolve) => setTimeout(resolve, 2500));
+			await route.fulfill({ json: healthEnvelope() });
+		});
+		const hydrated = watchEngineHealth(page);
+		await page.goto('/notices/semantic-search');
+		await openEngineStatus(page, hydrated);
+
+		await expect(page.getByTestId('semantic-search-engine-status-loading')).toBeVisible();
+		await expect(page.getByTestId('semantic-search-engine-status-values')).toBeVisible({
+			timeout: 10000
+		});
+		await expect(page.getByTestId('semantic-search-engine-status-loading')).toHaveCount(0);
+	});
+
+	test('shows 기록 없음 when the engine has no recorded update times', async ({ page }) => {
+		await page.route(HEALTH_API, (route) =>
+			route.fulfill({
+				json: healthEnvelope({ indexedChunks: 0, lastUpdateAt: null, lastUpdateTriggeredAt: null })
+			})
+		);
+		const hydrated = watchEngineHealth(page);
+		await page.goto('/notices/semantic-search');
+		await openEngineStatus(page, hydrated);
+
+		await expect(page.getByTestId('semantic-search-engine-chunks')).toHaveText('0');
+		await expect(page.getByTestId('semantic-search-engine-last-update')).toContainText('기록 없음');
+		await expect(page.getByTestId('semantic-search-engine-last-update-run')).toContainText(
+			'기록 없음'
+		);
+	});
+
+	test('shows an error state when the engine status cannot be fetched', async ({ page }) => {
+		await page.route(HEALTH_API, (route) =>
+			route.fulfill({
+				status: 503,
+				json: { statusCode: 503, message: '의미 검색 엔진 상태를 확인할 수 없습니다.' }
+			})
+		);
+		const hydrated = watchEngineHealth(page);
+		await page.goto('/notices/semantic-search');
+		await openEngineStatus(page, hydrated);
+
+		const statusError = page.getByTestId('semantic-search-engine-status-error');
+		await expect(statusError).toBeVisible();
+		await expect(statusError).toContainText('의미 검색 엔진 상태를 확인할 수 없습니다.');
+		await expect(page.getByTestId('semantic-search-engine-status-values')).toHaveCount(0);
+	});
+
 	test('rate-limit overlay counts down and re-enables the retry button', async ({ page }) => {
 		await page.route(SEMANTIC_API, (route) =>
 			route.fulfill({
@@ -293,10 +427,9 @@ test.describe('Semantic Search UI', () => {
 		await expect(retryButton).toBeEnabled();
 
 		// The enabled button must re-issue the search and restart the overlay.
-		const retryRequest = page.waitForRequest(
-			(request) => request.url().includes('/api/notices/semantic-search'),
-			{ timeout: 10000 }
-		);
+		const retryRequest = page.waitForRequest((request) => isSearchApiRequest(request.url()), {
+			timeout: 10000
+		});
 		await retryButton.click();
 		await retryRequest;
 		await expect(page.getByText('초 후 다시 시도할 수 있습니다')).toBeVisible({ timeout: 10000 });
