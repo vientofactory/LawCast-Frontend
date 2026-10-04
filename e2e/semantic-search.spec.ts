@@ -4,37 +4,26 @@ import { expect, test, type Page } from '@playwright/test';
  * Semantic search UI tests (flag-gated).
  *
  * The dedicated config (playwright.semantic-search.config.ts) boots a dev server with
- * PUBLIC_SEMANTIC_SEARCH_ENABLED=1. Without the flag the entry point and route are hidden
- * and redirected, so skip on a plain `npm run test:e2e` server (same pattern as
- * E2E_CF_CHALLENGE / E2E_RATE_LIMIT_SIM).
+ * PUBLIC_SEMANTIC_SEARCH_ENABLED=1 and DIFFCHAIN_UI_MOCK=1. Without the flag the entry
+ * point and route are hidden and redirected, so skip on a plain `npm run test:e2e` server
+ * (same pattern as E2E_CF_CHALLENGE / E2E_RATE_LIMIT_SIM).
+ *
+ * The search itself is SSR: `+page.server.ts` calls the API, so the browser never requests
+ * `/api/notices/semantic-search` and `page.route` cannot stub it. Fixtures come from
+ * `src/lib/server/semantic-search-mock.ts`, which selects a response from marker words in
+ * the query — `레이트리밋` -> 429, `오류` -> 500, `않는` -> empty results,
+ * `키워드` -> keyword fallback, anything else -> one sample result.
+ * The engine-status endpoint is still fetched by the browser and keeps its `page.route`
+ * stubs below.
  */
 const semanticEnabled = ['1', 'true', 'yes', 'on'].includes(
 	(process.env.E2E_SEMANTIC_SEARCH ?? '').trim().toLowerCase()
 );
 
-const SEMANTIC_API = '**/api/notices/semantic-search*';
 const HEALTH_API = '**/api/notices/semantic-search/health';
-
-const sampleResult = {
-	noticeNum: 2220607,
-	subject: '상가건물 임대차보호법 일부개정법률안',
-	committee: '법무부',
-	section: '주요내용',
-	score: 0.586,
-	excerpt: '점유를 회복할 필요가 있는 경우에 임대인이 계약을 해지할 수 있도록 함.'
-};
 
 const STAMP = '2026-10-02T12:00:00+00:00';
 const TRIGGERED_AT = '2026-10-02T13:00:00+00:00';
-
-/**
- * The engine-status request shares the semantic-search URL prefix, so raw
- * `includes('/api/notices/semantic-search')` matchers would also accept
- * `/semantic-search/health` and mistake it for a fired search.
- */
-function isSearchApiRequest(url: string) {
-	return url.includes('/api/notices/semantic-search') && !url.includes('/health');
-}
 
 function healthEnvelope(
 	overrides: Partial<{
@@ -54,39 +43,30 @@ function healthEnvelope(
 	};
 }
 
-function semanticEnvelope(
-	results: unknown[],
-	mode = 'semantic',
-	fallbackReason: string | null = null,
-	lastUpdateAt: string | null = STAMP
-) {
-	return {
-		success: true,
-		data: { query: '임대차 계약에서 세입자 보호', mode, fallbackReason, lastUpdateAt, results }
-	};
-}
-
 /**
  * Fill and submit the semantic search form, robust against hydration timing.
  *
- * The form is client-side (SvelteKit lazy-loads the route chunk after `load`),	 * so a click that lands before hydration falls back to a plain GET submit and
- * reloads the page untouched. Retry until the API request actually fires.
+ * There are two submission paths: once hydrated the form navigates to ?search= and the
+ * server load runs the search; before hydration a plain GET submit round-trips through the
+ * same parameter and SSRs the results. Either way the query ends up in the URL, so retry
+ * until it lands — the fill can also beat the input's own listeners and leave the form
+ * state empty for the click.
  */
 async function search(page: Page, query: string) {
 	await page.goto('/notices/semantic-search');
 	for (let attempt = 1; attempt <= 5; attempt += 1) {
 		await page.getByTestId('semantic-search-input').fill(query);
-		const apiRequested = page
-			.waitForRequest((req) => isSearchApiRequest(req.url()), {
-				timeout: 3000
-			})
-			.catch(() => null);
 		await page.getByTestId('semantic-search-submit').click();
-		if (await apiRequested) {
+		try {
+			await expect
+				.poll(() => new URL(page.url()).searchParams.get('search'), { timeout: 3000 })
+				.toBe(query);
 			return;
+		} catch {
+			// Not there yet (hydration race); re-fill and submit once more.
 		}
 	}
-	throw new Error('semantic search request never fired (hydration race)');
+	throw new Error('semantic search never reached ?search= (hydration race)');
 }
 
 /**
@@ -97,6 +77,32 @@ async function search(page: Page, query: string) {
  */
 function watchEngineHealth(page: Page) {
 	return page.waitForRequest(HEALTH_API, { timeout: 20000 }).catch(() => null);
+}
+
+/**
+ * Capture the example-chip labels the server rendered, read from the document
+ * response of the load under test. A second request would draw a different
+ * random subset, so the HTML has to come from this very navigation.
+ */
+function captureSsrChips(page: Page) {
+	let html = '';
+	page.on('response', (response) => {
+		if (response.request().resourceType() !== 'document') return;
+		if (!new URL(response.url()).pathname.replace(/\/+$/, '').endsWith('/notices/semantic-search'))
+			return;
+		void response
+			.text()
+			.then((text) => {
+				html = text;
+			})
+			.catch(() => {});
+	});
+	return async () => {
+		await expect.poll(() => html.length).toBeGreaterThan(0);
+		return [...html.matchAll(/data-testid="semantic-search-example"[^>]*>([^<]*)</g)].map((m) =>
+			m[1].trim()
+		);
+	};
 }
 
 async function openEngineStatus(page: Page, hydrated: Promise<unknown>) {
@@ -129,9 +135,6 @@ test.describe('Semantic Search UI', () => {
 	});
 
 	test('renders semantic results with percentage score and section', async ({ page }) => {
-		await page.route(SEMANTIC_API, (route) =>
-			route.fulfill({ json: semanticEnvelope([sampleResult]) })
-		);
 		await search(page, '임대차 계약에서 세입자 보호');
 
 		const result = page.getByTestId('semantic-result-2220607');
@@ -149,10 +152,6 @@ test.describe('Semantic Search UI', () => {
 	});
 
 	test('controls the query through the URL search parameter', async ({ page }) => {
-		await page.route(SEMANTIC_API, (route) =>
-			route.fulfill({ json: semanticEnvelope([sampleResult]) })
-		);
-
 		// Deep link: the input is prefilled and the search runs automatically.
 		await page.goto(
 			`/notices/semantic-search?search=${encodeURIComponent('임대차 계약에서 세입자 보호')}`
@@ -169,18 +168,23 @@ test.describe('Semantic Search UI', () => {
 	});
 
 	test('runs a search from the example chips and mirrors it into the URL', async ({ page }) => {
-		await page.route(SEMANTIC_API, (route) =>
-			route.fulfill({ json: semanticEnvelope([sampleResult]) })
-		);
+		// The random subset is drawn in +page.server.ts, so the SSR HTML must
+		// already carry the final chips — capture this navigation's document
+		// response to prove nothing is swapped in after the first paint.
+		const ssrLabels = captureSsrChips(page);
+		// The health request fires from onMount, i.e. after hydration, which is
+		// what guarantees the click handler below is attached.
+		const hydrated = watchEngineHealth(page);
 		await page.goto('/notices/semantic-search');
+		await hydrated;
+		await expect(page.getByTestId('semantic-search-example')).toHaveCount(3);
+		const labels = (await page.getByTestId('semantic-search-example').allInnerTexts()).map(
+			(label) => label.trim()
+		);
+		expect(labels).toEqual(await ssrLabels());
 
-		// Retry: a click landing before hydration does nothing (type="button").
-		await expect(async () => {
-			await page.getByTestId('semantic-search-example').first().click();
-			await expect
-				.poll(() => new URL(page.url()).searchParams.get('search'), { timeout: 1500 })
-				.toBe('해외직구할 때 관세 얼마나 내야 해?');
-		}).toPass();
+		await page.getByTestId('semantic-search-example').first().click();
+		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(labels[0]);
 
 		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible();
 	});
@@ -196,9 +200,6 @@ test.describe('Semantic Search UI', () => {
 	});
 
 	test('keeps URL, input, and results in agreement across back/forward', async ({ page }) => {
-		await page.route(SEMANTIC_API, (route) =>
-			route.fulfill({ json: semanticEnvelope([sampleResult]) })
-		);
 		const query = '임대차 계약에서 세입자 보호';
 		await page.goto('/notices'); // history entry before the search page
 		await search(page, query);
@@ -237,9 +238,6 @@ test.describe('Semantic Search UI', () => {
 	test('directly loading an edited ?search= URL keeps input, results, and URL in agreement', async ({
 		page
 	}) => {
-		await page.route(SEMANTIC_API, (route) =>
-			route.fulfill({ json: semanticEnvelope([sampleResult]) })
-		);
 		await page.goto(
 			`/notices/semantic-search?search=${encodeURIComponent('임대차 계약에서 세입자 보호')}`
 		);
@@ -248,17 +246,10 @@ test.describe('Semantic Search UI', () => {
 		);
 		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible();
 
-		// Address-bar edit to a different query: a fresh load must auto-run the
-		// new query (not show stale results for the old one).
+		// Address-bar edit to a different query: a fresh load must run the new
+		// query server-side (not show stale results for the old one).
 		const edited = '상가건물 임대차';
-		const autoRan = page.waitForRequest(
-			(req) =>
-				req.url().includes('/api/notices/semantic-search') &&
-				new URL(req.url()).searchParams.get('query') === edited,
-			{ timeout: 10000 }
-		);
 		await page.goto(`/notices/semantic-search?search=${encodeURIComponent(edited)}`);
-		await autoRan;
 		await expect(page.getByTestId('semantic-search-input')).toHaveValue(edited);
 		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible({ timeout: 10000 });
 		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(edited);
@@ -272,23 +263,13 @@ test.describe('Semantic Search UI', () => {
 	});
 
 	test('shows the empty state when nothing matches', async ({ page }) => {
-		await page.route(SEMANTIC_API, (route) => route.fulfill({ json: semanticEnvelope([]) }));
 		await search(page, '존재하지 않는 질의어');
 
 		await expect(page.getByTestId('semantic-search-empty-state')).toBeVisible();
 	});
 
 	test('shows the keyword fallback banner for fallback responses', async ({ page }) => {
-		await page.route(SEMANTIC_API, (route) =>
-			route.fulfill({
-				json: semanticEnvelope(
-					[{ ...sampleResult, score: null, section: null, excerpt: null }],
-					'keyword_fallback',
-					'의미 검색 엔진을 사용할 수 없어 키워드 검색 결과를 반환합니다.'
-				)
-			})
-		);
-		await search(page, '상가건물 임대차');
+		await search(page, '상가건물 임대차 키워드 검색');
 
 		await expect(page.getByTestId('semantic-search-fallback-banner')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-fallback-banner')).toContainText(
@@ -298,13 +279,7 @@ test.describe('Semantic Search UI', () => {
 	});
 
 	test('shows an error state when the API fails', async ({ page }) => {
-		await page.route(SEMANTIC_API, (route) =>
-			route.fulfill({
-				status: 500,
-				json: { success: false, message: '검색 서비스를 일시적으로 사용할 수 없습니다.' }
-			})
-		);
-		await search(page, '임대차 계약에서 세입자 보호');
+		await search(page, '의미 검색 오류 발생');
 
 		await expect(page.getByTestId('semantic-search-error')).toBeVisible();
 	});
@@ -419,15 +394,7 @@ test.describe('Semantic Search UI', () => {
 	});
 
 	test('rate-limit overlay counts down and re-enables the retry button', async ({ page }) => {
-		await page.route(SEMANTIC_API, (route) =>
-			route.fulfill({
-				status: 429,
-				contentType: 'application/json',
-				headers: { 'retry-after': '5' },
-				body: JSON.stringify({ statusCode: 429, message: 'Too many requests.', retryAfter: 5 })
-			})
-		);
-		await search(page, '임대차 계약에서 세입자 보호');
+		await search(page, '레이트리밋 테스트 질의');
 
 		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible({ timeout: 10000 });
 		// The countdown must tick down to zero instead of freezing at "N초 후...".
@@ -435,12 +402,9 @@ test.describe('Semantic Search UI', () => {
 		const retryButton = page.getByRole('button', { name: /다시 시도/ });
 		await expect(retryButton).toBeEnabled();
 
-		// The enabled button must re-issue the search and restart the overlay.
-		const retryRequest = page.waitForRequest((request) => isSearchApiRequest(request.url()), {
-			timeout: 10000
-		});
+		// The enabled button re-runs the server load, which hits the same 429
+		// and restarts the countdown overlay.
 		await retryButton.click();
-		await retryRequest;
 		await expect(page.getByText('초 후 다시 시도할 수 있습니다')).toBeVisible({ timeout: 10000 });
 	});
 });
