@@ -1502,7 +1502,7 @@ html[data-theme='dark'] .lc-alert {
 	left: 0;
 	width: 100%;
 	background: #3b82f6 !important;
-	height: 4px !important;
+	height: 3px !important;
 	z-index: 99999 !important;
 }
 
@@ -1535,6 +1535,30 @@ html[data-theme='dark'] .lc-alert {
 	}
 	100% {
 		transform: translateX(320%);
+	}
+}
+
+/* Magic-wand glint on the semantic search button while a query is in flight. */
+.lc-wand-glint {
+	animation: lc-wand-glint 1.5s ease-in-out infinite;
+	transform-origin: 70% 30%;
+}
+
+@keyframes lc-wand-glint {
+	0%,
+	100% {
+		transform: rotate(-8deg) scale(0.94);
+		opacity: 0.85;
+	}
+	50% {
+		transform: rotate(10deg) scale(1.12);
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lc-wand-glint {
+		animation: none;
 	}
 }
 @keyframes lc-comment-flash {

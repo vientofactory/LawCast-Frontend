@@ -1,29 +1,24 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { navigating, page } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import WandSparkleLoader from '$lib/components/WandSparkleLoader.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
 		faMagnifyingGlass,
-		faSpinner,
 		faWandMagicSparkles,
 		faXmark
 	} from '@fortawesome/free-solid-svg-icons';
-	import {
-		getRateLimitRetryAfter,
-		isRateLimitError,
-		semanticEngineHealth,
-		semanticSearch
-	} from '$lib/api/client';
+	import { semanticEngineHealth } from '$lib/api/client';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
-	import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '$lib/types/api';
+	import type { SemanticEngineHealthResponse } from '$lib/types/api';
 	import {
 		SEMANTIC_MAX_QUERY_LENGTH,
 		SEMANTIC_SEARCH_QUERY_PARAM,
@@ -32,25 +27,35 @@
 	} from '$lib/utils/semantic-search';
 	import type { PageData } from './$types';
 
-	const DEFAULT_K = 10;
+	// Maximum length of a query string.
 	const MAX_QUERY_LENGTH = SEMANTIC_MAX_QUERY_LENGTH;
-	const EXAMPLE_QUERIES = ['해외직구할 때 관세 얼마나 내야 해?', '시골에 병원이 너무 없어요'];
 
 	let { data }: { data: PageData } = $props();
 
-	// The loaded URL query seeds the form exactly once, at mount.
 	// svelte-ignore state_referenced_locally
 	let query = $state(data.query);
-	let response = $state<SemanticSearchResponse | null>(null);
-	let isLoading = $state(false);
-	let hasSearched = $state(false);
+	// The server load owns every search result: these are derived from its
+	// payload rather than filled in by a browser-side API call.
+	let response = $derived(data.search);
+	let loadError = $derived(data.loadError);
+	let hasQuery = $derived(data.query.length > 0);
+	// True while SvelteKit is rerunning the server load for a new ?search=,
+	// scoped to this route so navigating away does not read as a search.
+	let isLoading = $derived(
+		navigating !== null && navigating.to?.url.pathname === page.url.pathname
+	);
+	// Validation feedback stays client-side; backend failures arrive as loadError.
 	let error = $state<string | null>(null);
-	// Engine status block: one /health fetch per mount, independent of searches.
+	let dismissedServerError = $state<string | null>(null);
+	let serverError = $derived(
+		loadError && loadError.retryAfter === undefined && dismissedServerError !== loadError.message
+			? loadError.message
+			: null
+	);
+	let displayError = $derived(error ?? serverError);
 	let engineHealth = $state<SemanticEngineHealthResponse | null>(null);
 	let engineHealthLoading = $state(true);
 	let engineHealthError = $state<string | null>(null);
-	// Collapsible corner widget: hidden until the user opens it, so the
-	// status never interrupts the normal search flow.
 	let engineStatusOpen = $state(false);
 	let engineStatusRoot = $state<HTMLDivElement | null>(null);
 	let engineStatusDotClass = $derived(
@@ -63,10 +68,13 @@
 	let rateLimitRetryAfter = $state(0);
 	let isRateLimited = $state(false);
 	let isRetrying = $state(false);
-	// Shared countdown ticks rateLimitRetryAfter every second and gates the
-	// overlay's retry button, mirroring the other rate-limited pages.
+
+	// Retrying a 429 means asking the server load to run again: the URL does
+	// not change, so invalidateAll() is what re-issues the search.
 	const retry = new RetryCountdown(
-		() => runSearch(),
+		async () => {
+			await invalidateAll();
+		},
 		(v) => {
 			rateLimitRetryAfter = v;
 		},
@@ -75,6 +83,21 @@
 		}
 	);
 	onDestroy(() => retry.destroy());
+
+	// A 429 from the server load starts the shared countdown overlay; any other
+	// loadError (or a clean reload) tears it down again.
+	$effect(() => {
+		if (data.loadError !== retry.lastSeenError) {
+			retry.lastSeenError = data.loadError;
+			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
+				retry.start(data.loadError.retryAfter);
+				isRateLimited = true;
+			} else {
+				retry.stop();
+				isRateLimited = false;
+			}
+		}
+	});
 
 	let isFallbackMode = $derived(response?.mode === 'keyword_fallback');
 	// The URL is the source of truth for the query: sharing or reloading the
@@ -87,7 +110,6 @@
 	// re-trigger the sync effect below.
 	// svelte-ignore state_referenced_locally
 	let lastSyncedQuery = data.query;
-	let searchSequence = 0;
 
 	// The engine labels unsectioned chunks 'body'; show it as 본문 in the UI.
 	function sectionLabel(section: string): string {
@@ -110,7 +132,7 @@
 		});
 	}
 
-	async function runSearch() {
+	function runSearch() {
 		const trimmed = query.trim();
 		if (!trimmed) {
 			error = '검색어를 입력해 주세요.';
@@ -120,33 +142,18 @@
 			error = `검색어는 ${MAX_QUERY_LENGTH}자 이내로 입력해 주세요.`;
 			return;
 		}
-
-		syncUrlQuery(trimmed);
-
-		// Only the latest request may touch the UI; superseded responses are dropped.
-		const sequence = ++searchSequence;
-		isLoading = true;
-		hasSearched = true;
 		error = null;
+		dismissedServerError = null;
 		isRateLimited = false;
-		try {
-			const result = await semanticSearch({ query: trimmed, k: DEFAULT_K });
-			if (sequence !== searchSequence) return;
-			response = result;
-		} catch (caught) {
-			if (sequence !== searchSequence) return;
-			if (isRateLimitError(caught)) {
-				retry.start(getRateLimitRetryAfter(caught));
-				isRateLimited = true;
-			} else {
-				response = null;
-				error =
-					(caught as Error).message ||
-					'의미 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
-			}
-		} finally {
-			if (sequence === searchSequence) isLoading = false;
+
+		// Submitting the same query again (a retry after an error, say) cannot
+		// be expressed as a URL change, so reload the data instead — a goto to
+		// the identical URL would not rerun the server load.
+		if (trimmed === urlQuery) {
+			void invalidateAll();
+			return;
 		}
+		syncUrlQuery(trimmed);
 	}
 
 	function handleSubmit(event: Event) {
@@ -189,29 +196,31 @@
 		runSearch();
 	}
 
-	// URL -> page state: react to query changes that did not originate from
-	// this form (back/forward navigation, a hand-edited address).
+	// URL -> form: react to query changes that did not originate from this form
+	// (back/forward navigation, a hand-edited address). The server load has
+	// already fetched the matching results by then, so only the field follows.
 	$effect(() => {
 		if (urlQuery === lastSyncedQuery) return;
 		lastSyncedQuery = urlQuery;
 		query = urlQuery;
-		if (urlQuery) {
-			runSearch();
-		} else {
-			searchSequence += 1;
-			response = null;
-			hasSearched = false;
-			isLoading = false;
-			error = null;
-		}
+		error = null;
+		dismissedServerError = null;
 	});
 
+	// The alert is shared by validation messages and backend failures, so
+	// dismissal has to know which one is on screen.
+	function dismissError() {
+		if (error) {
+			error = null;
+			return;
+		}
+		if (loadError) dismissedServerError = loadError.message;
+	}
+
 	onMount(() => {
+		// Deep links and no-JS form submits are already served with results by
+		// the server load, so the browser only has to pick up the engine status.
 		void loadEngineHealth();
-		// Deep link (?search=...): reproduce the search on load. This also
-		// covers the no-JS form submit fallback, which round-trips through
-		// the same parameter.
-		if (data.query) runSearch();
 	});
 </script>
 
@@ -283,7 +292,8 @@
 							maxlength={MAX_QUERY_LENGTH}
 							placeholder="예: 임대차 계약에서 세입자 보호"
 							data-testid="semantic-search-input"
-							class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
+							disabled={isLoading}
+							class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
 						/>
 					</div>
 					<button
@@ -293,7 +303,7 @@
 						class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{#if isLoading}
-							<FontAwesomeIcon icon={faSpinner} class="mr-2 h-4 w-4 animate-spin" />
+							<FontAwesomeIcon icon={faWandMagicSparkles} class="mr-2 h-4 w-4 lc-wand-glint" />
 							검색 중
 						{:else}
 							검색
@@ -304,23 +314,24 @@
 
 			{#if isLoading}
 				<div
-					class="lc-loading-track mt-3 h-1 w-full overflow-hidden rounded-full"
+					class="mt-3 w-full"
 					role="status"
 					aria-live="polite"
+					data-testid="semantic-search-loading-track"
 				>
 					<span class="sr-only">의미 검색 중...</span>
-					<div class="lc-loading-fill loading-slide h-full w-1/3 rounded-full"></div>
+					<WandSparkleLoader variant="sweep" />
 				</div>
 			{/if}
 		</section>
 
-		{#if error}
+		{#if displayError}
 			<div class="mb-6" data-testid="semantic-search-error">
-				<Alert type="error" message={error} onDismiss={() => (error = null)} />
+				<Alert type="error" message={displayError} onDismiss={dismissError} />
 			</div>
 		{/if}
 
-		{#if hasSearched && isFallbackMode && response}
+		{#if hasQuery && isFallbackMode && response}
 			<div
 				class="lc-banner-warning mb-6 rounded-xl border p-4 shadow-sm"
 				data-testid="semantic-search-fallback-banner"
@@ -345,17 +356,17 @@
 			data-testid="semantic-search-results-region"
 		>
 			<h2 id="semantic-search-results-heading" class="sr-only">의미 검색 결과</h2>
-			{#if isLoading && !hasSearched}
+			{#if isLoading && !hasQuery}
 				<div
 					class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
 					data-testid="semantic-search-loading-state"
 				>
-					<div class="lc-empty-state-icon mb-6 inline-block rounded-full p-6">
-						<FontAwesomeIcon icon={faSpinner} class="lc-text-dim h-16 w-16 animate-spin" />
+					<div class="mb-6 inline-block">
+						<WandSparkleLoader />
 					</div>
 					<p class="lc-text-secondary text-sm">법률안을 읽고 의미를 분석하는 중입니다...</p>
 				</div>
-			{:else if hasSearched && !isLoading && response && response.results.length === 0}
+			{:else if hasQuery && !isLoading && response && response.results.length === 0}
 				<div
 					class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
 					data-testid="semantic-search-empty-state"
@@ -366,7 +377,7 @@
 					<h3 class="lc-text-primary mb-3 text-2xl font-bold">검색 결과가 없습니다</h3>
 					<p class="lc-text-secondary text-sm">다른 표현으로 다시 검색해보세요.</p>
 				</div>
-			{:else if hasSearched && response && response.results.length > 0}
+			{:else if hasQuery && response && response.results.length > 0}
 				<p class="lc-text-secondary mb-3 text-sm" data-testid="semantic-search-results-summary">
 					<span class="lc-text-primary font-semibold">{response.query}</span>
 					에 대한 {isFallbackMode ? '키워드' : '의미'} 검색 결과
@@ -449,7 +460,7 @@
 						전체 입법예고에서 키워드 검색하기
 					</a>
 				</div>
-			{:else if !hasSearched}
+			{:else if !hasQuery}
 				<div
 					class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
 					data-testid="semantic-search-initial-state"
@@ -460,7 +471,8 @@
 					<h3 class="lc-text-primary mb-3 text-2xl font-bold">무엇이든 물어보세요</h3>
 					<p class="lc-text-secondary text-sm">아래 예시처럼 일상 언어로 질문해 보세요.</p>
 					<div class="mt-5 flex flex-wrap justify-center gap-2">
-						{#each EXAMPLE_QUERIES as example (example)}
+						<!-- Drawn server-side: the SSR HTML already shows exactly these chips. -->
+						{#each data.exampleQueries as example (example)}
 							<button
 								type="button"
 								class="lc-button-neutral rounded-lg border px-3 py-2 text-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
