@@ -16,12 +16,16 @@
 	import type { CrawlingTransparencyData } from '$lib/types/api';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	let transparency = $derived(data.transparency as CrawlingTransparencyData);
 	let fetchedAt = $derived(data.fetchedAt);
 	let loadError = $derived(data.loadError);
+	// Canonical stays on the clean route: filter params are not indexed separately.
+	let pageUrl = $derived(page.url.origin + page.url.pathname);
 
 	let countdown = $state(0);
 	let isRetrying = $state(false);
@@ -78,13 +82,12 @@
 	};
 </script>
 
-<svelte:head>
-	<title>LawCast - 투명성 정보</title>
-	<meta
-		name="description"
-		content="LawCast의 크롤링 소스, 수집 데이터, 의안 이관 흐름 등 운영 투명성 정보입니다."
-	/>
-</svelte:head>
+<SeoHead
+	title="투명성 정보"
+	description="LawCast의 크롤링 소스, 수집 데이터, 의안 이관 흐름 등 운영 투명성 정보입니다."
+	url={pageUrl}
+	keywords="크롤링 투명성, 데이터 수집, 입법예고 수집 경로, 국회 데이터, 운영 투명성"
+/>
 
 <div class="page-shell">
 	<Header />

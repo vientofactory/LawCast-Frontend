@@ -24,12 +24,16 @@
 	import type { ProposalStatisticsData, ProposalStatisticsGranularity } from '$lib/types/api';
 	import { formatDateTimeKST, downloadBlob } from '$lib/utils/helpers';
 	import { SvelteDate } from 'svelte/reactivity';
+	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	let statistics = $derived(data.statistics as ProposalStatisticsData);
 	let fetchedAt = $derived(data.fetchedAt);
 	let loadError = $derived(data.loadError);
+	// Canonical stays on the clean route: filter params are not indexed separately.
+	let pageUrl = $derived(page.url.origin + page.url.pathname);
 
 	let chartCanvas: HTMLCanvasElement | null = $state(null);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -394,19 +398,12 @@
 
 <svelte:window onclick={handleClickOutsideExportMenu} />
 
-<svelte:head>
-	<title>LawCast - 법률안 발의 통계</title>
-	<meta
-		name="description"
-		content="국회 법률안 발의 통계를 일별, 주별, 월별로 조회하고 그래프로 시각화합니다."
-	/>
-	<meta property="og:type" content="website" />
-	<meta property="og:title" content="LawCast - 법률안 발의 통계" />
-	<meta
-		property="og:description"
-		content="국회 법률안 발의 통계를 일별, 주별, 월별로 조회하고 그래프로 시각화합니다."
-	/>
-</svelte:head>
+<SeoHead
+	title="법률안 발의 통계"
+	description="국회 법률안 발의 통계를 일별, 주별, 월별로 조회하고 그래프로 시각화합니다."
+	url={pageUrl}
+	keywords="법률안 발의 통계, 국회 발의 통계, 법안 통계, 입법 통계, 발의 건수 통계"
+/>
 
 <div class="page-shell">
 	<Header />

@@ -6,6 +6,7 @@
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -110,14 +111,12 @@
 	}
 </script>
 
-<svelte:head>
-	<title>토론 모아보기 | LawCast</title>
-	<link rel="canonical" href={`${currentUrl.origin}/discussions`} />
-	<meta
-		name="description"
-		content="법률안별로 흩어진 익명 토론 스레드를 한 곳에서 모아 찾아볼 수 있습니다."
-	/>
-</svelte:head>
+<SeoHead
+	title="토론 모아보기"
+	description="법률안별로 흩어진 익명 토론 스레드를 한 곳에서 모아 찾아볼 수 있습니다."
+	url={`${currentUrl.origin}/discussions`}
+	keywords="법률안 토론, 입법예고 토론, 국회 법안 토론, 익명 토론, 토론 스레드"
+/>
 
 <div class="page-shell">
 	<Header />

@@ -3,10 +3,13 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faScaleBalanced, faServer, faDesktop } from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
+	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	let { backendPackages, frontendPackages } = $derived(data);
+	let pageUrl = $derived(page.url.origin + page.url.pathname);
 
 	const licenseBadgeStyle: Record<string, string> = {
 		MIT: 'lc-chip-success',
@@ -22,24 +25,12 @@
 	}
 </script>
 
-<svelte:head>
-	<title>LawCast - 라이선스</title>
-	<meta
-		name="description"
-		content="LawCast 프로젝트의 라이선스 고지 및 오픈소스 라이선스 안내 페이지입니다."
-	/>
-	<meta property="og:type" content="website" />
-	<meta property="og:title" content="LawCast - 라이선스" />
-	<meta
-		property="og:description"
-		content="LawCast 프로젝트의 라이선스 고지 및 오픈소스 라이선스 안내 페이지입니다."
-	/>
-	<meta name="twitter:title" content="LawCast - 라이선스" />
-	<meta
-		name="twitter:description"
-		content="LawCast 프로젝트의 라이선스 고지 및 오픈소스 라이선스 안내 페이지입니다."
-	/>
-</svelte:head>
+<SeoHead
+	title="라이선스"
+	description="LawCast 프로젝트의 라이선스 고지 및 오픈소스 라이선스 안내 페이지입니다."
+	url={pageUrl}
+	keywords="라이선스, 오픈소스 라이선스, OSS 라이선스, 라이선스 고지, 법적 고지"
+/>
 
 <div class="page-shell">
 	<Header />

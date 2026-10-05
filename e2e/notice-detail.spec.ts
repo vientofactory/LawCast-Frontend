@@ -132,6 +132,30 @@ test.describe('Notice Detail Page', () => {
 		await expect(jsonLd).toBeAttached();
 	});
 
+	test('detail page references a rendered OG image', async ({ page, request }) => {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
+			test.skip(true, 'No notices available');
+			return;
+		}
+
+		await notice.link.click();
+
+		const ogImage = page.locator('meta[property="og:image"]');
+		await expect(ogImage).toHaveCount(1);
+		const imageUrl = (await ogImage.getAttribute('content')) ?? '';
+		expect(imageUrl).toMatch(/\/notices\/\d+\/og\.png$/);
+
+		// The referenced endpoint must answer with a real PNG for this bill.
+		const response = await request.get(imageUrl);
+		expect(response.status()).toBe(200);
+		expect(response.headers()['content-type']).toBe('image/png');
+		const bytes = await response.body();
+		expect(bytes.subarray(0, 8)).toEqual(
+			Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+		);
+	});
+
 	test('renders facts, proposal reason, timeline and archive download sections', async ({
 		page
 	}) => {

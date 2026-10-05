@@ -10,6 +10,7 @@
 	import { extractProposerFromSubject } from '$lib/utils/proposer';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { env } from '$env/dynamic/public';
 	import { buildSemanticSearchHref, isSemanticSearchEnabled } from '$lib/utils/semantic-search';
 	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
@@ -155,8 +156,8 @@
 	);
 	let pageTitle = $derived(
 		isDigestContext
-			? '신규 감지 항목 모아보기 - LawCast'
-			: `전체 입법예고${activeSearch ? ` "${activeSearch}" 검색 결과` : ''}${countLabel} - LawCast`
+			? '신규 감지 항목 모아보기'
+			: `전체 입법예고${activeSearch ? ` "${activeSearch}" 검색 결과` : ''}${countLabel}`
 	);
 	let pageDescription = $derived(
 		activeSearch
@@ -387,18 +388,12 @@
 	}
 </script>
 
-<svelte:head>
-	<title>{pageTitle}</title>
-	<link rel="canonical" href={canonicalUrl} />
-	<meta name="description" content={pageDescription} />
-	<meta name="keywords" content={pageKeywords} />
-	<meta property="og:type" content="website" />
-	<meta property="og:url" content={canonicalUrl} />
-	<meta property="og:title" content={pageTitle} />
-	<meta property="og:description" content={pageDescription} />
-	<meta name="twitter:title" content={pageTitle} />
-	<meta name="twitter:description" content={pageDescription} />
-</svelte:head>
+<SeoHead
+	title={pageTitle}
+	description={pageDescription}
+	url={canonicalUrl}
+	keywords={pageKeywords}
+/>
 
 <div class="page-shell">
 	<Header />

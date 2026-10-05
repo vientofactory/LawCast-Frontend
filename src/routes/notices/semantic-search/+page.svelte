@@ -3,6 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { navigating, page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
@@ -43,9 +44,7 @@
 	// the title, description and keywords. `?search=` stays out of the canonical
 	// URL the same way /notices canonicalizes its filtered views — the query
 	// still travels through every share-facing tag below.
-	let pageTitle = $derived(
-		hasQuery ? `"${data.query}" 의미 검색 결과 - LawCast` : '의미 검색 - LawCast'
-	);
+	let pageTitle = $derived(hasQuery ? `"${data.query}" 의미 검색 결과` : '의미 검색');
 	let pageUrl = $derived(`${page.url.origin}${page.url.pathname}`);
 	let pageDescription = $derived(
 		hasQuery
@@ -262,18 +261,7 @@
 	});
 </script>
 
-<svelte:head>
-	<title>{pageTitle}</title>
-	<link rel="canonical" href={pageUrl} />
-	<meta name="description" content={pageDescription} />
-	<meta name="keywords" content={pageKeywords} />
-	<meta property="og:type" content="website" />
-	<meta property="og:url" content={pageUrl} />
-	<meta property="og:title" content={pageTitle} />
-	<meta property="og:description" content={pageDescription} />
-	<meta name="twitter:title" content={pageTitle} />
-	<meta name="twitter:description" content={pageDescription} />
-</svelte:head>
+<SeoHead title={pageTitle} description={pageDescription} url={pageUrl} keywords={pageKeywords} />
 
 <svelte:window onclick={handleWindowClick} />
 

@@ -26,6 +26,8 @@
 	} from '$lib/types/api';
 	import { NoticeChangeSource } from '$lib/types/change-source';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 
 	let {
 		data
@@ -58,6 +60,11 @@
 	let changes = $derived(data.changes);
 	let summary = $derived(data.summary);
 	let filters = $derived(data.filters);
+	// Canonical stays on the clean route: filtered views are not indexed separately.
+	let pageUrl = $derived(page.url.origin + page.url.pathname);
+	let pageDescription = '처음 등록된 기록을 제외하고 실제로 달라진 내용만 모아 보여줍니다.';
+	let pageKeywords =
+		'입법예고 변경 내역, 법안 변경 이력, 스냅샷 비교, 변경 사항 추적, 국회 입법예고 변경';
 	let digestContext = $derived(data.digestContext);
 	let loadError = $derived(data.loadError);
 	let currentPage = $derived(changes.page || 1);
@@ -334,13 +341,12 @@
 	}
 </script>
 
-<svelte:head>
-	<title>변경 내역 모아보기 - LawCast</title>
-	<meta
-		name="description"
-		content="처음 등록된 기록을 제외하고 실제로 달라진 내용만 모아 보여줍니다."
-	/>
-</svelte:head>
+<SeoHead
+	title="변경 내역 모아보기"
+	description={pageDescription}
+	url={pageUrl}
+	keywords={pageKeywords}
+/>
 
 <div class="page-shell">
 	<Header />

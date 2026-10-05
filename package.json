@@ -1,6 +1,6 @@
 {
 	"name": "lawcast-frontend",
-	"version": "1.7.0",
+	"version": "1.8.0",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,
@@ -35,6 +35,8 @@
 	},
 	"homepage": "https://github.com/vientofactory/Lawcast-Frontend#readme",
 	"dependencies": {
+		"@cf-wasm/resvg": "^0.4.0",
+		"@cf-wasm/satori": "^0.4.2",
 		"@fortawesome/fontawesome-svg-core": "^7.1.0",
 		"@fortawesome/free-brands-svg-icons": "^7.1.0",
 		"@fortawesome/free-solid-svg-icons": "^7.1.0",
@@ -59,6 +61,7 @@
 		"@tailwindcss/vite": "^4.1.14",
 		"@types/html-minifier-terser": "^7.0.2",
 		"@types/node": "^24.0.0",
+		"@types/react": "^19.3.0",
 		"eslint": "^10.0.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.12.4",

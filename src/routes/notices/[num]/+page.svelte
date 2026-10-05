@@ -5,6 +5,7 @@
 	import { openExternalLink } from '$lib/utils/helpers';
 	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { onDestroy, onMount, tick } from 'svelte';
 	import NoticeChangeTimeline from '$lib/components/NoticeChangeTimeline.svelte';
 	import { fade, slide } from 'svelte/transition';
@@ -144,7 +145,7 @@
 	}
 
 	let displayContent = $derived(buildDisplayContentFromDetail(detail));
-	let pageTitle = $derived(`${displayContent.title} - 제안이유 및 주요내용 원문 | LawCast`);
+	let pageTitle = $derived(`${displayContent.title} - 제안이유 및 주요내용 원문`);
 	let pageDescription = $derived(
 		buildExcerpt(
 			aiSummaryEnabled
@@ -653,23 +654,22 @@
 	}
 </script>
 
+<SeoHead
+	title={pageTitle}
+	description={pageDescription}
+	url={pageUrl}
+	keywords={pageKeywords}
+	type="article"
+	image={`${currentUrl.origin}/notices/${detail.notice.num}/og.png`}
+/>
+
 <svelte:head>
-	<title>{pageTitle}</title>
-	<link rel="canonical" href={pageUrl} />
-	<meta name="description" content={pageDescription} />
-	<meta name="keywords" content={pageKeywords} />
-	<meta property="og:type" content="article" />
-	<meta property="og:url" content={pageUrl} />
-	<meta property="og:title" content={pageTitle} />
-	<meta property="og:description" content={pageDescription} />
 	{#if publishedTime}
 		<meta property="article:published_time" content={publishedTime} />
 	{/if}
 	{#if modifiedTime}
 		<meta property="article:modified_time" content={modifiedTime} />
 	{/if}
-	<meta name="twitter:title" content={pageTitle} />
-	<meta name="twitter:description" content={pageDescription} />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 	{@html `<script type="application/ld+json">${articleJsonLd}<` + `/script>`}
 </svelte:head>
