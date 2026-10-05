@@ -328,18 +328,6 @@
 					</button>
 				</div>
 			</form>
-
-			{#if isLoading}
-				<div
-					class="mt-3 w-full"
-					role="status"
-					aria-live="polite"
-					data-testid="semantic-search-loading-track"
-				>
-					<span class="sr-only">의미 검색 중...</span>
-					<WandSparkleLoader variant="sweep" />
-				</div>
-			{/if}
 		</section>
 
 		{#if displayError}
@@ -373,7 +361,7 @@
 			data-testid="semantic-search-results-region"
 		>
 			<h2 id="semantic-search-results-heading" class="sr-only">의미 검색 결과</h2>
-			{#if isLoading && !hasQuery}
+			{#if isLoading}
 				<div
 					class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
 					data-testid="semantic-search-loading-state"
