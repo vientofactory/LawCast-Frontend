@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { expectHeadMetadata } from './helpers/head-metadata';
 
 test.describe('Notices List Page', () => {
 	test.beforeEach(async ({ page }) => {
@@ -12,6 +13,18 @@ test.describe('Notices List Page', () => {
 
 	test('displays the page title', async ({ page }) => {
 		await expect(page).toHaveTitle(/LawCast/);
+	});
+
+	test('head metadata follows the active search query', async ({ page }) => {
+		// Result view: the head names the query that produced these results...
+		const query = '법';
+		await page.goto(`/notices?search=${encodeURIComponent(query)}`);
+		await expectHeadMetadata(page, { query, canonical: /\/notices$/ });
+
+		// ...while the clean listing keeps the generic copy: no query leaks.
+		await page.goto('/notices');
+		await expectHeadMetadata(page, { canonical: /\/notices$/ });
+		await expect(page).not.toHaveTitle(/검색 결과/);
 	});
 
 	test('filter form is visible', async ({ page }) => {
