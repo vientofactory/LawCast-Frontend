@@ -22,12 +22,16 @@
 	import type { PageData } from './$types';
 	import type { OllamaHealthStatus, IsDoneSyncStatus, CrawlerStatus } from '$lib/types/api';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	let stats = $derived(data.stats as import('$lib/types/api').SystemStats);
 	let fetchedAt = $derived(data.fetchedAt);
 	let loadError = $derived(data.loadError);
+	// Canonical stays on the clean route: filter params are not indexed separately.
+	let pageUrl = $derived(page.url.origin + page.url.pathname);
 
 	let isRefreshing = $state(false);
 	let lastRefreshAt = $state(0);
@@ -333,24 +337,12 @@
 	}
 </script>
 
-<svelte:head>
-	<title>LawCast - 시스템 상태</title>
-	<meta
-		name="description"
-		content="LawCast 시스템 상태 대시보드입니다. 크롤러, 캐시, AI 요약 상태를 확인할 수 있습니다."
-	/>
-	<meta property="og:type" content="website" />
-	<meta property="og:title" content="LawCast - 시스템 상태" />
-	<meta
-		property="og:description"
-		content="LawCast 시스템 상태 대시보드입니다. 크롤러, 캐시, AI 요약 상태를 확인할 수 있습니다."
-	/>
-	<meta name="twitter:title" content="LawCast - 시스템 상태" />
-	<meta
-		name="twitter:description"
-		content="LawCast 시스템 상태 대시보드입니다. 크롤러, 캐시, AI 요약 상태를 확인할 수 있습니다."
-	/>
-</svelte:head>
+<SeoHead
+	title="시스템 상태"
+	description="LawCast 시스템 상태 대시보드입니다. 크롤러, 캐시, AI 요약 상태를 확인할 수 있습니다."
+	url={pageUrl}
+	keywords="시스템 상태, LawCast 상태, 크롤러 상태, 캐시 상태, AI 요약 상태, 대시보드"
+/>
 
 <div class="page-shell">
 	<Header />

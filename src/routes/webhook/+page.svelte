@@ -5,6 +5,11 @@
 	import { invalidateAll } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { warmupHashGuardWorker } from '$lib/hashguard-worker';
+	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
+
+	let pageUrl = $derived(page.url.origin + page.url.pathname);
+
 	async function handleWebhookRegistered() {
 		await invalidateAll();
 	}
@@ -18,28 +23,12 @@
 	});
 </script>
 
-<svelte:head>
-	<title>LawCast - 알림 설정 | 국회 입법예고 스냅샷 아카이브</title>
-	<meta
-		name="description"
-		content="LawCast 알림 설정 페이지. 디스코드 웹훅과 브라우저 웹 푸시로 국회 입법예고 변동사항을 실시간으로 받아보세요."
-	/>
-	<meta
-		name="keywords"
-		content="LawCast, 입법예고, 디스코드 웹훅, 웹 푸시, 브라우저 알림, 국회 법률안, 법안 모니터링, 입법예고 알림"
-	/>
-	<meta property="og:type" content="website" />
-	<meta property="og:title" content="LawCast - 알림 설정 | 국회 입법예고 스냅샷 아카이브" />
-	<meta
-		property="og:description"
-		content="LawCast 알림 설정 페이지. 디스코드 웹훅과 브라우저 웹 푸시로 국회 입법예고 변동사항을 실시간으로 받아보세요."
-	/>
-	<meta name="twitter:title" content="LawCast - 알림 설정 | 국회 입법예고 스냅샷 아카이브" />
-	<meta
-		name="twitter:description"
-		content="LawCast 알림 설정 페이지. 디스코드 웹훅과 브라우저 웹 푸시로 국회 입법예고 변동사항을 실시간으로 받아보세요."
-	/>
-</svelte:head>
+<SeoHead
+	title="알림 설정"
+	description="LawCast 알림 설정 페이지. 디스코드 웹훅과 브라우저 웹 푸시로 국회 입법예고 변동사항을 실시간으로 받아보세요."
+	url={pageUrl}
+	keywords="LawCast, 입법예고, 디스코드 웹훅, 웹 푸시, 브라우저 알림, 국회 법률안, 법안 모니터링, 입법예고 알림"
+/>
 
 <div class="page-shell">
 	<Header />

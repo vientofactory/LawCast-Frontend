@@ -4,6 +4,7 @@
 	import { isChallengeStatus, isUnderAttackReloadEnabled } from '$lib/utils/cloudflare-challenge';
 	import CloudflareChallengeRecovery from '$lib/components/CloudflareChallengeRecovery.svelte';
 	import Header from '$lib/components/Header.svelte';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faArrowLeft, faCompass, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 
@@ -24,8 +25,14 @@
 	let isChallengeRecoveryView = $state(false);
 </script>
 
+<SeoHead
+	title={isChallengeRecoveryView ? '보안 확인 중' : `${status} | ${title}`}
+	{description}
+	url={`${page.url.origin}${page.url.pathname}`}
+	keywords="404 페이지 없음, 입법예고 아카이브 오류, LawCast"
+/>
+
 <svelte:head>
-	<title>{isChallengeRecoveryView ? '보안 확인 중' : `${status} | ${title}`} - LawCast</title>
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 

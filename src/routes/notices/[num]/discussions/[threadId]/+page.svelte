@@ -2,6 +2,7 @@
 	import Header from '$lib/components/Header.svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { DiscussionThreadStatus } from '$lib/types/api';
@@ -416,22 +417,25 @@
 		currentUrl = page.url;
 	});
 
-	let pageTitle = $derived(`${thread.title} - 의안 "${detail.notice.subject}" 토론 | LawCast`);
+	let pageTitle = $derived(`${thread.title} - 의안 "${detail.notice.subject}" 토론`);
 	let pageUrl = $derived(currentUrl.origin + currentUrl.pathname);
+	let pageDescription = $derived(
+		`의안번호 ${data.noticeNum} (${detail.notice.subject})에 대한 토론 스레드입니다.`
+	);
+	let pageKeywords = $derived(
+		[detail.notice.subject, thread.title, '의안 토론', '법률안 토론', '토론 스레드', '입법예고']
+			.filter(Boolean)
+			.join(', ')
+	);
 </script>
 
-<svelte:head>
-	<title>{pageTitle}</title>
-	<link rel="canonical" href={pageUrl} />
-	<meta
-		name="description"
-		content={`의안번호 ${data.noticeNum} (${detail.notice.subject})에 대한 토론 스레드입니다.`}
-	/>
-	<meta property="og:title" content={pageTitle} />
-	<meta property="og:description" content={`의안번호 ${data.noticeNum} - ${thread.title}`} />
-	<meta property="og:type" content="article" />
-	<meta property="og:url" content={pageUrl} />
-</svelte:head>
+<SeoHead
+	title={pageTitle}
+	description={pageDescription}
+	url={pageUrl}
+	keywords={pageKeywords}
+	type="article"
+/>
 
 <div class="page-shell">
 	<Header />

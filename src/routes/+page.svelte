@@ -3,6 +3,7 @@
 	import Header from '$lib/components/Header.svelte';
 	import RecentNotices from '$lib/components/RecentNotices.svelte';
 	import RecentDiscussions from '$lib/components/RecentDiscussions.svelte';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { formatDate } from '$lib/utils/helpers';
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { page } from '$app/state';
@@ -50,6 +51,11 @@
 	);
 	let comparableChangeTotalLabel = $derived(`${comparableChangeTotal.toLocaleString('ko-KR')}건`);
 	let aiReviewModeLabel = $derived(aiSummaryEnabled ? 'AI 요약 검토' : '원문 중심 검토');
+	let pageTitle = $derived(
+		`국회 입법예고 스냅샷 아카이브${
+			archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''
+		}`
+	);
 	let pageDescription = $derived(
 		aiSummaryEnabled
 			? '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, AI 요약과 함께 빠르게 확인할 수 있습니다.'
@@ -110,30 +116,14 @@
 	);
 </script>
 
+<SeoHead
+	title={pageTitle}
+	description={pageDescription}
+	url={pageUrl}
+	keywords="LawCast, 입법예고, 국회 입법예고 알림, 국회 법률안, 법안 알림, 스냅샷 무결성 검증, 최초 상태 보존, 입법예고 아카이브, 법안 검색"
+/>
+
 <svelte:head>
-	<title
-		>LawCast - 국회 입법예고 스냅샷 아카이브{archiveTotalCount > 0
-			? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건`
-			: ''}</title
-	>
-	<link rel="canonical" href={pageUrl} />
-	<meta name="description" content={pageDescription} />
-	<meta
-		name="keywords"
-		content="LawCast, 입법예고, 국회 입법예고 알림, 국회 법률안, 법안 알림, 스냅샷 무결성 검증, 최초 상태 보존, 입법예고 아카이브, 법안 검색"
-	/>
-	<meta property="og:type" content="website" />
-	<meta property="og:url" content={pageUrl} />
-	<meta
-		property="og:title"
-		content={`LawCast - 국회 입법예고 스냅샷 아카이브${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
-	/>
-	<meta property="og:description" content={pageDescription} />
-	<meta
-		name="twitter:title"
-		content={`LawCast - 국회 입법예고 스냅샷 아카이브${archiveTotalCount > 0 ? ` | 전체 ${archiveTotalCount.toLocaleString('ko-KR')}건` : ''}`}
-	/>
-	<meta name="twitter:description" content={pageDescription} />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 	{@html `<script type="application/ld+json">${websiteJsonLd}<` + `/script>`}
 </svelte:head>
