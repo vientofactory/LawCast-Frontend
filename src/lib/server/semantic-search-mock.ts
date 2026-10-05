@@ -15,6 +15,7 @@ import type { SemanticSearchResponse } from '$lib/types/api';
  * - `레이트리밋` -> 429 with `Retry-After` (rate-limit overlay)
  * - `오류`       -> 500 (error alert)
  * - `않는`       -> empty result list (empty state)
+ * - `약한`       -> empty clear tier + one weak hit (reveal-button state)
  * - `키워드`     -> `keyword_fallback` response (fallback banner)
  * - anything else -> one sample result
  *
@@ -23,6 +24,7 @@ import type { SemanticSearchResponse } from '$lib/types/api';
 const RATE_LIMIT_MARKER = '레이트리밋';
 const ERROR_MARKER = '오류';
 const EMPTY_MARKER = '않는';
+const WEAK_MARKER = '약한';
 const FALLBACK_MARKER = '키워드';
 
 const RETRY_AFTER_SECONDS = 5;
@@ -34,6 +36,17 @@ const SAMPLE_RESULT: SemanticSearchResponse['results'][number] = {
 	section: '주요내용',
 	score: 0.586,
 	excerpt: '점유를 회복할 필요가 있는 경우에 임대인이 계약을 해지할 수 있도록 함.'
+};
+
+// Below CLEAR_SIMILARITY (0.45) but above the relatedness floor (0.25):
+// exactly the band the empty state hides behind its reveal button.
+const WEAK_RESULT: SemanticSearchResponse['weakResults'][number] = {
+	noticeNum: 2220901,
+	subject: '노후 주거지 재건축 촉진 법률안',
+	committee: '국토교통위원회',
+	section: '제안이유',
+	score: 0.31,
+	excerpt: '관련도가 낮아 기본 결과에는 표시되지 않는 검색 결과입니다.'
 };
 
 const FALLBACK_REASON = '의미 검색 엔진을 사용할 수 없어 키워드 검색 결과를 반환합니다.';
@@ -72,9 +85,10 @@ export function getMockSemanticSearchResponse(url: URL): Response | null {
 			{ status: 500 }
 		);
 	}
-
 	const fallback = query.includes(FALLBACK_MARKER);
-	const results = query.includes(EMPTY_MARKER) ? [] : [SAMPLE_RESULT];
+	const empty = query.includes(EMPTY_MARKER);
+	const weakOnly = query.includes(WEAK_MARKER);
+	const results = empty || weakOnly ? [] : [SAMPLE_RESULT];
 	const payload: SemanticSearchResponse = {
 		query,
 		mode: fallback ? 'keyword_fallback' : 'semantic',
@@ -82,7 +96,8 @@ export function getMockSemanticSearchResponse(url: URL): Response | null {
 		lastUpdateAt: null,
 		results: fallback
 			? results.map((result) => ({ ...result, score: null, section: null, excerpt: null }))
-			: results
+			: results,
+		weakResults: fallback ? [] : weakOnly ? [WEAK_RESULT] : []
 	};
 
 	return Response.json({ success: true, data: payload });

@@ -90,10 +90,9 @@ test.describe('Semantic Search loading animation', () => {
 
 		await fillAndSubmit(page, '전세 사기 피해자 구제');
 
-		// Mid-request: the full stage plus the rail sweep and button state are up...
+		// Mid-request: the stage scene and the button state are up (the rail-sweep
+		// track and sweep variant were removed by the loader simplification)...
 		await expect(page.getByTestId('wand-sparkle-stage')).toBeVisible();
-		await expect(page.getByTestId('wand-sparkle-sweep')).toBeVisible();
-		await expect(page.getByTestId('semantic-search-loading-track')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-loading-state')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-submit')).toContainText('검색 중');
 		await expect(page.getByTestId('semantic-search-submit')).toBeDisabled();
@@ -109,13 +108,11 @@ test.describe('Semantic Search loading animation', () => {
 		// Once results render, every piece of loading UI is gone again.
 		await expect(page.getByTestId('semantic-search-results-list')).toBeVisible({ timeout: 10000 });
 		await expect(page.getByTestId('wand-sparkle-stage')).toHaveCount(0);
-		await expect(page.getByTestId('wand-sparkle-sweep')).toHaveCount(0);
 		await expect(page.getByTestId('semantic-search-loading-state')).toHaveCount(0);
-		await expect(page.getByTestId('semantic-search-loading-track')).toHaveCount(0);
 		await expect(page.getByTestId('semantic-search-submit')).toHaveText('검색');
 	});
 
-	test('repeat search shows only the rail sweep mid-request and keeps the old results on screen', async ({
+	test('repeat search shows the loading stage mid-request and swaps in the new results', async ({
 		page
 	}) => {
 		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
@@ -123,29 +120,30 @@ test.describe('Semantic Search loading animation', () => {
 		await page.goto('/notices/semantic-search');
 		await hydrated;
 
-		// The first search completes normally so the repeat search has results to keep.
+		// The first search completes normally so the repeat search has a query on screen.
 		await fillAndSubmit(page, '전세 사기 피해자 구제');
 		await expect(page.getByTestId('semantic-search-results-list')).toBeVisible({ timeout: 10000 });
 
 		await delayRouteDataRequests(page, REQUEST_DELAY_MS);
 		await fillAndSubmit(page, '퇴근 후 카톡 업무 지시');
 
-		// Mid-request: only the sweep variant runs (no stage — a query is already
-		// on screen) and the previous results stay visible underneath it.
-		await expect(page.getByTestId('wand-sparkle-sweep')).toBeVisible();
-		await expect(page.getByTestId('semantic-search-loading-track')).toBeVisible();
+		// Mid-request: the loading state shows during EVERY in-flight search (the
+		// first-search-only gate was removed with the rail-sweep track), so the
+		// stage scene replaces the previous results while the repeat runs.
+		await expect(page.getByTestId('semantic-search-loading-state')).toBeVisible();
+		await expect(page.getByTestId('wand-sparkle-stage')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-submit')).toContainText('검색 중');
-		await expect(page.getByTestId('wand-sparkle-stage')).toHaveCount(0);
-		await expect(page.getByTestId('semantic-search-loading-state')).toHaveCount(0);
-		await expect(page.getByTestId('semantic-search-results-list')).toBeVisible();
+		await expect(page.getByTestId('semantic-search-submit')).toBeDisabled();
+		await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
 
-		// Completion swaps in the new results and clears the sweep.
+		// Completion swaps in the new results and clears the loader.
 		await expect(page.getByTestId('semantic-search-results-summary')).toContainText(
 			'퇴근 후 카톡 업무 지시',
 			{ timeout: 10000 }
 		);
-		await expect(page.getByTestId('wand-sparkle-sweep')).toHaveCount(0);
-		await expect(page.getByTestId('semantic-search-loading-track')).toHaveCount(0);
+		await expect(page.getByTestId('semantic-search-loading-state')).toHaveCount(0);
+		await expect(page.getByTestId('wand-sparkle-stage')).toHaveCount(0);
+		await expect(page.getByTestId('semantic-search-submit')).toHaveText('검색');
 	});
 
 	test('prefers-reduced-motion stops the animations but keeps the loader rendered', async ({
@@ -161,31 +159,34 @@ test.describe('Semantic Search loading animation', () => {
 		await fillAndSubmit(page, '전세 사기 피해자 구제');
 
 		await expect(page.getByTestId('wand-sparkle-stage')).toBeVisible();
-		await expect(page.getByTestId('wand-sparkle-sweep')).toBeVisible();
+		await expect(page.getByTestId('semantic-search-loading-state')).toBeVisible();
 
-		// Every animated part computes to no animation under the opt-out...
-		for (const selector of [
-			'.wand-sweep-group',
-			'.wand-sweep-glider',
-			'.wand-sweep-star',
-			'.spark'
-		]) {
-			expect(
-				await page
-					.locator(selector)
-					.first()
-					.evaluate((el) => getComputedStyle(el).animationName)
-			).toBe('none');
+		// Every animated part computes to an instantly-finished animation under the
+		// global reduced-motion override in app.css (0.01ms duration, one iteration)
+		// — Svelte hash-prefixes scoped keyframe names in dev builds, so the name
+		// itself is checked only for being present, not for a literal value.
+		for (const selector of ['.wand-sweep-group', '.wand-star', '.spark', '.dust']) {
+			const motion = await page
+				.locator(selector)
+				.first()
+				.evaluate((el) => {
+					const style = getComputedStyle(el);
+					const seconds = (value: string) =>
+						value.endsWith('ms') ? parseFloat(value) / 1000 : parseFloat(value);
+					return {
+						duration: seconds(style.animationDuration),
+						iterations: style.animationIterationCount,
+						name: style.animationName
+					};
+				});
+			expect(motion.name).not.toBe('none'); // the animation still exists; it just never moves
+			expect(motion.duration).toBeLessThanOrEqual(0.01);
+			expect(motion.iterations).toBe('1');
 		}
 
-		// ...while the scene itself stays rendered, with sparkles frozen on screen.
-		expect(
-			Number(
-				await page
-					.locator('.spark')
-					.first()
-					.evaluate((el) => getComputedStyle(el).opacity)
-			)
-		).toBeCloseTo(0.85);
+		// ...while the scene itself stays rendered for the in-flight search.
+		await expect(page.getByTestId('wand-sparkle-stage')).toBeVisible();
+		await expect(page.locator('.wand-handle')).toBeVisible();
+		await expect(page.getByTestId('semantic-search-submit')).toContainText('검색 중');
 	});
 });

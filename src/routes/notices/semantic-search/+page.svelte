@@ -18,7 +18,7 @@
 	import { semanticEngineHealth } from '$lib/api/client';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
-	import type { SemanticEngineHealthResponse } from '$lib/types/api';
+	import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '$lib/types/api';
 	import {
 		SEMANTIC_MAX_QUERY_LENGTH,
 		SEMANTIC_SEARCH_QUERY_PARAM,
@@ -116,6 +116,28 @@
 	});
 
 	let isFallbackMode = $derived(response?.mode === 'keyword_fallback');
+	// Weak-tier hits (below the engine's clear threshold, above its relatedness
+	// floor) stay hidden until asked for. The reveal is pinned to the exact
+	// response payload, so any new search starts hidden again without an effect.
+	// $state.raw keeps identity comparison honest ($state would wrap the payload
+	// in a proxy, so `revealedResponse === response` could never be true).
+	let revealedResponse = $state.raw<SemanticSearchResponse | null>(null);
+	let weakResults = $derived(response?.weakResults ?? []);
+	let showingWeak = $derived(
+		response !== null &&
+			revealedResponse === response &&
+			response.results.length === 0 &&
+			weakResults.length > 0
+	);
+	let displayedResults = $derived(showingWeak ? weakResults : (response?.results ?? []));
+
+	function revealWeakResults() {
+		revealedResponse = response;
+	}
+
+	function hideWeakResults() {
+		revealedResponse = null;
+	}
 	// The URL is the source of truth for the query: sharing or reloading the
 	// address reproduces the same search, and returning to this page restores
 	// whatever was last searched.
@@ -371,7 +393,7 @@
 					</div>
 					<p class="lc-text-secondary text-sm">법률안을 읽고 의미를 분석하는 중입니다...</p>
 				</div>
-			{:else if hasQuery && !isLoading && response && response.results.length === 0}
+			{:else if hasQuery && !isLoading && response && response.results.length === 0 && !showingWeak}
 				<div
 					class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
 					data-testid="semantic-search-empty-state"
@@ -379,15 +401,53 @@
 					<div class="lc-empty-state-icon mb-6 inline-block rounded-full p-6">
 						<FontAwesomeIcon icon={faMagnifyingGlass} class="lc-text-dim h-16 w-16" />
 					</div>
-					<h3 class="lc-text-primary mb-3 text-2xl font-bold">검색 결과가 없습니다</h3>
-					<p class="lc-text-secondary text-sm">다른 표현으로 다시 검색해보세요.</p>
+					{#if weakResults.length > 0}
+						<!-- Empty clear tier with a weak band behind it: the reveal
+						     stays an explicit user action, never automatic. -->
+						<h3 class="lc-text-primary mb-3 text-2xl font-bold">명확한 검색 결과가 없습니다</h3>
+						<p class="lc-text-secondary mb-4 text-sm">
+							관련도가 낮은 결과 {weakResults.length}건이 있어요. 확인하려면 아래 버튼을 눌러
+							주세요.
+						</p>
+						<button
+							type="button"
+							class="lc-button-neutral rounded-lg border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+							data-testid="semantic-search-show-weak"
+							onclick={revealWeakResults}
+						>
+							관련도가 낮은 결과 보기
+						</button>
+					{:else}
+						<h3 class="lc-text-primary mb-3 text-2xl font-bold">검색 결과가 없습니다</h3>
+						<p class="lc-text-secondary text-sm">다른 표현으로 다시 검색해보세요.</p>
+					{/if}
 				</div>
-			{:else if hasQuery && response && response.results.length > 0}
+			{:else if hasQuery && response && displayedResults.length > 0}
+				{#if showingWeak}
+					<div
+						class="lc-banner-warning mb-3 rounded-xl border p-3 shadow-sm"
+						data-testid="semantic-search-weak-banner"
+					>
+						<div class="flex flex-wrap items-center justify-between gap-2">
+							<p class="lc-text-secondary text-sm">
+								명확한 검색 결과가 없어 관련도가 낮은 결과를 표시하고 있습니다.
+							</p>
+							<button
+								type="button"
+								class="lc-button-neutral cursor-pointer rounded-lg border px-3 py-1.5 text-sm"
+								data-testid="semantic-search-hide-weak"
+								onclick={hideWeakResults}
+							>
+								숨기기
+							</button>
+						</div>
+					</div>
+				{/if}
 				<p class="lc-text-secondary mb-3 text-sm" data-testid="semantic-search-results-summary">
 					<span class="lc-text-primary font-semibold">{response.query}</span>
 					에 대한 {isFallbackMode ? '키워드' : '의미'} 검색 결과
 					<span class="lc-text-primary font-semibold"
-						>{response.results.length.toLocaleString('ko-KR')}</span
+						>{displayedResults.length.toLocaleString('ko-KR')}</span
 					>건
 				</p>
 				<div
@@ -395,7 +455,7 @@
 					class:opacity-85={isLoading}
 					data-testid="semantic-search-results-list"
 				>
-					{#each response.results as result (result.noticeNum)}
+					{#each displayedResults as result (result.noticeNum)}
 						<article
 							aria-labelledby="semantic-result-heading-{result.noticeNum}"
 							data-testid={`semantic-result-${result.noticeNum}`}

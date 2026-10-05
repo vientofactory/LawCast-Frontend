@@ -13,7 +13,8 @@ import { expectHeadMetadata } from './helpers/head-metadata';
  * `/api/notices/semantic-search` and `page.route` cannot stub it. Fixtures come from
  * `src/lib/server/semantic-search-mock.ts`, which selects a response from marker words in
  * the query — `레이트리밋` -> 429, `오류` -> 500, `않는` -> empty results,
- * `키워드` -> keyword fallback, anything else -> one sample result.
+ * `약한` -> empty clear tier + weak hit (reveal button), `키워드` -> keyword fallback,
+ * anything else -> one sample result.
  * The engine-status endpoint is still fetched by the browser and keeps its `page.route`
  * stubs below.
  */
@@ -280,6 +281,38 @@ test.describe('Semantic Search UI', () => {
 		await search(page, '존재하지 않는 질의어');
 
 		await expect(page.getByTestId('semantic-search-empty-state')).toBeVisible();
+		// No weak band in this response: the plain empty state, no reveal button.
+		await expect(page.getByTestId('semantic-search-show-weak')).toHaveCount(0);
+	});
+
+	test('hides weak results behind a reveal button when nothing is clear', async ({ page }) => {
+		// Deep link: the SSR page already carries the weak-only response. The health
+		// request gates the reveal click on hydration, same as the chips test — a
+		// click landing earlier is a silent no-op.
+		const hydrated = watchEngineHealth(page);
+		await page.goto(`/notices/semantic-search?search=${encodeURIComponent('약한 관련 결과 조회')}`);
+		await hydrated;
+
+		// Empty clear tier: the empty state offers the weak band explicitly.
+		await expect(page.getByTestId('semantic-search-empty-state')).toBeVisible();
+		const reveal = page.getByTestId('semantic-search-show-weak');
+		await expect(reveal).toBeVisible();
+		await expect(reveal).toContainText('관련도가 낮은 결과 보기');
+		await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
+
+		// Only a click surfaces the weak hits, flagged as low-relevance.
+		await reveal.click();
+		await expect(page.getByTestId('semantic-search-weak-banner')).toBeVisible();
+		const weakResult = page.getByTestId('semantic-result-2220901');
+		await expect(weakResult).toBeVisible();
+		await expect(weakResult).toContainText('유사도 31%');
+		await expect(page.getByTestId('semantic-search-empty-state')).toHaveCount(0);
+
+		// Hiding returns to the empty state with the reveal button.
+		await page.getByTestId('semantic-search-hide-weak').click();
+		await expect(page.getByTestId('semantic-search-empty-state')).toBeVisible();
+		await expect(page.getByTestId('semantic-search-show-weak')).toBeVisible();
+		await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
 	});
 
 	test('shows the keyword fallback banner for fallback responses', async ({ page }) => {
