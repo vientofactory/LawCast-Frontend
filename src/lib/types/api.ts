@@ -196,6 +196,9 @@ export interface SearchNoticesResult {
  * 의미(시맨틱) 검색 응답.
  * `keyword_fallback`은 백엔드가 의미 검색 엔진을 사용할 수 없을 때
  * 기존 키워드 검색으로 대체 응답한 상태이며 `fallbackReason`에 사유가 담긴다.
+ * `results`는 유사도가 기준 이상인 명확한 결과만, `weakResults`는 그 아래
+ * (무관함 기준 이상)의 약한 관련 결과로, 빈 결과 화면의 버튼으로만 표시한다.
+ * 엔진이 무관하다고 판단한 결과는 둘 어디에도 없다.
  */
 export type SemanticSearchMode = 'semantic' | 'keyword_fallback';
 
@@ -214,6 +217,7 @@ export interface SemanticSearchResponse {
 	fallbackReason: string | null;
 	lastUpdateAt: string | null;
 	results: SemanticSearchResultItem[];
+	weakResults: SemanticSearchResultItem[];
 }
 
 /**
