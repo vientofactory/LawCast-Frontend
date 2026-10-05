@@ -39,6 +39,22 @@
 	let response = $derived(data.search);
 	let loadError = $derived(data.loadError);
 	let hasQuery = $derived(data.query.length > 0);
+	// Head metadata: on a result view the query identifies the page, so it feeds
+	// the title, description and keywords. `?search=` stays out of the canonical
+	// URL the same way /notices canonicalizes its filtered views — the query
+	// still travels through every share-facing tag below.
+	let pageTitle = $derived(
+		hasQuery ? `"${data.query}" 의미 검색 결과 - LawCast` : '의미 검색 - LawCast'
+	);
+	let pageUrl = $derived(`${page.url.origin}${page.url.pathname}`);
+	let pageDescription = $derived(
+		hasQuery
+			? `"${data.query}" 질문에 대한 의미 검색 결과입니다. 법률안의 제안이유와 주요내용에서 의미가 가까운 입법예고를 찾아드립니다.`
+			: '일상 언어로 질문하면 법률안의 제안이유와 주요내용에서 의미가 비슷한 입법예고를 찾아드립니다.'
+	);
+	let pageKeywords = $derived(
+		`의미 검색, 시맨틱 검색, 입법예고 검색, 국회 법률안 검색, 법안 검색${hasQuery ? `, ${data.query}` : ''}`
+	);
 	// True while SvelteKit is rerunning the server load for a new ?search=,
 	// scoped to this route so navigating away does not read as a search.
 	let isLoading = $derived(
@@ -225,15 +241,16 @@
 </script>
 
 <svelte:head>
-	<title>의미 검색 - LawCast</title>
-	<meta
-		name="description"
-		content="일상 언어로 질문하면 법률안의 제안이유와 주요내용에서 의미가 비슷한 입법예고를 찾아드립니다."
-	/>
-	<meta
-		name="twitter:description"
-		content="일상 언어로 질문하면 법률안의 제안이유와 주요내용에서 의미가 비슷한 입법예고를 찾아드립니다."
-	/>
+	<title>{pageTitle}</title>
+	<link rel="canonical" href={pageUrl} />
+	<meta name="description" content={pageDescription} />
+	<meta name="keywords" content={pageKeywords} />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content={pageUrl} />
+	<meta property="og:title" content={pageTitle} />
+	<meta property="og:description" content={pageDescription} />
+	<meta name="twitter:title" content={pageTitle} />
+	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
 
 <svelte:window onclick={handleWindowClick} />

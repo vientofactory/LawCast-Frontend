@@ -136,10 +136,35 @@
 		})()
 	);
 
-	let pageDescription = $derived(
+	let basePageDescription = $derived(
 		aiSummaryEnabled
 			? '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.'
 			: '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고 원문을 확인할 수 있습니다.'
+	);
+	let basePageKeywords = $derived(
+		aiSummaryEnabled
+			? '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, AI 요약, 입법예고 아카이브, 법안 검색, 국회 입법예고 알림'
+			: '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, 입법예고 아카이브, 법안 검색, 국회 입법예고 알림'
+	);
+	// A search result view is shared and indexed under the query itself, so the
+	// active keyword feeds the title, description and keywords together instead
+	// of the generic archive copy.
+	let activeSearch = $derived(searchQuery.trim());
+	let countLabel = $derived(
+		archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''
+	);
+	let pageTitle = $derived(
+		isDigestContext
+			? '신규 감지 항목 모아보기 - LawCast'
+			: `전체 입법예고${activeSearch ? ` "${activeSearch}" 검색 결과` : ''}${countLabel} - LawCast`
+	);
+	let pageDescription = $derived(
+		activeSearch
+			? `"${activeSearch}" 검색 결과 ${archiveCount.toLocaleString('ko-KR')}건의 입법예고입니다. 제안이유와 주요내용${aiSummaryEnabled ? ', AI 요약,' : ''} 원문을 확인할 수 있습니다.`
+			: basePageDescription
+	);
+	let pageKeywords = $derived(
+		activeSearch ? `${basePageKeywords}, ${activeSearch}` : basePageKeywords
 	);
 
 	function addDays(base: Date, amount: number) {
@@ -363,31 +388,15 @@
 </script>
 
 <svelte:head>
-	<title>
-		{isDigestContext
-			? '신규 감지 항목 모아보기'
-			: `전체 입법예고 ${archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''}`}
-		- LawCast
-	</title>
+	<title>{pageTitle}</title>
 	<link rel="canonical" href={canonicalUrl} />
 	<meta name="description" content={pageDescription} />
-	<meta
-		name="keywords"
-		content={aiSummaryEnabled
-			? '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, AI 요약, 입법예고 아카이브, 법안 검색, 국회 입법예고 알림'
-			: '전체 입법예고, 국회 법률안 목록, 법안 원문 조회, 제안이유 및 주요내용, 입법예고 아카이브, 법안 검색, 국회 입법예고 알림'}
-	/>
+	<meta name="keywords" content={pageKeywords} />
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content={canonicalUrl} />
-	<meta
-		property="og:title"
-		content={`전체 입법예고${archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
-	/>
+	<meta property="og:title" content={pageTitle} />
 	<meta property="og:description" content={pageDescription} />
-	<meta
-		name="twitter:title"
-		content={`전체 입법예고${archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''} - LawCast`}
-	/>
+	<meta name="twitter:title" content={pageTitle} />
 	<meta name="twitter:description" content={pageDescription} />
 </svelte:head>
 

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { expectHeadMetadata } from './helpers/head-metadata';
 
 /**
  * Semantic search UI tests (flag-gated).
@@ -260,6 +261,19 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('semantic-search-initial-state')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
 		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBeNull();
+	});
+
+	test('head metadata names the query only on a result view', async ({ page }) => {
+		// Landing view: the tags exist once and stay query-free.
+		await page.goto('/notices/semantic-search');
+		await expectHeadMetadata(page, { canonical: /\/notices\/semantic-search$/ });
+		await expect(page).not.toHaveTitle(/검색 결과/);
+
+		// Result view: the same tags now echo the executed query.
+		const query = '임대차 계약에서 세입자 보호';
+		await search(page, query);
+		await expect(page.getByTestId('semantic-result-2220607')).toBeVisible();
+		await expectHeadMetadata(page, { query, canonical: /\/notices\/semantic-search$/ });
 	});
 
 	test('shows the empty state when nothing matches', async ({ page }) => {
