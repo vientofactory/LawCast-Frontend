@@ -30,6 +30,7 @@ function healthEnvelope() {
 	return {
 		success: true,
 		data: {
+			status: 'ready' as const,
 			indexedChunks: 93031,
 			lastUpdateAt: STAMP,
 			lastUpdateTriggeredAt: TRIGGERED_AT

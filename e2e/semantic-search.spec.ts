@@ -29,6 +29,7 @@ const TRIGGERED_AT = '2026-10-02T13:00:00+00:00';
 
 function healthEnvelope(
 	overrides: Partial<{
+		status: 'loading' | 'ready' | 'failed';
 		indexedChunks: number;
 		lastUpdateAt: string | null;
 		lastUpdateTriggeredAt: string | null;
@@ -37,6 +38,7 @@ function healthEnvelope(
 	return {
 		success: true,
 		data: {
+			status: 'ready' as const,
 			indexedChunks: 93031,
 			lastUpdateAt: STAMP,
 			lastUpdateTriggeredAt: TRIGGERED_AT,
@@ -347,6 +349,9 @@ test.describe('Semantic Search UI', () => {
 		const hydrated = watchEngineHealth(page);
 		await page.goto('/notices/semantic-search');
 
+		// A ready engine must not cover the search UI with the unavailable overlay.
+		await expect(page.getByTestId('semantic-search-unavailable-overlay')).toHaveCount(0);
+
 		// The widget sits in the corner without pushing any status content into
 		// the page flow; details appear only after the user opens it.
 		const status = page.getByTestId('semantic-search-engine-status');
@@ -438,6 +443,110 @@ test.describe('Semantic Search UI', () => {
 		await expect(statusError).toBeVisible();
 		await expect(statusError).toContainText('의미 검색 엔진 상태를 확인할 수 없습니다.');
 		await expect(page.getByTestId('semantic-search-engine-status-values')).toHaveCount(0);
+	});
+
+	// The search UI availability gate: a not-ready engine or an unfetchable
+	// status covers the form + results with an overlay telling the user that
+	// search is currently unavailable.
+	for (const status of ['loading', 'failed'] as const) {
+		test(`covers the search UI while the engine status is ${status}`, async ({ page }) => {
+			// Later registrations win, so each loop iteration re-stubs before its goto.
+			await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope({ status }) }));
+			await page.goto('/notices/semantic-search');
+
+			const overlay = page.getByTestId('semantic-search-unavailable-overlay');
+			await expect(overlay).toBeVisible();
+			await expect(overlay).toContainText('의미 검색을 사용할 수 없습니다');
+
+			// The overlay really sits on top of the form: every point the user
+			// aims at inside the form resolves to the overlay element.
+			const coversForm = await page.evaluate(() => {
+				const form = document.querySelector('[data-testid="semantic-search-form"]');
+				if (!form) return false;
+				const rect = form.getBoundingClientRect();
+				const hit = document.elementFromPoint(
+					rect.left + rect.width / 2,
+					rect.top + rect.height / 2
+				);
+				return hit?.closest('[data-testid="semantic-search-unavailable-overlay"]') !== null;
+			});
+			expect(coversForm).toBe(true);
+
+			// The covered form is inert: its input cannot take focus, so no
+			// keyboard-only path can submit a search behind the overlay.
+			const input = page.getByTestId('semantic-search-input');
+			await input.focus();
+			await expect(input).not.toBeFocused();
+		});
+	}
+
+	test('covers the search UI when the engine status cannot be fetched', async ({ page }) => {
+		await page.route(HEALTH_API, (route) =>
+			route.fulfill({
+				status: 503,
+				json: { statusCode: 503, message: '의미 검색 엔진 상태를 확인할 수 없습니다.' }
+			})
+		);
+		await page.goto('/notices/semantic-search');
+
+		const overlay = page.getByTestId('semantic-search-unavailable-overlay');
+		await expect(overlay).toBeVisible();
+		await expect(overlay).toContainText('지금은 의미 검색을 사용할 수 없습니다');
+		// The reason line carries the backend's status-fetch failure message.
+		await expect(overlay).toContainText('의미 검색 엔진 상태를 확인할 수 없습니다');
+	});
+	test('engine status dot shows green only when the engine is ready', async ({ page }) => {
+		const dot = page.getByTestId('semantic-search-engine-status-dot');
+		const overlay = page.getByTestId('semantic-search-unavailable-overlay');
+		// Both theme spellings of each dot color (app.css), so the assertion
+		// checks the rendered pixel rather than only the class name.
+		const SUCCESS_COLORS = ['rgb(22, 163, 74)', 'rgb(134, 239, 172)'];
+		const WARNING_COLORS = ['rgb(245, 158, 11)', 'rgb(251, 191, 36)'];
+		const DANGER_COLORS = ['rgb(185, 28, 28)', 'rgb(252, 165, 165)'];
+		const dotColor = () => dot.evaluate((el) => getComputedStyle(el).backgroundColor);
+		// The overlay only appears after the health fetch has settled, so it is
+		// the settle signal that stops the dot assertions from racing the
+		// pre-fetch initial state (which is amber for every status).
+		const assertSettledDot = async (expectedClass: RegExp, allowedColors: string[]) => {
+			await expect(overlay).toBeVisible();
+			await expect(dot).toHaveClass(expectedClass);
+			// The whole point of the fix: no other state may wear the green light.
+			expect(SUCCESS_COLORS).not.toContain(await dotColor());
+			expect(allowedColors).toContain(await dotColor());
+		};
+
+		// Ready: the only state allowed to show green. (No overlay appears here,
+		// so reaching lc-dot-success from the amber initial state is itself the
+		// proof that the fetch settled.)
+		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+		await page.goto('/notices/semantic-search');
+		await expect(dot).toHaveClass(/lc-dot-success/);
+		expect(SUCCESS_COLORS).toContain(await dotColor());
+		await expect(overlay).toHaveCount(0);
+
+		// Engine still loading: amber pulse, never green.
+		await page.route(HEALTH_API, (route) =>
+			route.fulfill({ json: healthEnvelope({ status: 'loading' }) })
+		);
+		await page.goto('/notices/semantic-search');
+		await assertSettledDot(/lc-dot-warning/, WARNING_COLORS);
+
+		// Engine failed: red, never green.
+		await page.route(HEALTH_API, (route) =>
+			route.fulfill({ json: healthEnvelope({ status: 'failed' }) })
+		);
+		await page.goto('/notices/semantic-search');
+		await assertSettledDot(/lc-text-danger/, DANGER_COLORS);
+
+		// Status unfetchable: red, never green.
+		await page.route(HEALTH_API, (route) =>
+			route.fulfill({
+				status: 503,
+				json: { statusCode: 503, message: '의미 검색 엔진 상태를 확인할 수 없습니다.' }
+			})
+		);
+		await page.goto('/notices/semantic-search');
+		await assertSettledDot(/lc-text-danger/, DANGER_COLORS);
 	});
 
 	test('rate-limit overlay counts down and re-enables the retry button', async ({ page }) => {
