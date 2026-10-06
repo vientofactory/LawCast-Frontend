@@ -1,4 +1,5 @@
 import { isRateLimitError, getRateLimitRetryAfter } from '$lib/api/client';
+import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
 
 export interface LoadErrorPayload {
 	message: string;
@@ -24,8 +25,8 @@ export function toLoadErrorPayload(error: unknown, fallbackMessage: string): Loa
 		};
 	}
 
-	const message = error instanceof Error && error.message ? error.message : fallbackMessage;
-	return { message };
+	// Raw infrastructure text (e.g. "Bad Gateway") must not reach the banner.
+	return { message: toUserFacingErrorMessage(error, fallbackMessage) };
 }
 
 /**

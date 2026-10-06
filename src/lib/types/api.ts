@@ -8,6 +8,8 @@ export interface Notice {
 	committee: string;
 	link: string;
 	isDone?: boolean;
+	/** Raw notice period (e.g. "2026-06-14 ~ 2026-06-28"); present when the endpoint provides it. */
+	noticePeriod?: string | null;
 	archiveStartedAt?: string;
 	lastUpdatedAt?: string;
 	aiSummary?: string | null;

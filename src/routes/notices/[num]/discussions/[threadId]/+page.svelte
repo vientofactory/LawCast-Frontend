@@ -21,6 +21,7 @@
 		CreateCommentPayload
 	} from '$lib/types/api';
 	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '$lib/api/client';
+	import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
 	import ThreadDetailView from '$lib/components/discussions/ThreadDetailView.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import type { Component, ComponentProps } from 'svelte';
@@ -174,7 +175,8 @@
 
 	function discussionErrorMessage(error: unknown, fallback: string): string {
 		if (!isRateLimitError(error)) {
-			return error instanceof Error ? error.message : fallback;
+			// Raw error text is logged by callers; the banner gets Korean guidance only.
+			return toUserFacingErrorMessage(error, fallback);
 		}
 
 		rateLimitRemaining = getRateLimitRetryAfter(error);
@@ -533,6 +535,7 @@
 
 		{#if errorMessage}
 			<div
+				data-testid="discussion-error-banner"
 				class="lc-banner-danger mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400"
 			>
 				<FontAwesomeIcon icon={faCircleExclamation} class="h-4 w-4" />
