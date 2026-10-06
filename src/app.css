@@ -77,8 +77,8 @@
 	--lc-border-strong: rgba(37, 99, 235, 0.24);
 	--lc-text-primary: #0f172a;
 	--lc-text-secondary: #475569;
-	--lc-text-muted: #64748b;
-	--lc-text-dim: #94a3b8;
+	--lc-text-muted: #5a6675;
+	--lc-text-dim: #626e7f;
 	--lc-text-accent: #1d4ed8;
 	--lc-shadow-soft: none;
 	--lc-shadow-card: none;
@@ -1357,13 +1357,14 @@ html[data-theme='dark'] .lc-banner-error-soft {
 }
 
 html[data-theme='dark'] .lc-button-primary {
-	background: #0891b2;
-	color: #e2e8f0;
+	/* #0e7490 + white clears WCAG AA (5.36:1); the old #0891b2 + #e2e8f0 pair failed at 2.99:1. */
+	background: #0e7490;
+	color: #ffffff;
 	box-shadow: 0 20px 42px rgba(8, 145, 178, 0.28);
 }
 
 html[data-theme='dark'] .lc-button-primary:hover {
-	background: #0e7490;
+	background: #155e75;
 	box-shadow: 0 22px 46px rgba(8, 145, 178, 0.34);
 }
 

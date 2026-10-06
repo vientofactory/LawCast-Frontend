@@ -63,6 +63,19 @@ test.describe('Discussion UI', () => {
 	test.skip(!mockEnabled, 'Discussion UI tests require DIFFCHAIN_UI_MOCK=1.');
 
 	test('shows discussion list and opens a thread from the notice detail page', async ({ page }) => {
+		// Hermetic fixture for the mock-gated suite: mock mode has no push backend,
+		// so stub the push config that gates the quote-push settings control.
+		await page.route('**/api/push/public-key', (route) =>
+			route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					success: true,
+					data: { enabled: true, publicKey: 'BFakeE2EVapidPublicKey' }
+				})
+			})
+		);
+
 		await page.goto(`/notices/${noticeNum}`);
 
 		const discussions = page.getByTestId('notice-discussions');
@@ -242,6 +255,72 @@ test.describe('Discussion UI', () => {
 			password: '1234',
 			content: '실효성을 검증하기 위한 첫 발언입니다.'
 		});
+	});
+
+	test('comment submit failure shows Korean guidance instead of raw gateway text', async ({
+		page
+	}) => {
+		await page.route(`**/api/discussions/threads/${threadId}/comments`, (route) =>
+			route.fulfill({ status: 502, contentType: 'text/plain', body: 'Bad Gateway' })
+		);
+
+		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+		await expect(page.getByTestId('discussion-reply-form')).toBeVisible();
+		await page.getByTestId('discussion-reply-nickname').fill('테스터');
+		await page.getByTestId('discussion-reply-password').fill('1234');
+		await page.getByTestId('discussion-reply-content').fill('재시도할 의견입니다.');
+		await page.getByTestId('discussion-reply-submit').click();
+
+		// The banner must show Korean guidance, never the raw "Bad Gateway" text.
+		const banner = page.getByTestId('discussion-error-banner');
+		await expect(banner).toBeVisible();
+		await expect(banner).toContainText('의견 등록 중 오류가 발생했습니다.');
+		await expect(banner).toContainText('잠시 후 다시 시도해주세요');
+		await expect(banner).not.toContainText('Bad Gateway');
+		// The draft stays in the form so the user can retry.
+		await expect(page.getByTestId('discussion-reply-content')).toHaveValue('재시도할 의견입니다.');
+	});
+
+	test('comment submit network failure maps to a Korean connection message', async ({ page }) => {
+		await page.route(`**/api/discussions/threads/${threadId}/comments`, (route) =>
+			route.abort('failed')
+		);
+
+		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+		await expect(page.getByTestId('discussion-reply-form')).toBeVisible();
+		await page.getByTestId('discussion-reply-nickname').fill('테스터');
+		await page.getByTestId('discussion-reply-password').fill('1234');
+		await page.getByTestId('discussion-reply-content').fill('네트워크 오류 검증 의견입니다.');
+		await page.getByTestId('discussion-reply-submit').click();
+
+		const banner = page.getByTestId('discussion-error-banner');
+		await expect(banner).toBeVisible();
+		await expect(banner).toContainText('네트워크 연결을 확인한 후 다시 시도해주세요');
+		await expect(banner).not.toContainText('Failed to fetch');
+	});
+
+	test('new thread failure shows Korean guidance instead of raw gateway text', async ({ page }) => {
+		await page.route(`**/api/notices/${noticeNum}/discussions`, async (route) => {
+			if (route.request().method() !== 'POST') {
+				await route.fallback();
+				return;
+			}
+			await route.fulfill({ status: 502, contentType: 'text/plain', body: 'Bad Gateway' });
+		});
+
+		await page.goto(`/notices/${noticeNum}`);
+		await expect(page.getByTestId('discussion-new-thread-button')).toBeVisible();
+		await openNewThreadModal(page);
+		await page.getByTestId('discussion-new-thread-title').fill('오류 메시지 검증 토론');
+		await page.getByTestId('discussion-new-thread-password').fill('1234');
+		await page.getByTestId('discussion-new-thread-content').fill('첫 발언입니다.');
+		await page.getByTestId('discussion-new-thread-submit').click();
+
+		const modalError = page.getByTestId('discussion-new-thread-error');
+		await expect(modalError).toBeVisible();
+		await expect(modalError).toContainText('토론 개설 중 오류가 발생했습니다.');
+		await expect(modalError).toContainText('잠시 후 다시 시도해주세요');
+		await expect(modalError).not.toContainText('Bad Gateway');
 	});
 });
 

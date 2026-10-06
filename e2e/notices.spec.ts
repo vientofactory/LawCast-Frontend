@@ -944,3 +944,19 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 	});
 });
+
+test.describe('Notice deadline chips on list cards (mock fixtures)', () => {
+	test.skip(!mockEnabled, 'Pinned to mock notice numbers; requires DIFFCHAIN_UI_MOCK=1.');
+
+	test('cards show D-day and ended deadline chips parsed from the notice period', async ({
+		page
+	}) => {
+		await page.goto('/notices');
+		await expect(page.getByTestId('notices-results-list')).toBeVisible();
+
+		// 2210003 is ongoing: its period ends in three KST days → "마감 D-3".
+		await expect(page.getByTestId('notice-deadline-chip-2210003')).toHaveText('마감 D-3');
+		// 2210002 is done: its period ended on 2026-06-28.
+		await expect(page.getByTestId('notice-deadline-chip-2210002')).toHaveText('종료(2026-06-28)');
+	});
+});

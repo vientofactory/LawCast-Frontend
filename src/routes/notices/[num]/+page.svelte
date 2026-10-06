@@ -3,6 +3,7 @@
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
+	import { buildOpinionSubmissionUrl } from '$lib/utils/opinion-submission-url.util';
 	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import SeoHead from '$lib/components/SeoHead.svelte';
@@ -23,6 +24,7 @@
 		faFileLines,
 		faImage,
 		faLock,
+		faPaperPlane,
 		faScaleBalanced,
 		faShieldHalved,
 		faShareNodes,
@@ -38,6 +40,11 @@
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import {
+		buildNoticeDeadline,
+		formatNoticeDeadlineSuffix,
+		type NoticeDeadline
+	} from '$lib/utils/notice-deadline.util';
 	import NoticeDiscussions from '$lib/components/discussions/NoticeDiscussions.svelte';
 
 	let {
@@ -145,6 +152,29 @@
 	}
 
 	let displayContent = $derived(buildDisplayContentFromDetail(detail));
+	// D-day/deadline chip payload parsed from the raw notice-period string.
+	let deadline = $derived(
+		buildNoticeDeadline(displayContent.noticePeriod, displayContent.isDone ?? null)
+	);
+	let opinionGuidance = $derived(
+		displayContent.noticePeriod
+			? `입법예고 기간(의견 제출 가능 기간: ${displayContent.noticePeriod})`
+			: '입법예고 기간(의견 제출 가능 기간)'
+	);
+	let opinionGuidanceText = $derived(
+		displayContent.isDone
+			? `${opinionGuidance}이 종료되어 더 이상 의견을 제출할 수 없습니다.`
+			: `${opinionGuidance}에는 누구나 국회 홈페이지에서 의견을 제출할 수 있습니다.`
+	);
+
+	/** "2026-06-14 ~ 2026-06-28 · 2026-06-28 마감 (D-3)" style 병기 for the facts row. */
+	function withDeadlineSuffix(period: string | null, deadline: NoticeDeadline): string | null {
+		if (!period) {
+			return period;
+		}
+		const suffix = formatNoticeDeadlineSuffix(deadline);
+		return suffix ? `${period} · ${suffix}` : period;
+	}
 	let pageTitle = $derived(`${displayContent.title} - 제안이유 및 주요내용 원문`);
 	let pageDescription = $derived(
 		buildExcerpt(
@@ -254,7 +284,10 @@
 			{ label: '제안일', value: displayContent.proposalDate },
 			{ label: '소관위원회', value: displayContent.committee },
 			{ label: '회부일', value: displayContent.referralDate },
-			{ label: '입법예고기간', value: displayContent.noticePeriod },
+			{
+				label: '입법예고기간',
+				value: withDeadlineSuffix(displayContent.noticePeriod, deadline)
+			},
 			{ label: '제안회기', value: displayContent.proposalSession }
 		].filter((item) => !!item.value)
 	);
@@ -705,6 +738,23 @@
 			/>
 		{/if}
 
+		{#if aiSummaryEnabled}
+			<section class="lc-banner-warning mb-6 rounded-xl border p-4 shadow-sm">
+				<div class="flex items-start gap-3">
+					<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
+						<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
+					</div>
+					<div>
+						<p class="text-sm font-semibold">안내</p>
+						<p class="mt-1 text-sm leading-relaxed">
+							AI 요약은 참고용이며 오류가 있을 수 있습니다. 아래 원문(제안이유 및 주요내용)을 최종
+							기준으로 확인해주세요.
+						</p>
+					</div>
+				</div>
+			</section>
+		{/if}
+
 		{#if isHistoricalView && activeRevision !== null}
 			<div class="lc-banner-warning mb-6 rounded-xl border px-4 py-3 text-sm">
 				현재 Rev #{activeRevision} 시점 원문을 열람 중입니다.
@@ -801,6 +851,15 @@
 								진행 중
 							</div>
 						{/if}
+						{#if deadline.kind !== 'none'}
+							<div
+								class={`${deadline.kind === 'open' ? 'lc-chip-danger' : 'lc-chip-muted'} inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold`}
+								data-testid="notice-detail-deadline-chip"
+							>
+								<FontAwesomeIcon icon={faClock} class="h-2.5 w-2.5" />
+								{deadline.label}
+							</div>
+						{/if}
 						{#if isSourceDeleted}
 							<div
 								class="lc-chip-warning inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
@@ -865,10 +924,12 @@
 						/>
 						{shareState === 'copied' ? '링크 복사됨' : '공유'}
 					</button>
+					<!-- Utility link-out: kept neutral so the opinion CTA below owns the
+					     page's single primary emphasis (both open the same URL). -->
 					<button
 						onclick={() => openExternalLink(detail.notice.link)}
 						data-testid="notice-detail-open-source"
-						class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap"
+						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors"
 					>
 						<FontAwesomeIcon icon={faExternalLink} class="mr-2 h-4 w-4" />
 						국회 페이지 열기
@@ -884,22 +945,40 @@
 			{/if}
 		</section>
 
-		{#if aiSummaryEnabled}
-			<section class="lc-banner-warning mb-6 rounded-xl border p-4 shadow-sm">
-				<div class="flex items-start gap-3">
-					<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
-						<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
-					</div>
-					<div>
-						<p class="text-sm font-semibold">안내</p>
-						<p class="mt-1 text-sm leading-relaxed">
-							AI 요약은 참고용이며 오류가 있을 수 있습니다. 아래 원문(제안이유 및 주요내용)을 최종
-							기준으로 확인해주세요.
-						</p>
-					</div>
-				</div>
-			</section>
-		{/if}
+		<!-- Opinion submission entry CTA: the notice period is the opinion window.
+		     Rendered as its own panel below the header card so the primary action
+		     stays visually separated from the title metadata. -->
+		<section class="mb-6" aria-label="의견 제출">
+			<div
+				class="lc-panel-inset flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3"
+				data-testid="notice-opinion-cta"
+			>
+				{#if displayContent.isDone}
+					<button
+						type="button"
+						disabled
+						data-testid="notice-opinion-submit"
+						class="lc-button-neutral inline-flex cursor-not-allowed items-center rounded-lg border px-4 py-2 text-sm font-semibold opacity-70"
+					>
+						<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
+						의견 제출 기간이 종료되었습니다
+					</button>
+				{:else}
+					<button
+						type="button"
+						onclick={() => openExternalLink(buildOpinionSubmissionUrl(detail.notice.link))}
+						data-testid="notice-opinion-submit"
+						class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap"
+					>
+						<FontAwesomeIcon icon={faPaperPlane} class="mr-2 h-4 w-4" />
+						의견 제출하기
+					</button>
+				{/if}
+				<p class="lc-text-secondary text-sm" data-testid="notice-opinion-guidance">
+					{opinionGuidanceText}
+				</p>
+			</div>
+		</section>
 
 		{#if contentFacts.length > 0}
 			<section

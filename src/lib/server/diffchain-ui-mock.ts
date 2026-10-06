@@ -73,6 +73,30 @@ function hoursAgo(hours: number): string {
 	return new Date(MOCK_NOW - hours * 60 * 60 * 1000).toISOString();
 }
 
+/**
+ * YYYY-MM-DD formatted at KST offset, for mock notice-period strings.
+ * Uses the live clock instead of the frozen MOCK_NOW so ongoing notices keep
+ * their period anchored to the real calendar day — otherwise a dev server
+ * running past midnight drifts the pinned D-day chip (D-3 became D-2).
+ */
+function kstDateFromNow(days: number): string {
+	const shifted = new Date(Date.now() + days * 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000);
+	const year = shifted.getUTCFullYear();
+	const month = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+	const day = String(shifted.getUTCDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+}
+
+const DONE_MOCK_NOTICE_PERIOD = '2026-06-14 ~ 2026-06-28';
+
+/**
+ * Done notices carry an ended period; ongoing notices get a period ending
+ * three KST days from now so D-day chips are exercisable in mock mode.
+ */
+function mockNoticePeriod(isDone: boolean | undefined): string {
+	return isDone ? DONE_MOCK_NOTICE_PERIOD : `${kstDateFromNow(-2)} ~ ${kstDateFromNow(3)}`;
+}
+
 function buildDetail(
 	fieldPath: string,
 	changeType: NoticeChangeDetail['changeType'],
@@ -200,7 +224,9 @@ function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 		subject: getMockNoticeSubject(noticeNum, lifecycleStatus),
 		proposerCategory: '의원',
 		committee: noticeNum === LONG_MOCK_NOTICE.num ? LONG_MOCK_NOTICE.committee : '법제사법위원회',
-		link: `https://example.com/lawcast/mock/${noticeNum}`,
+		// Realistic assembly link shape (view.do + lgsltPaId) so the opinion-URL
+		// rewrite in buildOpinionSubmissionUrl is exercised by e2e clicks.
+		link: `https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOngoing/view.do?lgsltPaId=PRC_MOCK${noticeNum}`,
 		contentId: `mock-content-${noticeNum}`,
 		isDone: lifecycleStatus !== 'source_deleted',
 		archiveStartedAt: daysAgo(6),
@@ -237,7 +263,7 @@ function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 			proposalDate: '2026-06-14',
 			committee: notice.committee,
 			referralDate: '2026-06-18',
-			noticePeriod: '2026-06-14 ~ 2026-06-28',
+			noticePeriod: mockNoticePeriod(lifecycleStatus !== 'source_deleted'),
 			proposalSession: '제22대 국회 제1회 정기회'
 		},
 		archiveMetadata: {
@@ -442,6 +468,7 @@ function buildMockArchiveNotices(): Notice[] {
 			committee: override.committee,
 			link: notice.link,
 			isDone,
+			noticePeriod: mockNoticePeriod(isDone),
 			archiveStartedAt,
 			lastUpdatedAt: notice.lastUpdatedAt,
 			aiSummary: notice.aiSummary,

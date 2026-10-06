@@ -1,5 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { discoverFirstNotice } from './helpers/notice-list';
+import { buildOpinionSubmissionUrl } from '../src/lib/utils/opinion-submission-url.util';
+
+// Mock fixtures for notice 2210003 (see diffchain-ui-mock.ts).
+const MOCK_VIEW_URL =
+	'https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOngoing/view.do?lgsltPaId=PRC_MOCK2210003';
+const MOCK_OPINION_URL =
+	'https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOpn/list.do?lgsltPaId=PRC_MOCK2210003';
+
+const mockEnabled = ['1', 'true', 'yes', 'on'].includes(
+	(process.env.DIFFCHAIN_UI_MOCK ?? '').trim().toLowerCase()
+);
 
 test.describe('Notice Detail Page', () => {
 	test('renders with valid notice number', async ({ page }) => {
@@ -235,5 +246,158 @@ test.describe('Notice Detail Page', () => {
 		await expect(page).toHaveURL(/cmpShowAll=1/);
 		await expect(page).toHaveURL(/cmpFrom=/);
 		await expect(page).toHaveURL(/cmpTo=/);
+	});
+
+	test('detail page exposes the opinion submission entry with period guidance', async ({
+		page
+	}) => {
+		const notice = await discoverFirstNotice(page);
+		if (!notice) {
+			test.skip(true, 'No notices available');
+			return;
+		}
+
+		await notice.link.click();
+
+		// The opinion-submission entry renders regardless of the notice's state.
+		await expect(page.getByTestId('notice-opinion-cta')).toBeVisible();
+		await expect(page.getByTestId('notice-opinion-submit')).toBeVisible();
+		await expect(page.getByTestId('notice-opinion-guidance')).toContainText('의견 제출 가능 기간');
+
+		// The opinion CTA owns the single primary emphasis while the row's
+		// source opener stays a neutral utility for the raw notice link.
+		await expect(page.getByTestId('notice-opinion-submit')).toHaveClass(/lc-button-primary/);
+		const openSourceBtn = page.getByTestId('notice-detail-open-source');
+		await expect(openSourceBtn).toHaveClass(/lc-button-neutral/);
+		await expect(openSourceBtn).not.toHaveClass(/lc-button-primary/);
+	});
+});
+
+test.describe('Opinion submission CTA and deadline chip (mock fixtures)', () => {
+	test.skip(!mockEnabled, 'Pinned to mock notice numbers; requires DIFFCHAIN_UI_MOCK=1.');
+
+	test('active notice shows the opinion CTA, period guidance and D-day chip', async ({ page }) => {
+		// Mock 2210003 is ongoing with a notice period ending in three KST days.
+		await page.goto('/notices/2210003');
+		await expect(page.getByTestId('notice-detail-main')).toBeVisible();
+
+		const submit = page.getByTestId('notice-opinion-submit');
+		await expect(submit).toBeEnabled();
+		await expect(submit).toContainText('의견 제출하기');
+		// Copy no longer echoes the row's "국회 페이지 열기" label.
+		await expect(submit).not.toContainText('국회 페이지');
+
+		const guidance = page.getByTestId('notice-opinion-guidance');
+		await expect(guidance).toContainText('의견 제출 가능 기간');
+		await expect(guidance).toContainText('누구나 국회 홈페이지에서 의견을 제출할 수 있습니다');
+
+		// Deadline chip and the notice-period fact agree on the parsed end date.
+		await expect(page.getByTestId('notice-detail-deadline-chip')).toHaveText('마감 D-3');
+		await expect(page.getByTestId('notice-fact-입법예고기간')).toContainText('마감 (D-3)');
+	});
+
+	test('clicking the opinion CTA opens the National Assembly page', async ({ page }) => {
+		await page.goto('/notices/2210003');
+		await expect(page.getByTestId('notice-opinion-submit')).toBeVisible();
+
+		// Capture window.open instead of navigating to the external page.
+		await page.evaluate(() => {
+			const target = window as unknown as { __openedUrls?: string[]; open: unknown };
+			target.__openedUrls = [];
+			target.open = (url: string) => {
+				target.__openedUrls?.push(url);
+				return null;
+			};
+		});
+		// Clicking before hydration completes silently does nothing, so retry the
+		// click until the handler actually runs (same pattern as discussions.spec).
+		await expect(async () => {
+			await page.getByTestId('notice-opinion-submit').click();
+			const opened = await page.evaluate(
+				() => (window as unknown as { __openedUrls?: string[] }).__openedUrls ?? []
+			);
+			// The CTA is rewritten to the opinion-submission page, keeping the id.
+			expect(opened).toContain(MOCK_OPINION_URL);
+			// It must not open the raw view page anymore.
+			expect(opened).not.toContain(MOCK_VIEW_URL);
+		}).toPass({ timeout: 15_000 });
+	});
+
+	test('the row source opener still opens the raw assembly view page', async ({ page }) => {
+		await page.goto('/notices/2210003');
+		await expect(page.getByTestId('notice-detail-open-source')).toBeVisible();
+
+		await page.evaluate(() => {
+			const target = window as unknown as { __openedUrls?: string[]; open: unknown };
+			target.__openedUrls = [];
+			target.open = (url: string) => {
+				target.__openedUrls?.push(url);
+				return null;
+			};
+		});
+		// Only the opinion CTA is rewritten; the source opener keeps notice.link.
+		await expect(async () => {
+			await page.getByTestId('notice-detail-open-source').click();
+			const opened = await page.evaluate(
+				() => (window as unknown as { __openedUrls?: string[] }).__openedUrls ?? []
+			);
+			expect(opened).toContain(MOCK_VIEW_URL);
+			expect(opened).not.toContain(MOCK_OPINION_URL);
+		}).toPass({ timeout: 15_000 });
+	});
+
+	test.describe('buildOpinionSubmissionUrl utility', () => {
+		// Pure-function coverage for paths no mock fixture exercises (foreign
+		// domains, malformed input). Frontend has no unit runner, so these
+		// assertions live in Playwright, which transpiles the TS source directly.
+
+		test('rewrites pal.assembly.go.kr links to the opinion-submission page', () => {
+			expect(buildOpinionSubmissionUrl(MOCK_VIEW_URL)).toBe(MOCK_OPINION_URL);
+			expect(
+				buildOpinionSubmissionUrl(
+					'https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOngoing/view.do?lgsltPaId=PRC_XYZ'
+				)
+			).toBe('https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOpn/list.do?lgsltPaId=PRC_XYZ');
+		});
+
+		test('keeps non-assembly domains unchanged', () => {
+			expect(buildOpinionSubmissionUrl('https://example.com/lawcast/mock/2210003')).toBe(
+				'https://example.com/lawcast/mock/2210003'
+			);
+			// Suffix lookalikes must never match the exact-host guard.
+			expect(
+				buildOpinionSubmissionUrl(
+					'https://pal.assembly.go.kr.evil.example/napal/x?lgsltPaId=PRC_XYZ'
+				)
+			).toBe('https://pal.assembly.go.kr.evil.example/napal/x?lgsltPaId=PRC_XYZ');
+		});
+
+		test('keeps assembly links without an lgsltPaId unchanged', () => {
+			const noId = 'https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOngoing/view.do';
+			expect(buildOpinionSubmissionUrl(noId)).toBe(noId);
+			const emptyId = 'https://pal.assembly.go.kr/napal/x.do?lgsltPaId=';
+			expect(buildOpinionSubmissionUrl(emptyId)).toBe(emptyId);
+		});
+
+		test('handles empty and unparseable input', () => {
+			expect(buildOpinionSubmissionUrl(null)).toBe('');
+			expect(buildOpinionSubmissionUrl(undefined)).toBe('');
+			expect(buildOpinionSubmissionUrl('')).toBe('');
+			expect(buildOpinionSubmissionUrl('not a url')).toBe('not a url');
+		});
+	});
+
+	test('ended notice disables the CTA and shows the ended deadline chip', async ({ page }) => {
+		// Mock 2210002 is done with a notice period that ended on 2026-06-28.
+		await page.goto('/notices/2210002');
+		await expect(page.getByTestId('notice-detail-main')).toBeVisible();
+
+		const submit = page.getByTestId('notice-opinion-submit');
+		await expect(submit).toBeDisabled();
+		await expect(submit).toContainText('의견 제출 기간이 종료되었습니다');
+		await expect(page.getByTestId('notice-opinion-guidance')).toContainText(
+			'종료되어 더 이상 의견을 제출할 수 없습니다'
+		);
+		await expect(page.getByTestId('notice-detail-deadline-chip')).toHaveText('종료(2026-06-28)');
 	});
 });

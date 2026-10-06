@@ -8,6 +8,7 @@
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
 	import { extractProposerFromSubject } from '$lib/utils/proposer';
+	import { buildNoticeDeadline } from '$lib/utils/notice-deadline.util';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { page } from '$app/state';
 	import SeoHead from '$lib/components/SeoHead.svelte';
@@ -873,6 +874,7 @@
 							{#each notices as notice, index (notice.num)}
 								{@const proposerNames = extractProposerFromSubject(notice.subject)}
 								{@const proposerDisplay = proposerNames.join(', ')}
+								{@const deadline = buildNoticeDeadline(notice.noticePeriod, notice.isDone ?? null)}
 								<article
 									aria-labelledby="notice-heading-{notice.num}"
 									data-testid={`notice-card-${notice.num}`}
@@ -904,6 +906,14 @@
 													>
 														<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
 														진행 중
+													</span>
+												{/if}
+												{#if deadline.kind !== 'none'}
+													<span
+														class={`${deadline.kind === 'open' ? 'lc-chip-danger' : 'lc-chip-muted'} inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold`}
+														data-testid={`notice-deadline-chip-${notice.num}`}
+													>
+														{deadline.label}
 													</span>
 												{/if}
 												{#if isSourceDeleted(notice)}
@@ -954,7 +964,7 @@
 														소관위원회: {notice.committee}
 													</div>
 												{/if}
-												{#if proposerNames.length > 0}
+												<!-- {#if proposerNames.length > 0}
 													<div class="flex items-center">
 														<FontAwesomeIcon icon={faUser} class="mr-1 h-4 w-4" />
 														<a
@@ -966,7 +976,7 @@
 															{proposerDisplay}
 														</a>
 													</div>
-												{/if}
+												{/if} -->
 											</div>
 
 											{#if isPreservedState(notice)}
