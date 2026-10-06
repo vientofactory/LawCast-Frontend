@@ -1,5 +1,5 @@
 import { isDiffchainUiMockEnabled } from './diffchain-ui-mock';
-import type { SemanticSearchResponse } from '$lib/types/api';
+import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '$lib/types/api';
 
 /**
  * Test-only canned responses for the semantic search API.
@@ -7,7 +7,10 @@ import type { SemanticSearchResponse } from '$lib/types/api';
  * The search runs inside `+page.server.ts`, so the browser never issues the
  * request and Playwright's `page.route` cannot reach it: server-side fetches
  * are answered by `handleFetch` (hooks.server.ts), which is where this mock is
- * consulted.
+ * consulted. The engine status request is the mirror case: the browser DOES
+ * issue it, so specs can override it with `page.route`, while this mock keeps
+ * unstubbed runs deterministic (a ready engine) instead of depending on a
+ * real backend being reachable.
  *
  * A query picks its fixture through a marker substring, so a spec chooses a
  * scenario by choosing what it searches for:
@@ -26,6 +29,17 @@ const ERROR_MARKER = '오류';
 const EMPTY_MARKER = '않는';
 const WEAK_MARKER = '약한';
 const FALLBACK_MARKER = '키워드';
+
+const HEALTH_PATH = '/api/notices/semantic-search/health';
+
+// Ready engine: the default so the search-unavailable overlay stays out of
+// the way unless a spec explicitly stubs a not-ready or failing status.
+const ENGINE_HEALTH: SemanticEngineHealthResponse = {
+	status: 'ready',
+	indexedChunks: 93031,
+	lastUpdateAt: '2026-10-02T12:00:00+00:00',
+	lastUpdateTriggeredAt: '2026-10-02T13:00:00+00:00'
+};
 
 const RETRY_AFTER_SECONDS = 5;
 
@@ -51,8 +65,11 @@ const WEAK_RESULT: SemanticSearchResponse['weakResults'][number] = {
 
 const FALLBACK_REASON = '의미 검색 엔진을 사용할 수 없어 키워드 검색 결과를 반환합니다.';
 
-export function getMockSemanticSearchResponse(url: URL): Response | null {
+export function getMockSemanticApiResponse(url: URL): Response | null {
 	if (!isDiffchainUiMockEnabled()) return null;
+	if (url.pathname === HEALTH_PATH) {
+		return Response.json({ success: true, data: ENGINE_HEALTH });
+	}
 	if (url.pathname !== '/api/notices/semantic-search') return null;
 
 	const query = (url.searchParams.get('query') || '').trim();

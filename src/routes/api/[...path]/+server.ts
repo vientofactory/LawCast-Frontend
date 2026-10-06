@@ -2,6 +2,7 @@ import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
 import { getMockDiscussionThread, isDiffchainUiMockEnabled } from '$lib/server/diffchain-ui-mock';
+import { getMockSemanticApiResponse } from '$lib/server/semantic-search-mock';
 import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
 import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
 
@@ -38,6 +39,13 @@ async function forwardRequest(
 	if (method === 'GET') {
 		const mockResponse = getMockResponse(path, url);
 		if (mockResponse) return mockResponse;
+		// This proxy is the seam for BROWSER-issued /api requests (handleFetch
+		// never sees them: the forward below goes cross-origin to the backend),
+		// so the semantic engine status must be mocked here — otherwise mock
+		// mode answers with a 502 from an absent backend, which the semantic
+		// search page correctly reads as "status cannot be fetched".
+		const semanticMock = getMockSemanticApiResponse(url);
+		if (semanticMock) return semanticMock;
 	}
 
 	// Test-only: deterministic 429 simulation for e2e suites (see e2e-rate-limit-sim.ts).

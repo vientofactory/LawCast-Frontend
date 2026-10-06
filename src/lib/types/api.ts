@@ -223,13 +223,22 @@ export interface SemanticSearchResponse {
 }
 
 /**
+ * 의미 검색 엔진 준비 상태 (백엔드 /api/notices/semantic-search/health가
+ * 사이드카 /health의 `status` 필드를 그대로 전달하는 값).
+ * `loading`은 엔진 로딩 중, `ready`는 서빙 가능, `failed`는 복구 불가능한
+ * 로드 오류를 뜻한다.
+ */
+export type SemanticEngineStatus = 'loading' | 'ready' | 'failed';
+
+/**
  * 의미 검색 엔진 상태 (백엔드 /api/notices/semantic-search/health가
  * 사이드카 /health에서 그대로 전달하는 필드).
- * `indexedChunks`는 FAISS 인덱스의 청크 수, `lastUpdateAt`은 서빙 중인
- * 세대의 인덱스 마지막 기록 시각, `lastUpdateTriggeredAt`은 가장 최근
- * 갱신 틱의 실행 시각이다 (없으면 null).
+ * `status`는 검색 UI 오버레이의 준비 상태 게이트, `indexedChunks`는 FAISS
+ * 인덱스의 청크 수, `lastUpdateAt`은 서빙 중인 세대의 인덱스 마지막 기록
+ * 시각, `lastUpdateTriggeredAt`은 가장 최근 갱신 틱의 실행 시각이다 (없으면 null).
  */
 export interface SemanticEngineHealthResponse {
+	status: SemanticEngineStatus;
 	indexedChunks: number;
 	lastUpdateAt: string | null;
 	lastUpdateTriggeredAt: string | null;

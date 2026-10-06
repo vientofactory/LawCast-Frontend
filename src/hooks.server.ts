@@ -5,7 +5,7 @@ import { env } from '$env/dynamic/private';
 import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
 import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
 import { resolveE2eReadClientIp } from '$lib/server/e2e-client-ip';
-import { getMockSemanticSearchResponse } from '$lib/server/semantic-search-mock';
+import { getMockSemanticApiResponse } from '$lib/server/semantic-search-mock';
 
 const API_PATH_PREFIX = '/api/';
 const API_BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
@@ -61,8 +61,10 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	// Test-only: canned semantic search responses (see
 	// lib/server/semantic-search-mock.ts). Search runs in `+page.server.ts`,
 	// so this hook — not the browser-level `page.route` — is the only place a
-	// spec can stand in for the backend.
-	const semanticMock = getMockSemanticSearchResponse(requestUrl);
+	// spec can stand in for the backend. Engine status is fetched by the
+	// browser, so a spec can also stub it client-side; this mock keeps
+	// unstubbed runs on a deterministic ready engine.
+	const semanticMock = getMockSemanticApiResponse(requestUrl);
 	if (semanticMock) {
 		return semanticMock;
 	}
