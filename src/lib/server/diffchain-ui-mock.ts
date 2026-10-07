@@ -498,7 +498,9 @@ export function getMockAdminNotices(): AdminNoticeListResponse {
 				order: 1,
 				urgent: true,
 				content:
-					'현재 베타 서비스 기간에는 수집 주기와 보관 범위가 달라질 수 있습니다.\n변경 사항은 이 공지에서 안내드립니다.'
+					'현재 베타 서비스 기간에는 수집 주기와 보관 범위가 달라질 수 있습니다.\n변경 사항은 이 공지에서 안내드립니다.',
+				// Property-only notice: no block body, the content above renders as-is.
+				body: ''
 			},
 			{
 				id: 'mock-announcement-2',
@@ -507,7 +509,10 @@ export function getMockAdminNotices(): AdminNoticeListResponse {
 				status: null,
 				order: 2,
 				urgent: false,
-				content: '새 소식은 이 공지사항 페이지에 계속해서 올립니다.'
+				content: '새 소식은 이 공지사항 페이지에 계속해서 올립니다.',
+				// Block-tree notice: the backend serves the page body as Markdown,
+				// exercising heading/list/table/blockquote rendering on the detail page.
+				body: '## 개인정보 처리 방침 개정 안내\n\nLawCast는 **개인정보 처리 방침**을 개정했습니다.\n\n- 수집 항목: 이메일 주소\n- 보관 기간: 1년\n\n| 항목 | 내용 |\n| --- | --- |\n| 시행일 | 2026-10-15 |\n\n> 문의는 공식 디스코드 서버로 바랍니다.'
 			}
 		]
 	};
