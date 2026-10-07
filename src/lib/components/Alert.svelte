@@ -111,7 +111,7 @@
 {#if visible}
 	<div
 		class="lc-alert {config.containerClass} mb-6 rounded-xl border p-4 shadow-sm transition-all duration-300 ease-out"
-		class:animate-fade-in={visible}
+		class:lc-animate-fade-in={visible}
 		class:opacity-0={!visible}
 		class:transform={true}
 		class:translate-x-0={visible}

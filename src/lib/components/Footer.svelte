@@ -40,6 +40,9 @@
 					<p class="lc-text-secondary text-sm">
 						<a href="/proposals" class="lc-link">발의 통계</a>
 					</p>
+					<p class="lc-text-secondary text-sm">
+						<a href="/announcements" class="lc-link">공지사항</a>
+					</p>
 					{#if env.PUBLIC_DISCORD_SERVER_URL?.trim()}
 						<p class="lc-text-secondary text-sm">
 							<a

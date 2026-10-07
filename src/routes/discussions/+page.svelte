@@ -118,7 +118,7 @@
 	keywords="법률안 토론, 입법예고 토론, 국회 법안 토론, 익명 토론, 토론 스레드"
 />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main id="main-content" class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">

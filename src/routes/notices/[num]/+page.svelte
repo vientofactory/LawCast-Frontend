@@ -167,7 +167,7 @@
 			: `${opinionGuidance}에는 누구나 국회 홈페이지에서 의견을 제출할 수 있습니다.`
 	);
 
-	/** "2026-06-14 ~ 2026-06-28 · 2026-06-28 마감 (D-3)" style 병기 for the facts row. */
+	/** "2026-06-14 ~ 2026-06-28 · 2026-06-28 마감 (D-3)" combined display style for the facts row. */
 	function withDeadlineSuffix(period: string | null, deadline: NoticeDeadline): string | null {
 		if (!period) {
 			return period;
@@ -707,7 +707,7 @@
 	{@html `<script type="application/ld+json">${articleJsonLd}<` + `/script>`}
 </svelte:head>
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main

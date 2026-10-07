@@ -348,7 +348,7 @@
 	keywords={pageKeywords}
 />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main id="main-content" class="relative mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">

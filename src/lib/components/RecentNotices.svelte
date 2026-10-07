@@ -94,7 +94,7 @@
 							{notice.subject}
 						</a>
 						<div class="ml-3 flex shrink-0 items-center gap-1">
-							<!-- 파일 다운로드 버튼들 -->
+							<!-- File download buttons -->
 							{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
 								<div class="flex gap-1">
 									{#if isDownloadable(notice.attachments.pdfFile)}
@@ -118,7 +118,7 @@
 								</div>
 								<div class="lc-divider-soft h-4 w-px"></div>
 							{/if}
-							<!-- 상세보기 버튼 -->
+							<!-- View details button -->
 							<button
 								onclick={() => openExternalLink(notice.link)}
 								aria-label="온라인 원문 보기 (새 탭)"

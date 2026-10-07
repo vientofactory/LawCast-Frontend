@@ -396,7 +396,7 @@
 	keywords={pageKeywords}
 />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main
@@ -813,7 +813,7 @@
 									aria-live="polite"
 								>
 									<span class="sr-only">불러오는 중...</span>
-									<div class="lc-loading-fill loading-slide h-full w-1/3 rounded-full"></div>
+									<div class="lc-loading-fill lc-loading-slide h-full w-1/3 rounded-full"></div>
 								</div>
 							{/if}
 						</form>

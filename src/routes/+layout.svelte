@@ -19,7 +19,10 @@
 		}
 	});
 
-	let { children, data = { frontendVersion: 'unknown', backendVersion: 'unknown' } } = $props();
+	let {
+		children,
+		data = { frontendVersion: 'unknown', backendVersion: 'unknown', adminNotices: { items: [] } }
+	} = $props();
 	const routePath = $derived(page.url.pathname);
 	const routeId = $derived(
 		routePath === '/' ? 'home' : routePath.replace(/^\//, '').replace(/[/]+/g, '-')

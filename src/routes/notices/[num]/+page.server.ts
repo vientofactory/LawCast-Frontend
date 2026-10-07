@@ -107,8 +107,8 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 			throw error(404, '요청한 법률안 원문 정보를 찾을 수 없습니다.');
 		}
 
-		// 레이트리밋(429)은 일시적 상황이므로 에러 페이지 대신
-		// 안내 배너가 있는 페이지를 렌더링한다.
+		// Rate limits (429) are transient, so render the page with the guidance
+		// banner instead of falling back to the error page.
 		if (status === 429) {
 			const loadError = toLoadErrorPayload(err, '요청이 너무 많습니다.');
 			return {

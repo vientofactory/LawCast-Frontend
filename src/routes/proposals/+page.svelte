@@ -405,7 +405,7 @@
 	keywords="법률안 발의 통계, 국회 발의 통계, 법안 통계, 입법 통계, 발의 건수 통계"
 />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main id="main-content" class="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -436,7 +436,7 @@
 			/>
 		{/if}
 
-		<!-- ── 필터 컨트롤 ─────────────────────────────────────────── -->
+		<!-- ── Filter controls ─────────────────────────────────────────── -->
 		<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
 			<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
 				<h2 class="lc-text-primary flex items-center text-sm font-bold">
@@ -594,7 +594,7 @@
 			</div>
 		</section>
 
-		<!-- ── 요약 카드 + 차트 + 테이블 영역 (로딩 오버레이 적용) -->
+		<!-- ── Summary cards + charts + tables (loading overlay applied) -->
 		<div class="relative mt-4">
 			{#if isLoading}
 				<div class="lc-loading-overlay absolute inset-0 z-10 rounded-2xl"></div>
@@ -647,7 +647,7 @@
 					</p>
 				</section>
 
-				<!-- ── 차트 ────────────────────────────────────────────────── -->
+				<!-- ── Charts ────────────────────────────────────────────────── -->
 				{#if statistics.buckets.length > 0}
 					<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
 						<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
@@ -659,7 +659,7 @@
 						</div>
 					</section>
 
-					<!-- ── 데이터 테이블 ────────────────────────────────────── -->
+					<!-- ── Data table ────────────────────────────────────── -->
 					<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
 						<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
 							<FontAwesomeIcon icon={faDatabase} class="lc-text-info mr-2 h-4 w-4" />
@@ -714,7 +714,7 @@
 		</div>
 		<!-- .relative mt-4 -->
 
-		<!-- ── 안내 ──────────────────────────────────────────────────── -->
+		<!-- ── Notes ──────────────────────────────────────────────────── -->
 		<div class="lc-banner-warning rounded-xl border p-4 mt-4">
 			<div class="mb-2 flex items-center gap-2">
 				<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />

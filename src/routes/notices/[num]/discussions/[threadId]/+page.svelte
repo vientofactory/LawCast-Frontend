@@ -439,7 +439,7 @@
 	type="article"
 />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main

@@ -217,7 +217,7 @@
 	}
 
 	/**
-	 * Load the engine status (청크 인덱스 개수·마지막 업데이트·실행 시간)
+	 * Load the engine status (chunk index count, last update, last refresh run time)
 	 * once per page mount. Failures only affect the status block, never the
 	 * search itself.
 	 */
@@ -283,7 +283,7 @@
 
 <svelte:window onclick={handleWindowClick} />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main
