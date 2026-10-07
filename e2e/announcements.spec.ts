@@ -45,6 +45,27 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		expect(await body.textContent()).toContain('\n');
 	});
 
+	test('renders the markdown body with its formatting preserved', async ({ page }) => {
+		test.skip(!MOCK_ENABLED, 'requires the mock fixture');
+		await page.goto('/announcements/mock-announcement-2');
+
+		const body = page.getByTestId('admin-notice-body');
+		await expect(body).toBeVisible();
+		// Heading (## -> h3; the notice title owns h1), bold text, unordered
+		// list, table and blockquote from the Notion block tree must survive
+		// the round trip.
+		await expect(body.locator('h3')).toContainText('개인정보 처리 방침 개정 안내');
+		await expect(body.locator('strong')).toContainText('개인정보 처리 방침');
+		await expect(body.locator('ul li')).toHaveCount(2);
+		await expect(body.locator('table')).toBeVisible();
+		await expect(body.locator('table td', { hasText: '2026-10-15' })).toHaveCount(1);
+		await expect(body.locator('blockquote')).toContainText('디스코드');
+
+		// No raw markdown syntax may leak into the rendered output.
+		await expect(body).not.toContainText('##');
+		await expect(body).not.toContainText('| --- |');
+	});
+
 	test('urgent banner sits directly below the header on every page', async ({ page }) => {
 		await page.goto('/');
 		const banner = page.getByTestId('urgent-notice-banner');

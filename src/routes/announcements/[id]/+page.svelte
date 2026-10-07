@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Header from '$lib/components/Header.svelte';
+	import MarkdownBody from '$lib/components/MarkdownBody.svelte';
 	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -9,8 +10,18 @@
 	let { data }: { data: PageData } = $props();
 
 	let pageUrl = $derived(page.url.origin + page.url.pathname);
+	let hasMarkdownBody = $derived(data.bodyTokens.length > 0);
+	// Strip markdown syntax markers so the meta description stays readable.
 	let description = $derived(
-		data.notice.content ? data.notice.content.slice(0, 160) : data.notice.title
+		data.notice.content
+			? data.notice.content.slice(0, 160)
+			: hasMarkdownBody
+				? data.notice.body
+						.replace(/[#>*_~`|-]/g, '')
+						.replace(/\s+/g, ' ')
+						.trim()
+						.slice(0, 160)
+				: data.notice.title
 	);
 </script>
 
@@ -55,7 +66,15 @@
 				</span>
 			{/if}
 
-			{#if data.notice.content}
+			{#if hasMarkdownBody}
+				<div
+					class="lc-md mt-4 border-t pt-4"
+					data-testid="admin-notice-body"
+					aria-label="공지 본문"
+				>
+					<MarkdownBody tokens={data.bodyTokens} />
+				</div>
+			{:else if data.notice.content}
 				<p
 					class="lc-text-secondary mt-4 border-t pt-4 text-sm leading-7 whitespace-pre-line"
 					data-testid="admin-notice-content"
