@@ -3,6 +3,7 @@
 	import Header from '$lib/components/Header.svelte';
 	import MarkdownBody from '$lib/components/MarkdownBody.svelte';
 	import SeoHead from '$lib/components/SeoHead.svelte';
+	import { formatDateOnlyKST } from '$lib/utils/helpers';
 	import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import type { PageData } from './$types';
@@ -57,13 +58,26 @@
 			>
 				{data.notice.title}
 			</h1>
-			{#if data.notice.status}
-				<span
-					class="lc-text-muted mt-3 inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-medium"
-					data-testid="admin-notice-status"
-				>
-					{data.notice.status}
-				</span>
+			{#if data.notice.status || data.notice.createdAt}
+				<div class="mt-3 flex flex-wrap items-center gap-2">
+					{#if data.notice.status}
+						<span
+							class="lc-text-muted inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-medium"
+							data-testid="admin-notice-status"
+						>
+							{data.notice.status}
+						</span>
+					{/if}
+					{#if data.notice.createdAt}
+						<time
+							class="lc-text-muted inline-block text-xs tabular-nums"
+							datetime={data.notice.createdAt}
+							data-testid="admin-notice-date"
+						>
+							게시일: {formatDateOnlyKST(data.notice.createdAt)}
+						</time>
+					{/if}
+				</div>
 			{/if}
 
 			{#if hasMarkdownBody}
