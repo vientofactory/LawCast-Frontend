@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test';
  * Contract:
  * - Hero: exactly one notice-title chip (the top-pinned notice) -> click opens the body page
  * - Board list (/announcements): all published notices in display order, each row a detail link
+ * - Notice date: row creation time (Notion created_time) rendered as KST YYYY-MM-DD on list + detail
  * - Detail: same design language as the rest of the site (breadcrumb nav + lc-panel card)
  * The two mock fixture notices prove "2 fixtures -> 1 chip / 2 list rows" on both caps.
  * Chip cap owner: src/routes/+page.svelte. Shared list/detail loader: lib/server/announcements.ts.
@@ -38,6 +39,11 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		await page.waitForURL(/\/announcements\/mock-announcement-1$/);
 
 		await expect(page.getByTestId('admin-notice-title')).toHaveText(ORDER_ONE_TITLE);
+		// Notice date = Notion created_time, shown as KST date with the raw
+		// ISO instant preserved on <time datetime>.
+		const date = page.getByTestId('admin-notice-date');
+		await expect(date).toHaveText('2026-09-01');
+		await expect(date).toHaveAttribute('datetime', '2026-09-01T03:00:00.000Z');
 		const body = page.getByTestId('admin-notice-content');
 		await expect(body).toContainText('변경 사항은 이 공지에서 안내드립니다.');
 
@@ -111,6 +117,14 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		await expect(links).toHaveCount(2);
 		await expect(links.nth(0)).toContainText(ORDER_ONE_TITLE);
 		await expect(links.nth(1)).toContainText(ORDER_TWO_TITLE);
+
+		// Every row shows its creation date (KST), derived from created_time.
+		await expect(page.getByTestId('admin-notices-list-date-mock-announcement-1')).toHaveText(
+			'2026-09-01'
+		);
+		await expect(page.getByTestId('admin-notices-list-date-mock-announcement-2')).toHaveText(
+			'2026-10-05'
+		);
 
 		// Row click -> detail, which shares the site's breadcrumb design.
 		await links.nth(0).click();

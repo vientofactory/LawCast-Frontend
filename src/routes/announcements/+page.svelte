@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import Header from '$lib/components/Header.svelte';
 	import SeoHead from '$lib/components/SeoHead.svelte';
+	import { formatDateOnlyKST } from '$lib/utils/helpers';
 	import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import type { PageData } from './$types';
@@ -68,10 +69,21 @@
 								<p class="lc-text-muted truncate text-xs">{notice.content}</p>
 							{/if}
 						</div>
-						<FontAwesomeIcon
-							icon={faChevronRight}
-							class="lc-text-dim hidden h-3 w-3 transition-transform group-hover:translate-x-0.5 sm:inline-block"
-						/>
+						<div class="flex shrink-0 items-center gap-3 self-start sm:self-center">
+							{#if notice.createdAt}
+								<time
+									class="lc-text-dim text-xs tabular-nums"
+									datetime={notice.createdAt}
+									data-testid={`admin-notices-list-date-${notice.id}`}
+								>
+									{formatDateOnlyKST(notice.createdAt)}
+								</time>
+							{/if}
+							<FontAwesomeIcon
+								icon={faChevronRight}
+								class="lc-text-dim hidden h-3 w-3 transition-transform group-hover:translate-x-0.5 sm:inline-block"
+							/>
+						</div>
 					</a>
 				{/each}
 			</div>

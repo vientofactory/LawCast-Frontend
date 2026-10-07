@@ -649,6 +649,12 @@ export interface AdminNotice {
 	 * conversion failed — the detail page then falls back to `content`.
 	 */
 	body: string;
+	/**
+	 * Notion page `created_time` — UTC ISO 8601 instant the row was created
+	 * (immutable; reflects row creation, not the publication edit).
+	 * Null when Notion omits the field.
+	 */
+	createdAt: string | null;
 }
 
 export interface AdminNoticeListResponse {
