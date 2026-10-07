@@ -49,7 +49,7 @@ async function fetchAllNoticeEntries(
 ): Promise<NoticeEntry[]> {
 	const entries: NoticeEntry[] = [];
 
-	// 첫 번째 페이지로 전체 개수 파악
+	// Fetch the first page to learn the total count
 	const firstRes = await customFetch(
 		`${BACKEND_URL}/notices/archive?page=1&limit=${BATCH_SIZE}&sortOrder=desc`,
 		{ headers: forwardHeaders }
@@ -69,7 +69,7 @@ async function fetchAllNoticeEntries(
 
 	if (totalPages <= 1) return entries;
 
-	// 나머지 페이지 병렬 fetch
+	// Fetch the remaining pages in parallel
 	const pageNums = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
 	const results = await Promise.all(
 		pageNums.map((page) =>

@@ -344,7 +344,7 @@
 	keywords="시스템 상태, LawCast 상태, 크롤러 상태, 캐시 상태, AI 요약 상태, 대시보드"
 />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main id="main-content" class="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

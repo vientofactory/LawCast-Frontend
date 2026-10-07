@@ -195,12 +195,13 @@ export interface SearchNoticesResult {
 }
 
 /**
- * 의미(시맨틱) 검색 응답.
- * `keyword_fallback`은 백엔드가 의미 검색 엔진을 사용할 수 없을 때
- * 기존 키워드 검색으로 대체 응답한 상태이며 `fallbackReason`에 사유가 담긴다.
- * `results`는 유사도가 기준 이상인 명확한 결과만, `weakResults`는 그 아래
- * (무관함 기준 이상)의 약한 관련 결과로, 빈 결과 화면의 버튼으로만 표시한다.
- * 엔진이 무관하다고 판단한 결과는 둘 어디에도 없다.
+ * Semantic search response.
+ * `keyword_fallback` means the backend could not use the semantic engine and
+ * answered from the regular keyword search instead; `fallbackReason` carries
+ * the cause. `results` holds only confident hits above the similarity
+ * threshold, `weakResults` the weaker-but-relevant hits above the unrelated
+ * threshold — shown only behind the empty-state reveal button. Results the
+ * engine deems unrelated appear in neither list.
  */
 export type SemanticSearchMode = 'semantic' | 'keyword_fallback';
 
@@ -223,19 +224,20 @@ export interface SemanticSearchResponse {
 }
 
 /**
- * 의미 검색 엔진 준비 상태 (백엔드 /api/notices/semantic-search/health가
- * 사이드카 /health의 `status` 필드를 그대로 전달하는 값).
- * `loading`은 엔진 로딩 중, `ready`는 서빙 가능, `failed`는 복구 불가능한
- * 로드 오류를 뜻한다.
+ * Semantic engine readiness (the backend `/api/notices/semantic-search/health`
+ * passes the sidecar `/health` `status` field through unchanged).
+ * `loading` = engine starting, `ready` = serving, `failed` = unrecoverable
+ * load error.
  */
 export type SemanticEngineStatus = 'loading' | 'ready' | 'failed';
 
 /**
- * 의미 검색 엔진 상태 (백엔드 /api/notices/semantic-search/health가
- * 사이드카 /health에서 그대로 전달하는 필드).
- * `status`는 검색 UI 오버레이의 준비 상태 게이트, `indexedChunks`는 FAISS
- * 인덱스의 청크 수, `lastUpdateAt`은 서빙 중인 세대의 인덱스 마지막 기록
- * 시각, `lastUpdateTriggeredAt`은 가장 최근 갱신 틱의 실행 시각이다 (없으면 null).
+ * Semantic engine health (fields passed through from the sidecar `/health` by
+ * the backend `/api/notices/semantic-search/health`).
+ * `status` gates the search UI overlay, `indexedChunks` is the FAISS chunk
+ * count, `lastUpdateAt` the last index write time of the serving generation,
+ * `lastUpdateTriggeredAt` the run time of the most recent refresh tick
+ * (null when never triggered).
  */
 export interface SemanticEngineHealthResponse {
 	status: SemanticEngineStatus;
@@ -618,4 +620,27 @@ export interface DeleteCommentPayload {
 export interface UpdateThreadStatusPayload {
 	status: DiscussionThreadStatus;
 	password: string;
+}
+
+// ── Admin notices (Notion-backed notice board) ─────────────────────────────
+
+export interface AdminNotice {
+	/** Notion page id */
+	id: string;
+	/** Notion `제목` — notice title */
+	title: string;
+	/** 공개 여부 — always true in responses (unpublished rows are filtered out) */
+	published: boolean;
+	/** 상태 (status/select option name), null when unset */
+	status: string | null;
+	/** 노출 순서, null when the property is empty */
+	order: number | null;
+	/** 긴급 checkbox — true when the operator marked the row urgent */
+	urgent: boolean;
+	/** 내용 — plain text, newlines preserved */
+	content: string;
+}
+
+export interface AdminNoticeListResponse {
+	items: AdminNotice[];
 }

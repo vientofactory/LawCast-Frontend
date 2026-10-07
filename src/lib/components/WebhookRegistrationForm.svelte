@@ -48,14 +48,14 @@
 	}
 
 	async function addWebhook() {
-		// 웹훅 URL 유효성 검증
+		// Webhook URL validation
 		const validation = validateDiscordWebhookUrl(newWebhookUrl);
 		if (!validation.isValid) {
 			showFeedback('error', validation.message || '올바르지 않은 웹훅 URL입니다.');
 			return;
 		}
 
-		// 중복 제출 방지
+		// Prevent duplicate submission
 		if (isSubmitting || isSolvingPoW) {
 			return;
 		}
@@ -64,7 +64,7 @@
 		clearFeedback();
 
 		try {
-			// 스팸 방지 검증 수행
+			// Run spam-prevention checks
 			isSolvingPoW = true;
 			powState = createPowDisplayState('보안 검증을 준비하고 있어요...');
 
@@ -72,7 +72,7 @@
 			isSolvingPoW = false;
 			powState = createPowDisplayState();
 
-			// URL 정규화
+			// Normalize URL
 			const normalizedUrl = normalizeWebhookUrl(newWebhookUrl);
 
 			const result = await apiClient.registerWebhook({

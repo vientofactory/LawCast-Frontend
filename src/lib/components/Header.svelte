@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { theme } from '$lib/theme';
+	import UrgentNoticeBanner from '$lib/components/UrgentNoticeBanner.svelte';
+	import type { AdminNotice } from '$lib/types/api';
 	import {
 		faFileLines,
 		faHouse,
@@ -83,6 +85,15 @@
 	}
 
 	let isDarkTheme = $derived($theme === 'dark');
+
+	// Layout load exposes adminNotices on every route; items arrive sorted by
+	// display order (노출 순서) ascending, so the first urgent row is the
+	// top-ranked one.
+	const urgentNotice = $derived(
+		(page.data as { adminNotices?: { items: AdminNotice[] } }).adminNotices?.items.find(
+			(notice) => notice.urgent
+		) ?? null
+	);
 
 	function trapFocus(node: HTMLElement) {
 		const focusableSelectors = [
@@ -167,7 +178,7 @@
 				</button>
 			</div>
 
-			<!-- 햄버거/닫기 버튼 -->
+			<!-- Hamburger/close button -->
 			<button
 				bind:this={menuButton}
 				class="ml-auto inline-flex items-center justify-center rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-[var(--lc-text-secondary)] transition-all duration-200 hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] md:hidden"
@@ -183,7 +194,7 @@
 				<span class="sr-only">{mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}</span>
 			</button>
 
-			<!-- 데스크톱 메뉴 -->
+			<!-- Desktop menu -->
 			<nav
 				class="hidden max-w-[min(92vw,48rem)] rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-2 md:absolute md:top-1/2 md:left-1/2 md:block md:w-auto md:-translate-x-1/2 md:-translate-y-1/2"
 				aria-label="주요 메뉴"
@@ -220,10 +231,14 @@
 	</div>
 </header>
 
-<!-- 모바일 드롭다운 메뉴 -->
+{#if urgentNotice}
+	<UrgentNoticeBanner notice={urgentNotice} />
+{/if}
+
+<!-- Mobile dropdown menu -->
 {#if mobileMenuOpen}
 	<div class="fixed inset-0 z-1100 flex flex-col md:hidden">
-		<!-- 오버레이 -->
+		<!-- Overlay -->
 		<button
 			type="button"
 			class="lc-overlay-backdrop absolute inset-0 cursor-default backdrop-blur-[2px]"
@@ -231,7 +246,7 @@
 			tabindex="-1"
 			onclick={closeMobileMenu}
 		></button>
-		<!-- 메뉴 패널 -->
+		<!-- Menu panel -->
 		<nav
 			id="mobile-menu-panel"
 			use:trapFocus

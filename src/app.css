@@ -166,7 +166,7 @@ body {
 		color 180ms ease;
 }
 
-.page-shell {
+.lc-page-shell {
 	min-height: 100vh;
 	background: var(--lc-page-bg);
 }
@@ -461,6 +461,67 @@ html[data-theme='dark'] .lc-panel-hero {
 
 .lc-home-search-input {
 	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Pinned admin notice chip: deliberately low contrast (quiet border, muted
+   text) so it reads as a special status marker, not another interactive
+   keyword chip — the bullhorn icon carries the distinction instead. */
+.lc-home-notice-chip {
+	background: transparent;
+	border: 1px solid var(--lc-border-soft);
+	color: var(--lc-text-muted);
+	transition:
+		background-color 180ms ease,
+		color 180ms ease;
+}
+
+.lc-home-notice-chip:hover {
+	background: var(--lc-surface-hover);
+	color: var(--lc-text-secondary);
+}
+
+/* Urgent admin notice banner: the one deliberately loud element in the UI —
+   solid red bar directly under the sticky header so a 긴급 notice is impossible
+   to miss on every page. */
+.lc-urgent-banner {
+	background: linear-gradient(90deg, #dc2626, #b91c1c);
+	color: #fff;
+}
+
+html[data-theme='dark'] .lc-urgent-banner {
+	background: linear-gradient(90deg, #991b1b, #7f1d1d);
+}
+
+.lc-urgent-banner a {
+	color: inherit;
+	transition: filter 180ms ease;
+}
+
+.lc-urgent-banner a:hover {
+	filter: brightness(1.08);
+}
+
+.lc-urgent-banner a:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: -4px;
+	border-radius: 0.25rem;
+}
+
+.lc-urgent-badge {
+	display: inline-flex;
+	align-items: center;
+	background: #fff;
+	color: #b91c1c;
+	font-size: 0.7rem;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	padding: 0.15rem 0.5rem;
+	border-radius: 999px;
+}
+
+html[data-theme='dark'] .lc-urgent-badge {
+	background: #fef2f2;
+	color: #7f1d1d;
 }
 
 .lc-home-search-chip {
@@ -1476,16 +1537,16 @@ html[data-theme='dark'] .lc-alert {
 	}
 }
 
-.animate-fade-in {
+.lc-animate-fade-in {
 	animation: fadeIn 0.6s ease-out;
 }
 
 /* 부드러운 호버 효과 */
-.hover-lift {
+.lc-hover-lift {
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.hover-lift:hover {
+.lc-hover-lift:hover {
 	transform: translateY(-2px);
 	box-shadow:
 		0 20px 25px -5px rgba(0, 0, 0, 0.1),
@@ -1526,11 +1587,11 @@ html[data-theme='dark'] .lc-alert {
 }
 
 /* 공통 로딩 슬라이드 효과 */
-.loading-slide {
-	animation: loading-slide 1.15s ease-in-out infinite;
+.lc-loading-slide {
+	animation: lc-loading-slide 1.15s ease-in-out infinite;
 }
 
-@keyframes loading-slide {
+@keyframes lc-loading-slide {
 	0% {
 		transform: translateX(-120%);
 	}

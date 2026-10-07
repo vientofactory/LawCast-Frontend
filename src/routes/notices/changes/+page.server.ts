@@ -179,8 +179,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	);
 	const summaryPromise = apiClient.getComparableNoticeChangesSummary(fetch);
 
-	// 백엔드 429(레이트리밋) 등으로 목록 조회가 실패해도 페이지 전체가
-	// 500으로 떨어지지 않도록 에러 상태를 데이터로 전달한다.
+	// Pass fetch failures (e.g. a backend 429 rate limit) as data so the page
+	// does not fall over with a 500 when the list cannot be loaded.
 	try {
 		const [changes, summary] = await Promise.all([changesPromise, summaryPromise]);
 		return {

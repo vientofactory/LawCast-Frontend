@@ -3,38 +3,38 @@ import type { WebhookValidationResult } from '../types/api';
 export const KST_TIMEZONE = 'Asia/Seoul';
 
 /**
- * Discord 웹훅 URL 유효성 검증
+ * Validates a Discord webhook URL.
  */
 export function validateDiscordWebhookUrl(url: string): WebhookValidationResult {
 	if (!url || !url.trim()) {
 		return { isValid: false, message: '웹훅 URL을 입력해주세요.' };
 	}
 
-	// URL 길이 검증
+	// URL length check
 	if (url.length > 500) {
 		return { isValid: false, message: 'URL이 너무 깁니다. (500자 이내)' };
 	}
 
-	// 기본 URL 형식 검증
+	// Basic URL format check
 	try {
 		const parsedUrl = new URL(url);
 
-		// HTTPS 프로토콜 강제
+		// HTTPS protocol required
 		if (parsedUrl.protocol !== 'https:') {
 			return { isValid: false, message: 'HTTPS URL만 지원됩니다.' };
 		}
 
-		// Discord 도메인 검증
+		// Discord domain check
 		if (parsedUrl.hostname !== 'discord.com' && parsedUrl.hostname !== 'discordapp.com') {
 			return { isValid: false, message: 'Discord 웹훅 URL만 지원됩니다.' };
 		}
 
-		// 웹훅 경로 검증
+		// Webhook path prefix check
 		if (!parsedUrl.pathname.startsWith('/api/webhooks/')) {
 			return { isValid: false, message: '올바른 Discord 웹훅 URL 형식이 아닙니다.' };
 		}
 
-		// 웹훅 경로 구조 검증
+		// Webhook path structure check
 		const pathParts = parsedUrl.pathname.split('/');
 		if (pathParts.length < 5 || !pathParts[3] || !pathParts[4]) {
 			return { isValid: false, message: '웹훅 URL에 필요한 정보가 누락되었습니다.' };
@@ -43,12 +43,12 @@ export function validateDiscordWebhookUrl(url: string): WebhookValidationResult 
 		const webhookId = pathParts[3];
 		const webhookToken = pathParts[4];
 
-		// 웹훅 ID 형식 검증 (Discord Snowflake)
+		// Webhook id format check (Discord Snowflake)
 		if (!/^\d{17,20}$/.test(webhookId)) {
 			return { isValid: false, message: '올바르지 않은 웹훅 ID 형식입니다.' };
 		}
 
-		// 웹훅 토큰 형식 검증
+		// Webhook token format check
 		if (!/^[a-zA-Z0-9_-]{64,68}$/.test(webhookToken)) {
 			return { isValid: false, message: '올바르지 않은 웹훅 토큰 형식입니다.' };
 		}
@@ -60,17 +60,17 @@ export function validateDiscordWebhookUrl(url: string): WebhookValidationResult 
 }
 
 /**
- * 웹훅 URL 정규화
+ * Normalizes a webhook URL.
  */
 export function normalizeWebhookUrl(url: string): string {
 	try {
 		const parsed = new URL(url.trim());
-		// 쿼리 파라미터와 해시 제거
+		// Drop query parameters and the hash
 		parsed.search = '';
 		parsed.hash = '';
 
 		let normalizedPath = parsed.pathname;
-		// 끝의 슬래시 제거
+		// Strip the trailing slash
 		if (normalizedPath.endsWith('/') && normalizedPath.length > 1) {
 			normalizedPath = normalizedPath.slice(0, -1);
 		}
@@ -82,7 +82,7 @@ export function normalizeWebhookUrl(url: string): string {
 }
 
 /**
- * 날짜 포맷팅
+ * Formats a date string for display.
  */
 export function formatDate(dateString: string | null): string {
 	if (!dateString) return 'N/A';
@@ -121,7 +121,7 @@ export function formatDateOnlyKST(value: string | Date | null | undefined): stri
 }
 
 /**
- * 외부 링크 열기
+ * Opens an external link in a new tab.
  */
 export function openExternalLink(url: string): void {
 	if (typeof window !== 'undefined') {
@@ -130,7 +130,7 @@ export function openExternalLink(url: string): void {
 }
 
 /**
- * 파일 다운로드 링크 열기
+ * Opens a file download link.
  */
 export function downloadFile(url: string, filename?: string): void {
 	if (!url || url.trim() === '' || typeof window === 'undefined') {
@@ -138,7 +138,7 @@ export function downloadFile(url: string, filename?: string): void {
 	}
 
 	try {
-		// 새 창에서 다운로드 링크 열기
+		// Open the download link in a new tab
 		const link = document.createElement('a');
 		link.href = url;
 		link.target = '_blank';
@@ -153,13 +153,13 @@ export function downloadFile(url: string, filename?: string): void {
 		document.body.removeChild(link);
 	} catch (error) {
 		console.error('파일 다운로드 실패:', error);
-		// 실패 시 새 창에서 URL 열기
+		// Fallback: open the URL in a new tab instead
 		openExternalLink(url);
 	}
 }
 
 /**
- * Blob 데이터를 파일로 다운로드
+ * Downloads a Blob as a file.
  */
 export function downloadBlob(blob: Blob, filename: string): void {
 	if (typeof window === 'undefined') {
@@ -180,7 +180,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * 파일 다운로드 가능 여부 확인
+ * Whether the URL can be downloaded directly (http/https only).
  */
 export function isDownloadable(url: string): boolean {
 	return (

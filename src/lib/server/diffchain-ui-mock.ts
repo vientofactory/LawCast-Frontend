@@ -5,6 +5,7 @@ import {
 	type NoticeLifecycleStatus
 } from '$lib/types/api';
 import type {
+	AdminNoticeListResponse,
 	ArchiveNoticeListResponse,
 	QuickKeywordSuggestionsResponse,
 	Notice,
@@ -484,6 +485,32 @@ function buildMockArchiveNotices(): Notice[] {
 
 export function getMockRecentNotices(): Notice[] {
 	return buildMockArchiveNotices().slice(0, 3);
+}
+
+export function getMockAdminNotices(): AdminNoticeListResponse {
+	return {
+		items: [
+			{
+				id: 'mock-announcement-1',
+				title: 'LawCast 베타 서비스 이용 안내',
+				published: true,
+				status: '게시중',
+				order: 1,
+				urgent: true,
+				content:
+					'현재 베타 서비스 기간에는 수집 주기와 보관 범위가 달라질 수 있습니다.\n변경 사항은 이 공지에서 안내드립니다.'
+			},
+			{
+				id: 'mock-announcement-2',
+				title: '개인정보 처리 방침 안내',
+				published: true,
+				status: null,
+				order: 2,
+				urgent: false,
+				content: '새 소식은 이 공지사항 페이지에 계속해서 올립니다.'
+			}
+		]
+	};
 }
 
 export function getMockQuickKeywordSuggestions(): QuickKeywordSuggestionsResponse {

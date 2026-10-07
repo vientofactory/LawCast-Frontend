@@ -10,6 +10,7 @@
 	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
+		faBullhorn,
 		faChevronDown,
 		faClock,
 		faDatabase,
@@ -38,6 +39,9 @@
 	let stats = $derived(data.stats);
 	let recentDiscussions = $derived(data.recentDiscussions);
 	let quickKeywords = $derived(data.quickKeywords);
+	// Pinned notice chip: exactly one (first published notice) — the single
+	// owner of this cap-1 lives here.
+	let pinnedNotice = $derived(data.adminNotices.items[0] ?? null);
 	let archiveTotalCount = $derived(stats?.archive?.count ?? 0);
 	let archiveCountLabel = $derived(
 		archiveTotalCount > 0 ? `${archiveTotalCount.toLocaleString('ko-KR')}건` : '기록 수집 중'
@@ -128,7 +132,7 @@
 	{@html `<script type="application/ld+json">${websiteJsonLd}<` + `/script>`}
 </svelte:head>
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main
@@ -146,9 +150,22 @@
 			>
 				<div class="lc-home-hero-content mx-auto flex max-w-4xl flex-col justify-center gap-8">
 					<div class="space-y-4 text-center lg:text-left">
-						<span class="lc-home-kicker inline-flex rounded-md px-3 py-1 text-xs font-semibold">
-							입법예고 기록 보관소
-						</span>
+						<div class="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+							<span class="lc-home-kicker inline-flex rounded-md px-3 py-1 text-xs font-semibold">
+								입법예고 기록 보관소
+							</span>
+							{#if pinnedNotice}
+								<a
+									href={`/announcements/${encodeURIComponent(pinnedNotice.id)}`}
+									class="lc-home-notice-chip inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+									title={pinnedNotice.title}
+									data-testid="pinned-notice-chip"
+								>
+									<FontAwesomeIcon icon={faBullhorn} class="h-3 w-3 shrink-0" />
+									<span class="truncate">{pinnedNotice.title}</span>
+								</a>
+							{/if}
+						</div>
 						<div class="space-y-3">
 							<h1
 								id="home-page-title"
@@ -375,7 +392,7 @@
 							>
 								<span class="sr-only">불러오는 중...</span>
 								<div class="lc-loading-track h-1.5 w-full overflow-hidden rounded-full">
-									<div class="lc-loading-fill loading-slide h-full w-1/3 rounded-full"></div>
+									<div class="lc-loading-fill lc-loading-slide h-full w-1/3 rounded-full"></div>
 								</div>
 							</div>
 						</div>

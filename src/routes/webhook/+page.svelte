@@ -30,7 +30,7 @@
 	keywords="LawCast, 입법예고, 디스코드 웹훅, 웹 푸시, 브라우저 알림, 국회 법률안, 법안 모니터링, 입법예고 알림"
 />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

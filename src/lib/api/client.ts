@@ -22,6 +22,7 @@ import type {
 	SystemStats,
 	SystemHealth,
 	ApiResponse,
+	AdminNoticeListResponse,
 	WebhookRegistrationRequest,
 	WebPushPublicConfig,
 	WebPushSubscriptionRequest,
@@ -81,7 +82,7 @@ async function request<T>(
 ): Promise<T> {
 	const url = `${BASE_URL}${path}`;
 
-	// 개발 환경 로깅
+	// Dev-only request logging
 	if (import.meta.env.DEV) {
 		console.log(`API Request: ${options.method || 'GET'} ${url}`);
 	}
@@ -101,7 +102,7 @@ async function request<T>(
 			}
 		});
 
-		// 개발 환경 응답 로깅
+		// Dev-only response logging
 		if (import.meta.env.DEV) {
 			console.log(`API Response: ${response.status} ${url}`);
 		}
@@ -137,10 +138,10 @@ async function request<T>(
 		const data = await response.json();
 
 		if (!response.ok) {
-			// 에러 데이터 구성
+			// Build the error payload
 			const errorData = {
 				status: response.status,
-				// 레이트리밋은 서버 메시지(영문) 대신 표준 한국어 문구를 사용한다.
+				// Rate limits use the standard Korean message instead of the server's English text.
 				message: response.status === 429 ? undefined : data?.message,
 				errors: data?.errors,
 				retryAfter:
@@ -193,7 +194,7 @@ function getErrorMessage(error: unknown): string {
 		case 504:
 			return '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
 		default:
-			// 네트워크 에러 등
+			// Network errors and similar
 			if (error instanceof Error) {
 				if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
 					return '요청 시간이 초과되었습니다. 다시 시도해주세요.';
@@ -213,7 +214,7 @@ function normalizeError(error: unknown): ApiError {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	apiError.status = (error as any)?.status;
 	apiError.retryAfter = (error as { retryAfter?: number } | undefined)?.retryAfter;
-	// 필요하다면 원본 response나 data를 첨부할 수 있음
+	// The original response/data can be attached here when needed
 	return apiError;
 }
 
@@ -244,7 +245,7 @@ export function getRateLimitErrorMessage(retryAfter?: number): string {
 }
 
 /**
- * 최근 입법예고 조회
+ * Fetches the recent legislative notices.
  */
 export async function getRecentNotices(customFetch?: Fetch): Promise<Notice[]> {
 	try {
@@ -277,7 +278,7 @@ export async function getQuickKeywordSuggestions(
 }
 
 /**
- * 아카이브 입법예고 목록 조회 (검색/페이지네이션)
+ * Fetches the archived notice list (search/pagination).
  */
 export async function getArchivedNotices(
 	params: {
@@ -360,7 +361,7 @@ export async function getArchivedNotices(
 }
 
 /**
- * 입법예고 통합 검색 (아카이브 DB + 실시간 크롤러 폴백)
+ * Unified legislative-notice search (archive DB + live crawler fallback).
  */
 export async function searchNotices(
 	params: {
@@ -389,8 +390,8 @@ export async function searchNotices(
 }
 
 /**
- * 의미(시맨틱) 검색 (백엔드 /api/notices/semantic-search)
- * 사이드카 장애 시 백엔드가 mode=keyword_fallback으로 응답한다.
+ * Performs a semantic search (backend /api/notices/semantic-search).
+ * On sidecar failure the backend answers with mode=keyword_fallback.
  */
 export async function semanticSearch(
 	params: { query: string; k?: number },
@@ -412,8 +413,9 @@ export async function semanticSearch(
 }
 
 /**
- * 의미 검색 엔진 상태 (백엔드 /api/notices/semantic-search/health)
- * 사이드카 /health의 청크 인덱스 개수·마지막 업데이트·마지막 업데이트 실행 시각을 가져온다.
+ * Fetches the semantic engine status (backend /api/notices/semantic-search/health):
+ * chunk index count, last update time and last refresh run time from the
+ * sidecar /health.
  */
 export async function semanticEngineHealth(
 	customFetch?: Fetch
@@ -431,7 +433,7 @@ export async function semanticEngineHealth(
 }
 
 /**
- * 입법예고 상세 조회 (원문 포함)
+ * Fetches one notice's detail (original text included).
  */
 export async function getNoticeDetail(
 	noticeNum: number,
@@ -456,7 +458,7 @@ export async function getNoticeDetail(
 }
 
 /**
- * 의안번호별 변경 추적 타임라인 조회
+ * Fetches the change-tracking timeline for a bill number.
  */
 export async function getNoticeChanges(
 	noticeNum: number,
@@ -482,7 +484,7 @@ export async function getNoticeChanges(
 }
 
 /**
- * 전체 의안 변경 이벤트 목록 조회
+ * Lists change events across all bills.
  */
 export async function getRecentNoticeChanges(
 	params: {
@@ -562,7 +564,7 @@ export async function getComparableNoticeChangesSummary(
 }
 
 /**
- * 시스템 통계 조회
+ * Fetches system statistics.
  */
 export async function getSystemStats(customFetch?: Fetch): Promise<SystemStats> {
 	try {
@@ -574,7 +576,7 @@ export async function getSystemStats(customFetch?: Fetch): Promise<SystemStats> 
 }
 
 /**
- * 시스템 건강도 조회
+ * Fetches system health status.
  */
 export async function getSystemHealth(customFetch?: Fetch): Promise<SystemHealth> {
 	try {
@@ -586,7 +588,7 @@ export async function getSystemHealth(customFetch?: Fetch): Promise<SystemHealth
 }
 
 /**
- * 웹훅 등록
+ * Registers a webhook.
  */
 export async function registerWebhook(
 	requestData: WebhookRegistrationRequest,
@@ -611,7 +613,7 @@ export async function registerWebhook(
 		} else if (err?.status === 429) {
 			message = '너무 많은 웹훅이 등록되어 있습니다.';
 		} else {
-			// request에서 이미 normalize된 에러가 올 수도 있음
+			// The error may already be normalized by request()
 			message = error instanceof Error ? error.message : getErrorMessage(error);
 		}
 
@@ -742,7 +744,7 @@ export async function unregisterWebPushSubscription(
 }
 
 /**
- * 크롤링 투명성 통계 조회
+ * Fetches crawling transparency statistics.
  */
 export async function getCrawlingTransparency(
 	customFetch?: Fetch
@@ -760,7 +762,7 @@ export async function getCrawlingTransparency(
 }
 
 /**
- * 법률안 발의 통계 조회
+ * Fetches bill proposal statistics.
  */
 export async function getProposalStatistics(
 	params: {
@@ -796,7 +798,7 @@ export async function getProposalStatistics(
 // ── Discussions API ─────────────────────────────────────────────────────
 
 /**
- * 법률안별 토론 스레드 목록 조회
+ * Lists discussion threads for one legislative notice.
  */
 export async function getNoticeDiscussions(
 	noticeNum: number,
@@ -820,7 +822,7 @@ export async function getNoticeDiscussions(
 }
 
 /**
- * 전체 법률안에 걸친 토론 스레드 통합 목록 조회
+ * Lists discussion threads across all legislative notices.
  */
 export async function getAllDiscussionThreads(
 	params: { page?: number; limit?: number; status?: DiscussionThreadStatus } = {},
@@ -844,7 +846,7 @@ export async function getAllDiscussionThreads(
 }
 
 /**
- * 새 토론 스레드 개설 및 #1 의견 등록
+ * Opens a new discussion thread and registers its first comment (#1).
  */
 export async function createNoticeDiscussion(
 	noticeNum: number,
@@ -867,7 +869,7 @@ export async function createNoticeDiscussion(
 }
 
 /**
- * 토론 스레드 상세 및 댓글 페이지 조회
+ * Fetches a thread detail with its comment page.
  */
 export async function getDiscussionThread(
 	threadId: number,
@@ -895,7 +897,7 @@ export async function getDiscussionThread(
 }
 
 /**
- * 토론 스레드에 새 의견(#N) 등록
+ * Registers a new comment (#N) on a thread.
  */
 export async function addDiscussionComment(
 	threadId: number,
@@ -918,7 +920,7 @@ export async function addDiscussionComment(
 }
 
 /**
- * 의견 수정 (비밀번호 일치 확인)
+ * Updates a comment (password match required).
  */
 export async function updateDiscussionComment(
 	commentId: number,
@@ -941,7 +943,7 @@ export async function updateDiscussionComment(
 }
 
 /**
- * 의견 소프트 삭제 (비밀번호 일치 확인)
+ * Soft-deletes a comment (password match required).
  */
 export async function deleteDiscussionComment(
 	commentId: number,
@@ -964,7 +966,7 @@ export async function deleteDiscussionComment(
 }
 
 /**
- * 토론 스레드 상태 변경 (열림/닫힘)
+ * Toggles a thread between open/closed status.
  */
 export async function updateDiscussionThreadStatus(
 	threadId: number,
@@ -986,7 +988,21 @@ export async function updateDiscussionThreadStatus(
 	}
 }
 
-// 기존 코드와의 호환성을 위한 객체 export
+// ── Admin notices (Notion-backed notice board, served at /api/announcements) ────────
+
+/**
+ * Fetch published admin notices (read-only — CRUD happens only in Notion)
+ */
+export async function getAdminNotices(customFetch?: Fetch): Promise<AdminNoticeListResponse> {
+	try {
+		return await request<AdminNoticeListResponse>('/announcements', { method: 'GET' }, customFetch);
+	} catch (error) {
+		console.error('Failed to load admin notices:', error);
+		throw normalizeError(error);
+	}
+}
+
+// Object export kept for backward compatibility with existing code
 export const apiClient = {
 	getRecentNotices,
 	getQuickKeywordSuggestions,
@@ -1000,6 +1016,7 @@ export const apiClient = {
 	getComparableNoticeChangesSummary,
 	getSystemStats,
 	getSystemHealth,
+	getAdminNotices,
 	registerWebhook,
 	getWebPushPublicConfig,
 	registerWebPushSubscription,

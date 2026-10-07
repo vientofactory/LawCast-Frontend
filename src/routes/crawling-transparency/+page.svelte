@@ -89,7 +89,7 @@
 	keywords="크롤링 투명성, 데이터 수집, 입법예고 수집 경로, 국회 데이터, 운영 투명성"
 />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main id="main-content" class="relative mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
@@ -120,7 +120,7 @@
 			/>
 		{/if}
 
-		<!-- ── 데이터 수집 소스 ────────────────────────────────────────── -->
+		<!-- ── Data collection sources ────────────────────────────────────────── -->
 		<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
 				<FontAwesomeIcon icon={faGlobe} class="lc-text-accent mr-2 h-4 w-4" />
@@ -160,7 +160,7 @@
 			</div>
 		</section>
 
-		<!-- ── 수집 데이터 현황 ─────────────────────────────────────────── -->
+		<!-- ── Collected data status ─────────────────────────────────────────── -->
 		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
 				<FontAwesomeIcon icon={faDatabase} class="lc-text-success mr-2 h-4 w-4" />
@@ -175,7 +175,7 @@
 			</div>
 
 			<div class="grid gap-4 sm:grid-cols-2">
-				<!-- 의안 상태별 -->
+				<!-- By bill status -->
 				<div class="rounded-xl border border-(--lc-border-soft) p-4">
 					<h3 class="lc-text-primary mb-2 text-xs font-bold">의안 상태</h3>
 					<div class="lc-text-secondary space-y-1.5 text-xs">
@@ -191,7 +191,7 @@
 					</div>
 				</div>
 
-				<!-- 수집 경로별 -->
+				<!-- By collection path -->
 				<div class="rounded-xl border border-(--lc-border-soft) p-4">
 					<h3 class="lc-text-primary mb-2 text-xs font-bold">수집 경로별 이벤트</h3>
 					<div class="lc-text-secondary space-y-1.5 text-xs">
@@ -209,7 +209,7 @@
 			</div>
 		</section>
 
-		<!-- ── 변경 추적 현황 ──────────────────────────────────────────── -->
+		<!-- ── Change tracking status ──────────────────────────────────────────── -->
 		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
 				<FontAwesomeIcon icon={faCodeCompare} class="lc-text-info mr-2 h-4 w-4" />
@@ -234,7 +234,7 @@
 			</div>
 		</section>
 
-		<!-- ── 수집 스케줄 ───────────────────────────────────────────── -->
+		<!-- ── Collection schedule ───────────────────────────────────────────── -->
 		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
 				<FontAwesomeIcon icon={faCalendarCheck} class="lc-text-accent mr-2 h-4 w-4" />
@@ -256,7 +256,7 @@
 			</div>
 		</section>
 
-		<!-- ── 의안 이관 흐름 ────────────────────────────────────────────── -->
+		<!-- ── Bill hand-off flow ────────────────────────────────────────────── -->
 		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
 			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
 				<FontAwesomeIcon icon={faArrowRight} class="lc-text-info mr-2 h-4 w-4" />
@@ -300,7 +300,7 @@
 			</div>
 		</section>
 
-		<!-- ── 안내 ──────────────────────────────────────────────────── -->
+		<!-- ── Notes ──────────────────────────────────────────────────── -->
 		<div class="lc-panel-card mt-4 rounded-2xl border p-4 text-center">
 			<p class="lc-text-dim flex items-center justify-center gap-1 text-xs">
 				<FontAwesomeIcon icon={faInfoCircle} class="h-3 w-3" />

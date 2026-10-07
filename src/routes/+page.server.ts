@@ -1,4 +1,5 @@
 import { apiClient } from '$lib/api/client';
+import { loadAdminNoticeList } from '$lib/server/announcements';
 import { DiscussionThreadStatus } from '$lib/types/api';
 import type { PageServerLoad } from './$types';
 import {
@@ -25,11 +26,12 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			recentNotices: getMockRecentNotices(),
 			quickKeywords: getMockQuickKeywordSuggestions(),
 			stats: getMockSystemStats(),
-			recentDiscussions: getMockAllDiscussionThreads().items
+			recentDiscussions: getMockAllDiscussionThreads().items,
+			adminNotices: await loadAdminNoticeList(fetch)
 		};
 	}
 
-	const [recentNotices, quickKeywords, stats, recentDiscussions] = await Promise.all([
+	const [recentNotices, quickKeywords, stats, recentDiscussions, adminNotices] = await Promise.all([
 		apiClient.getRecentNotices(fetch).catch(() => []),
 		apiClient.getQuickKeywordSuggestions({ limit: 8 }, fetch).catch(() => ({
 			items: [],
@@ -44,8 +46,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				fetch
 			)
 			.then((res) => res.items)
-			.catch(() => [])
+			.catch(() => []),
+		loadAdminNoticeList(fetch).catch(() => ({ items: [] }))
 	]);
 
-	return { recentNotices, quickKeywords, stats, recentDiscussions };
+	return { recentNotices, quickKeywords, stats, recentDiscussions, adminNotices };
 };

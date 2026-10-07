@@ -32,11 +32,11 @@
 	keywords="라이선스, 오픈소스 라이선스, OSS 라이선스, 라이선스 고지, 법적 고지"
 />
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main id="main-content" class="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-		<!-- 페이지 헤더 -->
+		<!-- Page header -->
 		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
 			<p class="lc-text-purple text-xs font-semibold tracking-wide">LICENSE</p>
 			<h1 class="lc-text-primary mt-1 flex items-center gap-2 text-2xl font-bold">
@@ -48,7 +48,7 @@
 			</p>
 		</div>
 
-		<!-- LawCast 프로젝트 라이선스 -->
+		<!-- LawCast project license -->
 		<section class="lc-panel-card mb-6 rounded-2xl border p-5">
 			<h2 class="lc-text-primary mb-3 text-base font-bold">LawCast 프로젝트 라이선스</h2>
 			<p class="lc-text-secondary mb-3 text-sm">
@@ -78,14 +78,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.</pre>
 		</section>
 
-		<!-- 오픈소스 라이선스 고지 -->
+		<!-- Open-source license notices -->
 		<section class="lc-panel-card mb-6 rounded-2xl border p-5">
 			<h2 class="lc-text-primary mb-1 text-base font-bold">오픈소스 라이선스 고지</h2>
 			<p class="lc-text-muted mb-5 text-sm">
 				이 소프트웨어는 아래 오픈소스 패키지를 사용합니다. 각 패키지의 라이선스 조건을 준수합니다.
 			</p>
 
-			<!-- 백엔드 -->
+			<!-- Backend -->
 			<div class="mb-6">
 				<h3
 					class="lc-text-primary mb-3 flex items-center gap-2 border-b border-[var(--lc-border-soft)] pb-2 text-sm font-bold"
@@ -126,7 +126,7 @@ SOFTWARE.</pre>
 				</div>
 			</div>
 
-			<!-- 프론트엔드 -->
+			<!-- Frontend -->
 			<div>
 				<h3
 					class="lc-text-primary mb-3 flex items-center gap-2 border-b border-[var(--lc-border-soft)] pb-2 text-sm font-bold"
@@ -168,7 +168,7 @@ SOFTWARE.</pre>
 			</div>
 		</section>
 
-		<!-- 라이선스 범례 -->
+		<!-- License legend -->
 		<section class="lc-panel-card rounded-2xl border p-5">
 			<h2 class="lc-text-primary mb-3 text-base font-bold">라이선스 유형 안내</h2>
 			<div class="flex flex-wrap gap-3 text-xs">

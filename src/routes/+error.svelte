@@ -36,7 +36,7 @@
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="page-shell">
+<div class="lc-page-shell">
 	<Header />
 
 	<main
