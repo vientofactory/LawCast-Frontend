@@ -62,9 +62,10 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		await expect(body).toBeVisible();
 		// Heading (## -> h3; the notice title owns h1), bold text, unordered
 		// list, table and blockquote from the Notion block tree must survive
-		// the round trip.
+		// the round trip. The body also contains a toggle block, so scope the
+		// bold assertion to the intro paragraph (strict mode: 2 <strong>s).
 		await expect(body.locator('h3')).toContainText('개인정보 처리 방침 개정 안내');
-		await expect(body.locator('strong')).toContainText('개인정보 처리 방침');
+		await expect(body.locator('p strong').first()).toContainText('개인정보 처리 방침');
 		await expect(body.locator('ul li')).toHaveCount(2);
 		await expect(body.locator('table')).toBeVisible();
 		await expect(body.locator('table td', { hasText: '2026-10-15' })).toHaveCount(1);
@@ -73,6 +74,33 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		// No raw markdown syntax may leak into the rendered output.
 		await expect(body).not.toContainText('##');
 		await expect(body).not.toContainText('| --- |');
+	});
+
+	test('renders a Notion toggle as a clickable disclosure', async ({ page }) => {
+		test.skip(!MOCK_ENABLED, 'requires the mock fixture');
+		await page.goto('/announcements/mock-announcement-2');
+
+		const body = page.getByTestId('admin-notice-body');
+		// notion-to-md emits <details>/<summary>; the tags themselves must never
+		// show up as literal text.
+		await expect(body).not.toContainText('<details>');
+		await expect(body).not.toContainText('<summary>');
+
+		const toggle = body.getByTestId('notice-toggle');
+		await expect(toggle).toHaveCount(1);
+		const summary = toggle.locator('summary');
+		await expect(summary).toContainText('개정 상세 보기');
+
+		// Collapsed by default: the toggle body is hidden, then revealed on click.
+		const toggleBody = toggle.locator('div p');
+		await expect(toggleBody).toBeHidden();
+		await summary.click();
+		await expect(toggleBody).toBeVisible();
+		await expect(toggle.locator('div strong')).toContainText('상세 설명');
+
+		// Clicking again collapses it.
+		await summary.click();
+		await expect(toggleBody).toBeHidden();
 	});
 
 	test('urgent banner sits directly below the header on every page', async ({ page }) => {

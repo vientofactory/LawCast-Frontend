@@ -191,6 +191,22 @@
 		<hr />
 	{:else if token.type === 'br'}
 		<br />
+	{:else if token.type === 'notion-toggle'}
+		<!-- Notion toggle block (lexed server-side) — a native, clickable disclosure. -->
+		<details class="lc-md-toggle" data-testid="notice-toggle">
+			<summary class="lc-md-toggle-summary">
+				{#if token.summaryTokens?.length}
+					<MarkdownBody tokens={token.summaryTokens} />
+				{:else}
+					{token.summary ?? ''}
+				{/if}
+			</summary>
+			{#if token.tokens?.length}
+				<div class="lc-md-toggle-body">
+					<MarkdownBody tokens={token.tokens} />
+				</div>
+			{/if}
+		</details>
 	{:else if token.type === 'html'}
 		<!-- Raw HTML from a notice body is shown as literal text, never executed. -->
 		{token.text ?? token.raw ?? ''}
@@ -341,6 +357,55 @@
 		border: 0;
 		border-top: 1px solid var(--lc-border-soft);
 		margin: 1em 0;
+	}
+
+	.lc-md-toggle {
+		border-left: 3px solid var(--lc-border-soft);
+		margin: 0.75em 0;
+		padding-left: 0.75em;
+	}
+
+	.lc-md-toggle-summary {
+		color: var(--lc-text-primary);
+		cursor: pointer;
+		font-weight: 600;
+		list-style: none;
+		position: relative;
+	}
+
+	/* Collapse the default marker so the caret below can replace it everywhere. */
+	.lc-md-toggle-summary::-webkit-details-marker {
+		display: none;
+	}
+
+	/* Rotating caret: closed points right, open points down. */
+	.lc-md-toggle-summary::before {
+		content: '';
+		border-left: 5px solid currentColor;
+		border-top: 4px solid transparent;
+		border-bottom: 4px solid transparent;
+		display: inline-block;
+		margin-right: 0.5em;
+		transition: transform 0.15s ease;
+		vertical-align: middle;
+	}
+
+	.lc-md-toggle[open] > .lc-md-toggle-summary::before {
+		transform: rotate(90deg);
+	}
+
+	.lc-md-toggle-summary:hover {
+		color: var(--lc-text-accent);
+	}
+
+	.lc-md-toggle-summary:focus-visible {
+		border-radius: 0.25rem;
+		outline: 2px solid var(--lc-text-accent);
+		outline-offset: 2px;
+	}
+
+	.lc-md-toggle-body {
+		margin-top: 0.5em;
 	}
 
 	input[type='checkbox'] {

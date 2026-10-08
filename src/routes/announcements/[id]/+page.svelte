@@ -12,12 +12,14 @@
 
 	let pageUrl = $derived(page.url.origin + page.url.pathname);
 	let hasMarkdownBody = $derived(data.bodyTokens.length > 0);
-	// Strip markdown syntax markers so the meta description stays readable.
+	// Strip HTML tags (Notion toggle markup) and markdown syntax markers so
+	// the meta description stays readable.
 	let description = $derived(
 		data.notice.content
 			? data.notice.content.slice(0, 160)
 			: hasMarkdownBody
 				? data.notice.body
+						.replace(/<[^>]+>/g, '')
 						.replace(/[#>*_~`|-]/g, '')
 						.replace(/\s+/g, ' ')
 						.trim()
