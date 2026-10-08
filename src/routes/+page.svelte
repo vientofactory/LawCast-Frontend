@@ -39,9 +39,10 @@
 	let stats = $derived(data.stats);
 	let recentDiscussions = $derived(data.recentDiscussions);
 	let quickKeywords = $derived(data.quickKeywords);
-	// Pinned notice chip: exactly one (first published notice) — the single
-	// owner of this cap-1 lives here.
-	let pinnedNotice = $derived(data.adminNotices.items[0] ?? null);
+	// Pinned notice chip: exactly one notice, served as a single item by the
+	// home page loader (GET /api/announcements/top) — the full list never
+	// reaches this route's SSR data.
+	let pinnedNotice = $derived(data.pinnedNotice ?? null);
 	let archiveTotalCount = $derived(stats?.archive?.count ?? 0);
 	let archiveCountLabel = $derived(
 		archiveTotalCount > 0 ? `${archiveTotalCount.toLocaleString('ko-KR')}건` : '기록 수집 중'

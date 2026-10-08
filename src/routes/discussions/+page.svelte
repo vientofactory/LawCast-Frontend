@@ -17,17 +17,14 @@
 		faChevronRight,
 		faCircleExclamation
 	} from '@fortawesome/free-solid-svg-icons';
-	import {
-		DiscussionThreadStatus,
-		type DiscussionThreadWithNoticeListResponse
-	} from '$lib/types/api';
+	import { DiscussionThreadStatus, type DiscussionThreadCardListResponse } from '$lib/types/api';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 
 	let {
 		data
 	}: {
 		data: {
-			threads: DiscussionThreadWithNoticeListResponse;
+			threads: DiscussionThreadCardListResponse;
 			status?: DiscussionThreadStatus;
 			loadError?: {
 				message: string;

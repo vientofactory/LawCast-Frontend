@@ -5,9 +5,21 @@ import {
 	getMockAllDiscussionThreads
 } from '$lib/server/diffchain-ui-mock';
 import { toLoadErrorPayload } from '$lib/server/load-error';
+import { toDiscussionThreadCard } from '$lib/server/ssr-cards';
+import type {
+	DiscussionThreadCardListResponse,
+	DiscussionThreadWithNoticeListResponse
+} from '$lib/types/api';
 import type { PageServerLoad } from './$types';
 
 const DEFAULT_PAGE_SIZE = 20;
+
+/** The list renders DiscussionThreadCard row fields only; isLocked/createdAt stay off SSR data. */
+function toCardResponse(
+	threads: DiscussionThreadWithNoticeListResponse
+): DiscussionThreadCardListResponse {
+	return { ...threads, items: threads.items.map(toDiscussionThreadCard) };
+}
 
 function parseStatus(raw: string | null): DiscussionThreadStatus | undefined {
 	if (raw === DiscussionThreadStatus.OPEN) {
@@ -29,7 +41,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 
 	if (isDiffchainUiMockEnabled()) {
 		return {
-			threads: getMockAllDiscussionThreads(),
+			threads: toCardResponse(getMockAllDiscussionThreads()),
 			status
 		};
 	}
@@ -39,7 +51,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			{ page, limit: DEFAULT_PAGE_SIZE, status },
 			fetch
 		);
-		return { threads, status };
+		return { threads: toCardResponse(threads), status };
 	} catch (err) {
 		console.error('Failed to load all discussion threads:', err);
 		const loadError = toLoadErrorPayload(err, '토론 목록을 불러오는 중 오류가 발생했습니다.');

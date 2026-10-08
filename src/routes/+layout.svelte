@@ -21,7 +21,7 @@
 
 	let {
 		children,
-		data = { frontendVersion: 'unknown', backendVersion: 'unknown', adminNotices: { items: [] } }
+		data = { frontendVersion: 'unknown', backendVersion: 'unknown', urgentNotice: null }
 	} = $props();
 	const routePath = $derived(page.url.pathname);
 	const routeId = $derived(

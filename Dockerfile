@@ -38,6 +38,11 @@ RUN npm ci
 COPY . .
 
 # Build the application (SvelteKit will automatically read .env file)
+# SVELTE_ADAPTER=node selects adapter-node so the output lands in /app/build,
+# which the runner stage below copies and `node build` executes. Without it
+# the build would emit .svelte-kit/cloudflare and the COPY of /app/build would
+# fail (or worse, ship a stale build/ artifact).
+ENV SVELTE_ADAPTER=node
 RUN npm run build
 
 # Production image
@@ -63,6 +68,10 @@ RUN adduser --system --uid 1001 sveltekit
 
 # Copy the built application
 COPY --from=builder /app/build ./build
+# Runtime config for `--env-file-if-exists` below: PUBLIC_* feature gates
+# ($env/dynamic/public) are resolved from process.env at server start, so the
+# production server must read the same .env the dev server reads.
+COPY --from=builder /app/.env ./.env
 COPY --from=builder /app/package*.json ./
 COPY --from=deps /app/node_modules ./node_modules
 
@@ -83,5 +92,6 @@ ENV PORT=3002
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3002', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })" || exit 1
 
-# Start the server
-CMD ["node", "build"]
+# Start the server (--env-file-if-exists keeps the command valid when no .env
+# ships with the image; explicit environment variables still take precedence)
+CMD ["node", "--env-file-if-exists=.env", "build"]

@@ -660,3 +660,86 @@ export interface AdminNotice {
 export interface AdminNoticeListResponse {
 	items: AdminNotice[];
 }
+
+/**
+ * Response of `GET /api/announcements/top` — a single notice for the two
+ * cap-1 UI spots (home pinned chip, site-wide urgent banner), so global SSR
+ * pages never serialize the whole list.
+ */
+export interface AdminNoticeTopResponse {
+	/** Top display-order notice, or the first urgent one with `?urgent=true`. Null when none matches. */
+	item: AdminNoticeCard | null;
+}
+
+// ── SSR minimal view cards ─────────────────────────────────────────────
+// Server loaders map API responses onto these cards so a route's SSR payload
+// carries ONLY the fields its UI renders (and nothing more). The full API
+// types above stay intact for the client layer and for routes that render
+// the complete objects.
+
+/** Cap-1 notice view: the pinned chip and the urgent banner render id + title only. */
+export interface AdminNoticeCard {
+	id: string;
+	title: string;
+}
+
+/** Fields rendered by the home recent list and the /notices board rows. */
+export interface NoticeCard {
+	num: number;
+	subject: string;
+	proposerCategory: string;
+	committee: string;
+	link: string;
+	isDone?: boolean;
+	noticePeriod?: string | null;
+	aiSummary?: string | null;
+	aiSummaryStatus?: AISummaryStatus;
+	lifecycleStatus?: NoticeLifecycleStatus;
+	changeEventCount?: number;
+	attachments: Notice['attachments'];
+}
+
+/** Fields rendered on /discussions and the home recent-discussions card. */
+export interface DiscussionThreadCard {
+	id: number;
+	noticeNum: number;
+	noticeSubject: string | null;
+	title: string;
+	status: DiscussionThreadStatus;
+	authorNickname: string;
+	authorIpMasked: string;
+	commentCount: number;
+	updatedAt: string;
+}
+
+/** Fields rendered on the /notices/changes list (hashes/diff details stay server-side). */
+export interface NoticeChangeCard {
+	id: number;
+	noticeNum: number;
+	subject?: string | null;
+	detectedAt: string;
+	eventType: ChangeEventType;
+	source: string | null;
+	eventHeight: number;
+	changedFieldCount: number;
+}
+
+export interface DiscussionThreadCardListResponse {
+	items: DiscussionThreadCard[];
+	total: number;
+	page: number;
+	limit: number;
+}
+
+export interface NoticeChangeCardListResponse {
+	items: NoticeChangeCard[];
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+}
+
+/** /notices board response with card items; every other field is unchanged. */
+export interface ArchiveNoticeCardListResponse extends Omit<ArchiveNoticeListResponse, 'items'> {
+	items: NoticeCard[];
+}

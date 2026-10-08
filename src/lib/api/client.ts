@@ -23,6 +23,7 @@ import type {
 	SystemHealth,
 	ApiResponse,
 	AdminNoticeListResponse,
+	AdminNoticeTopResponse,
 	WebhookRegistrationRequest,
 	WebPushPublicConfig,
 	WebPushSubscriptionRequest,
@@ -1002,6 +1003,24 @@ export async function getAdminNotices(customFetch?: Fetch): Promise<AdminNoticeL
 	}
 }
 
+/**
+ * Fetch ONE notice instead of the full list: the top display-order notice
+ * (home hero pinned chip) or, with `urgent: true`, the first urgent notice
+ * (site-wide banner). Keeps global SSR payloads off the whole list.
+ */
+export async function getTopAdminNotice(
+	options: { urgent?: boolean } = {},
+	customFetch?: Fetch
+): Promise<AdminNoticeTopResponse> {
+	const path = options.urgent ? '/announcements/top?urgent=true' : '/announcements/top';
+	try {
+		return await request<AdminNoticeTopResponse>(path, { method: 'GET' }, customFetch);
+	} catch (error) {
+		console.error('Failed to load top admin notice:', error);
+		throw normalizeError(error);
+	}
+}
+
 // Object export kept for backward compatibility with existing code
 export const apiClient = {
 	getRecentNotices,
@@ -1017,6 +1036,7 @@ export const apiClient = {
 	getSystemStats,
 	getSystemHealth,
 	getAdminNotices,
+	getTopAdminNotice,
 	registerWebhook,
 	getWebPushPublicConfig,
 	registerWebPushSubscription,

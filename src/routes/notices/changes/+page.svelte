@@ -22,7 +22,7 @@
 	import type {
 		ChangeEventType,
 		ComparableChangeSummary,
-		RecentNoticeChangesResponse
+		NoticeChangeCardListResponse
 	} from '$lib/types/api';
 	import { NoticeChangeSource } from '$lib/types/change-source';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
@@ -33,7 +33,7 @@
 		data
 	}: {
 		data: {
-			changes: RecentNoticeChangesResponse;
+			changes: NoticeChangeCardListResponse;
 			summary: ComparableChangeSummary;
 			filters: {
 				search: string;

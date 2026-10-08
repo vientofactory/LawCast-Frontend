@@ -6,6 +6,8 @@ import { test, expect } from '@playwright/test';
  * - Board list (/announcements): all published notices in display order, each row a detail link
  * - Notice date: row creation time (Notion created_time) rendered as KST YYYY-MM-DD on list + detail
  * - Detail: same design language as the rest of the site (breadcrumb nav + lc-panel card)
+ * - SSR payload: global loaders carry ONE notice each (layout = urgent, home = pinned);
+ *   the full list is embedded only on the announcements routes.
  * The two mock fixture notices prove "2 fixtures -> 1 chip / 2 list rows" on both caps.
  * Chip cap owner: src/routes/+page.svelte. Shared list/detail loader: lib/server/announcements.ts.
  */
@@ -42,7 +44,8 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		// Notice date = Notion created_time, shown as KST date with the raw
 		// ISO instant preserved on <time datetime>.
 		const date = page.getByTestId('admin-notice-date');
-		await expect(date).toHaveText('2026-09-01');
+		// The detail chip carries the 게시일 label in front of the KST date.
+		await expect(date).toHaveText('게시일: 2026-09-01');
 		await expect(date).toHaveAttribute('datetime', '2026-09-01T03:00:00.000Z');
 		const body = page.getByTestId('admin-notice-content');
 		await expect(body).toContainText('변경 사항은 이 공지에서 안내드립니다.');
@@ -102,6 +105,31 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		await page.getByTestId('urgent-notice-link').click();
 		await page.waitForURL(/\/announcements\/mock-announcement-1$/);
 		await expect(page.getByTestId('admin-notice-title')).toHaveText(ORDER_ONE_TITLE);
+	});
+
+	test('embeds the full list only on announcements routes, one notice elsewhere', async ({
+		page
+	}) => {
+		test.skip(!MOCK_ENABLED, 'requires the mock fixture');
+
+		// Layout SSR data must expose only the single urgent notice, never the list.
+		const statusHtml = await (await page.request.get('/status')).text();
+		expect(statusHtml).toContain('urgentNotice');
+		expect(statusHtml).not.toContain('adminNotices');
+		// Notice 2 is not urgent, so a non-announcement page must not ship it.
+		expect(statusHtml).not.toContain(ORDER_TWO_TITLE);
+
+		// Home adds the single pinned notice (fixture 1 = top + urgent) but still
+		// no second notice.
+		const homeHtml = await (await page.request.get('/')).text();
+		expect(homeHtml).toContain('pinnedNotice');
+		expect(homeHtml).toContain(ORDER_ONE_TITLE);
+		expect(homeHtml).not.toContain(ORDER_TWO_TITLE);
+
+		// The announcements board keeps loading the whole list.
+		const listHtml = await (await page.request.get('/announcements')).text();
+		expect(listHtml).toContain(ORDER_ONE_TITLE);
+		expect(listHtml).toContain(ORDER_TWO_TITLE);
 	});
 
 	test('board list shows published notices in order and links to the detail', async ({ page }) => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { DiscussionThreadStatus, type DiscussionThreadWithNotice } from '$lib/types/api';
+	import { DiscussionThreadStatus, type DiscussionThreadCard } from '$lib/types/api';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import {
 		faComments,
@@ -10,7 +10,8 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
-	let { threads = [] }: { threads?: DiscussionThreadWithNotice[] } = $props();
+	// Card view: only the row fields rendered below reach SSR data.
+	let { threads = [] }: { threads?: DiscussionThreadCard[] } = $props();
 </script>
 
 <section

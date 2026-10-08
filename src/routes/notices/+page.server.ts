@@ -4,10 +4,21 @@ import {
 	getMockArchiveNoticesResponse
 } from '$lib/server/diffchain-ui-mock';
 import { toLoadErrorPayload } from '$lib/server/load-error';
+import { toNoticeCard } from '$lib/server/ssr-cards';
+import type { ArchiveNoticeCardListResponse, ArchiveNoticeListResponse } from '$lib/types/api';
 import type { PageServerLoad } from '../$types';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
 const DEFAULT_PAGE_SIZE = 20;
+
+/**
+ * The board renders NoticeCard fields only — unused scalars
+ * (archiveStartedAt, lastUpdatedAt, sourceDeletedAt, contentId) stay off the
+ * serialized SSR payload.
+ */
+function toCardList(archive: ArchiveNoticeListResponse): ArchiveNoticeCardListResponse {
+	return { ...archive, items: archive.items.map(toNoticeCard) };
+}
 
 function parseNoticeNums(raw: string | null): number[] {
 	if (!raw) {
@@ -47,17 +58,19 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 
 	if (isDiffchainUiMockEnabled()) {
 		return {
-			archive: getMockArchiveNoticesResponse({
-				page,
-				limit,
-				search,
-				proposer,
-				startDate,
-				endDate,
-				sortOrder,
-				isDone,
-				fullText
-			}),
+			archive: toCardList(
+				getMockArchiveNoticesResponse({
+					page,
+					limit,
+					search,
+					proposer,
+					startDate,
+					endDate,
+					sortOrder,
+					isDone,
+					fullText
+				})
+			),
 			digestContext: {
 				isDigestContext,
 				noticeNums
@@ -83,7 +96,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		);
 
 		return {
-			archive,
+			archive: toCardList(archive),
 			digestContext: {
 				isDigestContext,
 				noticeNums

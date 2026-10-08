@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { theme } from '$lib/theme';
 	import UrgentNoticeBanner from '$lib/components/UrgentNoticeBanner.svelte';
-	import type { AdminNotice } from '$lib/types/api';
+	import type { AdminNoticeCard } from '$lib/types/api';
 	import {
 		faFileLines,
 		faHouse,
@@ -86,13 +86,11 @@
 
 	let isDarkTheme = $derived($theme === 'dark');
 
-	// Layout load exposes adminNotices on every route; items arrive sorted by
-	// display order (노출 순서) ascending, so the first urgent row is the
-	// top-ranked one.
+	// Layout load exposes ONE urgent notice on every route (GET
+	// /api/announcements/top?urgent=true — first 긴급 row in display order),
+	// null when no urgent notice exists. The full list stays off global SSR.
 	const urgentNotice = $derived(
-		(page.data as { adminNotices?: { items: AdminNotice[] } }).adminNotices?.items.find(
-			(notice) => notice.urgent
-		) ?? null
+		(page.data as { urgentNotice?: AdminNoticeCard | null }).urgentNotice ?? null
 	);
 
 	function trapFocus(node: HTMLElement) {
