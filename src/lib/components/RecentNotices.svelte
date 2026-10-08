@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Notice, SystemStats } from '$lib/types/api';
+	import type { NoticeCard } from '$lib/types/api';
 	import { openExternalLink, downloadFile, isDownloadable, formatDate } from '$lib/utils/helpers';
 	import {
 		faBell,
@@ -14,14 +14,19 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
-	let { notices = [], stats = undefined }: { notices?: Notice[]; stats?: SystemStats } = $props();
+	// Receives card views: only the fields rendered below (plus the AI-summary
+	// gate flag) ever reach SSR data.
+	let {
+		notices = [],
+		stats = undefined
+	}: { notices?: NoticeCard[]; stats?: { aiSummaryEnabled?: boolean } } = $props();
 	let aiSummaryEnabled = $derived(stats?.aiSummaryEnabled !== false);
 
-	function isSourceDeleted(notice: Notice): boolean {
+	function isSourceDeleted(notice: NoticeCard): boolean {
 		return notice.lifecycleStatus === 'source_deleted';
 	}
 
-	function isRenumbered(notice: Notice): boolean {
+	function isRenumbered(notice: NoticeCard): boolean {
 		return notice.lifecycleStatus === 'renumbered';
 	}
 </script>

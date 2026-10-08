@@ -5,10 +5,27 @@ import {
 	getMockRecentNoticeChangesResponse
 } from '$lib/server/diffchain-ui-mock';
 import { toLoadErrorPayload } from '$lib/server/load-error';
+import { toNoticeChangeCard } from '$lib/server/ssr-cards';
+import type { NoticeChangeCardListResponse, RecentNoticeChangesResponse } from '$lib/types/api';
 import type { PageServerLoad } from './$types';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
 const DEFAULT_PAGE_SIZE = 20;
+
+/**
+ * The list renders NoticeChangeCard row fields only — hashes, diff summaries
+ * and per-field details stay off the serialized SSR payload (the detail page
+ * loads its own timeline).
+ */
+function toCardChanges(changes: RecentNoticeChangesResponse): NoticeChangeCardListResponse {
+	return {
+		items: changes.items.map(toNoticeChangeCard),
+		page: changes.page,
+		limit: changes.limit,
+		total: changes.total,
+		totalPages: changes.totalPages
+	};
+}
 
 function parsePositiveInt(value: string | null): number | null {
 	if (!value || value.trim().length === 0) {
@@ -90,7 +107,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			excludeIsDoneEvents: !includeIsDoneChanges
 		});
 		return {
-			changes,
+			changes: toCardChanges(changes),
 			summary: {
 				comparableEventTotal: summaryBase.total,
 				comparableNoticeCount: 4
@@ -184,7 +201,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	try {
 		const [changes, summary] = await Promise.all([changesPromise, summaryPromise]);
 		return {
-			changes,
+			changes: toCardChanges(changes),
 			summary,
 			filters: {
 				search,

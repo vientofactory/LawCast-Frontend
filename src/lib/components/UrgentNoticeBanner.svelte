@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faChevronRight, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
-	import type { AdminNotice } from '$lib/types/api';
+	import type { AdminNoticeCard } from '$lib/types/api';
 
-	let { notice }: { notice: AdminNotice } = $props();
+	// Receives the cap-1 card view (id + title) from the layout loader.
+	let { notice }: { notice: AdminNoticeCard } = $props();
 </script>
 
 <!--
-	Site-wide urgent banner: shown under the top navigation on every page when the
-	top display-order notice carries the Notion 긴급 checkbox. The alert role makes
-	screen readers announce the urgent notice on arrival.
+	Site-wide urgent banner: shown under the top navigation on every page when a
+	Notion 긴급 notice exists — the layout loader passes the first urgent row in
+	display order as a single notice. The alert role makes screen readers
+	announce the urgent notice on arrival.
 -->
 <div
 	role="alert"

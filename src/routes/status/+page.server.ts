@@ -1,7 +1,24 @@
 import { apiClient } from '$lib/api/client';
+import type { SystemStats } from '$lib/types/api';
 import type { PageServerLoad } from './$types';
 import { isDiffchainUiMockEnabled, getMockSystemStats } from '$lib/server/diffchain-ui-mock';
 import { toLoadErrorPayload } from '$lib/server/load-error';
+
+/**
+ * /status renders webhooks, webPush, cache, archive, crawlers and ollama —
+ * changeTracking, nodeRuntime and aiSummaryEnabled are not shown here and
+ * stay off the serialized SSR payload (the home hero slices its own subset).
+ */
+function pickStatusStats(stats: SystemStats) {
+	return {
+		webhooks: stats.webhooks,
+		cache: stats.cache,
+		archive: stats.archive,
+		...(stats.webPush ? { webPush: stats.webPush } : {}),
+		...(stats.ollama ? { ollama: stats.ollama } : {}),
+		...(stats.crawlers ? { crawlers: stats.crawlers } : {})
+	};
+}
 
 export const load: PageServerLoad = async ({ fetch }) => {
 	if (isDiffchainUiMockEnabled()) {
@@ -14,7 +31,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 	try {
 		const stats = await apiClient.getSystemStats(fetch);
 		return {
-			stats,
+			stats: pickStatusStats(stats),
 			fetchedAt: new Date().toISOString()
 		};
 	} catch (err) {
@@ -48,7 +65,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						error: null
 					}
 				},
-				aiSummaryEnabled: false,
 				crawlers: {
 					palCrawler: {
 						name: '국회 입법예고 크롤러 (PAL)',

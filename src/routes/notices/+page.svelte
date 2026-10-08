@@ -33,14 +33,14 @@
 		faWandMagicSparkles,
 		faXmark
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { ArchiveNoticeListResponse } from '$lib/types/api';
+	import type { ArchiveNoticeCardListResponse } from '$lib/types/api';
 	import { KST_TIMEZONE } from '$lib/utils/helpers';
 
 	let {
 		data
 	}: {
 		data: {
-			archive: ArchiveNoticeListResponse;
+			archive: ArchiveNoticeCardListResponse;
 			digestContext?: {
 				isDigestContext: boolean;
 				noticeNums: number[];
