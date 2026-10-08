@@ -271,6 +271,19 @@ npx wrangler pages deploy
 
 `wrangler.jsonc`의 Pages 출력 경로와 `nodejs_compat` 호환성 플래그가 배포 시 자동 적용됩니다.
 
+### 셀프호스팅 (Node 서버) 배포
+
+`node build/index.js`로 직접 서빙하는 프로덕션은 **어답터 선택이 필요합니다.** 기본 `npm run build`는 Cloudflare 산출물(`.svelte-kit/cloudflare`)만 갱신하고 `build/`는 건드리지 않으므로, 기본 빌드만 반복하면 `node build/index.js`가 낡은 구버전 아티팩트를 그대로 서빙합니다.
+
+```bash
+npm run build:node   # SVELTE_ADAPTER=node → build/index.js 생성/갱신
+npm run start:node   # node --env-file-if-exists=.env build/index.js
+```
+
+- `start:node`의 `--env-file-if-exists`는 `.env`를 런타임에 읽습니다. `$env/dynamic/public`(`PUBLIC_DISCORD_SERVER_URL`, `PUBLIC_SEMANTIC_SEARCH_ENABLED` 등)은 서버 시작 시 `process.env`에서만 풀리므로, 플래그 없이 `node build/index.js`를 실행하면 해당 기능 게이트(디스코드 섹션·시맨틱 검색 등)가 빠집니다.
+- Docker 이미지는 Dockerfile이 `SVELTE_ADAPTER=node` 빌드와 `--env-file-if-exists=.env` 시작을 자동 적용합니다.
+- Cloudflare Pages(CI 포함)의 기본 `npm run build` 경로는 변경되지 않았습니다.
+
 ## 라이선스
 
 MIT License
