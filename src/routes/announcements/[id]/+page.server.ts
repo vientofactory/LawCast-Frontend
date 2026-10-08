@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { marked } from 'marked';
 import { loadAdminNoticeList } from '$lib/server/announcements';
+import { lexNoticeBody } from '$lib/server/notice-body';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -10,8 +10,10 @@ import type { PageServerLoad } from './$types';
  *
  * The backend serves the Notion page body as Markdown (`notice.body`), which
  * is lexed here on the server so the client only receives plain token data.
- * The spread turns marked's TokensList (an array carrying an extra `links`
- * property) into a plain array that devalue can serialize.
+ * `lexNoticeBody` wraps marked's lexer: it lifts Notion toggle blocks
+ * (`<details>/<summary>` per notion-to-md) into toggle tokens the renderer
+ * turns into clickable disclosures, and returns a plain array (no TokensList
+ * `links` property) that devalue can serialize.
  */
 export const load: PageServerLoad = async ({ params, fetch }) => {
 	const { items } = await loadAdminNoticeList(fetch);
@@ -19,6 +21,6 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 	if (!notice) {
 		throw error(404, '요청한 공지사항을 찾을 수 없습니다.');
 	}
-	const bodyTokens = notice.body ? [...marked.lexer(notice.body)] : [];
+	const bodyTokens = notice.body ? lexNoticeBody(notice.body) : [];
 	return { notice, bodyTokens };
 };

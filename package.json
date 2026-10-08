@@ -1,5 +1,6 @@
 {
-	"name": "lawcast-frontend",  "version": "1.13.1",
+	"name": "lawcast-frontend",
+	"version": "1.13.2",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,

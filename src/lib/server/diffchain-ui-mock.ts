@@ -513,7 +513,8 @@ export function getMockAdminNotices(): AdminNoticeListResponse {
 				content: '새 소식은 이 공지사항 페이지에 계속해서 올립니다.',
 				// Block-tree notice: the backend serves the page body as Markdown,
 				// exercising heading/list/table/blockquote rendering on the detail page.
-				body: '## 개인정보 처리 방침 개정 안내\n\nLawCast는 **개인정보 처리 방침**을 개정했습니다.\n\n- 수집 항목: 이메일 주소\n- 보관 기간: 1년\n\n| 항목 | 내용 |\n| --- | --- |\n| 시행일 | 2026-10-15 |\n\n> 문의는 공식 디스코드 서버로 바랍니다.',
+				// The `<details>` block mirrors notion-to-md's Notion toggle output.
+				body: '## 개인정보 처리 방침 개정 안내\n\nLawCast는 **개인정보 처리 방침**을 개정했습니다.\n\n- 수집 항목: 이메일 주소\n- 보관 기간: 1년\n\n| 항목 | 내용 |\n| --- | --- |\n| 시행일 | 2026-10-15 |\n\n> 문의는 공식 디스코드 서버로 바랍니다.\n\n<details>\n<summary>개정 상세 보기</summary>\n\n개정된 조항의 **상세 설명**이 여기에 표시됩니다.\n\n</details>',
 				createdAt: '2026-10-05T08:30:00.000Z'
 			}
 		]
