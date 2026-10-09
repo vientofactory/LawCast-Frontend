@@ -72,6 +72,7 @@
 		'archive:isDoneSync': '입법예고 종료 확인',
 		'archive:source-missing': '원본 삭제 감지',
 		'archive:updateNsmHtmlAndDetail': '입법진행현황 상세 갱신',
+		'archive:likmsProposalReason': '의안정보시스템 제안이유 보정',
 		'bootstrap:legacy-seed': '기존 데이터 변경 이력 초기화'
 	};
 
