@@ -432,10 +432,14 @@
 	}
 
 	async function shareNotice(): Promise<void> {
+		const text = [
+			detail.notice.aiSummary,
+			'LawCast에서 법률안 상세 내용을 확인하고 토론에 참여해보세요.'
+		].join('\n');
 		const shareData = {
 			title: pageTitle,
-			text: `${displayContent.title} | LawCast`,
-			url: pageUrl
+			url: pageUrl,
+			text
 		};
 
 		if (navigator.share && navigator.canShare?.(shareData)) {
