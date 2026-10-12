@@ -24,8 +24,11 @@
 	import {
 		SEMANTIC_MAX_QUERY_LENGTH,
 		SEMANTIC_SEARCH_QUERY_PARAM,
+		describeWeakProgress,
+		describeWeakReveal,
 		formatSimilarityPercent,
-		parseSemanticSearchQuery
+		parseSemanticSearchQuery,
+		WEAK_RESULT_PAGE_SIZE
 	} from '$lib/utils/semantic-search';
 	import type { PageData } from './$types';
 
@@ -146,14 +149,31 @@
 			response.results.length === 0 &&
 			weakResults.length > 0
 	);
-	let displayedResults = $derived(showingWeak ? weakResults : (response?.results ?? []));
+	// The weak tier is the engine's below-threshold pool (up to `k` hits), so it
+	// pages in batches: rendering the whole pool at once buries the reader in
+	// equally unrelated bills. The clear tier is already engine-ranked and bounded.
+	let weakVisible = $state(WEAK_RESULT_PAGE_SIZE);
+	let weakVisibleResults = $derived(weakResults.slice(0, weakVisible));
+	let hasMoreWeak = $derived(weakVisible < weakResults.length);
+	let displayedResults = $derived(showingWeak ? weakVisibleResults : (response?.results ?? []));
+	// With the weak tier paged, the headline count has to describe the whole
+	// band (`weakResults`) rather than the batch on screen.
+	let displayedResultCount = $derived(
+		showingWeak ? weakResults.length : (response?.results.length ?? 0)
+	);
 
 	function revealWeakResults() {
 		revealedResponse = response;
+		weakVisible = WEAK_RESULT_PAGE_SIZE;
 	}
 
 	function hideWeakResults() {
 		revealedResponse = null;
+		weakVisible = WEAK_RESULT_PAGE_SIZE;
+	}
+
+	function showMoreWeakResults() {
+		weakVisible += WEAK_RESULT_PAGE_SIZE;
 	}
 	// The URL is the source of truth for the query: sharing or reloading the
 	// address reproduces the same search, and returning to this page restores
@@ -166,7 +186,7 @@
 	// svelte-ignore state_referenced_locally
 	let lastSyncedQuery = data.query;
 
-	// The engine labels unsectioned chunks 'body'; show it as 본문 in the UI.
+	// The engine labels unsectioned chunks 'body'; show it as `본문` in the UI.
 	function sectionLabel(section: string): string {
 		return section === 'body' ? '본문' : section;
 	}
@@ -417,9 +437,8 @@
 								<!-- Empty clear tier with a weak band behind it: the reveal
 						     stays an explicit user action, never automatic. -->
 								<h3 class="lc-text-primary mb-3 text-2xl font-bold">명확한 검색 결과가 없습니다</h3>
-								<p class="lc-text-secondary mb-4 text-sm">
-									관련도가 낮은 결과 {weakResults.length}건이 있어요. 확인하려면 아래 버튼을 눌러
-									주세요.
+								<p class="lc-text-secondary mb-4 text-sm" data-testid="semantic-search-weak-offer">
+									{describeWeakReveal(weakResults.length)}
 								</p>
 								<button
 									type="button"
@@ -443,6 +462,14 @@
 								<div class="flex flex-wrap items-center justify-between gap-2">
 									<p class="lc-text-secondary text-sm">
 										명확한 검색 결과가 없어 관련도가 낮은 결과를 표시하고 있습니다.
+										{#if hasMoreWeak}
+											<span class="lc-text-dim" data-testid="semantic-search-weak-progress"
+												>({describeWeakProgress(
+													weakVisibleResults.length,
+													weakResults.length
+												)})</span
+											>
+										{/if}
 									</p>
 									<button
 										type="button"
@@ -459,7 +486,7 @@
 							<span class="lc-text-primary font-semibold">{response.query}</span>
 							에 대한 {isFallbackMode ? '키워드' : '의미'} 검색 결과
 							<span class="lc-text-primary font-semibold"
-								>{displayedResults.length.toLocaleString('ko-KR')}</span
+								>{displayedResultCount.toLocaleString('ko-KR')}</span
 							>건
 						</p>
 						<div
@@ -526,6 +553,18 @@
 									</div>
 								</article>
 							{/each}
+							{#if showingWeak && hasMoreWeak}
+								<div class="pt-1 text-center">
+									<button
+										type="button"
+										class="lc-button-neutral cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+										data-testid="semantic-search-weak-more"
+										onclick={showMoreWeakResults}
+									>
+										관련도가 낮은 결과 더 보기 ({weakVisibleResults.length}/{weakResults.length})
+									</button>
+								</div>
+							{/if}
 						</div>
 						<div class="mt-6 flex justify-center">
 							<a

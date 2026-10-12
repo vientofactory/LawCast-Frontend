@@ -15,6 +15,7 @@ import type {
 	ComparableChangeSummary,
 	ChangeEventType,
 	ArchiveNoticeListResponse,
+	BoardSearchMode,
 	QuickKeywordSuggestionsResponse,
 	SearchNoticesResult,
 	SemanticSearchResponse,
@@ -291,8 +292,9 @@ export async function getArchivedNotices(
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
 		isDone?: boolean;
-		fullText?: boolean;
 		noticeNums?: number[];
+		/** Board search mode; omitted keeps the keyword path. */
+		searchMode?: BoardSearchMode;
 	} = {},
 	customFetch?: Fetch
 ): Promise<ArchiveNoticeListResponse> {
@@ -331,10 +333,6 @@ export async function getArchivedNotices(
 			query.set('isDone', String(params.isDone));
 		}
 
-		if (params.fullText === true) {
-			query.set('fullText', 'true');
-		}
-
 		if (params.noticeNums && params.noticeNums.length > 0) {
 			const deduped = Array.from(
 				new Set(
@@ -347,6 +345,10 @@ export async function getArchivedNotices(
 			if (deduped.length > 0) {
 				query.set('noticeNums', deduped.join(','));
 			}
+		}
+
+		if (params.searchMode === 'semantic' || params.searchMode === 'auto') {
+			query.set('searchMode', params.searchMode);
 		}
 
 		const suffix = query.toString() ? `?${query.toString()}` : '';

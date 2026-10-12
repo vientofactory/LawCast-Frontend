@@ -2,6 +2,7 @@ import { env } from '$env/dynamic/public';
 import { redirect } from '@sveltejs/kit';
 import { semanticSearch } from '$lib/api/client';
 import { toLoadErrorPayload } from '$lib/server/load-error';
+import { PER_REQUEST_HTML_CACHE_CONTROL } from '$lib/server/ssr-cache-policy';
 import {
 	SEMANTIC_SEARCH_QUERY_PARAM,
 	isSemanticSearchEnabled,
@@ -15,11 +16,14 @@ import type { PageServerLoad } from './$types';
 const DEFAULT_K = 10;
 const SEARCH_FAILED_MESSAGE = '의미 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
 
-export const load: PageServerLoad = async ({ url, fetch }) => {
+export const load: PageServerLoad = async ({ url, fetch, setHeaders }) => {
 	// Feature gate: the semantic search experience must not exist when disabled.
 	if (!isSemanticSearchEnabled(env.PUBLIC_SEMANTIC_SEARCH_ENABLED)) {
 		redirect(303, '/notices');
 	}
+	// The example-query chips are drawn per request, so this HTML must never be
+	// replayed from a shared cache (see the policy module for why).
+	setHeaders({ 'cache-control': PER_REQUEST_HTML_CACHE_CONTROL });
 	// The query lives in the URL (?search=...) so a search is shareable,
 	// reloadable, and restored when the user comes back from a detail page.
 	const query = parseSemanticSearchQuery(url.searchParams.get(SEMANTIC_SEARCH_QUERY_PARAM));

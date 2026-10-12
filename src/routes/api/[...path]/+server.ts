@@ -1,7 +1,11 @@
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
-import { getMockDiscussionThread, isDiffchainUiMockEnabled } from '$lib/server/diffchain-ui-mock';
+import {
+	getMockArchiveNoticesResponse,
+	getMockDiscussionThread,
+	isDiffchainUiMockEnabled
+} from '$lib/server/diffchain-ui-mock';
 import { getMockSemanticApiResponse } from '$lib/server/semantic-search-mock';
 import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
 import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
@@ -16,6 +20,30 @@ function parseNonNegativeInteger(value: string | null, fallback: number): number
 
 function getMockResponse(path: string, url: URL): Response | null {
 	if (!isDiffchainUiMockEnabled()) return null;
+
+	// The board's on-demand keyword-count check is a BROWSER-issued archive read,
+	// and `handleFetch` only intercepts server-side calls — so without this branch
+	// mock mode answers the seam with a 502 from an absent backend.
+	if (path === 'notices/archive') {
+		const rawMode = url.searchParams.get('searchMode');
+		const isDoneParam = url.searchParams.get('isDone');
+
+		return Response.json({
+			success: true,
+			data: getMockArchiveNoticesResponse({
+				page: parseNonNegativeInteger(url.searchParams.get('page'), 1),
+				limit: parseNonNegativeInteger(url.searchParams.get('limit'), 20),
+				search: url.searchParams.get('search') ?? '',
+				proposer: url.searchParams.get('proposer') ?? '',
+				startDate: url.searchParams.get('startDate') ?? '',
+				endDate: url.searchParams.get('endDate') ?? '',
+				sortOrder: url.searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc',
+				isDone: isDoneParam === 'true' ? true : isDoneParam === 'false' ? false : undefined,
+				// Lenient like the API: only the two switching values pick a semantic path.
+				searchMode: rawMode === 'semantic' || rawMode === 'auto' ? rawMode : 'keyword'
+			})
+		});
+	}
 
 	const threadDetailMatch = path.match(/^discussions\/threads\/(\d+)$/);
 	if (!threadDetailMatch) return null;

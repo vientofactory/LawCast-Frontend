@@ -1,6 +1,31 @@
 export type AISummaryStatus = 'ready' | 'unavailable' | 'not_supported' | 'not_requested';
 export type NoticeLifecycleStatus = 'active' | 'source_deleted' | 'renumbered';
 
+/** Board search mode: `auto` follows the engine when ready, else keyword. */
+export type BoardSearchMode = 'keyword' | 'semantic' | 'auto';
+
+/**
+ * Relevance metadata attached to a board item in semantic search mode. `null`
+ * scores mark items merged from the keyword/cache path rather than the engine.
+ */
+export interface BoardRelevance {
+	score: number | null;
+	section: string | null;
+	excerpt: string | null;
+	/** True only for items surfaced from the engine's weak tier. */
+	weak: boolean;
+}
+
+/** Engine metadata the board carries alongside semantic results. */
+export interface BoardSearchSemanticMeta {
+	mode: 'semantic' | 'keyword_fallback';
+	fallbackReason: string | null;
+	lastUpdateAt: string | null;
+	/** Engine-ranked notice count before archive filters were applied. */
+	candidateTotal: number;
+	weakResults: SemanticSearchResultItem[];
+}
+
 export interface Notice {
 	num: number;
 	subject: string;
@@ -18,6 +43,8 @@ export interface Notice {
 	sourceDeletedAt?: string | null;
 	contentId?: string | null;
 	changeEventCount?: number;
+	/** Present only in semantic board mode (see BoardSearchMode). */
+	relevance?: BoardRelevance;
 	attachments: {
 		pdfFile: string;
 		hwpFile: string;
@@ -157,6 +184,12 @@ export interface ArchiveNoticeListResponse {
 	endDate?: string;
 	sortOrder?: 'asc' | 'desc';
 	aiSummaryEnabled?: boolean;
+	/** Search mode the board requested (echoed by the API). */
+	searchMode?: BoardSearchMode;
+	/** Mode that actually served the response (semantic mode only). */
+	appliedMode?: 'keyword' | 'semantic';
+	/** Semantic metadata; absent/null in pure keyword mode. */
+	semantic?: BoardSearchSemanticMeta | null;
 	stats: {
 		cacheCount: number;
 		matchedCacheCount: number;
@@ -629,16 +662,16 @@ export interface AdminNotice {
 	id: string;
 	/** Notion `제목` — notice title */
 	title: string;
-	/** 공개 여부 — always true in responses (unpublished rows are filtered out) */
+	/** `공개 여부` (checkbox): always true in responses, unpublished rows are filtered out. */
 	published: boolean;
-	/** 상태 (status/select option name), null when unset */
+	/** `상태` (status/select option name), null when unset. */
 	status: string | null;
-	/** 노출 순서, null when the property is empty */
+	/** `노출 순서` (display order), null when the property is empty. */
 	order: number | null;
-	/** 긴급 checkbox — true when the operator marked the row urgent */
+	/** `긴급` checkbox: true when the operator marked the row urgent. */
 	urgent: boolean;
 	/**
-	 * 내용 — plain text preview from the Notion rich text property,
+	 * `내용` (rich text): plain text preview from the Notion property,
 	 * newlines preserved. Serves as the list preview and as the body
 	 * fallback when the page has no block children.
 	 */
@@ -696,6 +729,8 @@ export interface NoticeCard {
 	aiSummaryStatus?: AISummaryStatus;
 	lifecycleStatus?: NoticeLifecycleStatus;
 	changeEventCount?: number;
+	/** Semantic board mode only. */
+	relevance?: BoardRelevance;
 	attachments: Notice['attachments'];
 }
 

@@ -481,7 +481,7 @@ html[data-theme='dark'] .lc-panel-hero {
 }
 
 /* Urgent admin notice banner: the one deliberately loud element in the UI —
-   solid red bar directly under the sticky header so a 긴급 notice is impossible
+   solid red bar directly under the sticky header so a `긴급` notice is impossible
    to miss on every page. */
 .lc-urgent-banner {
 	background: linear-gradient(90deg, #dc2626, #b91c1c);
@@ -1525,7 +1525,7 @@ html[data-theme='dark'] .lc-alert {
 	box-shadow: var(--lc-shadow-soft);
 }
 
-/* 부드러운 페이드인 애니메이션 */
+/* Soft fade-in animation. */
 @keyframes fadeIn {
 	from {
 		opacity: 0;
@@ -1541,7 +1541,7 @@ html[data-theme='dark'] .lc-alert {
 	animation: fadeIn 0.6s ease-out;
 }
 
-/* 부드러운 호버 효과 */
+/* Soft hover lift effect. */
 .lc-hover-lift {
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1553,7 +1553,7 @@ html[data-theme='dark'] .lc-alert {
 		0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-/* NProgress 커스텀 스타일 */
+/* NProgress custom styles. */
 #nprogress {
 	pointer-events: none;
 }
@@ -1586,7 +1586,7 @@ html[data-theme='dark'] .lc-alert {
 	border-left-color: #6366f1 !important;
 }
 
-/* 공통 로딩 슬라이드 효과 */
+/* Shared loading slide effect. */
 .lc-loading-slide {
 	animation: lc-loading-slide 1.15s ease-in-out infinite;
 }

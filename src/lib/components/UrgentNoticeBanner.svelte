@@ -9,7 +9,7 @@
 
 <!--
 	Site-wide urgent banner: shown under the top navigation on every page when a
-	Notion 긴급 notice exists — the layout loader passes the first urgent row in
+	Notion `긴급` notice exists — the layout loader passes the first urgent row in
 	display order as a single notice. The alert role makes screen readers
 	announce the urgent notice on arrival.
 -->

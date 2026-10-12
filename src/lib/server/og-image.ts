@@ -6,7 +6,7 @@ import { Resvg } from '@cf-wasm/resvg';
  * Renders the Open Graph share image for a single bill as a PNG.
  *
  * Design: a light diagonal gradient over a faint 48px grid, the bill name as
- * the headline, the 소관위원회 / 입법예고 기간 / 제안자 fields as label-value
+ * the headline, the `소관위원회` / `입법예고 기간` / `제안자` fields as label-value
  * rows, and the LawCast brand pill on top.
  *
  * Rendering uses the @cf-wasm wrappers instead of satori/@resvg/resvg-wasm

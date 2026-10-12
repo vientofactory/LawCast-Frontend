@@ -17,7 +17,7 @@ test.describe('Crawling Transparency Page', () => {
 	});
 
 	test('shows notice source information', async ({ page }) => {
-		// Should mention国会 입법예고 게시판 or similar source
+		// Should mention the National Assembly legislative notice board or a similar source.
 		const content = await page.textContent('body');
 		expect(content).toBeTruthy();
 	});

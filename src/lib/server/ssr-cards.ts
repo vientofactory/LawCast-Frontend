@@ -35,6 +35,7 @@ export function toNoticeCard(notice: Notice): NoticeCard {
 		aiSummaryStatus: notice.aiSummaryStatus,
 		lifecycleStatus: notice.lifecycleStatus,
 		changeEventCount: notice.changeEventCount,
+		relevance: notice.relevance,
 		attachments: notice.attachments
 	};
 }

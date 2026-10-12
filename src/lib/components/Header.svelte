@@ -87,7 +87,7 @@
 	let isDarkTheme = $derived($theme === 'dark');
 
 	// Layout load exposes ONE urgent notice on every route (GET
-	// /api/announcements/top?urgent=true — first 긴급 row in display order),
+	// /api/announcements/top?urgent=true — first `긴급` row in display order),
 	// null when no urgent notice exists. The full list stays off global SSR.
 	const urgentNotice = $derived(
 		(page.data as { urgentNotice?: AdminNoticeCard | null }).urgentNotice ?? null

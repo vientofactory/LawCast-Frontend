@@ -84,13 +84,15 @@ src/
 ### 주요 페이지
 
 - `/`: 웹훅 등록 + 최근 입법예고 요약 없는 빠른 목록
-- `/notices`: AI 브리핑 카드 포함 전체 입법예고 목록 (검색/날짜 필터/정렬/빠른 기간)
+- `/notices`: AI 브리핑 카드 포함 전체 입법예고 목록 (검색 방식/검색/날짜 필터/정렬/빠른 기간)
 - `/notices/[num]`: 법률안 상세(원문: 제안이유 및 주요내용)
 
 ## 백엔드 연동 API (요약/원문)
 
 - `GET /api/notices/recent`: 목록 + (선택적) aiSummary 필드
 - `GET /api/notices/:num/detail`: 법률안 상세 + 원문(proposalReason)
+- `GET /api/notices/archive`: 전체 아카이브 목록 + `searchMode`(`keyword`/`semantic`/`auto`)
+- `GET /api/notices/semantic-search`: 의미 검색(`query`, `k`), 엔진 상태는 `GET /api/notices/semantic-search/health`
 
 프론트는 SSR 로드(`+page.server.ts`)에서 위 API를 호출해 SEO 친화적으로 페이지를 렌더링합니다.
 
@@ -98,13 +100,26 @@ src/
 
 `/notices` 페이지에는 아래 기능이 들어 있습니다.
 
-- 키워드 검색
+- 검색 방식 선택 (자동/키워드/의미, `searchMode`) — `PUBLIC_SEMANTIC_SEARCH_ENABLED`가 켜져 있을 때만 나타난다
+- 키워드 검색 (법률안명·소관위원회·제안자·제안 이유)
 - 날짜 범위 직접 입력 (`startDate`, `endDate`)
 - 빠른 기간 버튼 (최근 7일, 최근 30일, 이번 달, 기간 해제)
 - 의안번호 정렬 (`desc`, `asc`)
 - 현재 적용된 필터 요약 배지 표시
 
 필터를 적용한 채로 페이지를 이동해도 쿼리 파라미터가 유지돼 탐색 흐름이 끊기지 않습니다.
+
+### 검색 방식 (자동/키워드/의미)
+
+선택한 검색 방식은 `searchMode` 쿼리 파라미터로 유지됩니다. 플래그가 켜져 있으면 컨트롤이 항상 `searchMode`를 명시적으로 기록하므로, 파라미터를 지워 기본값으로 되돌아가는 일이 없습니다.
+
+- **자동**(`auto`, 기본값): 엔진을 쓸 수 있으면 의미 검색, 아니면 키워드로 처리한다. `searchMode`가 없는 URL도 이 방식으로 해석된다.
+- **키워드**(`keyword`): 법률안명·소관위원회·제안자와 제안 이유(원문)를 그대로 찾는 빠짐없는(exhaustive) 경로다.
+- **의미**(`semantic`): 질의와 뜻이 가까운 법률안을 관련도순으로 보여준다. 후보 수가 서버 설정(`SEMANTIC_SEARCH_HYBRID_MAX_NOTICES`)으로 제한되므로 같은 조건의 키워드 결과보다 좁을 수 있다.
+
+의미 검색으로 처리된 응답(`appliedMode === 'semantic'`)에는 결과 카드마다 관련도 칩(점수·섹션·발췌)이 붙고, 정렬 자리는 관련도순 표시로 바뀝니다. 결과 위에는 “관련도순 상위 결과” 범위 안내와 키워드 모드로 넘어가는 링크, 같은 조건의 키워드 건수를 필요할 때만 조회하는 버튼이 있고, 관련도가 낮은 결과는 기본으로 숨기고 10건씩 나눠 보여줍니다. 요청한 방식과 실제 적용된 방식이 다를 때(키워드 폴백)는 키워드 결과와 폴백 안내 배너가 함께 나옵니다. UI 문자열과 힌트는 `src/lib/utils/semantic-search.ts`에 모여 있습니다.
+
+콜드 스타트의 예시 검색어 칩은 요청마다 18개 풀에서 서로 다른 3개를 뽑습니다(하루 고정이 아님). 그래서 두 라우트(`/notices`, `/notices/semantic-search`)는 `Cache-Control: private, no-cache`를 내보내, 공유 캐시가 한 방문자의 추출 결과를 다른 방문자에게 재사용해 칩이 고정된 것처럼 보이는 상황을 막습니다.
 
 ## 환경 설정
 
@@ -118,6 +133,10 @@ PUBLIC_HASHGUARD_URL=https://hashguard.viento.me
 # Cloudflare Under Attack 챌린지 감지 시 자동 리로드 활성화
 # true, 1, yes, on 중 하나면 활성화
 PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=false
+
+# 의미 검색 활성화 (보드의 검색 방식 컨트롤, /notices/semantic-search 진입점·라우트)
+# true, 1, yes, on 중 하나면 활성화. 미설정이면 꺼진 상태로 동작한다.
+PUBLIC_SEMANTIC_SEARCH_ENABLED=true
 ```
 
 ## 개발 명령어
@@ -137,7 +156,7 @@ npm run check
 
 프론트엔드에는 Playwright 기반 브라우저 E2E 테스트가 들어 있습니다. 실행하면 SvelteKit 개발 서버를 자동으로 띄우고 Chromium 브라우저에서 주요 페이지와 사용자 흐름을 검증합니다.
 
-스펙은 `e2e/*.spec.ts`에 16개가 있고, **스펙마다 필요한 실행 환경(모의 데이터 게이트, 전용 포트, 전용 환경변수)이 다릅니다.** 스펙별 실행 방법은 아래 표를 참고하세요.
+스펙은 `e2e/*.spec.ts`에 23개가 있고, **스펙마다 필요한 실행 환경(모의 데이터 게이트, 전용 포트, 전용 환경변수)이 다릅니다.** 주요 스펙의 실행 방법은 아래 표를 참고하세요.
 
 ### 사전 요구사항
 
@@ -167,33 +186,37 @@ npm run check
 | `ip-forwarding.spec.ts`          | SSR/프록시의 클라이언트 IP 헤더 전달·스푸핑 값 제거                             | **`npm run test:e2e:ip-forwarding`**                                |
 | `dark-mode-color-scheme.spec.ts` | 자동 다크모드 충돌 방지, `color-scheme`/`data-theme` 동기화                     | **`npm run test:e2e:dark-mode`**                                    |
 | `cloudflare-challenge.spec.ts`   | Cloudflare Under Attack 챌린지 감지/복구 UI                                     | **`npm run test:e2e:cloudflare-challenge`** (기본 설정은 자동 스킵) |
+| `semantic-search.spec.ts`        | 의미 검색 전용 페이지(입력·결과·폴백·약한 결과·엔진 상태)                       | **`npm run test:e2e:semantic-search`** (기본 설정은 자동 스킵)      |
+| `semantic-search-board.spec.ts`  | `/notices` 검색 방식 컨트롤·관련도 칩·키워드 건수 대조·약한 결과 페이징         | **`npm run test:e2e:semantic-search`** (기본 설정은 자동 스킵)      |
 
 ### 설정별 실행 방법
 
 설정마다 dev 서버 기동 방식이 다릅니다.
 
-- `rate-limit`(5199), `ip-forwarding`(5223), `cloudflare-challenge`(5201)은 전용 포트에 `reuseExistingServer: false`로 별도 dev 서버를 띄웁니다. 전용 환경변수는 이 서버에만 적용되므로 반드시 해당 스크립트로 실행하세요. (전용 포트가 이미 점유돼 있으면 실행이 실패합니다.)
+- `rate-limit`(5199), `ip-forwarding`(5223), `cloudflare-challenge`(5201), `semantic-search`(5202)은 전용 포트에 `reuseExistingServer: false`로 별도 dev 서버를 띄웁니다. 전용 환경변수는 이 서버에만 적용되므로 반드시 해당 스크립트로 실행하세요. (전용 포트가 이미 점유돼 있으면 실행이 실패합니다.)
 - `dark-mode`는 기본 포트 5173을 그대로 사용하며 기본 설정은 기존에 떠 있는 dev 서버를 재사용합니다. `integration`도 전용 환경변수(`DIFFCHAIN_UI_MOCK=0`, `E2E_DISTINCT_CLIENT_IPS=1`)가 필요하므로 재사용하지 않습니다. 이미 5173에 서버가 떠 있으면 몇 초 내에 `http://localhost:5173 is already used...` 오류로 즉시 실패합니다.
 
-| npm 스크립트                            | 설정 파일                                   | 포트              | 범위                             | 전용 환경                                                                                          |
-| --------------------------------------- | ------------------------------------------- | ----------------- | -------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `npm run test:e2e`                      | `playwright.config.ts`                      | 5173              | 전체 스펙 (기본)                 | dev 서버 mock 기본값 `DIFFCHAIN_UI_MOCK=1`                                                         |
-| `npm run test:e2e:integration`          | `playwright.config.integration.ts`          | 5173              | 전체 스펙, 실제 백엔드           | `DIFFCHAIN_UI_MOCK=0`, `E2E_DISTINCT_CLIENT_IPS=1` 고정                                            |
-| `npm run test:e2e:rate-limit`           | `playwright.rate-limit.config.ts`           | 5199              | `rate-limit-ssr.spec.ts`         | `E2E_RATE_LIMIT_SIM=1`, `E2E_FORCE_429_PATHS`                                                      |
-| `npm run test:e2e:ip-forwarding`        | `playwright.ip-forwarding.config.ts`        | 5223 (+에코 3999) | `ip-forwarding.spec.ts`          | `E2E_IP_ECHO=1`, `API_BASE_URL=http://127.0.0.1:3999/api`                                          |
-| `npm run test:e2e:dark-mode`            | `playwright.dark-mode.config.ts`            | 5173              | `dark-mode-color-scheme.spec.ts` | Chromium `--force-prefers-color-scheme=light` + `AutoDarkModeForWebContents`                       |
-| `npm run test:e2e:cloudflare-challenge` | `playwright.cloudflare-challenge.config.ts` | 5201              | `cloudflare-challenge.spec.ts`   | `E2E_CF_CHALLENGE=1`(스펙 게이트), `PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=true`, `E2E_FORCE_403=1` |
+| npm 스크립트                            | 설정 파일                                   | 포트              | 범위                             | 전용 환경                                                                                            |
+| --------------------------------------- | ------------------------------------------- | ----------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `npm run test:e2e`                      | `playwright.config.ts`                      | 5173              | 전체 스펙 (기본)                 | dev 서버 mock 기본값 `DIFFCHAIN_UI_MOCK=1`                                                           |
+| `npm run test:e2e:integration`          | `playwright.config.integration.ts`          | 5173              | 전체 스펙, 실제 백엔드           | `DIFFCHAIN_UI_MOCK=0`, `E2E_DISTINCT_CLIENT_IPS=1` 고정                                              |
+| `npm run test:e2e:rate-limit`           | `playwright.rate-limit.config.ts`           | 5199              | `rate-limit-ssr.spec.ts`         | `E2E_RATE_LIMIT_SIM=1`, `E2E_FORCE_429_PATHS`                                                        |
+| `npm run test:e2e:ip-forwarding`        | `playwright.ip-forwarding.config.ts`        | 5223 (+에코 3999) | `ip-forwarding.spec.ts`          | `E2E_IP_ECHO=1`, `API_BASE_URL=http://127.0.0.1:3999/api`                                            |
+| `npm run test:e2e:dark-mode`            | `playwright.dark-mode.config.ts`            | 5173              | `dark-mode-color-scheme.spec.ts` | Chromium `--force-prefers-color-scheme=light` + `AutoDarkModeForWebContents`                         |
+| `npm run test:e2e:cloudflare-challenge` | `playwright.cloudflare-challenge.config.ts` | 5201              | `cloudflare-challenge.spec.ts`   | `E2E_CF_CHALLENGE=1`(스펙 게이트), `PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=true`, `E2E_FORCE_403=1`   |
+| `npm run test:e2e:semantic-search`      | `playwright.semantic-search.config.ts`      | 5202              | `semantic-search*.spec.ts`       | `E2E_SEMANTIC_SEARCH=1`(스펙 게이트), `PUBLIC_SEMANTIC_SEARCH_ENABLED=1`, `DIFFCHAIN_UI_MOCK=1` 고정 |
 
-전체 실행은 기본 설정 하나로 처리됩니다. 전용 설정 스펙(`rate-limit-ssr`, `ip-forwarding`, `cloudflare-challenge`)은 전용 환경변수가 없으면 자동으로 skip되므로, 빠뜨리지 않으려면 전용 스크립트를 한 번씩 더 돌려야 합니다.
+전체 실행은 기본 설정 하나로 처리됩니다. 전용 설정 스펙(`rate-limit-ssr`, `ip-forwarding`, `cloudflare-challenge`, `semantic-search*`)은 전용 환경변수가 없으면 자동으로 skip되므로, 빠뜨리지 않으려면 전용 스크립트를 한 번씩 더 돌려야 합니다.
 
 ```bash
 # 1) 전체 실행 (mock 게이트 스펙 포함, 전용 설정 스펙은 자동 skip)
 DIFFCHAIN_UI_MOCK=1 npm run test:e2e
 
-# 2) 전용 설정이 필요한 스펙 3종
+# 2) 전용 설정이 필요한 스펙 4종
 npm run test:e2e:rate-limit
 npm run test:e2e:ip-forwarding
 npm run test:e2e:cloudflare-challenge
+npm run test:e2e:semantic-search
 ```
 
 ### 단일 스펙 / 단일 테스트 실행
@@ -228,7 +251,7 @@ npm run test:e2e:report
 ### 주의사항
 
 - **`DIFFCHAIN_UI_MOCK=1`은 테스트 프로세스 앞에 붙여야 합니다.** 설정 파일은 dev 서버에 mock 값을 넘기지만, 스펙의 `test.skip` 조건은 테스트 프로세스의 `process.env`를 읽습니다. 플래그가 없으면 해당 스펙이 전부 skip으로 표시됩니다.
-- `rate-limit-ssr.spec.ts`, `ip-forwarding.spec.ts`, `cloudflare-challenge.spec.ts`는 전용 설정이 아닌 기본 설정으로 실행하면 전용 환경변수(`E2E_RATE_LIMIT_SIM`, `E2E_IP_ECHO`, `E2E_CF_CHALLENGE`)가 없어 skip됩니다. 이들 스펙은 반드시 전용 스크립트로 실행하세요.
+- `rate-limit-ssr.spec.ts`, `ip-forwarding.spec.ts`, `cloudflare-challenge.spec.ts`, `semantic-search*.spec.ts`는 전용 설정이 아닌 기본 설정으로 실행하면 전용 환경변수(`E2E_RATE_LIMIT_SIM`, `E2E_IP_ECHO`, `E2E_CF_CHALLENGE`, `E2E_SEMANTIC_SEARCH`·`PUBLIC_SEMANTIC_SEARCH_ENABLED`)가 없어 skip됩니다. 이들 스펙은 반드시 전용 스크립트로 실행하세요.
 - **통합 설정은 이미 떠 있는 dev 서버를 재사용하지 않습니다** (`reuseExistingServer: false`). 재사용한 서버는 이 설정의 환경변수(`DIFFCHAIN_UI_MOCK=0`, `E2E_DISTINCT_CLIENT_IPS=1`) 없이 기동한 것이므로, 실제 백엔드의 `읽기 30건/60초` 제한이 실행 중간에 걸려 `RateLimitOverlay`가 클릭을 막고 nondeterministic하게 실패합니다(2~10개씩 매번 다르게). 429 로그는 dev 서버 로그에만 남아 테스트 결과에는 보이지 않습니다. 그래서 5173에 서버가 떠 있으면 몇 초 내에 `http://localhost:5173 is already used ...` 오류로 즉시 실패하고, 재사용이 필요하면 `PLAYWRIGHT_BASE_URL=http://localhost:5173` 처럼 대상을 명시해서 실행하세요(그 서버의 환경변수는 사용자가 책임집니다). see `src/lib/server/e2e-client-ip.ts`.
 - `notice-detail.spec.ts`는 서버에 공지 데이터가 없을 때 `No notices available`로 skip됩니다.
 - CI 환경에서는 `PLAYWRIGHT_BASE_URL` 환경 변수로 외부 서버 주소를 지정할 수 있습니다.

@@ -87,7 +87,9 @@ test.describe('Home Page', () => {
 		const href = await firstKeyword.getAttribute('href');
 		expect(href).toMatch(/^\/notices\?/);
 		expect(href).toContain('search=');
-		expect(href).toContain('fullText=true');
+		// `제안이유(원문)` matching is the default keyword behaviour, so the link
+		// carries no fullText flag.
+		expect(href).not.toContain('fullText');
 	});
 
 	test('recent notices region is present', async ({ page }) => {

@@ -5,8 +5,8 @@ import { buildBackendForwardHeaders } from '$lib/server/client-ip';
 
 const BACKEND_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 const BATCH_SIZE = 100;
-const MAX_NOTICES = 5000; // Google 권장 상한 50,000 이내
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1시간
+const MAX_NOTICES = 5000; // Stays under Google's recommended 50,000-URL cap.
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const KST_TIMEZONE = 'Asia/Seoul';
 
 /**

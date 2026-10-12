@@ -7,6 +7,8 @@ import {
 import type {
 	AdminNoticeListResponse,
 	ArchiveNoticeListResponse,
+	BoardSearchMode,
+	BoardSearchSemanticMeta,
 	QuickKeywordSuggestionsResponse,
 	Notice,
 	NoticeChangeDetail,
@@ -536,6 +538,9 @@ export function getMockQuickKeywordSuggestions(): QuickKeywordSuggestionsRespons
 	};
 }
 
+/** Fixed index time the semantic mock reports (mirrors the semantic mock page). */
+const MOCK_SEMANTIC_LAST_UPDATE = '2026-10-02T12:00:00+00:00';
+
 export function getMockArchiveNoticesResponse(params: {
 	page: number;
 	limit: number;
@@ -545,14 +550,14 @@ export function getMockArchiveNoticesResponse(params: {
 	endDate?: string;
 	sortOrder?: 'asc' | 'desc';
 	isDone?: boolean;
-	fullText?: boolean;
+	searchMode?: BoardSearchMode;
 }): ArchiveNoticeListResponse {
 	const allNotices = buildMockArchiveNotices();
 	const search = (params.search || '').trim().toLowerCase();
 	const proposerFilter = (params.proposer || '').trim().toLowerCase();
-	const fullText = params.fullText === true;
 
-	// Build a map of num → proposalReason for fullText search expansion.
+	// Build a map of num → proposalReason: `제안이유` is part of every keyword search
+	// (the real backend matches it through FTS), so the mock always expands into it.
 	const proposalReasonMap = new Map<number, string>();
 	for (const config of MOCK_ARCHIVE_OVERRIDE_CONFIG) {
 		if (config.proposalReason) {
@@ -572,11 +577,8 @@ export function getMockArchiveNoticesResponse(params: {
 			]
 				.join(' ')
 				.toLowerCase();
-			if (fullText) {
-				const proposalReason = proposalReasonMap.get(notice.num) || '';
-				return baseHaystack.includes(search) || proposalReason.includes(search);
-			}
-			return baseHaystack.includes(search);
+			const proposalReason = proposalReasonMap.get(notice.num) || '';
+			return baseHaystack.includes(search) || proposalReason.includes(search);
 		});
 	}
 
@@ -622,9 +624,14 @@ export function getMockArchiveNoticesResponse(params: {
 	const limit = Math.max(1, Math.min(20, params.limit || DEFAULT_MOCK_PAGE_SIZE));
 	const start = (page - 1) * limit;
 	const items = filtered.slice(start, start + limit);
-
-	return {
-		items,
+	const stats = {
+		cacheCount: total,
+		matchedCacheCount: total,
+		archiveCount: total,
+		totalArchiveCount: total,
+		mergedCount: total
+	};
+	const baseResponse = {
 		page,
 		limit,
 		total,
@@ -635,13 +642,98 @@ export function getMockArchiveNoticesResponse(params: {
 		endDate: params.endDate,
 		sortOrder: params.sortOrder,
 		aiSummaryEnabled: true,
-		stats: {
-			cacheCount: total,
-			matchedCacheCount: total,
-			archiveCount: total,
-			totalArchiveCount: total,
-			mergedCount: total
+		stats
+	};
+
+	const searchMode = params.searchMode ?? 'keyword';
+	const wantsSemantic = (searchMode === 'semantic' || searchMode === 'auto') && search.length > 0;
+
+	if (!wantsSemantic) {
+		return { ...baseResponse, searchMode, items };
+	}
+
+	// The real API reports `stats.totalArchiveCount` as the WHOLE archive on the
+	// semantic path, while the keyword path reports the matched total there.
+	// Mirror that divergence: it is what made the board quote 21,188 results for a
+	// "국민" search that matched 39, and it keeps the mock honest for tests.
+	const semanticStats = { ...stats, totalArchiveCount: allNotices.length };
+
+	// Marker words mirror the dedicated semantic mock so e2e can drive the
+	// board's fallback and weak-tier states deterministically.
+	if (search.includes('키워드') || search.includes('폴백')) {
+		const semantic: BoardSearchSemanticMeta = {
+			mode: 'keyword_fallback',
+			fallbackReason: '의미 검색 엔진을 사용할 수 없어 키워드 검색 결과를 반환합니다.',
+			lastUpdateAt: null,
+			candidateTotal: 0,
+			weakResults: []
+		};
+		return {
+			...baseResponse,
+			stats: semanticStats,
+			searchMode,
+			appliedMode: 'keyword',
+			semantic,
+			items
+		};
+	}
+
+	if (search.includes('약한')) {
+		// A full weak band, not one hit: the real engine returns its whole
+		// below-threshold pool (up to hybridMaxNotices = 100), which is what the
+		// board's paged reveal exists for. Sized above WEAK_RESULT_PAGE_SIZE so
+		// e2e can exercise the cap rather than trusting the constant.
+		const weakSeeds = (filtered.length > 0 ? filtered : allNotices).slice(0, 12);
+		const weakResults = weakSeeds.map((notice, index) => ({
+			noticeNum: notice.num,
+			subject: notice.subject,
+			committee: notice.committee,
+			section: 'body',
+			score: Math.max(0.26, 0.31 - index * 0.004),
+			excerpt: '관련도가 낮지만 참고할 수 있는 mock 발췌입니다.'
+		}));
+		const semantic: BoardSearchSemanticMeta = {
+			mode: 'semantic',
+			fallbackReason: null,
+			lastUpdateAt: MOCK_SEMANTIC_LAST_UPDATE,
+			candidateTotal: weakResults.length,
+			weakResults
+		};
+		return {
+			...baseResponse,
+			stats: semanticStats,
+			searchMode,
+			appliedMode: 'semantic',
+			semantic,
+			items: [],
+			total: 0,
+			totalPages: 1
+		};
+	}
+
+	const semanticItems = items.map((notice, index) => ({
+		...notice,
+		relevance: {
+			score: Math.max(0.45, 0.9 - index * 0.05),
+			section: 'body',
+			excerpt: `${notice.subject} 관련 mock 발췌입니다.`,
+			weak: false
 		}
+	}));
+	const semantic: BoardSearchSemanticMeta = {
+		mode: 'semantic',
+		fallbackReason: null,
+		lastUpdateAt: MOCK_SEMANTIC_LAST_UPDATE,
+		candidateTotal: total,
+		weakResults: []
+	};
+	return {
+		...baseResponse,
+		stats: semanticStats,
+		searchMode,
+		appliedMode: 'semantic',
+		semantic,
+		items: semanticItems
 	};
 }
 
