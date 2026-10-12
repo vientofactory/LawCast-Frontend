@@ -13,7 +13,8 @@ import { expectHeadMetadata } from './helpers/head-metadata';
  * `/api/notices/semantic-search` and `page.route` cannot stub it. Fixtures come from
  * `src/lib/server/semantic-search-mock.ts`, which selects a response from marker words in
  * the query — `레이트리밋` -> 429, `오류` -> 500, `않는` -> empty results,
- * `약한` -> empty clear tier + weak hit (reveal button), `키워드` -> keyword fallback,
+ * `약한` -> empty clear tier + weak hit (reveal button), `약한 여러` -> a weak band
+ * longer than one page (paged reveal), `키워드` -> keyword fallback,
  * anything else -> one sample result.
  * The engine-status endpoint is still fetched by the browser and keeps its `page.route`
  * stubs below.
@@ -152,7 +153,7 @@ test.describe('Semantic Search UI', () => {
 		);
 		await expect(page.getByTestId('semantic-search-fallback-banner')).toHaveCount(0);
 		// The index time is owned by the engine status widget now, so the
-		// results list no longer renders a duplicate 마지막 업데이트 line.
+		// results list no longer renders a duplicate `마지막 업데이트` line.
 	});
 
 	test('controls the query through the URL search parameter', async ({ page }) => {
@@ -169,6 +170,17 @@ test.describe('Semantic Search UI', () => {
 		await page.getByTestId('semantic-search-input').fill('상가건물 임대차');
 		await page.getByTestId('semantic-search-submit').click();
 		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe('상가건물 임대차');
+	});
+
+	test('the per-request chip draw is never served from a shared cache', async ({ page }) => {
+		// Same policy as the board (see its spec): the example chips are drawn per
+		// request, so the HTML must not be replayable from a shared cache.
+		const response = await page.goto('/notices/semantic-search');
+		expect(response?.status()).toBe(200);
+		const header = response?.headers()['cache-control'] ?? '';
+		expect(header).toContain('private');
+		expect(header).toContain('no-cache');
+		expect(header).not.toContain('public');
 	});
 
 	test('runs a search from the example chips and mirrors it into the URL', async ({ page }) => {
@@ -315,6 +327,35 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('semantic-search-empty-state')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-show-weak')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
+	});
+
+	test('pages a weak band that is longer than one screen', async ({ page }) => {
+		// The live engine returns its whole below-threshold pool (up to k hits, all
+		// inside one narrow score band), so the reveal has to batch it instead of
+		// dumping it. The `약한 여러` fixture is that 12-hit pool.
+		const hydrated = watchEngineHealth(page);
+		await page.goto(`/notices/semantic-search?search=${encodeURIComponent('약한 여러 결과 조회')}`);
+		await hydrated;
+
+		await expect(page.getByTestId('semantic-search-weak-offer')).toContainText('12건');
+		await page.getByTestId('semantic-search-show-weak').click();
+
+		const cards = page.locator('article[data-testid^="semantic-result-"]');
+		await expect(cards).toHaveCount(10);
+		// The headline count describes the whole band, not the batch on screen.
+		await expect(page.getByTestId('semantic-search-results-summary')).toContainText('12건');
+		await expect(page.getByTestId('semantic-search-weak-progress')).toContainText('12건 중 10건');
+
+		const more = page.getByTestId('semantic-search-weak-more');
+		await expect(more).toContainText('(10/12)');
+		await more.click();
+		await expect(cards).toHaveCount(12);
+		await expect(page.getByTestId('semantic-search-weak-more')).toHaveCount(0);
+
+		// Re-revealing after hide restarts at one batch.
+		await page.getByTestId('semantic-search-hide-weak').click();
+		await page.getByTestId('semantic-search-show-weak').click();
+		await expect(cards).toHaveCount(10);
 	});
 
 	test('shows the keyword fallback banner for fallback responses', async ({ page }) => {

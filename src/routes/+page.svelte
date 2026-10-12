@@ -89,7 +89,9 @@
 	const discordServerId = env.PUBLIC_DISCORD_SERVER_ID?.trim() ?? null;
 
 	function buildQuickSearchHref(keyword: string): string {
-		const params = new URLSearchParams({ search: keyword, fullText: 'true' });
+		// `제안이유(원문)` matching is part of the default keyword search, so the quick
+		// search needs no extra flags.
+		const params = new URLSearchParams({ search: keyword });
 		return `/notices?${params.toString()}`;
 	}
 
@@ -316,7 +318,6 @@
 								aria-describedby="home-search-description"
 								data-testid="home-search-form"
 							>
-								<input type="hidden" name="fullText" value="true" />
 								<label for="quick-search" class="sr-only">법률안 검색</label>
 								<div class="flex flex-col gap-3 sm:flex-row">
 									<input

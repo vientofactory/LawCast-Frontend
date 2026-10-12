@@ -54,9 +54,10 @@ test.describe('Notices List Page', () => {
 		await expect(pageSize).toBeVisible();
 	});
 
-	test('full text toggle is available', async ({ page }) => {
-		const fullTextToggle = page.getByTestId('notices-full-text-toggle');
-		await expect(fullTextToggle).toBeVisible();
+	test('proposal-reason search has no toggle (it is always on)', async ({ page }) => {
+		// `제안이유(원문)` matching is plain keyword behaviour now, so the old
+		// "원문 포함 검색" switch was removed rather than defaulted to on.
+		await expect(page.getByTestId('notices-full-text-toggle')).toHaveCount(0);
 	});
 
 	test('search submit button works', async ({ page }) => {
@@ -242,59 +243,42 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 	});
 
-	// ── Category 2: FullText toggle interaction ──────────────────────────────
+	// ── Category 2: `제안이유(원문)` search is the default ─────────────────────
 
-	test.describe('FullText toggle interaction', () => {
-		test('fullText=true searches proposal reasons', async ({ page }) => {
+	test.describe('Proposal-reason search is the default', () => {
+		test('search matches 제안이유 without any flag', async ({ page }) => {
 			// '제도적 기반' appears only in 2210001's proposalReason
-			await page.goto('/notices?search=제도적 기반&fullText=true');
+			await page.goto('/notices?search=제도적 기반');
 			const count = await getResultCount(page);
 			expect(count).toBe(1);
 			const nums = await getVisibleNoticeNums(page);
 			expect(nums).toContain(2210001);
 		});
 
-		test('fullText=false does not search proposal reasons', async ({ page }) => {
-			// '제도적' only in proposalReason, not in subject/committee/proposerCategory
-			await page.goto('/notices?search=제도적');
-			const count = await getResultCount(page);
-			expect(count).toBe(0);
-			await expect(page.getByTestId('notices-empty-state')).toBeVisible();
-		});
-
-		test('fullText=true with different keyword matches different notice', async ({ page }) => {
+		test('a different keyword matches a different bill only through its 제안이유', async ({
+			page
+		}) => {
 			// '안전보건 확보' appears only in 2210003's proposalReason
-			await page.goto('/notices?search=안전보건 확보&fullText=true');
+			await page.goto('/notices?search=안전보건 확보');
 			const count = await getResultCount(page);
 			expect(count).toBe(1);
 			const nums = await getVisibleNoticeNums(page);
 			expect(nums).toContain(2210003);
 		});
 
-		test('fullText toggle via URL shows purple chip', async ({ page }) => {
-			await page.goto('/notices?search=AI&fullText=true');
-			const filterText = await getActiveFilterText(page);
-			expect(filterText).toContain('원문 포함 검색');
-		});
+		test('an old fullText=true link still works and the flag is dropped on submit', async ({
+			page
+		}) => {
+			// Bookmarks and crawled links still carry the removed flag; the API ignores
+			// it, and the next form submit builds a clean URL.
+			await page.goto('/notices?search=제도적 기반&fullText=true');
+			expect(await getResultCount(page)).toBe(1);
 
-		test('fullText toggle via UI navigates with fullText param', async ({ page }) => {
-			await page.goto('/notices?search=제도적 기반');
-			const toggle = page.getByTestId('notices-full-text-toggle');
-			await expect(toggle).toHaveAttribute('aria-checked', 'false');
-			// Click the fullText toggle link
-			await toggle.click();
-			await page.waitForURL(/fullText=true/, { timeout: 10_000 });
-			// The switch must visibly flip after client-side navigation.
-			await expect(toggle).toHaveAttribute('aria-checked', 'true');
-			const filterText = await getActiveFilterText(page);
-			expect(filterText).toContain('원문 포함 검색');
-			const count = await getResultCount(page);
-			expect(count).toBe(1);
-
-			// Clicking again turns fullText off and flips the switch back.
-			await toggle.click();
-			await page.waitForURL((url) => !url.searchParams.has('fullText'), { timeout: 10_000 });
-			await expect(toggle).toHaveAttribute('aria-checked', 'false');
+			await page.getByTestId('notices-search-input').press('Enter');
+			await expect
+				.poll(() => new URL(page.url()).searchParams.get('page'), { timeout: 10_000 })
+				.toBe('1');
+			expect(new URL(page.url()).searchParams.has('fullText')).toBe(false);
 		});
 	});
 
@@ -371,9 +355,9 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 
 		test('search keyword matching done notice with isDone=true', async ({ page }) => {
-			// 개인정보 보호법 matches 2210002 (done) — should return 1. The keyword
+			// `개인정보 보호법` matches 2210002 (done) — should return 1. The keyword
 			// is the done notice's distinctive subject term: 2210001's subject also
-			// contains "개인정보", so a bare 개인정보 would match both notices.
+			// contains `개인정보`, so a bare `개인정보` would match both notices.
 			await page.goto('/notices?search=개인정보 보호법&isDone=true');
 			const count = await getResultCount(page);
 			expect(count).toBe(1);
@@ -382,7 +366,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 
 		test('search keyword matching done notice with isDone=false yields 0', async ({ page }) => {
-			// 개인정보 보호법 matches only 2210002 and it is done, so isDone=false
+			// `개인정보 보호법` matches only 2210002 and it is done, so isDone=false
 			// must exclude it and yield 0.
 			await page.goto('/notices?search=개인정보 보호법&isDone=false');
 			const count = await getResultCount(page);
@@ -397,28 +381,28 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 	});
 
-	// ── Category 5: FullText × Status filter ─────────────────────────────────
+	// ── Category 5: `제안이유` search × Status filter ─────────────────────────
 
-	test.describe('FullText × Status filter combinations', () => {
-		test('fullText search + active status', async ({ page }) => {
+	test.describe('Proposal-reason search × Status filter combinations', () => {
+		test('proposal-reason keyword + active status', async ({ page }) => {
 			// '제도적 기반' only in 2210001's proposalReason, which is active
-			await page.goto('/notices?search=제도적 기반&fullText=true&isDone=false');
+			await page.goto('/notices?search=제도적 기반&isDone=false');
 			const count = await getResultCount(page);
 			expect(count).toBe(1);
 			const nums = await getVisibleNoticeNums(page);
 			expect(nums).toContain(2210001);
 		});
 
-		test('fullText search + done status (no match)', async ({ page }) => {
+		test('proposal-reason keyword + done status (no match)', async ({ page }) => {
 			// '제도적 기반' only in 2210001 (active), so isDone=true yields 0
-			await page.goto('/notices?search=제도적 기반&fullText=true&isDone=true');
+			await page.goto('/notices?search=제도적 기반&isDone=true');
 			const count = await getResultCount(page);
 			expect(count).toBe(0);
 		});
 
-		test('fullText search for done notice keyword', async ({ page }) => {
+		test('proposal-reason keyword for a done notice', async ({ page }) => {
 			// '피해 구제' appears in 2210002's proposalReason (done)
-			await page.goto('/notices?search=피해 구제&fullText=true&isDone=true');
+			await page.goto('/notices?search=피해 구제&isDone=true');
 			const count = await getResultCount(page);
 			expect(count).toBe(1);
 			const nums = await getVisibleNoticeNums(page);
@@ -512,7 +496,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 
 	test.describe('Date range × Search combinations', () => {
 		test('date range + search filters both dimensions', async ({ page }) => {
-			// 2210001 (AI, 3d ago) is within 5-day range; 2210004 (플랫폼, 20d ago) is not
+			// 2210001 (AI, 3d ago) is within 5-day range; 2210004 (`플랫폼`, 20d ago) is not
 			const startDate = daysAgoInputDate(5);
 			const endDate = daysAgoInputDate(0);
 			await page.goto(`/notices?search=AI&startDate=${startDate}&endDate=${endDate}`);
@@ -537,31 +521,26 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			const endDate = daysAgoInputDate(0);
 			await page.goto(`/notices?search=환경노동위원회&startDate=${startDate}&endDate=${endDate}`);
 			const count = await getResultCount(page);
-			// 2210003(1d), 2210005(5d), 2210011(4d) are all 환경노동위원회 within range
+			// 2210003(1d), 2210005(5d), 2210011(4d) are all `환경노동위원회` in range
 			expect(count).toBe(3);
 		});
 
-		test('fullText search within date range', async ({ page }) => {
+		test('proposal-reason keyword within a date range', async ({ page }) => {
 			// '제도적 기반' in 2210001's proposalReason (3d ago) — within 8-day range
 			const startDate = daysAgoInputDate(8);
 			const endDate = daysAgoInputDate(0);
-			await page.goto(
-				`/notices?search=제도적 기반&fullText=true&startDate=${startDate}&endDate=${endDate}`
-			);
+			await page.goto(`/notices?search=제도적 기반&startDate=${startDate}&endDate=${endDate}`);
 			const count = await getResultCount(page);
 			expect(count).toBe(1);
 		});
 
-		test('active filter chips show search, date, and fullText', async ({ page }) => {
+		test('active filter chips show search and date', async ({ page }) => {
 			const startDate = daysAgoInputDate(8);
 			const endDate = daysAgoInputDate(0);
-			await page.goto(
-				`/notices?search=제도적 기반&fullText=true&startDate=${startDate}&endDate=${endDate}`
-			);
+			await page.goto(`/notices?search=제도적 기반&startDate=${startDate}&endDate=${endDate}`);
 			const filterText = await getActiveFilterText(page);
 			expect(filterText).toContain('키워드: 제도적');
 			expect(filterText).toContain('기간:');
-			expect(filterText).toContain('원문 포함 검색');
 		});
 	});
 
@@ -682,7 +661,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 
 	test.describe('URL parameter integrity', () => {
 		test('all params preserved through search form submit', async ({ page }) => {
-			await page.goto('/notices?search=AI&isDone=false&sortOrder=asc&limit=20&fullText=true');
+			await page.goto('/notices?search=AI&isDone=false&sortOrder=asc&limit=20');
 			// Modify search value and submit via Enter key (more reliable)
 			await page.getByTestId('notices-search-input').fill('AI 데이터');
 			await page.getByTestId('notices-search-input').press('Enter');
@@ -692,7 +671,6 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			expect(url.searchParams.get('search')).toBe('AI 데이터');
 			expect(url.searchParams.get('isDone')).toBe('false');
 			expect(url.searchParams.get('sortOrder')).toBe('asc');
-			expect(url.searchParams.get('fullText')).toBe('true');
 		});
 
 		test('isDone and proposer params survive form submit', async ({ page }) => {
@@ -707,7 +685,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 
 		test('reset filters clears all params including isDone', async ({ page }) => {
-			await page.goto('/notices?search=AI&isDone=false&fullText=true&startDate=2026-01-01');
+			await page.goto('/notices?search=AI&isDone=false&startDate=2026-01-01');
 			await page.getByTestId('notices-reset-filters').click();
 			await expect(page).toHaveURL('/notices');
 		});
@@ -761,11 +739,10 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 
 		test('multiple chips visible for multi-filter state', async ({ page }) => {
-			await page.goto('/notices?search=AI&isDone=false&fullText=true');
+			await page.goto('/notices?search=AI&isDone=false');
 			const filterText = await getActiveFilterText(page);
 			expect(filterText).toContain('키워드: AI');
 			expect(filterText).toContain('진행 중인 입법예고만');
-			expect(filterText).toContain('원문 포함 검색');
 		});
 
 		test('sorting chip shows when other filters are active', async ({ page }) => {
@@ -798,12 +775,12 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 		});
 
 		test('all filters combined produces correct intersection', async ({ page }) => {
-			// search='제도적 기반' + fullText=true + isDone=false + narrow date range
+			// search='제도적 기반' (`제안이유`, default) + isDone=false + narrow date range
 			// Only 2210001 matches: has '제도적 기반' in proposalReason, is active, within 8-day range
 			const startDate = daysAgoInputDate(8);
 			const endDate = daysAgoInputDate(0);
 			await page.goto(
-				`/notices?search=제도적 기반&fullText=true&isDone=false&startDate=${startDate}&endDate=${endDate}`
+				`/notices?search=제도적 기반&isDone=false&startDate=${startDate}&endDate=${endDate}`
 			);
 			const count = await getResultCount(page);
 			expect(count).toBe(1);
@@ -816,7 +793,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			const startDate = daysAgoInputDate(8);
 			const endDate = daysAgoInputDate(0);
 			await page.goto(
-				`/notices?search=제도적 기반&fullText=true&isDone=true&startDate=${startDate}&endDate=${endDate}`
+				`/notices?search=제도적 기반&isDone=true&startDate=${startDate}&endDate=${endDate}`
 			);
 			const count = await getResultCount(page);
 			expect(count).toBe(0);
@@ -920,16 +897,6 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			const count = await getResultCount(page);
 			// '중대재해' matches 2210003 subject
 			expect(count).toBe(1);
-		});
-
-		test('fullText chip dismiss via ✕ link removes fullText param', async ({ page }) => {
-			await page.goto('/notices?search=제도적 기반&fullText=true');
-			// Click the fullText dismiss link (text: '✕')
-			const dismissLink = page
-				.getByTestId('notices-active-filters')
-				.locator('a[aria-label="원문 포함 검색 해제"]');
-			await dismissLink.click();
-			await page.waitForURL((url) => !url.searchParams.has('fullText'), { timeout: 10_000 });
 		});
 
 		test('status chip dismiss via ✕ link removes isDone param', async ({ page }) => {

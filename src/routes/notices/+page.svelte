@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
-	import Alert from '$lib/components/Alert.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
@@ -10,10 +9,24 @@
 	import { extractProposerFromSubject } from '$lib/utils/proposer';
 	import { buildNoticeDeadline } from '$lib/utils/notice-deadline.util';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
+	import { apiClient } from '$lib/api/client';
 	import { page } from '$app/state';
 	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { env } from '$env/dynamic/public';
-	import { buildSemanticSearchHref, isSemanticSearchEnabled } from '$lib/utils/semantic-search';
+	import {
+		BOARD_RELEVANCE_HINTS,
+		BOARD_SEARCH_MODE_HINTS,
+		BOARD_SEARCH_MODE_LABELS,
+		BOARD_SEARCH_MODES,
+		buildSemanticSearchHref,
+		describeWeakProgress,
+		describeWeakReveal,
+		formatSectionLabel,
+		formatSimilarityPercent,
+		isSemanticSearchEnabled,
+		normalizeBoardSearchMode,
+		WEAK_RESULT_PAGE_SIZE
+	} from '$lib/utils/semantic-search';
 	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
 	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -33,7 +46,7 @@
 		faWandMagicSparkles,
 		faXmark
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { ArchiveNoticeCardListResponse } from '$lib/types/api';
+	import type { ArchiveNoticeCardListResponse, BoardSearchMode } from '$lib/types/api';
 	import { KST_TIMEZONE } from '$lib/utils/helpers';
 
 	let {
@@ -41,6 +54,8 @@
 	}: {
 		data: {
 			archive: ArchiveNoticeCardListResponse;
+			/** Everyday-language example queries from the loader (flag-gated). */
+			exampleQueries?: string[];
 			digestContext?: {
 				isDigestContext: boolean;
 				noticeNums: number[];
@@ -54,7 +69,7 @@
 
 	const SEMANTIC_SEARCH_ENABLED = isSemanticSearchEnabled(env.PUBLIC_SEMANTIC_SEARCH_ENABLED);
 
-	// Reactive URL snapshot: $derived filters (fullText, isDoneFilter, ...) must
+	// Reactive URL snapshot: $derived filters (isDoneFilter, searchMode, ...) must
 	// recompute when afterNavigate reassigns it after client-side navigation.
 	let currentUrl = $state(page.url);
 	let isServerLoading = $state(false);
@@ -104,14 +119,106 @@
 	let proposerQuery = $derived(archive?.proposer || '');
 	let startDate = $derived(archive?.startDate || '');
 	let endDate = $derived(archive?.endDate || '');
-	let sortOrder = $derived(archive?.sortOrder === 'asc' ? 'asc' : 'desc');
+	// Annotated: a mutable `let` widens the literal union to `string`, which then no
+	// longer matches the API client's `'asc' | 'desc'` parameter.
+	let sortOrder: 'asc' | 'desc' = $derived(archive?.sortOrder === 'asc' ? 'asc' : 'desc');
 	let isDoneFilter = $derived(
 		(() => {
 			const v = currentUrl.searchParams.get('isDone');
 			return v === 'true' ? true : v === 'false' ? false : undefined;
 		})()
 	);
-	let fullText = $derived(currentUrl.searchParams.get('fullText') === 'true');
+	// Board search mode, flag-gated: default `auto` (semantic-first) when the
+	// feature is on, plain `keyword` otherwise. Mirrors the loader's normalization
+	// (`normalizeBoardSearchMode`). URLs with no param fall back to that default.
+	let searchMode = $derived(
+		SEMANTIC_SEARCH_ENABLED
+			? normalizeBoardSearchMode(currentUrl.searchParams.get('searchMode'), true)
+			: 'keyword'
+	);
+	// Semantic metadata the API echoed back: null in pure keyword mode.
+	let boardSemantic = $derived(archive?.semantic ?? null);
+	let weakResults = $derived(boardSemantic?.weakResults ?? []);
+	// The weak-tier reveal is pinned to the exact response payload so a new search
+	// starts hidden again without an $effect. $state.raw keeps identity comparison
+	// honest ($state would proxy the payload and never match) — see frontend-notes.
+	let revealedArchive = $state.raw<ArchiveNoticeCardListResponse | null>(null);
+	let showingWeak = $derived(
+		archive !== null &&
+			revealedArchive === archive &&
+			notices.length === 0 &&
+			weakResults.length > 0
+	);
+	// The weak tier is the engine's below-threshold pool (up to 100 hits on this
+	// board), so it pages in batches instead of rendering the whole pool at once.
+	let weakVisible = $state(WEAK_RESULT_PAGE_SIZE);
+	let weakVisibleResults = $derived(weakResults.slice(0, weakVisible));
+	let hasMoreWeak = $derived(weakVisible < weakResults.length);
+
+	function revealWeakResults() {
+		revealedArchive = archive;
+		weakVisible = WEAK_RESULT_PAGE_SIZE;
+	}
+
+	function hideWeakResults() {
+		revealedArchive = null;
+		weakVisible = WEAK_RESULT_PAGE_SIZE;
+	}
+
+	function showMoreWeakResults() {
+		weakVisible += WEAK_RESULT_PAGE_SIZE;
+	}
+	// Coverage check for readers who need the exhaustive list (`법조인`, legal
+	// professionals): semantic mode ranks a bounded candidate set, so offer the
+	// keyword match count under the same
+	// filters. Fetched only when asked — one request, never on every search.
+	let keywordCountFor = $state<string | null>(null);
+	let keywordCountValue = $state<number | null>(null);
+	let keywordCountFailed = $state(false);
+	let filterSignature = $derived(
+		[searchQuery, proposerQuery, startDate, endDate, sortOrder, String(isDoneFilter)].join('|')
+	);
+	// A stored count is only fresh while the filters it was fetched for still apply,
+	// so changing the query or a filter can never display a stale number.
+	let keywordCountFresh = $derived(keywordCountFor === filterSignature);
+	let keywordCount = $derived(keywordCountFresh ? keywordCountValue : null);
+	let keywordCountState = $derived(
+		!keywordCountFresh
+			? 'idle'
+			: keywordCountFailed
+				? 'error'
+				: keywordCountValue === null
+					? 'loading'
+					: 'ready'
+	);
+
+	/**
+	 * Fetch how many notices the keyword path matches under the current filters.
+	 * Result is keyed by `filterSignature` so a later search drops it back to idle.
+	 */
+	async function loadKeywordCount() {
+		keywordCountFor = filterSignature;
+		keywordCountValue = null;
+		keywordCountFailed = false;
+
+		try {
+			const response = await apiClient.getArchivedNotices({
+				page: 1,
+				limit: 1,
+				search: searchQuery,
+				proposer: proposerQuery,
+				startDate,
+				endDate,
+				sortOrder,
+				isDone: isDoneFilter,
+				searchMode: 'keyword'
+			});
+			keywordCountValue = response.total;
+		} catch (error) {
+			console.error('Failed to count keyword matches:', error);
+			keywordCountFailed = true;
+		}
+	}
 	let digestContext = $derived(data.digestContext);
 	let isDigestContext = $derived(digestContext?.isDigestContext === true);
 	let digestNoticeNums = $derived(digestContext?.noticeNums ?? []);
@@ -121,12 +228,21 @@
 			proposerQuery.trim().length > 0 ||
 			startDate.trim().length > 0 ||
 			endDate.trim().length > 0 ||
-			isDoneFilter !== undefined ||
-			fullText
+			isDoneFilter !== undefined
 	);
 	let archiveCount = $derived(
 		archive?.stats?.totalArchiveCount ?? archive?.stats?.archiveCount ?? 0
 	);
+	// Filters other than the text query: these can empty the result list on their
+	// own, so the empty state offers to clear them before the reader has to guess.
+	let hasNonKeywordFilters = $derived(
+		proposerQuery.trim().length > 0 ||
+			startDate.trim().length > 0 ||
+			endDate.trim().length > 0 ||
+			isDoneFilter !== undefined
+	);
+	// Example queries come from the loader (flag-gated); see +page.server.ts.
+	let exampleQueries = $derived(data.exampleQueries ?? []);
 
 	let canonicalUrl = $derived(
 		(() => {
@@ -152,8 +268,14 @@
 	// active keyword feeds the title, description and keywords together instead
 	// of the generic archive copy.
 	let activeSearch = $derived(searchQuery.trim());
+	// Share metadata must quote the matched result count, never `archiveCount`.
+	// The keyword path reports `stats.totalArchiveCount` = matched total, but the
+	// semantic path reports the WHOLE archive there (21,188 on production data vs
+	// 39 matches for "국민"), which would make the title/description claim ~500x the
+	// results. `totalItems` is the matched count in both paths.
+	let resultCount = $derived(totalItems);
 	let countLabel = $derived(
-		archiveCount > 0 ? ` (전체 ${archiveCount.toLocaleString('ko-KR')}건)` : ''
+		resultCount > 0 ? ` (전체 ${resultCount.toLocaleString('ko-KR')}건)` : ''
 	);
 	let pageTitle = $derived(
 		isDigestContext
@@ -162,7 +284,7 @@
 	);
 	let pageDescription = $derived(
 		activeSearch
-			? `"${activeSearch}" 검색 결과 ${archiveCount.toLocaleString('ko-KR')}건의 입법예고입니다. 제안이유와 주요내용${aiSummaryEnabled ? ', AI 요약,' : ''} 원문을 확인할 수 있습니다.`
+			? `"${activeSearch}" 검색 결과 ${resultCount.toLocaleString('ko-KR')}건의 입법예고입니다. 제안이유와 주요내용${aiSummaryEnabled ? ', AI 요약,' : ''} 원문을 확인할 수 있습니다.`
 			: basePageDescription
 	);
 	let pageKeywords = $derived(
@@ -230,7 +352,7 @@
 		endDate?: string;
 		sortOrder?: 'asc' | 'desc';
 		isDone?: boolean | null;
-		fullText?: boolean | null;
+		searchMode?: BoardSearchMode;
 	};
 
 	function buildQueryLink(overrides: QueryLinkOverrides = {}) {
@@ -242,7 +364,7 @@
 		const ed = (overrides.endDate !== undefined ? overrides.endDate : endDate).trim();
 		const so = overrides.sortOrder !== undefined ? overrides.sortOrder : sortOrder;
 		const id = 'isDone' in overrides ? overrides.isDone : isDoneFilter;
-		const ft = 'fullText' in overrides ? overrides.fullText : fullText ? true : null;
+		const sm = overrides.searchMode !== undefined ? overrides.searchMode : searchMode;
 
 		const params = new SvelteURLSearchParams(currentUrl.searchParams);
 		params.set('page', String(pg));
@@ -258,8 +380,14 @@
 		params.set('sortOrder', so);
 		if (id !== null && id !== undefined) params.set('isDone', String(id));
 		else params.delete('isDone');
-		if (ft) params.set('fullText', 'true');
-		else params.delete('fullText');
+		// Leftover `fullText` params from old bookmarks/crawled links are dropped:
+		// proposal-reason search is the default now, so the flag has no meaning.
+		params.delete('fullText');
+		// Write the mode explicitly (including 'keyword'): an absent param would
+		// re-resolve to the flag default ('auto'), so deletion could not express
+		// an explicit keyword choice. With the flag off the param stays out.
+		if (SEMANTIC_SEARCH_ENABLED) params.set('searchMode', sm);
+		else params.delete('searchMode');
 
 		// Keep digest context normalized when present.
 		const digestRaw = params.get('digest');
@@ -271,7 +399,7 @@
 
 	let buildFilterLink = $derived(
 		(
-			(_ft: boolean, _id: boolean | undefined) =>
+			(_id: boolean | undefined) =>
 			(overrides: {
 				search?: string;
 				proposer?: string;
@@ -279,17 +407,17 @@
 				endDate?: string;
 				sortOrder?: 'asc' | 'desc';
 				isDone?: boolean | null;
-				fullText?: boolean | null;
+				searchMode?: BoardSearchMode;
 			}) =>
 				buildQueryLink({ page: 1, ...overrides })
-		)(fullText, isDoneFilter)
+		)(isDoneFilter)
 	);
 
 	let buildPageLink = $derived(
 		(
-			(_ft: boolean, _id: boolean | undefined) => (pg: number) =>
+			(_id: boolean | undefined) => (pg: number) =>
 				buildQueryLink({ page: pg })
-		)(fullText, isDoneFilter)
+		)(isDoneFilter)
 	);
 
 	function shouldShowAIBriefing(notice: (typeof notices)[number]) {
@@ -346,12 +474,15 @@
 		const startDate = (formData.get('startDate') || '').toString().trim();
 		const endDate = (formData.get('endDate') || '').toString().trim();
 		const sortOrder = (formData.get('sortOrder') || 'desc').toString();
-		const fullTextVal = formData.get('fullText') === 'true';
+		const searchModeVal = normalizeBoardSearchMode(
+			(formData.get('searchMode') || searchMode).toString(),
+			SEMANTIC_SEARCH_ENABLED
+		);
+		if (SEMANTIC_SEARCH_ENABLED) params.set('searchMode', searchModeVal);
 		if (search) params.set('search', search);
 		if (startDate) params.set('startDate', startDate);
 		if (endDate) params.set('endDate', endDate);
 		if (sortOrder) params.set('sortOrder', sortOrder);
-		if (fullTextVal) params.set('fullText', 'true');
 		// Hidden form fields carry link-based params (isDone, proposer) via FormData.
 		const isDoneRaw = (formData.get('isDone') || '').toString().trim();
 		if (isDoneRaw === 'true' || isDoneRaw === 'false') {
@@ -456,6 +587,36 @@
 			</p>
 		</section>
 
+		{#if archive?.appliedMode === 'semantic' && searchQuery.trim() && notices.length > 0}
+			<p class="lc-text-dim -mt-4 mb-6 text-xs" data-testid="notices-semantic-scope-note">
+				관련도순 상위 결과를 보여드려요. 전체 결과는 <a
+					href={buildFilterLink({ searchMode: 'keyword' })}
+					class="lc-link"
+					data-testid="notices-semantic-scope-keyword">키워드 검색</a
+				>에서 확인할 수 있어요.
+				{#if keywordCountState === 'idle'}
+					<button
+						type="button"
+						class="lc-link cursor-pointer"
+						data-testid="notices-semantic-scope-count"
+						onclick={loadKeywordCount}
+					>
+						같은 조건의 키워드 결과 건수 보기
+					</button>
+				{:else if keywordCountState === 'loading'}
+					<span data-testid="notices-semantic-scope-count-loading">건수 확인 중…</span>
+				{:else if keywordCountState === 'ready'}
+					<span data-testid="notices-semantic-scope-count-result">
+						키워드 검색은 같은 조건에서 {keywordCount?.toLocaleString('ko-KR')}건이에요.
+					</span>
+				{:else}
+					<span data-testid="notices-semantic-scope-count-error"
+						>건수를 확인하지 못했어요. 키워드 검색에서 직접 봐주세요.</span
+					>
+				{/if}
+			</p>
+		{/if}
+
 		<section
 			class="relative"
 			aria-labelledby="notices-page-title"
@@ -482,7 +643,8 @@
 							onsubmit={handleFilterSubmit}
 						>
 							<p id="notices-filter-help" class="sr-only">
-								키워드, 기간, 상태, 정렬, 원문 포함 여부로 입법예고 목록을 필터링합니다.
+								키워드, 기간, 상태, 정렬로 입법예고 목록을 필터링합니다. 검색어는 제안이유(원문)까지
+								함께 찾습니다.
 							</p>
 							<div class="mb-2 flex flex-wrap items-center gap-2">
 								<span id="notices-quick-date-heading" class="lc-text-muted text-xs font-semibold"
@@ -579,9 +741,7 @@
 										name="search"
 										value={searchQuery}
 										enterkeyhint="search"
-										placeholder={fullText
-											? '법률안명, 소관위원회, 제안자, 원문 키워드 검색'
-											: '법률안명, 소관위원회, 제안자 검색'}
+										placeholder="법률안명, 소관위원회, 제안자, 제안이유 검색"
 										data-testid="notices-search-input"
 										class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
 										onkeydown={handleSearchInputKeydown}
@@ -609,17 +769,28 @@
 									class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
 									title="종료일"
 								/>
-								<label for="archive-sort-order" class="sr-only">정렬</label>
-								<select
-									id="archive-sort-order"
-									name="sortOrder"
-									value={sortOrder}
-									data-testid="notices-sort-order"
-									class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
-								>
-									<option value="desc">내림차순</option>
-									<option value="asc">오름차순</option>
-								</select>
+								{#if archive?.appliedMode === 'semantic'}
+									<span
+										class="lc-chip-purple inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold"
+										title="의미 검색은 관련도순으로 정렬됩니다."
+										data-testid="notices-sort-relevance"
+									>
+										관련도순
+									</span>
+									<input type="hidden" name="sortOrder" value={sortOrder} />
+								{:else}
+									<label for="archive-sort-order" class="sr-only">정렬</label>
+									<select
+										id="archive-sort-order"
+										name="sortOrder"
+										value={sortOrder}
+										data-testid="notices-sort-order"
+										class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
+									>
+										<option value="desc">내림차순</option>
+										<option value="asc">오름차순</option>
+									</select>
+								{/if}
 								<label for="archive-limit" class="sr-only">페이지당 개수</label>
 								<select
 									id="archive-limit"
@@ -634,7 +805,7 @@
 									{/each}
 								</select>
 								<input type="hidden" name="page" value="1" />
-								<input type="hidden" name="fullText" value={String(fullText)} />
+								<input type="hidden" name="searchMode" value={searchMode} />
 								{#if isDoneFilter !== undefined}
 									<input type="hidden" name="isDone" value={String(isDoneFilter)} />
 								{/if}
@@ -642,36 +813,56 @@
 									<input type="hidden" name="proposer" value={proposerQuery.trim()} />
 								{/if}
 							</div>
-							<div class="mt-1.5 flex items-center">
-								<a
-									href={buildFilterLink({ fullText: fullText ? null : true })}
-									title="원문(제안이유) 전체 텍스트 포함 검색. 속도가 느려질 수 있습니다."
-									role="switch"
-									aria-checked={fullText}
-									data-testid="notices-full-text-toggle"
-									class="group inline-flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 focus:ring-2 focus:ring-[var(--lc-border-strong)] focus:ring-offset-1 focus:outline-none"
+							{#if SEMANTIC_SEARCH_ENABLED}
+								<div
+									class="mt-2 flex flex-wrap items-center gap-2"
+									data-testid="notices-search-mode"
 								>
-									<span
-										class={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ${
-											fullText ? 'lc-toggle-track-on' : 'lc-toggle-track-off'
-										}`}
+									<span class="lc-text-muted text-xs font-semibold">검색 방식</span>
+									<div
+										class="lc-chip-group inline-flex items-center rounded-full border p-0.5 text-xs font-semibold"
+										role="group"
+										aria-label="검색 방식"
 									>
-										<span
-											class={`inline-block h-4 w-4 rounded-full bg-[var(--lc-surface-primary)] shadow-sm transition-transform duration-200 ${
-												fullText ? 'translate-x-4' : 'translate-x-0'
-											}`}
-										></span>
+										{#each BOARD_SEARCH_MODES as mode (mode)}
+											<a
+												href={buildFilterLink({ searchMode: mode })}
+												data-testid={`notices-search-mode-${mode}`}
+												aria-current={searchMode === mode ? 'true' : undefined}
+												title={BOARD_SEARCH_MODE_HINTS[mode]}
+												class={`rounded-full px-3 py-1 transition-colors ${
+													searchMode === mode
+														? 'bg-[var(--lc-surface-primary)] text-[var(--lc-text-primary)] shadow-sm'
+														: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
+												}`}
+											>
+												{BOARD_SEARCH_MODE_LABELS[mode]}
+											</a>
+										{/each}
+									</div>
+									<span class="lc-text-dim text-xs" data-testid="notices-search-mode-hint">
+										{BOARD_SEARCH_MODE_HINTS[searchMode]}
 									</span>
-									<span
-										class={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
-											fullText ? 'lc-chip-purple' : 'lc-text-dim'
-										}`}
+								</div>
+								{#if !searchQuery.trim() && exampleQueries.length > 0}
+									<div
+										class="mt-2 flex flex-wrap items-center gap-2 text-xs"
+										data-testid="notices-example-queries"
 									>
-										<FontAwesomeIcon icon={faFileText} class="h-3 w-3" />
-										원문(제안이유) 포함 검색
-									</span>
-								</a>
-							</div>
+										<span class="lc-text-muted font-semibold">예시 검색어</span>
+										{#each exampleQueries as example, index (example)}
+											<a
+												href={buildFilterLink({ search: example, searchMode: 'auto' })}
+												data-testid={`notices-example-query-${index}`}
+												title="이 예시로 의미 검색을 실행합니다."
+												class="lc-chip-muted inline-flex items-center rounded-full px-2 py-1 font-semibold transition-colors hover:-translate-y-0.5"
+											>
+												{example}
+											</a>
+										{/each}
+									</div>
+								{/if}
+							{/if}
 							{#if hasDateReversed}
 								<p class="lc-text-warning mt-2 text-xs font-medium">
 									시작일이 종료일보다 늦습니다. 검색 시 서버에서 자동으로 범위를 보정합니다.
@@ -747,21 +938,6 @@
 											</a>
 										</span>
 									{/if}
-									{#if fullText}
-										<span
-											class="lc-chip-purple inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold"
-										>
-											<FontAwesomeIcon icon={faFileText} class="h-2.5 w-2.5" />
-											원문 포함 검색
-											<a
-												href={buildFilterLink({ fullText: null })}
-												class="ml-1 opacity-60 hover:opacity-100"
-												aria-label="원문 포함 검색 해제"
-											>
-												<FontAwesomeIcon icon={faXmark} class="h-2.5 w-2.5" />
-											</a>
-										</span>
-									{/if}
 									<span
 										class="lc-chip-muted inline-flex items-center rounded-full px-2 py-1 font-semibold"
 									>
@@ -795,16 +971,6 @@
 								>
 									필터 초기화
 								</a>
-								{#if SEMANTIC_SEARCH_ENABLED}
-									<a
-										href={buildSemanticSearchHref(searchQuery)}
-										data-testid="semantic-search-entry"
-										class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
-									>
-										<FontAwesomeIcon icon={faWandMagicSparkles} class="mr-2 h-4 w-4" />
-										의미 검색
-									</a>
-								{/if}
 							</div>
 							{#if isServerLoading}
 								<div
@@ -844,13 +1010,118 @@
 					</section>
 				{/if}
 
+				{#if boardSemantic?.mode === 'keyword_fallback'}
+					<div
+						class="lc-banner-warning mb-5 rounded-xl border p-4 shadow-sm"
+						data-testid="notices-semantic-fallback-banner"
+					>
+						<div class="flex items-start gap-3">
+							<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
+								<FontAwesomeIcon icon={faWandMagicSparkles} class="h-4 w-4" />
+							</div>
+							<div>
+								<p class="lc-text-primary text-sm font-semibold">
+									키워드 검색 결과를 표시하고 있습니다
+								</p>
+								<p class="lc-text-secondary mt-1 text-sm">{boardSemantic.fallbackReason}</p>
+							</div>
+						</div>
+					</div>
+				{/if}
+
 				<section
 					class="relative"
 					aria-labelledby="notices-results-heading"
 					data-testid="notices-results-region"
 				>
 					<h2 id="notices-results-heading" class="sr-only">입법예고 검색 결과</h2>
-					{#if notices.length === 0}
+					{#if showingWeak}
+						<div
+							class="lc-banner-warning mb-3 rounded-xl border p-3 shadow-sm"
+							data-testid="notices-semantic-weak-banner"
+						>
+							<div class="flex flex-wrap items-center justify-between gap-2">
+								<p class="lc-text-secondary text-sm">
+									명확한 검색 결과가 없어 관련도가 낮은 결과를 표시하고 있습니다.
+								</p>
+								{#if hasMoreWeak}
+									<span class="lc-text-dim text-xs" data-testid="notices-semantic-weak-progress">
+										{describeWeakProgress(weakVisibleResults.length, weakResults.length)}
+									</span>
+								{/if}
+								<button
+									type="button"
+									class="lc-button-neutral cursor-pointer rounded-lg border px-3 py-1.5 text-sm"
+									data-testid="notices-semantic-hide-weak"
+									onclick={hideWeakResults}
+								>
+									숨기기
+								</button>
+							</div>
+						</div>
+						<div class="space-y-4" data-testid="notices-semantic-weak-list">
+							{#each weakVisibleResults as result (result.noticeNum)}
+								<article
+									class="lc-notice-card lc-notice-border-active rounded-lg border-l-4 p-4 shadow sm:p-6"
+									data-testid={`notices-weak-result-${result.noticeNum}`}
+								>
+									<div class="flex flex-wrap items-center gap-2">
+										<span
+											class="lc-chip-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+										>
+											의안번호 {result.noticeNum}
+										</span>
+										{#if result.score !== null}
+											<span
+												class="lc-chip-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+												title={BOARD_RELEVANCE_HINTS.score}
+											>
+												유사도 {formatSimilarityPercent(result.score)}
+											</span>
+										{/if}
+										{#if result.section}
+											<span
+												class="lc-chip-purple inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+												title={BOARD_RELEVANCE_HINTS.section}
+											>
+												{formatSectionLabel(result.section)}
+											</span>
+										{/if}
+										{#if result.committee}
+											<span
+												class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+											>
+												{result.committee}
+											</span>
+										{/if}
+									</div>
+									<h3 class="lc-text-primary mt-2 text-lg font-bold">
+										<a href={`/notices/${result.noticeNum}`} class="lc-link">{result.subject}</a>
+									</h3>
+									{#if result.excerpt}
+										<p
+											class="lc-text-secondary mt-2 whitespace-pre-line text-sm"
+											title={BOARD_RELEVANCE_HINTS.excerpt}
+										>
+											{result.excerpt}
+										</p>
+									{/if}
+								</article>
+							{/each}
+							{#if hasMoreWeak}
+								<div class="pt-1 text-center">
+									<button
+										type="button"
+										class="lc-button-neutral cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+										data-testid="notices-semantic-weak-more"
+										onclick={showMoreWeakResults}
+									>
+										관련도가 낮은 결과 더 보기 ({weakVisibleResults.length}/{weakResults.length})
+									</button>
+								</div>
+							{/if}
+						</div>
+					{:else if notices.length === 0}
 						<div
 							class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
 							data-testid="notices-empty-state"
@@ -858,11 +1129,84 @@
 							<div class="lc-empty-state-icon mb-6 inline-block rounded-full p-6">
 								<FontAwesomeIcon icon={faBell} class="lc-text-dim h-16 w-16" />
 							</div>
-							<h3 class="lc-text-primary mb-3 text-2xl font-bold">
-								{hasActiveFilters ? '검색 결과가 없습니다' : '입법예고가 없습니다'}
-							</h3>
-							{#if hasActiveFilters}
-								<p class="lc-text-secondary text-sm">다른 키워드로 다시 검색해보세요.</p>
+							{#if weakResults.length > 0}
+								<h3 class="lc-text-primary mb-3 text-2xl font-bold">명확한 검색 결과가 없습니다</h3>
+								<p class="lc-text-secondary mb-4 text-sm" data-testid="notices-semantic-weak-offer">
+									{describeWeakReveal(weakResults.length)}
+								</p>
+								<div class="flex flex-wrap items-center justify-center gap-2">
+									<button
+										type="button"
+										class="lc-button-neutral cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+										data-testid="notices-semantic-show-weak"
+										onclick={revealWeakResults}
+									>
+										관련도가 낮은 결과 보기
+									</button>
+									{#if searchQuery.trim() && archive?.appliedMode === 'semantic'}
+										<!-- Weak band instead of a clear answer: the exhaustive keyword
+										     path (which includes `제안이유`) is the more useful escape, so
+										     offer it alongside the low-relevance list rather than only
+										     inside the plain empty state. -->
+										<a
+											href={buildFilterLink({ searchMode: 'keyword' })}
+											data-testid="notices-empty-try-keyword"
+											title="법률안명·소관위원회·제안자·제안이유를 그대로 찾는 키워드 검색으로 다시 찾아봅니다."
+											class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+										>
+											<FontAwesomeIcon icon={faMagnifyingGlass} class="mr-2 h-4 w-4" />
+											키워드 검색으로 다시 찾기
+										</a>
+									{/if}
+								</div>
+							{:else}
+								<h3 class="lc-text-primary mb-3 text-2xl font-bold">
+									{hasActiveFilters ? '검색 결과가 없습니다' : '입법예고가 없습니다'}
+								</h3>
+								{#if hasActiveFilters}
+									<p class="lc-text-secondary text-sm">다른 키워드로 다시 검색해보세요.</p>
+								{/if}
+								{#if hasNonKeywordFilters || (searchQuery.trim() && (SEMANTIC_SEARCH_ENABLED || archive?.appliedMode === 'semantic'))}
+									<div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+										{#if searchQuery.trim() && archive?.appliedMode === 'semantic'}
+											<a
+												href={buildFilterLink({ searchMode: 'keyword' })}
+												data-testid="notices-empty-try-keyword"
+												title="법률안명·소관위원회·제안자를 그대로 찾는 키워드 검색으로 다시 찾아봅니다."
+												class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
+											>
+												<FontAwesomeIcon icon={faMagnifyingGlass} class="mr-2 h-4 w-4" />
+												키워드 검색으로 다시 찾기
+											</a>
+										{/if}
+										{#if SEMANTIC_SEARCH_ENABLED && searchQuery.trim() && archive?.appliedMode !== 'semantic'}
+											<a
+												href={buildFilterLink({ searchMode: 'auto' })}
+												data-testid="notices-empty-try-semantic"
+												title="질문처럼 다시 찾아봅니다. 의미 검색 엔진을 쓸 수 없으면 키워드 결과를 보여드려요."
+												class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+											>
+												<FontAwesomeIcon icon={faWandMagicSparkles} class="mr-2 h-4 w-4" />
+												의미 검색으로 다시 찾기
+											</a>
+										{/if}
+										{#if hasNonKeywordFilters}
+											<a
+												href={buildFilterLink({
+													proposer: '',
+													startDate: '',
+													endDate: '',
+													isDone: null
+												})}
+												data-testid="notices-empty-reset-filters"
+												class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
+											>
+												<FontAwesomeIcon icon={faXmark} class="mr-2 h-4 w-4" />
+												기간·상태 조건 지우기
+											</a>
+										{/if}
+									</div>
+								{/if}
 							{/if}
 						</div>
 					{:else}
@@ -938,6 +1282,24 @@
 														변경 기록 {(notice.changeEventCount - 1).toLocaleString('ko-KR')}건
 													</span>
 												{/if}
+												{#if notice.relevance?.score !== null && notice.relevance?.score !== undefined}
+													<span
+														class="lc-chip-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+														title={BOARD_RELEVANCE_HINTS.score}
+														data-testid={`notice-relevance-score-${notice.num}`}
+													>
+														유사도 {formatSimilarityPercent(notice.relevance.score)}
+													</span>
+												{/if}
+												{#if notice.relevance?.section}
+													<span
+														class="lc-chip-purple inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+														title={BOARD_RELEVANCE_HINTS.section}
+														data-testid={`notice-relevance-section-${notice.num}`}
+													>
+														{formatSectionLabel(notice.relevance.section)}
+													</span>
+												{/if}
 											</div>
 
 											<h3
@@ -952,6 +1314,16 @@
 													{notice.subject}
 												</a>
 											</h3>
+
+											{#if notice.relevance?.excerpt}
+												<p
+													class="lc-text-secondary mb-3 whitespace-pre-line text-sm"
+													title={BOARD_RELEVANCE_HINTS.excerpt}
+													data-testid={`notice-relevance-excerpt-${notice.num}`}
+												>
+													{notice.relevance.excerpt}
+												</p>
+											{/if}
 
 											<div class="lc-text-secondary flex flex-wrap gap-4 text-sm">
 												<div class="flex items-center">
@@ -1061,6 +1433,19 @@
 							ariaLabel="페이지 내비게이션"
 							testId="notices-pagination"
 						/>
+					{/if}
+
+					{#if SEMANTIC_SEARCH_ENABLED}
+						<div class="mt-6 flex justify-end px-2">
+							<a
+								href={buildSemanticSearchHref(searchQuery)}
+								data-testid="semantic-search-entry"
+								class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
+							>
+								<FontAwesomeIcon icon={faWandMagicSparkles} class="mr-2 h-4 w-4" />
+								의미 검색
+							</a>
+						</div>
 					{/if}
 
 					<LoadingOverlay visible={isServerLoading} />

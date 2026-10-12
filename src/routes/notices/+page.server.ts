@@ -1,11 +1,22 @@
+import { env } from '$env/dynamic/public';
 import { apiClient } from '$lib/api/client';
 import {
 	isDiffchainUiMockEnabled,
 	getMockArchiveNoticesResponse
 } from '$lib/server/diffchain-ui-mock';
 import { toLoadErrorPayload } from '$lib/server/load-error';
+import { PER_REQUEST_HTML_CACHE_CONTROL } from '$lib/server/ssr-cache-policy';
 import { toNoticeCard } from '$lib/server/ssr-cards';
-import type { ArchiveNoticeCardListResponse, ArchiveNoticeListResponse } from '$lib/types/api';
+import {
+	isSemanticSearchEnabled,
+	normalizeBoardSearchMode,
+	pickExampleQueries
+} from '$lib/utils/semantic-search';
+import type {
+	ArchiveNoticeCardListResponse,
+	ArchiveNoticeListResponse,
+	BoardSearchMode
+} from '$lib/types/api';
 import type { PageServerLoad } from '../$types';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
@@ -35,7 +46,11 @@ function parseNoticeNums(raw: string | null): number[] {
 	);
 }
 
-export const load: PageServerLoad = async ({ fetch, url }) => {
+export const load: PageServerLoad = async ({ fetch, url, setHeaders }) => {
+	// The example-query chips are drawn per request, so this HTML must never be
+	// replayed from a shared cache (see the policy module for why).
+	setHeaders({ 'cache-control': PER_REQUEST_HTML_CACHE_CONTROL });
+
 	const requestedPage = Number(url.searchParams.get('page') || '1');
 	const requestedLimit = Number(url.searchParams.get('limit') || String(DEFAULT_PAGE_SIZE));
 	const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
@@ -51,10 +66,21 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const sortOrder = url.searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
 	const isDoneParam = url.searchParams.get('isDone');
 	const isDone = isDoneParam === 'true' ? true : isDoneParam === 'false' ? false : undefined;
-	const fullText = url.searchParams.get('fullText') === 'true';
 	const noticeNums = parseNoticeNums(url.searchParams.get('noticeNums'));
 	const isDigestContext =
 		url.searchParams.get('digest') === '1' || url.searchParams.get('digest') === 'true';
+	// The board's search mode follows the feature flag: `auto` (semantic-first)
+	// when enabled, `keyword` otherwise. The backend treats an absent
+	// `searchMode` as keyword, so the loader sends the effective mode explicitly.
+	const semanticEnabled = isSemanticSearchEnabled(env.PUBLIC_SEMANTIC_SEARCH_ENABLED);
+	const searchMode: BoardSearchMode = normalizeBoardSearchMode(
+		url.searchParams.get('searchMode'),
+		semanticEnabled
+	);
+	// Everyday-language examples teach a first-time visitor what this box accepts.
+	// Picked here (not in the component) so the SSR HTML already carries the set;
+	// drawing them on the client would swap the chips right after first paint.
+	const exampleQueries = semanticEnabled ? pickExampleQueries() : [];
 
 	if (isDiffchainUiMockEnabled()) {
 		return {
@@ -68,9 +94,10 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 					endDate,
 					sortOrder,
 					isDone,
-					fullText
+					searchMode
 				})
 			),
+			exampleQueries,
 			digestContext: {
 				isDigestContext,
 				noticeNums
@@ -89,14 +116,15 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				endDate,
 				sortOrder,
 				isDone,
-				fullText,
-				noticeNums
+				noticeNums,
+				searchMode
 			},
 			fetch
 		);
 
 		return {
 			archive: toCardList(archive),
+			exampleQueries,
 			digestContext: {
 				isDigestContext,
 				noticeNums
@@ -123,8 +151,11 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 					archiveCount: 0,
 					totalArchiveCount: 0,
 					mergedCount: 0
-				}
+				},
+				searchMode,
+				semantic: null
 			},
+			exampleQueries,
 			digestContext: {
 				isDigestContext,
 				noticeNums

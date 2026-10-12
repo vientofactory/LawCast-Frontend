@@ -44,7 +44,7 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		// Notice date = Notion created_time, shown as KST date with the raw
 		// ISO instant preserved on <time datetime>.
 		const date = page.getByTestId('admin-notice-date');
-		// The detail chip carries the 게시일 label in front of the KST date.
+		// The detail chip carries the `게시일` label in front of the KST date.
 		await expect(date).toHaveText('게시일: 2026-09-01');
 		await expect(date).toHaveAttribute('datetime', '2026-09-01T03:00:00.000Z');
 		const body = page.getByTestId('admin-notice-content');
@@ -108,7 +108,7 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		const banner = page.getByTestId('urgent-notice-banner');
 
 		if (!MOCK_ENABLED) {
-			// Real mode: cap 0..1 — a live 긴급 notice may or may not exist.
+			// Real mode: cap 0..1 — a live `긴급` notice may or may not exist.
 			expect(await banner.count()).toBeLessThanOrEqual(1);
 			return;
 		}

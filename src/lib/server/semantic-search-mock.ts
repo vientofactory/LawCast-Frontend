@@ -19,6 +19,7 @@ import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '$lib/
  * - `오류`       -> 500 (error alert)
  * - `않는`       -> empty result list (empty state)
  * - `약한`       -> empty clear tier + one weak hit (reveal-button state)
+ * - `약한 여러`  -> empty clear tier + a weak band longer than one page (paging state)
  * - `키워드`     -> `keyword_fallback` response (fallback banner)
  * - anything else -> one sample result
  *
@@ -28,6 +29,7 @@ const RATE_LIMIT_MARKER = '레이트리밋';
 const ERROR_MARKER = '오류';
 const EMPTY_MARKER = '않는';
 const WEAK_MARKER = '약한';
+const MANY_WEAK_MARKER = '여러';
 const FALLBACK_MARKER = '키워드';
 
 const HEALTH_PATH = '/api/notices/semantic-search/health';
@@ -62,6 +64,19 @@ const WEAK_RESULT: SemanticSearchResponse['weakResults'][number] = {
 	score: 0.31,
 	excerpt: '관련도가 낮아 기본 결과에는 표시되지 않는 검색 결과입니다.'
 };
+
+/**
+ * Weak band longer than `WEAK_RESULT_PAGE_SIZE`, so the paged reveal has a
+ * fixture: the live engine returns its whole below-threshold pool (up to 100).
+ */
+function buildManyWeakResults(): SemanticSearchResponse['weakResults'] {
+	return Array.from({ length: 12 }, (_, index) => ({
+		...WEAK_RESULT,
+		noticeNum: WEAK_RESULT.noticeNum + index * 1000,
+		subject: `${WEAK_RESULT.subject} (${index + 1})`,
+		score: Math.max(0.26, 0.31 - index * 0.004)
+	}));
+}
 
 const FALLBACK_REASON = '의미 검색 엔진을 사용할 수 없어 키워드 검색 결과를 반환합니다.';
 
@@ -105,6 +120,7 @@ export function getMockSemanticApiResponse(url: URL): Response | null {
 	const fallback = query.includes(FALLBACK_MARKER);
 	const empty = query.includes(EMPTY_MARKER);
 	const weakOnly = query.includes(WEAK_MARKER);
+	const weakBand = query.includes(MANY_WEAK_MARKER) ? buildManyWeakResults() : [WEAK_RESULT];
 	const results = empty || weakOnly ? [] : [SAMPLE_RESULT];
 	const payload: SemanticSearchResponse = {
 		query,
@@ -114,7 +130,7 @@ export function getMockSemanticApiResponse(url: URL): Response | null {
 		results: fallback
 			? results.map((result) => ({ ...result, score: null, section: null, excerpt: null }))
 			: results,
-		weakResults: fallback ? [] : weakOnly ? [WEAK_RESULT] : []
+		weakResults: fallback ? [] : weakOnly ? weakBand : []
 	};
 
 	return Response.json({ success: true, data: payload });

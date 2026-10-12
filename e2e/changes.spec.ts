@@ -39,7 +39,7 @@ test.describe('Changes Page', () => {
 	test('event type filter has correct options', async ({ page }) => {
 		const eventTypeSelect = page.locator('#changes-event-type');
 		const options = eventTypeSelect.locator('option');
-		await expect(options).toHaveCount(3); // 전체 유형, 내용 변경, 무효화
+		await expect(options).toHaveCount(3); // Three options: all types, content change, invalidation
 
 		await expect(options.nth(0)).toHaveText('전체 유형');
 		await expect(options.nth(1)).toHaveText('내용 변경');

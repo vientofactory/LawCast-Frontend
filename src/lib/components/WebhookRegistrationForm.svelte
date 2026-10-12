@@ -83,7 +83,7 @@
 			if (result.success) {
 				showFeedback('success', result.message || '웹훅이 성공적으로 등록되었습니다.');
 				newWebhookUrl = '';
-				onWebhookRegistered(); // 통계 업데이트를 위한 이벤트
+				onWebhookRegistered(); // Notify the parent so its stats refresh.
 			} else {
 				showFeedback('error', result.message || '웹훅 등록에 실패했습니다.');
 			}
