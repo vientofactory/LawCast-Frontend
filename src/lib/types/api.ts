@@ -357,6 +357,13 @@ export interface BatchRunRecord {
 export interface CrawlerStatus {
 	name: string;
 	source: string;
+	/**
+	 * Runtime activation gate (`CRAWLING_PAL_ENABLED` / `CRAWLING_NSM_ENABLED`).
+	 * A disabled crawler keeps its schedule but never collects: the cron fires
+	 * and returns immediately, so its `status` stays `idle` and any `lastError`
+	 * is a stale value from before it was turned off.
+	 */
+	enabled: boolean;
 	status: 'idle' | 'running' | 'failed';
 	lastRunAt: string | null;
 	lastError: string | null;

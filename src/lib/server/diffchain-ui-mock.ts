@@ -1007,6 +1007,7 @@ export function getMockSystemStats(): SystemStats {
 			palCrawler: {
 				name: '국회 입법예고 크롤러 (PAL)',
 				source: 'pal.assembly.go.kr',
+				enabled: true,
 				status: 'idle',
 				lastRunAt: hoursAgo(0.15),
 				lastError: null,
@@ -1015,6 +1016,7 @@ export function getMockSystemStats(): SystemStats {
 			nsmPendingCrawler: {
 				name: '국민참여입법센터 크롤러 (NSM)',
 				source: 'opinion.lawmaking.go.kr',
+				enabled: true,
 				status: 'idle',
 				lastRunAt: hoursAgo(0.2),
 				lastError: null,
