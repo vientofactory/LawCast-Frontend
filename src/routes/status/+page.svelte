@@ -9,6 +9,7 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowsRotate,
+		faBan,
 		faCloud,
 		faClock,
 		faDatabase,
@@ -105,20 +106,39 @@
 		return formatDateTimeKST(value);
 	}
 
+	// Activation gates (`CRAWLING_PAL_ENABLED` / `CRAWLING_NSM_ENABLED`). A
+	// response from a backend that predates the flag omits `enabled`, so treat
+	// "not explicitly false" as active rather than hiding a live crawler.
+	let palEnabled = $derived(crawlers?.palCrawler.enabled !== false);
+	let nsmEnabled = $derived(crawlers?.nsmPendingCrawler.enabled !== false);
+	let hasDisabledCrawler = $derived(crawlers ? !palEnabled || !nsmEnabled : false);
+	let disabledCrawlerNames = $derived(
+		[
+			!palEnabled ? '국회 입법예고(PAL)' : null,
+			!nsmEnabled ? '국민참여입법센터(NSM)' : null
+		].filter((name): name is string => name !== null)
+	);
+
 	let palCountdown = $derived(
-		crawlers ? countdownLabel(palRemaining, crawlers.palCrawler.status) : '-'
+		crawlers ? countdownLabel(palRemaining, crawlers.palCrawler.status, palEnabled) : '-'
 	);
 	let nsmCountdown = $derived(
-		crawlers ? countdownLabel(nsmRemaining, crawlers.nsmPendingCrawler.status) : '-'
+		crawlers ? countdownLabel(nsmRemaining, crawlers.nsmPendingCrawler.status, nsmEnabled) : '-'
 	);
 
 	/**
 	 * States:
+	 *  - disabled -> crawler turned off by configuration, it never runs
 	 *  - running  -> always "수집 중…" (server is actively crawling)
 	 *  - idle     -> countdown string or "대기 중" when timer expired
 	 *  - failed   -> countdown string or "대기 중" when timer expired
 	 */
-	function countdownLabel(remainingMs: number, status: CrawlerStatus['status']): string {
+	function countdownLabel(
+		remainingMs: number,
+		status: CrawlerStatus['status'],
+		enabled = true
+	): string {
+		if (!enabled) return '비활성';
 		if (status === 'running') return '수집 중…';
 		if (remainingMs > 0) return fmtRemaining(remainingMs);
 		if (status === 'failed') return '대기 중';
@@ -142,9 +162,11 @@
 			// new lastRunAt — but with a short cooldown to avoid hammering
 			// the server while the cron hasn't fired yet.
 			if (crawlers) {
+				// A disabled crawler keeps an old `lastRunAt`, so its timer looks
+				// expired forever — refreshing on it would poll the server pointlessly.
 				if (
-					(palRemaining <= 0 && crawlers.palCrawler.status !== 'running') ||
-					(nsmRemaining <= 0 && crawlers.nsmPendingCrawler.status !== 'running')
+					(palEnabled && palRemaining <= 0 && crawlers.palCrawler.status !== 'running') ||
+					(nsmEnabled && nsmRemaining <= 0 && crawlers.nsmPendingCrawler.status !== 'running')
 				) {
 					const sinceLastTimerRefresh = t - lastTimerRefreshAt;
 					if (sinceLastTimerRefresh >= TIMER_REFRESH_COOLDOWN_MS) {
@@ -186,7 +208,10 @@
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
 	});
 
-	function crawlerStatusBadge(status: CrawlerStatus['status']) {
+	function crawlerStatusBadge(status: CrawlerStatus['status'], enabled: boolean) {
+		if (!enabled) {
+			return { badge: 'lc-chip-muted', label: '비활성', icon: faBan };
+		}
 		switch (status) {
 			case 'running':
 				return { badge: 'lc-chip-success', label: '실행 중', icon: faArrowsRotate };
@@ -197,8 +222,12 @@
 		}
 	}
 
-	let palBadge = $derived(crawlers ? crawlerStatusBadge(crawlers.palCrawler.status) : null);
-	let nsmBadge = $derived(crawlers ? crawlerStatusBadge(crawlers.nsmPendingCrawler.status) : null);
+	let palBadge = $derived(
+		crawlers ? crawlerStatusBadge(crawlers.palCrawler.status, palEnabled) : null
+	);
+	let nsmBadge = $derived(
+		crawlers ? crawlerStatusBadge(crawlers.nsmPendingCrawler.status, nsmEnabled) : null
+	);
 
 	const CRON_JOB_NAME_MAP: Record<string, string> = {
 		'crawling and notification': '국회 입법예고 크롤링 및 알림',
@@ -218,6 +247,22 @@
 		'database mirror upload': 'DB 미러 업로드',
 		'discussion idle close': '비활성 토론 스레드 정리'
 	};
+
+	/**
+	 * Cron jobs owned by one crawler source. Their schedule stays registered while
+	 * the crawler is disabled, so the job fires and returns immediately — report
+	 * it as inactive instead of showing a permanently pending job.
+	 */
+	const CRON_JOB_SOURCE_GATE: Record<string, 'pal' | 'nsm'> = {
+		'crawling and notification': 'pal',
+		'pending bills crawl (NsmLmSts)': 'nsm'
+	};
+
+	function isCronJobInactive(jobName: string): boolean {
+		const source = CRON_JOB_SOURCE_GATE[jobName];
+		if (!source) return false;
+		return source === 'pal' ? !palEnabled : !nsmEnabled;
+	}
 
 	function formatCronJobName(name: string): string {
 		return CRON_JOB_NAME_MAP[name] ?? name;
@@ -258,6 +303,9 @@
 			(crawlers?.cronJobs.some((j) => j.status === 'failed') ?? false)
 	);
 
+	// The activation gate stays out of the overall verdict: a disabled crawler is
+	// reported on its own card, and the overall status keeps reflecting failures
+	// exactly as it did before the crawler could be turned off.
 	let overallStatus = $derived(
 		(hasOllamaIssue || hasCacheIssue || hasCrawlerFailure ? 'degraded' : 'healthy') as
 			'healthy' | 'degraded'
@@ -390,13 +438,19 @@
 			/>
 		{/if}
 
-		{#if hasCacheIssue || hasOllamaIssue}
+		{#if hasCacheIssue || hasOllamaIssue || hasDisabledCrawler}
 			<section class="lc-banner-warning lc-defer-render-sm mt-4 mb-4 rounded-2xl border p-4">
 				<h2 class="mb-2 flex items-center text-sm font-bold">
 					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-4 w-4" />
 					안내
 				</h2>
 				<div class="space-y-1 text-sm">
+					{#if hasDisabledCrawler}
+						<p>
+							{disabledCrawlerNames.join(', ')} 크롤러가 설정으로 비활성화되어 수집하지 않습니다. 표시되는
+							마지막 실행·오류 정보는 비활성화 직전의 값입니다.
+						</p>
+					{/if}
 					{#if hasCacheIssue}
 						<p>캐시가 초기화되지 않았습니다. 크롤링/Redis 상태를 확인하세요.</p>
 					{/if}
@@ -425,7 +479,7 @@
 						<span
 							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palBadge?.badge ?? ''}`}
 						>
-							{#key crawlers.palCrawler.status}
+							{#key `${crawlers.palCrawler.status}-${palEnabled}`}
 								<FontAwesomeIcon icon={palBadge?.icon ?? faClock} class="h-3 w-3" />
 							{/key}
 							{palBadge?.label ?? '대기'}
@@ -468,7 +522,7 @@
 						<span
 							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${nsmBadge?.badge ?? ''}`}
 						>
-							{#key crawlers.nsmPendingCrawler.status}
+							{#key `${crawlers.nsmPendingCrawler.status}-${nsmEnabled}`}
 								<FontAwesomeIcon icon={nsmBadge?.icon ?? faClock} class="h-3 w-3" />
 							{/key}
 							{nsmBadge?.label ?? '대기'}
@@ -520,9 +574,9 @@
 									>{formatCronJobName(job.name)}</span
 								>
 								<span
-									class={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cronJobStatusBadge(job.status)}`}
+									class={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${isCronJobInactive(job.name) ? 'lc-chip-muted' : cronJobStatusBadge(job.status)}`}
 								>
-									{cronJobStatusLabel(job.status)}
+									{isCronJobInactive(job.name) ? '비활성' : cronJobStatusLabel(job.status)}
 								</span>
 							</div>
 							<div class="lc-text-dim text-[11px] font-mono">
