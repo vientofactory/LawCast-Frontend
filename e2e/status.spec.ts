@@ -54,6 +54,38 @@ test.describe('System Status Page', () => {
 		await expect(aiSection).toBeVisible();
 	});
 
+	test('labels the pending-bills crawler after its active collection source', async ({ page }) => {
+		const card = page.getByTestId('crawler-nsm');
+		await expect(card).toBeVisible();
+
+		// The heading must follow the payload instead of a hardcoded portal name:
+		// the LIKMS source should never render the `국민참여입법센터` label.
+		const text = (await card.innerText()).replace(/\s+/g, ' ');
+		const usesLikms = text.includes('likms.assembly.go.kr');
+
+		await expect(card.locator('h3')).toContainText(
+			usesLikms ? '의안정보시스템' : '국민참여입법센터'
+		);
+	});
+
+	test('reports the list-scan health of the pending-bills crawler', async ({ page }) => {
+		// The mock serves a healthy list scan, so the card must show what it read
+		// rather than the degraded notice that a stalled source produces.
+		const card = page.getByTestId('crawler-nsm');
+		await expect(card.getByTestId('nsm-list-scan-healthy')).toBeVisible();
+		await expect(card.getByTestId('nsm-list-scan-degraded')).toHaveCount(0);
+	});
+
+	test('badges crawler-owned cron jobs with their active collection source', async ({ page }) => {
+		const nsmSource = (await page.getByTestId('crawler-nsm-source').innerText()).trim();
+		const palSource = (await page.getByTestId('crawler-pal-source').innerText()).trim();
+
+		// The badge must repeat the source the crawler card reports, so it keeps
+		// naming the right portal once the backend collection source changes.
+		await expect(page.getByTestId('cron-source-nsm')).toHaveText(nsmSource);
+		await expect(page.getByTestId('cron-source-pal')).toHaveText(palSource);
+	});
+
 	test('page loads without critical JavaScript errors', async ({ page }) => {
 		const errors: string[] = [];
 		page.on('pageerror', (error) => {

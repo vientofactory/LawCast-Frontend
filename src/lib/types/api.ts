@@ -354,6 +354,26 @@ export interface BatchRunRecord {
 	metadata?: Record<string, unknown>;
 }
 
+/**
+ * Outcome of the crawler's most recent completed list scans.
+ *
+ * A scan that returns zero rows is a failed observation, not "nothing new":
+ * `degraded` latches once consecutive scans all came back empty, which is how a
+ * source that started refusing requests becomes visible instead of looking idle.
+ */
+export interface CrawlerListScanStatus {
+	degraded: boolean;
+	consecutiveZeroRowScans: number;
+	lastScanAt: string | null;
+	lastScanItemCount: number | null;
+	lastSuccessfulScanAt: string | null;
+	lastSuccessfulScanItemCount: number | null;
+	degradedSince: string | null;
+	/** Hours since the last scan that returned rows; `null` when unknown. */
+	staleHours: number | null;
+	description: string | null;
+}
+
 export interface CrawlerStatus {
 	name: string;
 	source: string;
@@ -364,9 +384,15 @@ export interface CrawlerStatus {
 	 * is a stale value from before it was turned off.
 	 */
 	enabled: boolean;
-	status: 'idle' | 'running' | 'failed';
+	/**
+	 * `degraded` means the crawler runs but reads nothing (consecutive zero-row
+	 * list scans), so it must not be rendered as a healthy `idle`.
+	 */
+	status: 'idle' | 'running' | 'failed' | 'degraded';
 	lastRunAt: string | null;
 	lastError: string | null;
+	/** Present for crawlers whose list scan is tracked (the NSM-shaped one). */
+	listScan?: CrawlerListScanStatus | null;
 	cron: {
 		expression: string;
 		intervalMs: number;

@@ -68,6 +68,16 @@ export function isDiffchainUiMockEnabled(): boolean {
 	return rawValue ? ENABLED_VALUES.has(rawValue) : false;
 }
 
+/**
+ * Serves the mock payload with a stalled NSM collector, so the degraded branch
+ * of /status (badge, card notice, overall verdict) can be exercised in a real
+ * browser. Read per request, like the mock switch itself.
+ */
+export function isMockNsmListScanDegraded(): boolean {
+	const rawValue = env.DIFFCHAIN_UI_MOCK_NSM_DEGRADED?.trim().toLowerCase();
+	return rawValue ? ENABLED_VALUES.has(rawValue) : false;
+}
+
 function daysAgo(days: number): string {
 	return new Date(MOCK_NOW - days * 24 * 60 * 60 * 1000).toISOString();
 }
@@ -1017,9 +1027,32 @@ export function getMockSystemStats(): SystemStats {
 				name: '국민참여입법센터 크롤러 (NSM)',
 				source: 'opinion.lawmaking.go.kr',
 				enabled: true,
-				status: 'idle',
+				status: isMockNsmListScanDegraded() ? 'degraded' : 'idle',
 				lastRunAt: hoursAgo(0.2),
 				lastError: null,
+				listScan: isMockNsmListScanDegraded()
+					? {
+							degraded: true,
+							consecutiveZeroRowScans: 4,
+							lastScanAt: hoursAgo(0.2),
+							lastScanItemCount: 0,
+							lastSuccessfulScanAt: hoursAgo(29),
+							lastSuccessfulScanItemCount: 15203,
+							degradedSince: hoursAgo(1.5),
+							staleHours: 29,
+							description: '29 hour(s) since the last list scan that returned rows'
+						}
+					: {
+							degraded: false,
+							consecutiveZeroRowScans: 0,
+							lastScanAt: hoursAgo(0.2),
+							lastScanItemCount: 15950,
+							lastSuccessfulScanAt: hoursAgo(0.2),
+							lastSuccessfulScanItemCount: 15950,
+							degradedSince: null,
+							staleHours: 0.2,
+							description: null
+						},
 				cron: { expression: '6-59/20 * * * *', intervalMs: 1200000, description: '매 20분' }
 			},
 			archiveSync: {

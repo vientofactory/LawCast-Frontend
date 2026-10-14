@@ -128,9 +128,13 @@ export const routes: ResponsiveRoute[] = [
 		visible: [
 			'main h1',
 			'main button:has-text("새로고침")',
-			'main h3:has-text("국회 입법예고 크롤러")',
-			'main h3:has-text("국민참여입법센터 크롤러")',
+			'main [data-testid="crawler-pal"] h3',
+			'main [data-testid="crawler-nsm"] h3',
 			'main h2:has-text("크론 작업 현황")',
+			// Crawler-owned cron cards badge the collection source their crawler
+			// currently pulls from (`cron-source-<pal|nsm>`).
+			'main [data-testid="cron-source-pal"]',
+			'main [data-testid="cron-source-nsm"]',
 			'main h2:has-text("웹훅 상태")',
 			'main h2:has-text("캐시 상태")',
 			'main h2:has-text("웹 푸시 상태")',
@@ -139,7 +143,8 @@ export const routes: ResponsiveRoute[] = [
 		],
 		text: [
 			{ selector: 'main h1', maxLines: 2 },
-			{ selector: 'main button:has-text("새로고침")', maxLines: 1 }
+			{ selector: 'main button:has-text("새로고침")', maxLines: 1 },
+			{ selector: 'main [data-testid="cron-source-nsm"]', maxLines: 1 }
 		]
 	},
 	{

@@ -106,17 +106,41 @@
 		return formatDateTimeKST(value);
 	}
 
+	// Crawler display names come from the backend payload so that switching the
+	// collection source (`CRAWLING_NSM_SOURCE=likms`) relabels the card instead
+	// of leaving the public-participation portal name in place. Fall back to the
+	// built-in labels when a payload omits `name`.
+	const DEFAULT_PAL_CRAWLER_NAME = '국회 입법예고 크롤러';
+	const DEFAULT_NSM_CRAWLER_NAME = '국민참여입법센터 크롤러';
+	let palCrawlerName = $derived(crawlers?.palCrawler.name || DEFAULT_PAL_CRAWLER_NAME);
+	let nsmCrawlerName = $derived(crawlers?.nsmPendingCrawler.name || DEFAULT_NSM_CRAWLER_NAME);
+
 	// Activation gates (`CRAWLING_PAL_ENABLED` / `CRAWLING_NSM_ENABLED`). A
 	// response from a backend that predates the flag omits `enabled`, so treat
 	// "not explicitly false" as active rather than hiding a live crawler.
 	let palEnabled = $derived(crawlers?.palCrawler.enabled !== false);
 	let nsmEnabled = $derived(crawlers?.nsmPendingCrawler.enabled !== false);
 	let hasDisabledCrawler = $derived(crawlers ? !palEnabled || !nsmEnabled : false);
+
+	// Short source labels for the contexts that name a crawler without the full
+	// payload label (the disabled-crawler banner and the pending-bills cron card).
+	// Keyed by the reported source host so an unknown source falls back gracefully.
+	const CRAWLER_SHORT_LABELS: Record<string, string> = {
+		'pal.assembly.go.kr': '국회 입법예고',
+		'opinion.lawmaking.go.kr': '국민참여입법센터',
+		'likms.assembly.go.kr': '국회 의안정보시스템'
+	};
+	let palShortName = $derived(
+		CRAWLER_SHORT_LABELS[crawlers?.palCrawler.source ?? ''] ?? '국회 입법예고'
+	);
+	let nsmShortName = $derived(
+		CRAWLER_SHORT_LABELS[crawlers?.nsmPendingCrawler.source ?? ''] ?? '국민참여입법센터'
+	);
+
 	let disabledCrawlerNames = $derived(
-		[
-			!palEnabled ? '국회 입법예고(PAL)' : null,
-			!nsmEnabled ? '국민참여입법센터(NSM)' : null
-		].filter((name): name is string => name !== null)
+		[!palEnabled ? palShortName : null, !nsmEnabled ? nsmShortName : null].filter(
+			(name): name is string => name !== null
+		)
 	);
 
 	let palCountdown = $derived(
@@ -130,6 +154,8 @@
 	 * States:
 	 *  - disabled -> crawler turned off by configuration, it never runs
 	 *  - running  -> always "수집 중…" (server is actively crawling)
+	 *  - degraded -> the cron still fires, so keep the countdown: the badge and
+	 *                the card notice carry the fact that it collects nothing
 	 *  - idle     -> countdown string or "대기 중" when timer expired
 	 *  - failed   -> countdown string or "대기 중" when timer expired
 	 */
@@ -215,6 +241,10 @@
 		switch (status) {
 			case 'running':
 				return { badge: 'lc-chip-success', label: '실행 중', icon: faArrowsRotate };
+			case 'degraded':
+				// Runs on schedule but reads nothing: distinct from both a clean idle
+				// and a crashed run, and the state an operator has to act on.
+				return { badge: 'lc-chip-warning', label: '수집 중단', icon: faTriangleExclamation };
 			case 'failed':
 				return { badge: 'lc-chip-danger', label: '오류', icon: faXmarkCircle };
 			default:
@@ -229,9 +259,17 @@
 		crawlers ? crawlerStatusBadge(crawlers.nsmPendingCrawler.status, nsmEnabled) : null
 	);
 
+	// A zero-row list scan is a stalled collector, not an empty result. The card
+	// has to say how long the source has been serving nothing, because "마지막 실행"
+	// keeps ticking upward while the crawl reads zero rows every cycle.
+	let nsmListScan = $derived(crawlers?.nsmPendingCrawler.listScan ?? null);
+	let nsmListScanDegraded = $derived(nsmListScan?.degraded === true);
+	let nsmListScanStaleLabel = $derived(
+		typeof nsmListScan?.staleHours === 'number' ? `${nsmListScan.staleHours}시간 전` : '알 수 없음'
+	);
+
 	const CRON_JOB_NAME_MAP: Record<string, string> = {
 		'crawling and notification': '국회 입법예고 크롤링 및 알림',
-		'pending bills crawl (NsmLmSts)': '국민참여입법센터 신규 의안 수집',
 		'proposalReason backfill drain': '입법취지 백필 드레인',
 		'isDone sync': '입법예고 종료 마커 동기화',
 		'webhook cleanup': '웹훅 정리',
@@ -247,6 +285,13 @@
 		'database mirror upload': 'DB 미러 업로드',
 		'discussion idle close': '비활성 토론 스레드 정리'
 	};
+
+	// The pending-bills job belongs to the NSM-shaped crawler, so its label follows
+	// the active collection source instead of a hardcoded portal name.
+	let cronJobNames = $derived<Record<string, string>>({
+		...CRON_JOB_NAME_MAP,
+		'pending bills crawl (NsmLmSts)': `${nsmShortName} 신규 의안 수집`
+	});
 
 	/**
 	 * Cron jobs owned by one crawler source. Their schedule stays registered while
@@ -264,8 +309,22 @@
 		return source === 'pal' ? !palEnabled : !nsmEnabled;
 	}
 
+	/**
+	 * Crawler-owned cron jobs are badged with the source their crawler collects
+	 * from right now, so a card still names the portal the job actually pulls
+	 * from after `CRAWLING_NSM_SOURCE` points the crawler at another one.
+	 * Platform jobs (cleanup, audits, mirroring) belong to no crawler and stay
+	 * unbadged.
+	 */
+	function cronJobSource(jobName: string): { key: 'pal' | 'nsm'; host: string } | null {
+		const key = CRON_JOB_SOURCE_GATE[jobName];
+		if (!key) return null;
+		const host = (key === 'pal' ? crawlers?.palCrawler : crawlers?.nsmPendingCrawler)?.source;
+		return host ? { key, host } : null;
+	}
+
 	function formatCronJobName(name: string): string {
-		return CRON_JOB_NAME_MAP[name] ?? name;
+		return cronJobNames[name] ?? name;
 	}
 
 	function cronJobStatusBadge(status: string) {
@@ -297,9 +356,13 @@
 		ollamaHealthStatus === 'unhealthy' || ollamaHealthStatus === 'misconfigured'
 	);
 	let hasCacheIssue = $derived(stats.cache.isInitialized === false);
+	// `degraded` counts as an issue: the crawler runs but collects nothing, which
+	// is the failure mode that must never render as an all-clear.
 	let hasCrawlerFailure = $derived(
 		crawlers?.palCrawler.status === 'failed' ||
+			crawlers?.palCrawler.status === 'degraded' ||
 			crawlers?.nsmPendingCrawler.status === 'failed' ||
+			crawlers?.nsmPendingCrawler.status === 'degraded' ||
 			(crawlers?.cronJobs.some((j) => j.status === 'failed') ?? false)
 	);
 
@@ -470,11 +533,11 @@
 		{#if crawlers}
 			<div class="grid gap-4 md:grid-cols-2">
 				<!-- PAL Crawler -->
-				<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
+				<section data-testid="crawler-pal" class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 					<div class="mb-3 flex items-center justify-between">
 						<h3 class="lc-text-primary flex items-center text-sm font-bold">
 							<FontAwesomeIcon icon={faGlobe} class="lc-text-accent mr-2 h-4 w-4" />
-							국회 입법예고 크롤러
+							{palCrawlerName}
 						</h3>
 						<span
 							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palBadge?.badge ?? ''}`}
@@ -488,7 +551,9 @@
 					<div class="lc-text-secondary space-y-1.5 text-sm">
 						<p class="flex items-center justify-between">
 							<span class="lc-text-muted">소스</span>
-							<span class="font-semibold">{crawlers.palCrawler.source}</span>
+							<span data-testid="crawler-pal-source" class="font-semibold"
+								>{crawlers.palCrawler.source}</span
+							>
 						</p>
 						<p class="flex items-center justify-between">
 							<span class="lc-text-muted">스케줄</span>
@@ -513,11 +578,11 @@
 				</section>
 
 				<!-- NSM Crawler -->
-				<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
+				<section data-testid="crawler-nsm" class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 					<div class="mb-3 flex items-center justify-between">
 						<h3 class="lc-text-primary flex items-center text-sm font-bold">
 							<FontAwesomeIcon icon={faGlobe} class="lc-text-purple mr-2 h-4 w-4" />
-							국민참여입법센터 크롤러
+							{nsmCrawlerName}
 						</h3>
 						<span
 							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${nsmBadge?.badge ?? ''}`}
@@ -531,7 +596,9 @@
 					<div class="lc-text-secondary space-y-1.5 text-sm">
 						<p class="flex items-center justify-between">
 							<span class="lc-text-muted">소스</span>
-							<span class="font-semibold">{crawlers.nsmPendingCrawler.source}</span>
+							<span data-testid="crawler-nsm-source" class="font-semibold"
+								>{crawlers.nsmPendingCrawler.source}</span
+							>
 						</p>
 						<p class="flex items-center justify-between">
 							<span class="lc-text-muted">스케줄</span>
@@ -549,6 +616,21 @@
 								{nsmCountdown}
 							</span>
 						</p>
+						{#if nsmListScanDegraded}
+							<div
+								data-testid="nsm-list-scan-degraded"
+								class="lc-text-warning mt-1 rounded bg-amber-500/10 px-2 py-1 text-xs"
+							>
+								목록이 {nsmListScan?.consecutiveZeroRowScans ?? 0}회 연속 0건입니다. 마지막 정상
+								수집: {formatDateTime(nsmListScan?.lastSuccessfulScanAt)}
+								({nsmListScanStaleLabel}). 수집이 멈춘 상태입니다.
+							</div>
+						{:else if nsmListScan}
+							<div data-testid="nsm-list-scan-healthy" class="lc-text-muted mt-1 text-xs">
+								목록 수신: {formatDateTime(nsmListScan.lastScanAt)} · {nsmListScan.lastScanItemCount ??
+									0}건
+							</div>
+						{/if}
 						{#if crawlers.nsmPendingCrawler.lastError}
 							<p class="lc-text-danger mt-1 rounded bg-red-500/5 px-2 py-1 text-xs">
 								오류: {crawlers.nsmPendingCrawler.lastError.slice(0, 80)}
@@ -568,6 +650,7 @@
 				</div>
 				<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 					{#each crawlers.cronJobs as job (job.name)}
+						{@const jobSource = cronJobSource(job.name)}
 						<div class="rounded-xl border border-(--lc-border-soft) px-3 py-2">
 							<div class="mb-1 flex items-center justify-between">
 								<span class="lc-text-primary text-xs font-semibold"
@@ -579,6 +662,16 @@
 									{isCronJobInactive(job.name) ? '비활성' : cronJobStatusLabel(job.status)}
 								</span>
 							</div>
+							{#if jobSource}
+								<span
+									data-testid={`cron-source-${jobSource.key}`}
+									title={`수집 소스: ${jobSource.host}`}
+									class="lc-text-dim mb-1 flex w-fit max-w-full items-center gap-1 truncate rounded-full border border-(--lc-border-soft) px-2 py-0.5 font-mono text-[10px]"
+								>
+									<FontAwesomeIcon icon={faGlobe} class="h-2.5 w-2.5 shrink-0" />
+									{jobSource.host}
+								</span>
+							{/if}
 							<div class="lc-text-dim text-[11px] font-mono">
 								{job.cron.description}
 							</div>

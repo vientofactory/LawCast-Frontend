@@ -82,6 +82,17 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						status: 'idle',
 						lastRunAt: null,
 						lastError: null,
+						listScan: {
+							degraded: false,
+							consecutiveZeroRowScans: 0,
+							lastScanAt: null,
+							lastScanItemCount: null,
+							lastSuccessfulScanAt: null,
+							lastSuccessfulScanItemCount: null,
+							degradedSince: null,
+							staleHours: null,
+							description: null
+						},
 						cron: { expression: '6-59/20 * * * *', intervalMs: 1200000, description: '매 20분' }
 					},
 					archiveSync: { isRunning: false, runningPhases: [], phases: [], asyncApply: null },
