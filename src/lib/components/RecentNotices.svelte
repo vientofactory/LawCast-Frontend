@@ -134,7 +134,11 @@
 						</div>
 					</div>
 					<div class="lc-text-muted flex items-center justify-between text-xs">
-						<span>{notice.proposerCategory}{notice.committee ? ` | ${notice.committee}` : ''}</span>
+						<span
+							>{notice.proposerCategory ? notice.proposerCategory : ''}{notice.committee
+								? ` | ${notice.committee}`
+								: ''}</span
+						>
 					</div>
 					<div class="lc-text-dim mt-1 text-xs">
 						<div class="flex flex-wrap items-center gap-1.5">
