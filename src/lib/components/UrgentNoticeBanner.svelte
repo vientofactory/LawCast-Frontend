@@ -24,7 +24,6 @@
 		class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6"
 		data-testid="urgent-notice-link"
 	>
-		<span class="lc-urgent-badge shrink-0">긴급</span>
 		<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4 shrink-0" />
 		<span class="min-w-0 flex-1 truncate text-sm font-bold sm:text-base">{notice.title}</span>
 		<span class="inline-flex shrink-0 items-center gap-1 text-xs font-semibold opacity-90">
