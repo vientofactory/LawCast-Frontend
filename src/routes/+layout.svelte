@@ -1,10 +1,13 @@
 <script lang="ts">
 	import '../app.css';
 	import CloudflareChallengeReload from '$lib/components/CloudflareChallengeReload.svelte';
+	import CookieConsentBanner from '$lib/components/CookieConsentBanner.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import NProgress from 'nprogress';
 	import { page } from '$app/state';
 	import { navigating } from '$app/state';
+	import { afterNavigate } from '$app/navigation';
+	import { GTM_CONTAINER_ID, pushGtmPageView } from '$lib/utils/gtm';
 	import { config } from '@fortawesome/fontawesome-svg-core';
 
 	config.autoAddCss = false;
@@ -17,6 +20,16 @@
 		} else {
 			NProgress.done();
 		}
+	});
+
+	// Report client-side navigations to GTM once the container loads on
+	// consent. Skipped entirely when no container ID is configured.
+	afterNavigate((navigation) => {
+		if (!GTM_CONTAINER_ID) return;
+		const path = navigation.to?.url.pathname
+			? `${navigation.to.url.pathname}${navigation.to.url.search}`
+			: window.location.pathname + window.location.search;
+		pushGtmPageView(path);
 	});
 
 	let {
@@ -48,3 +61,4 @@
 	{@render children()}
 </div>
 <Footer frontendVersion={data.frontendVersion} backendVersion={data.backendVersion} />
+<CookieConsentBanner />

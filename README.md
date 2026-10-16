@@ -137,6 +137,10 @@ PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=false
 # 의미 검색 활성화 (보드의 검색 방식 컨트롤, /notices/semantic-search 진입점·라우트)
 # true, 1, yes, on 중 하나면 활성화. 미설정이면 꺼진 상태로 동작한다.
 PUBLIC_SEMANTIC_SEARCH_ENABLED=true
+
+# Google Tag Manager 컨테이너 ID (빌드 타임 주입, 쿠키 동의 후에만 로드)
+# 미설정이면 GTM 로딩과 페이지뷰 전송이 모두 생략된다.
+PUBLIC_GTM_CONTAINER_ID=GTM-XXXXXXX
 ```
 
 ## 개발 명령어

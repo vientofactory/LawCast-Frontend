@@ -37,6 +37,12 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Build-time public vars are baked via `$env/static/public` (see gtm.ts).
+# Pass `--build-arg PUBLIC_GTM_CONTAINER_ID=GTM-XXXXXXX` to enable analytics;
+# unset means GTM loading and page view pushes are skipped.
+ARG PUBLIC_GTM_CONTAINER_ID
+ENV PUBLIC_GTM_CONTAINER_ID=$PUBLIC_GTM_CONTAINER_ID
+
 # Build the application (SvelteKit will automatically read .env file)
 # SVELTE_ADAPTER=node selects adapter-node so the output lands in /app/build,
 # which the runner stage below copies and `node build` executes. Without it
