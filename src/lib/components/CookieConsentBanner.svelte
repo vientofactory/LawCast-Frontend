@@ -2,10 +2,11 @@
 	import {
 		getCookieConsent,
 		setCookieConsent,
-		loadGtmAfterConsent,
+		initConsentMode,
+		pushConsentUpdate,
 		type CookieConsentStatus
 	} from '$lib/utils/consent';
-	import { GTM_CONTAINER_ID } from '$lib/utils/gtm';
+	import { GTM_CONTAINER_ID, pushGtmPageView } from '$lib/utils/gtm';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faCookieBite } from '@fortawesome/free-solid-svg-icons';
 
@@ -38,11 +39,9 @@
 		if (!isAnalyticsEnabled) return;
 		consent = getCookieConsent();
 		bannerVisible = consent === null;
-		// Returning visitors who already accepted get the container
-		// injected here on mount; first-time visitors get it on accept.
-		if (consent === 'accepted') {
-			loadGtmAfterConsent();
-		}
+		// Consent Mode Basic: the container loads on every visit (denied
+		// by default) so Tag Assistant can connect in any consent state.
+		initConsentMode();
 	});
 
 	// Collapse the settings shortcut to its icon-only form a few seconds
@@ -65,8 +64,11 @@
 		setCookieConsent(status);
 		consent = status;
 		bannerVisible = false;
+		pushConsentUpdate(status);
 		if (status === 'accepted') {
-			loadGtmAfterConsent();
+			// The landing page view was pushed while denied and never fired
+			// a tag, so report the current page now that tracking is granted.
+			pushGtmPageView(window.location.pathname + window.location.search);
 		}
 	}
 

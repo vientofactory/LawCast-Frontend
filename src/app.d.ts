@@ -2,7 +2,9 @@
 // for information about these interfaces
 declare global {
 	interface Window {
-		dataLayer?: Record<string, unknown>[];
+		// Heterogeneous entries: event objects and gtag-style command arrays
+		// such as ['consent', 'default', params].
+		dataLayer?: unknown[];
 	}
 	namespace App {
 		// interface Error {}
