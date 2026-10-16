@@ -13,8 +13,8 @@
  * - `no-cache`: the visitor's own browser may store it but must revalidate, so every
  *   navigation renders a fresh draw rather than replaying the previous one.
  *
- * Set from the page loader (`setHeaders`). The `handle` hook minifies HTML by
- * re-wrapping the resolved response with its own headers, so the directive survives
- * to the client in production builds as well as in `vite dev`.
+ * Set from the page loader (`setHeaders`). There is no `handle` hook
+ * re-wrapping responses, so the directive passes through to the client
+ * untouched in production builds as well as in `vite dev`.
  */
 export const PER_REQUEST_HTML_CACHE_CONTROL = 'private, no-cache';
