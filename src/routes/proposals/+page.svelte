@@ -3,6 +3,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import Header from '$lib/components/Header.svelte';
+	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -447,7 +448,7 @@
 					<button
 						type="button"
 						onclick={toggleExportMenu}
-						disabled={isExporting || !statistics?.buckets?.length}
+						disabled={isLoading || isExporting || !statistics?.buckets?.length}
 						aria-haspopup="true"
 						aria-expanded={isExportMenuOpen}
 						class="lc-chip-muted inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
@@ -517,7 +518,8 @@
 						<button
 							type="button"
 							onclick={() => updateChartType(option.value)}
-							class={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+							disabled={isLoading}
+							class={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
 								chartType === option.value
 									? 'border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
 									: 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)]'
@@ -566,7 +568,8 @@
 						id="start-date"
 						type="date"
 						bind:value={startDate}
-						class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm"
+						disabled={isLoading}
+						class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
 					/>
 				</div>
 				<div>
@@ -576,7 +579,8 @@
 						id="end-date"
 						type="date"
 						bind:value={endDate}
-						class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm"
+						disabled={isLoading}
+						class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
 					/>
 				</div>
 				<button
@@ -596,15 +600,7 @@
 
 		<!-- ── Summary cards + charts + tables (loading overlay applied) -->
 		<div class="relative mt-4">
-			{#if isLoading}
-				<div class="lc-loading-overlay absolute inset-0 z-10 rounded-2xl"></div>
-				<div class="absolute inset-0 z-20 flex items-center justify-center">
-					<div class="lc-panel-hero flex flex-col items-center gap-3 border px-6 py-5 shadow-xl">
-						<div class="lc-spinner-ring h-6 w-6 animate-spin border-4 sm:h-8 sm:w-8"></div>
-						<p class="lc-text-secondary text-xs font-semibold sm:text-sm">데이터 갱신 중...</p>
-					</div>
-				</div>
-			{/if}
+			<LoadingOverlay visible={isLoading} message="데이터 갱신 중..." />
 
 			<div class="mt-0 grid gap-4 md:grid-cols-2">
 				<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">

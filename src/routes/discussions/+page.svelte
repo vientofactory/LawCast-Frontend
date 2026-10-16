@@ -119,32 +119,59 @@
 	<Header />
 
 	<main id="main-content" class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-		<header class="mb-6 space-y-2">
-			<h1 class="lc-text-primary text-xl font-bold sm:text-2xl">토론 모아보기</h1>
-			<p class="lc-text-secondary text-sm leading-6">
-				여러 법률안에서 진행 중인 익명 토론 스레드를 한 곳에서 찾아보고 바로 참여할 수 있습니다.
-			</p>
-		</header>
-
-		<div class="mb-4 flex flex-wrap items-center gap-2" role="tablist" aria-label="토론 상태 필터">
-			{#each statusTabs as tab (tab.label)}
-				<a
-					href={buildLink({ page: 1, status: tab.value })}
-					role="tab"
-					aria-selected={activeStatus === tab.value}
-					data-testid={`discussions-filter-${tab.value ?? 'all'}`}
-					class={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-						activeStatus === tab.value
-							? 'lc-button-primary border-transparent'
-							: 'lc-button-neutral border-[var(--lc-border-soft)]'
-					}`}
+		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
+			<div class="flex flex-wrap items-start justify-between gap-3">
+				<div>
+					<p class="lc-text-info text-xs font-semibold tracking-wide">DISCUSSIONS</p>
+					<h1
+						id="discussions-page-title"
+						class="lc-text-primary mt-1 text-xl font-bold sm:text-2xl"
+					>
+						토론 모아보기
+					</h1>
+					<p class="lc-text-secondary mt-1 text-sm leading-6">
+						여러 법률안에서 진행 중인 익명 토론 스레드를 한 곳에서 찾아보고 바로 참여할 수 있습니다.
+					</p>
+				</div>
+				<span
+					class="lc-chip-blue inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
 				>
-					{tab.label}
-				</a>
-			{/each}
+					<FontAwesomeIcon icon={faComments} class="h-3.5 w-3.5" />
+					전체 {total.toLocaleString('ko-KR')}건
+				</span>
+			</div>
 		</div>
 
-		<div class="relative">
+		<section class="lc-panel-card mb-5 rounded-xl border p-4 shadow-sm" aria-label="토론 상태 필터">
+			<div
+				class="lc-chip-group inline-flex items-center rounded-full border p-0.5 text-xs font-semibold"
+				role="tablist"
+				aria-label="토론 상태 필터"
+			>
+				{#each statusTabs as tab (tab.label)}
+					<a
+						href={buildLink({ page: 1, status: tab.value })}
+						role="tab"
+						aria-selected={activeStatus === tab.value}
+						data-testid={`discussions-filter-${tab.value ?? 'all'}`}
+						class={`rounded-full px-3 py-1 transition-colors ${
+							activeStatus === tab.value
+								? 'lc-button-primary border-transparent shadow-sm'
+								: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
+						}`}
+					>
+						{tab.label}
+					</a>
+				{/each}
+			</div>
+		</section>
+
+		<section
+			class="relative"
+			aria-labelledby="discussions-results-heading"
+			data-testid="discussions-page-region"
+		>
+			<h2 id="discussions-results-heading" class="sr-only">토론 스레드 목록</h2>
 			<RateLimitOverlay
 				visible={Boolean(data.loadError)}
 				retryAfter={countdown}
@@ -155,7 +182,7 @@
 			<div class:opacity-60={Boolean(data.loadError)}>
 				{#if threads.length === 0}
 					<div
-						class="rounded-xl border border-dashed border-[var(--lc-border-soft)] p-8 text-center"
+						class="lc-panel-card rounded-xl border border-dashed border-[var(--lc-border-soft)] p-8 text-center shadow-sm"
 						data-testid="discussions-empty-state"
 					>
 						<p class="lc-text-primary text-sm font-semibold">아직 조건에 맞는 토론이 없습니다.</p>
@@ -165,7 +192,7 @@
 					</div>
 				{:else}
 					<div
-						class="divide-y divide-[var(--lc-border-soft)] overflow-hidden rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)]"
+						class="lc-panel-card divide-y divide-[var(--lc-border-soft)] overflow-hidden rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] shadow-sm"
 						data-testid="discussions-list"
 					>
 						{#each threads as thread (thread.id)}
@@ -234,21 +261,19 @@
 						{/each}
 					</div>
 
-					<div class="mt-4">
-						<PaginationNav
-							{currentPage}
-							{totalPages}
-							totalItems={total}
-							{limit}
-							{pendingPage}
-							buildHref={(targetPage) => buildLink({ page: targetPage })}
-							onPageClick={handlePaginationClick}
-							ariaLabel="토론 목록 페이지 내비게이션"
-							testId="discussions-pagination"
-						/>
-					</div>
+					<PaginationNav
+						{currentPage}
+						{totalPages}
+						totalItems={total}
+						{limit}
+						{pendingPage}
+						buildHref={(targetPage) => buildLink({ page: targetPage })}
+						onPageClick={handlePaginationClick}
+						ariaLabel="토론 목록 페이지 내비게이션"
+						testId="discussions-pagination"
+					/>
 				{/if}
 			</div>
-		</div>
+		</section>
 	</main>
 </div>

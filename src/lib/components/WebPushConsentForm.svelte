@@ -356,8 +356,10 @@
 	});
 </script>
 
+<!-- Stay visible while loading: the VAPID config arrives after mount, and hiding
+     until then would leave a blank gap with no title or spinner. -->
 <div
-	class:hidden={!isPushEnabledByServer}
+	class:hidden={!isPushEnabledByServer && !isLoading}
 	class={compact
 		? 'space-y-4'
 		: 'lc-panel-card mt-6 rounded-2xl border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl'}
@@ -395,7 +397,7 @@
 	{/if}
 
 	{#if isLoading}
-		<div class="lc-text-muted flex items-center justify-center gap-2 py-4 text-sm">
+		<div class="lc-text-muted flex items-center justify-center gap-2 py-4 text-sm" role="status">
 			<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
 			설정 상태를 확인하는 중입니다...
 		</div>

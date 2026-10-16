@@ -12,13 +12,10 @@
 
 {#if visible}
 	<div
-		class={`lc-loading-overlay pointer-events-none absolute inset-0 z-10 ${overlayRadiusClass}`}
+		class={`lc-loading-overlay absolute inset-0 z-10 ${overlayRadiusClass}`}
+		aria-hidden="true"
 	></div>
-	<div
-		class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
-		role="status"
-		aria-live="polite"
-	>
+	<div class="fixed inset-0 z-50 flex items-center justify-center" role="status" aria-live="polite">
 		<div
 			class="lc-panel-hero lc-loading-shell flex flex-col items-center gap-3 overflow-hidden border px-8 py-6 shadow-2xl backdrop-blur-sm"
 			style="border-radius: 1rem;"
