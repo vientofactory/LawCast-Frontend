@@ -52,14 +52,15 @@ export function isTrackingConsented(): boolean {
 	return getCookieConsent() === 'accepted';
 }
 
-let gtmInjected = false;
-
 /**
- * Push a Consent Mode `default` command. Must run before the GTM script
- * loads. Everything starts `denied` (Basic implementation) unless the
- * visitor previously accepted, in which case the stored decision seeds
- * the default directly. `wait_for_update` gives the banner a short
- * window to apply the stored decision before tags fire.
+ * Push a Consent Mode `default` command. The gtag.js snippet in the SSR
+ * response head (`+layout.svelte`) already seeds the same default before
+ * the container loads; this call re-asserts it once the bundle runs so
+ * Tag Assistant still connects when the head snippet is blocked. Everything
+ * starts `denied` (Basic implementation) unless the visitor previously
+ * accepted, in which case the stored decision seeds the default directly.
+ * `wait_for_update` gives the banner a short window to apply the stored
+ * decision before tags fire.
  */
 function pushConsentDefault(granted: boolean): void {
 	if (typeof window === 'undefined') return;
@@ -99,31 +100,17 @@ export function pushConsentUpdate(status: CookieConsentStatus): void {
 	]);
 }
 
-/** Inject the GTM container script. Safe to call repeatedly. */
-function injectGtmScript(): void {
-	if (typeof window === 'undefined' || typeof document === 'undefined') return;
-	if (gtmInjected || !GTM_CONTAINER_ID) return;
-	gtmInjected = true;
-	window.dataLayer = window.dataLayer || [];
-	window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
-	const first = document.getElementsByTagName('script')[0];
-	const script = document.createElement('script');
-	script.async = true;
-	script.src = `https://www.googletagmanager.com/gtm.js?id=${GTM_CONTAINER_ID}`;
-	first?.parentNode?.insertBefore(script, first);
-}
-
 /**
- * Initialize Consent Mode (Basic) and load the GTM container immediately,
- * without waiting for a decision. Denied defaults keep Google tags
- * blocked until the visitor accepts, while the loaded container lets
- * Tag Assistant connect for preview and URL tests in any consent state.
- * The container ID comes from `GTM_CONTAINER_ID` (`src/lib/utils/gtm.ts`,
- * baked at build time). Does nothing when no container ID is configured.
+ * Initialize Consent Mode (Basic) without waiting for a decision. Denied
+ * defaults keep Google tags blocked until the visitor accepts. The gtag.js
+ * container itself loads from the SSR response head (`+layout.svelte`), not
+ * from the JS bundle, so Tag Assistant verifies it without executing
+ * bundled code. The container ID comes from `GTM_CONTAINER_ID`
+ * (`src/lib/utils/gtm.ts`, baked at build time). Does nothing when no
+ * container ID is configured.
  */
 export function initConsentMode(): void {
 	if (typeof window === 'undefined' || typeof document === 'undefined') return;
 	if (!GTM_CONTAINER_ID) return;
 	pushConsentDefault(getCookieConsent() === 'accepted');
-	injectGtmScript();
 }
