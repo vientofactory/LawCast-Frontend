@@ -1,6 +1,4 @@
-import type { Handle, HandleFetch } from '@sveltejs/kit';
-import { dev } from '$app/environment';
-import { minify } from 'html-minifier-terser';
+import type { HandleFetch } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
 import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
@@ -10,41 +8,13 @@ import { getMockSemanticApiResponse } from '$lib/server/semantic-search-mock';
 const API_PATH_PREFIX = '/api/';
 const API_BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 
-const HTML_MINIFY_OPTIONS = {
-	collapseWhitespace: true,
-	removeComments: true,
-	removeAttributeQuotes: true,
-	minifyCSS: true,
-	minifyJS: true
-};
-
-const isHTML = (response: Response): boolean => {
-	const contentType = response.headers.get('content-type');
-	return !!contentType && contentType.includes('text/html');
-};
-
-/**
- * NOTE: Cloudflare challenge 403 simulation for e2e tests is handled by
- * `cf-challenge-test/+page.server.ts`, which throws inside a page loader.
- * Errors thrown in `handle` before `resolve()` bypass `+error.svelte`,
- * so the test route's own loader is the correct place for this.
- */
-
-export const handle: Handle = async ({ event, resolve }) => {
-	const response = await resolve(event);
-
-	if (dev || event.url.pathname.startsWith(API_PATH_PREFIX) || !isHTML(response)) {
-		return response;
-	}
-
-	const html = await response.text();
-	const minified = await minify(html, HTML_MINIFY_OPTIONS);
-
-	return new Response(minified, {
-		status: response.status,
-		headers: response.headers
-	});
-};
+// NOTE: there is intentionally no `handle` hook in this file. SSR HTML used
+// to be re-parsed and minified per request (html-minifier-terser), which
+// burned edge-function CPU on every page view and correlated with
+// intermittent Cloudflare 1102/plain-404 failures, so the hook was removed
+// and responses now pass through untouched.
+// Cloudflare challenge 403 simulation for e2e tests is handled by
+// `cf-challenge-test/+page.server.ts`, which throws inside a page loader.
 
 export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	const requestUrl = new URL(request.url);
