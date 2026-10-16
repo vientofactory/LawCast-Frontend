@@ -40,6 +40,24 @@
 	const routeId = $derived(
 		routePath === '/' ? 'home' : routePath.replace(/^\//, '').replace(/[/]+/g, '-')
 	);
+
+	// GTM (gtag.js) is rendered into the SSR response head so Tag Assistant
+	// verifies the container without executing the JS bundle. The ID is baked
+	// at build time (`PUBLIC_GTM_CONTAINER_ID`) and validated here so an
+	// unexpected value never becomes executable markup.
+	const isGtmEnabled = GTM_CONTAINER_ID !== '' && /^[A-Za-z0-9_-]+$/.test(GTM_CONTAINER_ID);
+	// Inline snippet seeds Consent Mode defaults from the stored decision
+	// before `gtag('config', ...)` runs, preserving the previous Basic-mode
+	// ordering where the default was pushed before the container loaded.
+	// Tag open brackets are written as \u003c so the Svelte compiler does
+	// not mistake the markup string for real elements; at runtime \u003c
+	// decodes to `<`, producing the exact snippet requested. Raw markup
+	// injection is required here: Svelte strips HTML comments and does not
+	// interpolate inside inline `<script>` bodies, so real head elements
+	// cannot reproduce the requested snippet bytes.
+	const gtmHeadHtml = isGtmEnabled
+		? `\u003c!-- Google tag (gtag.js) -->\n\u003cscript async src="https://www.googletagmanager.com/gtag/js?id=${GTM_CONTAINER_ID}">\u003c/script>\n\u003cscript>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}try{var s=window.localStorage.getItem('lawcast-cookie-consent')==='accepted'?'granted':'denied';dataLayer.push(['consent','default',{ad_storage:s,ad_user_data:s,ad_personalization:s,analytics_storage:s,wait_for_update:500}]);}catch(e){dataLayer.push(['consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500}]);}gtag('js',new Date());gtag('config','${GTM_CONTAINER_ID}');\u003c/script>`
+		: '';
 </script>
 
 <svelte:head>
@@ -47,6 +65,13 @@
 	<meta property="og:site_name" content="LawCast" />
 	<meta property="og:locale" content="ko_KR" />
 	<meta name="twitter:card" content="summary_large_image" />
+	{#if isGtmEnabled}
+		<!-- The markup string is built only from the allowlist-validated
+			container ID above plus static inline JS, so raw HTML injection is
+			safe here. -->
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+		{@html gtmHeadHtml}
+	{/if}
 </svelte:head>
 
 <CloudflareChallengeReload {navigating} />
