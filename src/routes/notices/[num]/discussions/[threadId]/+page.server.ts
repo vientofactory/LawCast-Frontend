@@ -40,10 +40,18 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 			};
 		}
 
-		const detail = await apiClient.getNoticeDetail(noticeNum, {}, fetch);
+		// The two reads are independent, so they are issued together and the
+		// page waits for the slowest instead of the sum. The no-op catch
+		// keeps the thread read from surfacing as an unhandled rejection on
+		// the paths where only the detail result is awaited (detail failure);
+		// awaiting it below still observes the original outcome.
+		const detailPromise = apiClient.getNoticeDetail(noticeNum, {}, fetch);
+		const discussionPromise = apiClient.getDiscussionThread(threadId, {}, fetch);
+		void discussionPromise.catch(() => undefined);
+		const detail = await detailPromise;
 		let discussion;
 		try {
-			discussion = await apiClient.getDiscussionThread(threadId, {}, fetch);
+			discussion = await discussionPromise;
 		} catch (discussionError) {
 			if (getHttpStatus(discussionError) === 429) {
 				return {

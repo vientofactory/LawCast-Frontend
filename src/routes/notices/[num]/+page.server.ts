@@ -63,13 +63,18 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 			};
 		}
 
-		const detail = await apiClient.getNoticeDetail(noticeNum, { rev: resolvedRev }, fetch);
-		const changes = await apiClient.getNoticeChanges(noticeNum, {}, fetch).catch(() => ({
+		// The three reads are independent, so they are issued together and the
+		// page waits for the slowest instead of the sum. Error semantics are
+		// unchanged: a detail failure still takes the catch path below (the
+		// tolerated changes/discussions fallbacks are simply ignored), while
+		// changes/discussions failures keep their own fallbacks.
+		const detailPromise = apiClient.getNoticeDetail(noticeNum, { rev: resolvedRev }, fetch);
+		const changesPromise = apiClient.getNoticeChanges(noticeNum, {}, fetch).catch(() => ({
 			noticeNum,
 			items: [],
 			count: 0
 		}));
-		const discussions: DiscussionLoadResult = await apiClient
+		const discussionsPromise: Promise<DiscussionLoadResult> = apiClient
 			.getNoticeDiscussions(noticeNum, {}, fetch)
 			.catch((err): DiscussionLoadResult => {
 				console.warn(`Failed to load notice discussions (${noticeNum}):`, err);
@@ -88,6 +93,8 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 							: undefined
 				};
 			});
+		const detail = await detailPromise;
+		const [changes, discussions] = await Promise.all([changesPromise, discussionsPromise]);
 		const { discussionError, ...discussionList } = discussions;
 		return {
 			detail,
