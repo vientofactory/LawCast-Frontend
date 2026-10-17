@@ -22,6 +22,16 @@ export interface GtmPageView {
  * visitor has not accepted tracking, so pre-consent navigations never
  * sit queued in the dataLayer, and when no container ID is configured.
  * Also safe during SSR or when GTM is blocked (ad blocker).
+ *
+ * GTM-side requirement: this pushes a Custom Event named
+ * `virtual_pageview`, so the container must have a matching trigger
+ * (Trigger type: Custom Event, Event name: `virtual_pageview`) firing a
+ * GA4 Event tag named `page_view`, and the container version must be
+ * published. Without that trigger, client-side SvelteKit navigations
+ * produce dataLayer events that fire no tag. Alternatively, drive SPA
+ * page views from GTM's built-in History Change trigger and turn off the
+ * GA4 data stream's `Page changes based on browser history events` to
+ * avoid double counting — but do not run both at once.
  */
 export function pushGtmPageView(path: string): void {
 	if (typeof window === 'undefined' || !GTM_CONTAINER_ID) return;

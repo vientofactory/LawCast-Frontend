@@ -1,5 +1,5 @@
 /**
- * Cookie consent store for analytics gating (Consent Mode Basic).
+ * Cookie consent store for analytics gating.
  * The choice is persisted in `localStorage` so returning visitors keep
  * their decision; clearing site data resets the banner. The decision is
  * also reported to Google through the official Consent Mode
@@ -17,7 +17,7 @@ export type CookieConsentStatus = 'accepted' | 'declined';
  * (banner must be shown) or when running outside the browser.
  */
 export function getCookieConsent(): CookieConsentStatus | null {
-	if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return null;
+	if (typeof window === 'undefined') return null;
 	try {
 		const stored = window.localStorage.getItem(COOKIE_CONSENT_KEY);
 		return stored === 'accepted' || stored === 'declined' ? stored : null;
@@ -28,7 +28,7 @@ export function getCookieConsent(): CookieConsentStatus | null {
 
 /** Persist the consent decision. Returns false when storage is unavailable. */
 export function setCookieConsent(status: CookieConsentStatus): boolean {
-	if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return false;
+	if (typeof window === 'undefined') return false;
 	try {
 		window.localStorage.setItem(COOKIE_CONSENT_KEY, status);
 		return true;
@@ -39,7 +39,7 @@ export function setCookieConsent(status: CookieConsentStatus): boolean {
 
 /** Remove the stored decision so the banner shows again. */
 export function clearCookieConsent(): void {
-	if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
+	if (typeof window === 'undefined') return;
 	try {
 		window.localStorage.removeItem(COOKIE_CONSENT_KEY);
 	} catch {
@@ -52,65 +52,43 @@ export function isTrackingConsented(): boolean {
 	return getCookieConsent() === 'accepted';
 }
 
-/**
- * Push a Consent Mode `default` command. The gtag.js snippet in the SSR
- * response head (`+layout.svelte`) already seeds the same default before
- * the container loads; this call re-asserts it once the bundle runs so
- * Tag Assistant still connects when the head snippet is blocked. Everything
- * starts `denied` (Basic implementation) unless the visitor previously
- * accepted, in which case the stored decision seeds the default directly.
- * `wait_for_update` gives the banner a short window to apply the stored
- * decision before tags fire.
- */
-function pushConsentDefault(granted: boolean): void {
+type ConsentSettings = {
+	ad_storage: 'denied';
+	ad_user_data: 'denied';
+	ad_personalization: 'denied';
+	analytics_storage: 'granted' | 'denied';
+};
+
+/** Queue the Arguments object expected by Google's command API, not an Array. */
+function queueConsentCommand(
+	_command: 'consent',
+	_action: 'update',
+	_settings: ConsentSettings
+): void {
 	if (typeof window === 'undefined') return;
 	window.dataLayer = window.dataLayer || [];
-	const state = granted ? 'granted' : 'denied';
-	window.dataLayer.push([
-		'consent',
-		'default',
-		{
-			ad_storage: state,
-			ad_user_data: state,
-			ad_personalization: state,
-			analytics_storage: state,
-			wait_for_update: 500
-		}
-	]);
+	// Google distinguishes Arguments commands from arrays of event data.
+	// eslint-disable-next-line prefer-rest-params
+	window.dataLayer.push(arguments);
 }
 
-/**
- * Report the visitor's choice through the official Consent Mode `update`
- * path. Safe to call when GTM is blocked or absent; the command simply
- * sits unread in the dataLayer.
- */
+/** Apply the visitor's analytics choice without granting advertising consent. */
 export function pushConsentUpdate(status: CookieConsentStatus): void {
-	if (typeof window === 'undefined') return;
-	window.dataLayer = window.dataLayer || [];
-	const state = status === 'accepted' ? 'granted' : 'denied';
-	window.dataLayer.push([
-		'consent',
-		'update',
-		{
-			ad_storage: state,
-			ad_user_data: state,
-			ad_personalization: state,
-			analytics_storage: state
-		}
-	]);
+	queueConsentCommand('consent', 'update', {
+		ad_storage: 'denied',
+		ad_user_data: 'denied',
+		ad_personalization: 'denied',
+		analytics_storage: status === 'accepted' ? 'granted' : 'denied'
+	});
 }
 
 /**
- * Initialize Consent Mode (Basic) without waiting for a decision. Denied
- * defaults keep Google tags blocked until the visitor accepts. The gtag.js
- * container itself loads from the SSR response head (`+layout.svelte`), not
- * from the JS bundle, so Tag Assistant verifies it without executing
- * bundled code. The container ID comes from `GTM_CONTAINER_ID`
- * (`src/lib/utils/gtm.ts`, baked at build time). Does nothing when no
- * container ID is configured.
+ * Reconcile the persisted choice using an update, never a second default.
+ * The SSR bootstrap sets denied defaults before GTM and restores returning
+ * visitors before their first page view. GTM's denied-default override also
+ * requires an explicit update signal, even for previously accepted visitors.
  */
 export function initConsentMode(): void {
-	if (typeof window === 'undefined' || typeof document === 'undefined') return;
-	if (!GTM_CONTAINER_ID) return;
-	pushConsentDefault(getCookieConsent() === 'accepted');
+	if (typeof window === 'undefined' || !GTM_CONTAINER_ID) return;
+	pushConsentUpdate(getCookieConsent() === 'accepted' ? 'accepted' : 'declined');
 }

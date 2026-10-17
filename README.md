@@ -138,10 +138,33 @@ PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED=false
 # true, 1, yes, on 중 하나면 활성화. 미설정이면 꺼진 상태로 동작한다.
 PUBLIC_SEMANTIC_SEARCH_ENABLED=true
 
-# Google Tag Manager 컨테이너 ID (빌드 타임 주입, 쿠키 동의 후에만 로드)
+# Google Tag Manager 컨테이너 ID (빌드 타임 주입, 공식 gtm.js 스니펫으로 로드)
 # 미설정이면 GTM 로딩과 페이지뷰 전송이 모두 생략된다.
+# 값을 바꾸면 재빌드/재배포가 필요하다. GTM 측에서도 컨테이너 게시(Publish),
+# GA4 태그 + `virtual_pageview` Custom Event 트리거(클라이언트 SPA 페이지뷰용)
+# 설정이 끝나야 데이터가 들어온다.
 PUBLIC_GTM_CONTAINER_ID=GTM-XXXXXXX
 ```
+
+### 방문 통계와 동의 연동
+
+- 최초 방문은 분석·광고 동의를 모두 `denied`로 시작합니다. 방문자가 동의하면
+  `analytics_storage`만 `granted`로 업데이트하며, 광고 관련 동의는 허용하지 않습니다.
+- 동의 명령은 Google의 `gtag` 규격(`dataLayer.push(arguments)`)으로 전달합니다.
+  일반 배열로 바꾸면 GTM이 동의 명령으로 처리하지 않습니다.
+- 재방문은 GTM 로드 전에 저장된 선택을 `update`로 복원합니다. 거부·동의 철회·저장 실패 시
+  페이지뷰를 보내지 않으며, 같은 페이지에서 다시 동의해도 페이지뷰를 중복 전송하지 않습니다.
+- GTM 기본 Google Analytics 태그는 `send_page_view=false`로 설정하고, GA4 이벤트 태그는
+  `virtual_pageview` 맞춤 이벤트에서 `page_view`를 보냅니다. `page_location`과 `page_title`은
+  같은 이름의 데이터 영역 변수(버전 2), `page_path`는 기본 제공 `Page Path` 변수로 매핑합니다.
+- GTM의 **자동 이벤트 감지 관리 → 브라우저 기록의 페이지 조회수 변경**은 끕니다.
+  GA4 스트림의 향상된 측정에서도 자동 History 페이지뷰를 함께 켜지 않습니다.
+- GTM의 **데이터 전송 관리**에서 광고 데이터 전송 방지, 행동 분석 데이터 전송 방지,
+  진단 데이터 전송 방지를 켜서 해당 동의가 거부된 상태의 요청도 차단합니다.
+  **동의 모드 기본값 재정의**의 거부 기본값은 유지하며 사이트의 명시적 업데이트를 받습니다.
+- JavaScript 없이 저장된 동의를 확인할 수 없어 `noscript` 추적 iframe은 넣지 않습니다.
+- 회귀 테스트: `npx playwright test --config playwright-configs/playwright.analytics.config.ts`.
+  전용 포트 5193과 모의 데이터를 사용하며 Google 네트워크 요청을 차단합니다.
 
 ## 개발 명령어
 

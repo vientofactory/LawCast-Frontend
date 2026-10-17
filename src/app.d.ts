@@ -2,8 +2,7 @@
 // for information about these interfaces
 declare global {
 	interface Window {
-		// Heterogeneous entries: event objects and gtag-style command arrays
-		// such as ['consent', 'default', params].
+		// Event objects and gtag command Arguments objects share this queue.
 		dataLayer?: unknown[];
 	}
 	namespace App {
