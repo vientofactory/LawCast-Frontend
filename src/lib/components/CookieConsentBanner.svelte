@@ -27,9 +27,9 @@
 	// icon-only form after SETTINGS_LABEL_MS.
 	let settingsExpanded = $state(true);
 
-	// When no container ID is configured at build time, analytics is
-	// disabled and none of the consent code below runs.
-	const isAnalyticsEnabled = GTM_CONTAINER_ID !== '';
+	// When no valid container ID (`GTM-XXXXXXX`) is configured at build
+	// time, analytics is disabled and none of the consent code below runs.
+	const isAnalyticsEnabled = /^GTM-[A-Za-z0-9]+$/.test(GTM_CONTAINER_ID);
 
 	// The settings shortcut is only in the DOM once a decision exists and
 	// the banner is dismissed.
@@ -39,8 +39,7 @@
 		if (!isAnalyticsEnabled) return;
 		consent = getCookieConsent();
 		bannerVisible = consent === null;
-		// Consent Mode Basic: the container loads on every visit (denied
-		// by default) so Tag Assistant can connect in any consent state.
+		// Restore the stored choice without resetting Google consent defaults.
 		initConsentMode();
 	});
 
@@ -61,13 +60,13 @@
 	});
 
 	function choose(status: CookieConsentStatus): void {
-		setCookieConsent(status);
+		const previousConsent = getCookieConsent();
+		if (!setCookieConsent(status)) return;
 		consent = status;
 		bannerVisible = false;
 		pushConsentUpdate(status);
-		if (status === 'accepted') {
-			// The landing page view was pushed while denied and never fired
-			// a tag, so report the current page now that tracking is granted.
+		if (status === 'accepted' && previousConsent !== 'accepted') {
+			// Report this page once when consent is newly granted.
 			pushGtmPageView(window.location.pathname + window.location.search);
 		}
 	}
@@ -152,19 +151,6 @@
 			<span class="lc-cookie-settings-label-inner">쿠키 설정</span>
 		</span>
 	</button>
-{/if}
-
-{#if consent === 'accepted' && GTM_CONTAINER_ID}
-	<!-- GTM noscript fallback, rendered only after an explicit accept. -->
-	<noscript>
-		<iframe
-			src="https://www.googletagmanager.com/ns.html?id={GTM_CONTAINER_ID}"
-			height="0"
-			width="0"
-			style="display:none;visibility:hidden"
-			title="Google Tag Manager"
-		></iframe>
-	</noscript>
 {/if}
 
 <style>
