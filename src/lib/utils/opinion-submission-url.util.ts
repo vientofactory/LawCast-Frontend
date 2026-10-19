@@ -13,6 +13,26 @@ const ASSEMBLY_HOSTNAME = 'pal.assembly.go.kr';
 const OPINION_ID_PARAM = 'lgsltPaId';
 
 /**
+ * Returns the opinion-submission page URL for a PAL contentId.
+ *
+ * The contentId is the PAL notice id (the `lgsltPaId` query value on
+ * pal.assembly.go.kr pages), so it always points at the National Assembly
+ * legislative notice even when the archived source link still references the
+ * pre-transfer bill information system page. Blank input yields an empty
+ * string so callers can treat it as "no opinion target".
+ */
+export function buildOpinionSubmissionUrlForContentId(
+	contentId: string | null | undefined
+): string {
+	const trimmed = contentId?.trim() ?? '';
+	if (!trimmed) {
+		return '';
+	}
+
+	return `${OPINION_SUBMISSION_PAGE_URL}?${OPINION_ID_PARAM}=${encodeURIComponent(trimmed)}`;
+}
+
+/**
  * Returns the opinion-submission page URL for a notice source link.
  *
  * Only pal.assembly.go.kr links carrying an lgsltPaId query param are

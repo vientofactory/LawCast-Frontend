@@ -3,7 +3,7 @@
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
-	import { buildOpinionSubmissionUrl } from '$lib/utils/opinion-submission-url.util';
+	import { buildOpinionSubmissionUrlForContentId } from '$lib/utils/opinion-submission-url.util';
 	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import SeoHead from '$lib/components/SeoHead.svelte';
@@ -161,10 +161,21 @@
 			? `입법예고 기간(의견 제출 가능 기간: ${displayContent.noticePeriod})`
 			: '입법예고 기간(의견 제출 가능 기간)'
 	);
+	// Before the transfer to the National Assembly legislative notice (the
+	// contentId added event), the bill lives only in the bill information
+	// system, which has no citizen opinion collection page. Keep the opinion
+	// CTA disabled until a contentId exists.
+	let opinionContentId = $derived(
+		(detail.notice.contentId ?? detail.originalContent.contentId ?? '').trim()
+	);
+	let hasOpinionTarget = $derived(opinionContentId.length > 0);
+	let isPreTransfer = $derived(!loadError && !hasOpinionTarget);
 	let opinionGuidanceText = $derived(
 		displayContent.isDone
 			? `${opinionGuidance}이 종료되어 더 이상 의견을 제출할 수 없습니다.`
-			: `${opinionGuidance}에는 누구나 국회 홈페이지에서 의견을 제출할 수 있습니다.`
+			: isPreTransfer
+				? `${opinionGuidance}이지만, 아직 국회 입법예고로 이관되기 전이라 의안정보시스템에는 시민 의견 수렴 페이지가 없어 의견을 제출할 수 없습니다. 입법예고로 이관되면 의견 제출이 가능합니다.`
+				: `${opinionGuidance}에는 누구나 국회 홈페이지에서 의견을 제출할 수 있습니다.`
 	);
 
 	/** "2026-06-14 ~ 2026-06-28 · 2026-06-28 마감 (D-3)" combined display style for the facts row. */
@@ -951,7 +962,9 @@
 
 		<!-- Opinion submission entry CTA: the notice period is the opinion window.
 		     Rendered as its own panel below the header card so the primary action
-		     stays visually separated from the title metadata. -->
+		     stays visually separated from the title metadata. The CTA links the
+		     PAL opinion page built from the contentId, never the archived
+		     source link, which may still point at the pre-transfer system. -->
 		<section class="mb-6" aria-label="의견 제출">
 			<div
 				class="lc-panel-inset flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3"
@@ -967,10 +980,21 @@
 						<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
 						의견 제출 기간이 종료되었습니다
 					</button>
+				{:else if isPreTransfer}
+					<button
+						type="button"
+						disabled
+						data-testid="notice-opinion-submit"
+						class="lc-button-neutral inline-flex cursor-not-allowed items-center rounded-lg border px-4 py-2 text-sm font-semibold opacity-70"
+					>
+						<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
+						국회 입법예고 이관 전에는 의견을 제출할 수 없습니다
+					</button>
 				{:else}
 					<button
 						type="button"
-						onclick={() => openExternalLink(buildOpinionSubmissionUrl(detail.notice.link))}
+						onclick={() =>
+							openExternalLink(buildOpinionSubmissionUrlForContentId(opinionContentId))}
 						data-testid="notice-opinion-submit"
 						class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap"
 					>
