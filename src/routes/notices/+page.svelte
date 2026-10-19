@@ -1330,25 +1330,10 @@
 													<FontAwesomeIcon icon={faCalendar} class="mr-1 h-4 w-4" />
 													제안자 구분: {notice.proposerCategory}
 												</div>
-												{#if notice.committee}
-													<div class="flex items-center">
-														<FontAwesomeIcon icon={faBell} class="mr-1 h-4 w-4" />
-														소관위원회: {notice.committee}
-													</div>
-												{/if}
-												<!-- {#if proposerNames.length > 0}
-													<div class="flex items-center">
-														<FontAwesomeIcon icon={faUser} class="mr-1 h-4 w-4" />
-														<a
-															href={buildFilterLink({ proposer: proposerNames[0] })}
-															class="lc-link hover:underline"
-															title="{proposerDisplay} 제안자 검색"
-															data-testid={`notice-proposer-link-${notice.num}`}
-														>
-															{proposerDisplay}
-														</a>
-													</div>
-												{/if} -->
+												<div class="flex items-center">
+													<FontAwesomeIcon icon={faBell} class="mr-1 h-4 w-4" />
+													소관위원회: {notice.committee === '' ? '(미정)' : notice.committee}
+												</div>
 											</div>
 
 											{#if isPreservedState(notice)}

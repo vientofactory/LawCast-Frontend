@@ -53,7 +53,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 	);
 });
 
-test('미동의와 거부 상태에서는 페이지뷰를 전송하지 않는다', async ({ page }) => {
+test('does not send pageviews while consent is denied or declined', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.getByTestId('cookie-consent-banner')).toBeVisible();
 	await expectConsent(page, 'denied');
@@ -81,7 +81,7 @@ test('미동의와 거부 상태에서는 페이지뷰를 전송하지 않는다
 	expect(await pageViews(page)).toHaveLength(0);
 });
 
-test('동의 후 페이지뷰와 SPA 이동을 한 번씩 기록하고 재동의는 중복하지 않는다', async ({
+test('records the initial pageview and one SPA navigation after consent without duplicating on re-consent', async ({
 	page
 }) => {
 	await page.goto('/');
@@ -100,7 +100,9 @@ test('동의 후 페이지뷰와 SPA 이동을 한 번씩 기록하고 재동의
 	expect(await pageViews(page)).toHaveLength(2);
 });
 
-test('재방문 시 GTM 로드 전에 동의를 복원하고 첫 페이지를 한 번 기록한다', async ({ page }) => {
+test('restores consent before GTM loads on revisit and records the first page once', async ({
+	page
+}) => {
 	await page.addInitScript(() => localStorage.setItem('lawcast-cookie-consent', 'accepted'));
 	await page.goto('/');
 	await expectConsent(page, 'granted');
@@ -114,7 +116,7 @@ test('재방문 시 GTM 로드 전에 동의를 복원하고 첫 페이지를 �
 	await expect(page.getByTestId('cookie-consent-banner')).toBeHidden();
 });
 
-test('동의 철회 뒤에는 후속 SPA 페이지뷰를 전송하지 않는다', async ({ page }) => {
+test('stops sending follow-up SPA pageviews after consent is withdrawn', async ({ page }) => {
 	await page.goto('/');
 	await choose(page, 'accept');
 	await expectConsent(page, 'granted');
@@ -129,7 +131,7 @@ test('동의 철회 뒤에는 후속 SPA 페이지뷰를 전송하지 않는다'
 	expect(await pageViews(page)).toHaveLength(0);
 });
 
-test('저장소 접근이 차단되면 동의와 페이지뷰가 안전하게 거부된다', async ({ page }) => {
+test('safely denies consent and pageviews when storage access is blocked', async ({ page }) => {
 	await page.addInitScript(() => {
 		const getItem = Storage.prototype.getItem;
 		const setItem = Storage.prototype.setItem;

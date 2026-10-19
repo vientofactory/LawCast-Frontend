@@ -562,6 +562,16 @@ export interface CrawlingTransferFlow {
 	nsmToPalIndicator: string;
 }
 
+export interface AiSummaryTransparency {
+	policy: string;
+	prompt: string;
+	generationOptions: {
+		temperature: number;
+		numPredict: number;
+	};
+	inputFields: string[];
+}
+
 export interface CrawlingTransparencyData {
 	noticeSources: CrawlingSource[];
 	collection: {
@@ -575,6 +585,7 @@ export interface CrawlingTransparencyData {
 	};
 	schedules: CrawlingSchedule[];
 	transferFlow: CrawlingTransferFlow;
+	aiSummary?: AiSummaryTransparency | null;
 }
 
 // ── Proposal Statistics ─────────────────────────────────────────────────

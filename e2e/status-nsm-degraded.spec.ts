@@ -29,7 +29,7 @@ test.describe('System Status Page — stalled NSM list scan', () => {
 		await expect(notice).toContainText('29시간 전');
 	});
 
-	test('escalates the overall status away from 정상', async ({ page }) => {
+	test('escalates the overall status away from "정상"', async ({ page }) => {
 		const badge = page.locator('span', { hasText: /전체 상태/ }).first();
 		await expect(badge).toContainText('주의 필요');
 	});

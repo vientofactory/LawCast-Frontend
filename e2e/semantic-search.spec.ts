@@ -452,7 +452,7 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('semantic-search-engine-status-loading')).toHaveCount(0);
 	});
 
-	test('shows 기록 없음 when the engine has no recorded update times', async ({ page }) => {
+	test('shows "기록 없음" when the engine has no recorded update times', async ({ page }) => {
 		await page.route(HEALTH_API, (route) =>
 			route.fulfill({
 				json: healthEnvelope({ indexedChunks: 0, lastUpdateAt: null, lastUpdateTriggeredAt: null })
