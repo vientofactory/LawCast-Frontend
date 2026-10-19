@@ -225,12 +225,32 @@ function buildMockChangeTimeline(
 	};
 }
 
+// Notice rendered without a citizen opinion target: it predates the transfer
+// to the National Assembly legislative notice (no contentId added event yet).
+const PRE_TRANSFER_MOCK_NOTICE_NUM = 2210013;
+// Transferred notice whose archived snapshot link still points at the bill
+// information system while the contentId is already present.
+const STALE_LINK_MOCK_NOTICE_NUM = 2210015;
+
 function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 	const slot = Math.abs(noticeNum) % 3;
 	const isDeleted = slot === 2;
 	const isRenumbered = slot === 1;
-	const lifecycleStatus = isDeleted ? 'source_deleted' : isRenumbered ? 'renumbered' : 'active';
-	const sourceDeletedAt = isDeleted ? hoursAgo(1) : null;
+	// Both opinion fixtures stay active and ongoing regardless of their
+	// slots: the pre-transfer one exercises the disabled opinion CTA (not
+	// the ended state), the stale-link one the enabled CTA.
+	const isPreTransferFixture = noticeNum === PRE_TRANSFER_MOCK_NOTICE_NUM;
+	const isStaleLinkFixture = noticeNum === STALE_LINK_MOCK_NOTICE_NUM;
+	const isOpinionFixture = isPreTransferFixture || isStaleLinkFixture;
+	const lifecycleStatus = isOpinionFixture
+		? 'active'
+		: isDeleted
+			? 'source_deleted'
+			: isRenumbered
+				? 'renumbered'
+				: 'active';
+	const sourceDeletedAt = !isOpinionFixture && isDeleted ? hoursAgo(1) : null;
+	const isDoneFixture = isOpinionFixture ? false : lifecycleStatus !== 'source_deleted';
 
 	const notice: MockNoticeTemplate = {
 		num: noticeNum,
@@ -239,9 +259,18 @@ function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 		committee: noticeNum === LONG_MOCK_NOTICE.num ? LONG_MOCK_NOTICE.committee : '법제사법위원회',
 		// Realistic assembly link shape (view.do + lgsltPaId) so the opinion-URL
 		// rewrite in buildOpinionSubmissionUrl is exercised by e2e clicks.
-		link: `https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOngoing/view.do?lgsltPaId=PRC_MOCK${noticeNum}`,
-		contentId: `mock-content-${noticeNum}`,
-		isDone: lifecycleStatus !== 'source_deleted',
+		// Both opinion fixtures keep a bill information system snapshot link so
+		// the opinion CTA paths are exercisable in mock mode: disabled with no
+		// contentId (pre-transfer), enabled from the contentId despite the
+		// stale link (transferred).
+		link: isOpinionFixture
+			? `https://likms.assembly.go.kr/bill/bi/billDetailPage.do?billId=PRC_MOCK${noticeNum}`
+			: `https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOngoing/view.do?lgsltPaId=PRC_MOCK${noticeNum}`,
+		// Mirrors production, where the contentId is the PAL notice id carried
+		// as the link's `lgsltPaId` value, so contentId-derived opinion URLs
+		// agree with link-derived ones.
+		contentId: noticeNum === PRE_TRANSFER_MOCK_NOTICE_NUM ? null : `PRC_MOCK${noticeNum}`,
+		isDone: isDoneFixture,
 		archiveStartedAt: daysAgo(6),
 		lastUpdatedAt: hoursAgo(1),
 		aiSummary: '이 항목은 Project Diffchain UI 미리보기용 가짜 데이터입니다.',
@@ -262,7 +291,7 @@ function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 	return {
 		notice,
 		originalContent: {
-			contentId: notice.contentId ?? `mock-content-${noticeNum}`,
+			contentId: notice.contentId ?? '',
 			title: notice.subject,
 			proposalReason:
 				lifecycleStatus === 'source_deleted'
@@ -276,7 +305,7 @@ function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 			proposalDate: '2026-06-14',
 			committee: notice.committee,
 			referralDate: '2026-06-18',
-			noticePeriod: mockNoticePeriod(lifecycleStatus !== 'source_deleted'),
+			noticePeriod: mockNoticePeriod(isDoneFixture),
 			proposalSession: '제22대 국회 제1회 정기회'
 		},
 		archiveMetadata: {

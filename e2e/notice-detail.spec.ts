@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { discoverFirstNotice } from './helpers/notice-list';
-import { buildOpinionSubmissionUrl } from '../src/lib/utils/opinion-submission-url.util';
+import {
+	buildOpinionSubmissionUrl,
+	buildOpinionSubmissionUrlForContentId
+} from '../src/lib/utils/opinion-submission-url.util';
 
 // Mock fixtures for notice 2210003 (see diffchain-ui-mock.ts).
 const MOCK_VIEW_URL =
@@ -261,12 +264,20 @@ test.describe('Notice Detail Page', () => {
 
 		// The opinion-submission entry renders regardless of the notice's state.
 		await expect(page.getByTestId('notice-opinion-cta')).toBeVisible();
-		await expect(page.getByTestId('notice-opinion-submit')).toBeVisible();
+		const submit = page.getByTestId('notice-opinion-submit');
+		await expect(submit).toBeVisible();
 		await expect(page.getByTestId('notice-opinion-guidance')).toContainText('의견 제출 가능 기간');
 
-		// The opinion CTA owns the single primary emphasis while the row's
-		// source opener stays a neutral utility for the raw notice link.
-		await expect(page.getByTestId('notice-opinion-submit')).toHaveClass(/lc-button-primary/);
+		// Pre-transfer notices (no contentId yet) disable the CTA with a
+		// transfer explanation; transferred notices keep the primary CTA.
+		if (await submit.isDisabled()) {
+			await expect(page.getByTestId('notice-opinion-guidance')).toContainText('이관');
+			await expect(submit).toHaveClass(/lc-button-neutral/);
+		} else {
+			// The opinion CTA owns the single primary emphasis while the row's
+			// source opener stays a neutral utility for the raw notice link.
+			await expect(submit).toHaveClass(/lc-button-primary/);
+		}
 		const openSourceBtn = page.getByTestId('notice-detail-open-source');
 		await expect(openSourceBtn).toHaveClass(/lc-button-neutral/);
 		await expect(openSourceBtn).not.toHaveClass(/lc-button-primary/);
@@ -385,6 +396,68 @@ test.describe('Opinion submission CTA and deadline chip (mock fixtures)', () => 
 			expect(buildOpinionSubmissionUrl('')).toBe('');
 			expect(buildOpinionSubmissionUrl('not a url')).toBe('not a url');
 		});
+
+		test('builds the PAL opinion page from the contentId', () => {
+			expect(buildOpinionSubmissionUrlForContentId('PRC_XYZ')).toBe(
+				'https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOpn/list.do?lgsltPaId=PRC_XYZ'
+			);
+			expect(buildOpinionSubmissionUrlForContentId('  PRC_XYZ  ')).toBe(
+				'https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOpn/list.do?lgsltPaId=PRC_XYZ'
+			);
+			expect(buildOpinionSubmissionUrlForContentId(null)).toBe('');
+			expect(buildOpinionSubmissionUrlForContentId(undefined)).toBe('');
+			expect(buildOpinionSubmissionUrlForContentId('')).toBe('');
+			expect(buildOpinionSubmissionUrlForContentId('   ')).toBe('');
+		});
+	});
+
+	test('transferred notice with a stale snapshot link opens the PAL opinion page', async ({
+		page
+	}) => {
+		// Mock 2210015 is already transferred (contentId present) but its
+		// archived snapshot link still points at the bill information system.
+		await page.goto('/notices/2210015');
+		await expect(page.getByTestId('notice-detail-main')).toBeVisible();
+
+		const submit = page.getByTestId('notice-opinion-submit');
+		await expect(submit).toBeEnabled();
+		await expect(submit).toContainText('의견 제출하기');
+
+		await page.evaluate(() => {
+			const target = window as unknown as { __openedUrls?: string[]; open: unknown };
+			target.__openedUrls = [];
+			target.open = (url: string) => {
+				target.__openedUrls?.push(url);
+				return null;
+			};
+		});
+		// The CTA must open the PAL opinion page built from the contentId,
+		// never the stale bill information system snapshot link.
+		await expect(async () => {
+			await page.getByTestId('notice-opinion-submit').click();
+			const opened = await page.evaluate(
+				() => (window as unknown as { __openedUrls?: string[] }).__openedUrls ?? []
+			);
+			expect(opened).toContain(
+				'https://pal.assembly.go.kr/napal/lgsltpa/lgsltpaOpn/list.do?lgsltPaId=PRC_MOCK2210015'
+			);
+			expect(opened.every((url) => !url.includes('likms.assembly.go.kr'))).toBe(true);
+		}).toPass({ timeout: 15_000 });
+	});
+
+	test('pre-transfer notice disables the CTA with a transfer explanation', async ({ page }) => {
+		// Mock 2210013 has no contentId yet: it lives only in the bill
+		// information system, which has no citizen opinion page.
+		await page.goto('/notices/2210013');
+		await expect(page.getByTestId('notice-detail-main')).toBeVisible();
+
+		const submit = page.getByTestId('notice-opinion-submit');
+		await expect(submit).toBeDisabled();
+		await expect(submit).toContainText('이관 전에는 의견을 제출할 수 없습니다');
+		await expect(submit).toHaveClass(/lc-button-neutral/);
+		const guidance = page.getByTestId('notice-opinion-guidance');
+		await expect(guidance).toContainText('의안정보시스템에는 시민 의견 수렴 페이지가 없어');
+		await expect(guidance).toContainText('입법예고로 이관되면 의견 제출이 가능합니다');
 	});
 
 	test('ended notice disables the CTA and shows the ended deadline chip', async ({ page }) => {
