@@ -10,7 +10,8 @@
 		faArrowRight,
 		faCodeCompare,
 		faCalendarCheck,
-		faInfoCircle
+		faInfoCircle,
+		faRobot
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
 	import type { CrawlingTransparencyData } from '$lib/types/api';
@@ -22,6 +23,8 @@
 	let { data }: { data: PageData } = $props();
 
 	let transparency = $derived(data.transparency as CrawlingTransparencyData);
+	// Null when an older cached payload predates the AI summary block.
+	let aiSummary = $derived(transparency.aiSummary ?? null);
 	let fetchedAt = $derived(data.fetchedAt);
 	let loadError = $derived(data.loadError);
 	// Canonical stays on the clean route: filter params are not indexed separately.
@@ -300,6 +303,43 @@
 				</p>
 			</div>
 		</section>
+
+		<!-- ── AI summary ──────────────────────────────────────────────────── -->
+		{#if aiSummary}
+			<section data-testid="ai-summary" class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
+				<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
+					<FontAwesomeIcon icon={faRobot} class="lc-text-info mr-2 h-4 w-4" />
+					AI 요약
+				</h2>
+				<div class="rounded-xl border border-(--lc-border-soft) p-4">
+					<p class="lc-text-secondary text-sm leading-relaxed">
+						{aiSummary.policy}
+					</p>
+					<div class="lc-text-secondary mt-3 space-y-1 text-xs">
+						<p>
+							입력:
+							<span class="lc-text-primary font-semibold">{aiSummary.inputFields.join(' · ')}</span>
+						</p>
+						<p>
+							생성 옵션:
+							<span class="lc-text-primary font-semibold"
+								>temperature {aiSummary.generationOptions.temperature}, 최대 {aiSummary
+									.generationOptions.numPredict} 토큰</span
+							>
+						</p>
+					</div>
+				</div>
+				<div class="mt-3 rounded-xl border border-(--lc-border-soft) p-4">
+					<h3 class="lc-text-primary mb-2 text-xs font-bold">실제 요약 프롬프트 전문</h3>
+					<pre
+						data-testid="ai-summary-prompt"
+						class="lc-text-secondary overflow-x-auto font-mono text-xs leading-relaxed whitespace-pre-wrap break-words">{aiSummary.prompt}</pre>
+				</div>
+				<p class="lc-text-muted mt-3 text-[11px]">
+					AI 요약은 참고용이며, 판단의 기준은 제안이유 및 주요내용 원문입니다.
+				</p>
+			</section>
+		{/if}
 
 		<!-- ── Notes ──────────────────────────────────────────────────── -->
 		<div class="lc-panel-card mt-4 rounded-2xl border p-4 text-center">

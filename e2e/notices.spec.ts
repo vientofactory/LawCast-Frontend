@@ -246,7 +246,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 	// ── Category 2: `제안이유(원문)` search is the default ─────────────────────
 
 	test.describe('Proposal-reason search is the default', () => {
-		test('search matches 제안이유 without any flag', async ({ page }) => {
+		test('search matches `제안이유` without any flag', async ({ page }) => {
 			// '제도적 기반' appears only in 2210001's proposalReason
 			await page.goto('/notices?search=제도적 기반');
 			const count = await getResultCount(page);
@@ -255,7 +255,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			expect(nums).toContain(2210001);
 		});
 
-		test('a different keyword matches a different bill only through its 제안이유', async ({
+		test('a different keyword matches a different bill only through its `제안이유`', async ({
 			page
 		}) => {
 			// '안전보건 확보' appears only in 2210003's proposalReason
