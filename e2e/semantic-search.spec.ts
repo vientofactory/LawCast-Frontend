@@ -139,6 +139,28 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('semantic-search-entry')).toBeVisible();
 	});
 
+	test('the notices board exposes the same engine status widget', async ({ page }) => {
+		// The consent banner shares the bottom-right corner on a first visit, so
+		// pre-accept it and let the corner widget receive the clicks below.
+		await page.addInitScript(() => localStorage.setItem('lawcast-cookie-consent', 'accepted'));
+		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+		const hydrated = watchEngineHealth(page);
+		await page.goto('/notices');
+		await hydrated;
+
+		await expect(page.getByTestId('notices-engine-status')).toBeVisible();
+		await expect(page.getByTestId('notices-engine-status-panel')).toHaveCount(0);
+
+		await page.getByTestId('notices-engine-status-trigger').click();
+		await expect(page.getByTestId('notices-engine-status-panel')).toBeVisible();
+		await expect(page.getByTestId('notices-engine-status-chunks')).toHaveText('93,031');
+		await expect(page.getByTestId('notices-engine-status-last-update')).toContainText('2026');
+
+		// Same popover behaviour as the search page: outside clicks close it.
+		await page.getByTestId('notices-results-summary').click();
+		await expect(page.getByTestId('notices-engine-status-panel')).toHaveCount(0);
+	});
+
 	test('renders semantic results with percentage score and section', async ({ page }) => {
 		await search(page, '임대차 계약에서 세입자 보호');
 
@@ -401,11 +423,11 @@ test.describe('Semantic Search UI', () => {
 		await openEngineStatus(page, hydrated);
 
 		await expect(page.getByTestId('semantic-search-engine-status-panel')).toBeVisible();
-		await expect(page.getByTestId('semantic-search-engine-chunks')).toHaveText('93,031');
-		const lastUpdate = page.getByTestId('semantic-search-engine-last-update');
+		await expect(page.getByTestId('semantic-search-engine-status-chunks')).toHaveText('93,031');
+		const lastUpdate = page.getByTestId('semantic-search-engine-status-last-update');
 		await expect(lastUpdate).toContainText('2026');
 		await expect(lastUpdate).not.toContainText('기록 없음');
-		const lastUpdateRun = page.getByTestId('semantic-search-engine-last-update-run');
+		const lastUpdateRun = page.getByTestId('semantic-search-engine-status-last-update-run');
 		await expect(lastUpdateRun).toContainText('2026');
 		await expect(lastUpdateRun).not.toContainText('기록 없음');
 		await expect(page.getByTestId('semantic-search-engine-status-error')).toHaveCount(0);
@@ -462,9 +484,11 @@ test.describe('Semantic Search UI', () => {
 		await page.goto('/notices/semantic-search');
 		await openEngineStatus(page, hydrated);
 
-		await expect(page.getByTestId('semantic-search-engine-chunks')).toHaveText('0');
-		await expect(page.getByTestId('semantic-search-engine-last-update')).toContainText('기록 없음');
-		await expect(page.getByTestId('semantic-search-engine-last-update-run')).toContainText(
+		await expect(page.getByTestId('semantic-search-engine-status-chunks')).toHaveText('0');
+		await expect(page.getByTestId('semantic-search-engine-status-last-update')).toContainText(
+			'기록 없음'
+		);
+		await expect(page.getByTestId('semantic-search-engine-status-last-update-run')).toContainText(
 			'기록 없음'
 		);
 	});

@@ -5,6 +5,7 @@
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import SemanticEngineStatus from '$lib/components/SemanticEngineStatus.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
 	import { extractProposerFromSubject } from '$lib/utils/proposer';
 	import { buildNoticeDeadline } from '$lib/utils/notice-deadline.util';
@@ -1421,7 +1422,10 @@
 					{/if}
 
 					{#if SEMANTIC_SEARCH_ENABLED}
-						<div class="mt-6 flex justify-end px-2">
+						<!-- Bottom padding keeps the fixed engine status widget in the
+						     corner from covering the entry link once the page is scrolled
+						     to its end. -->
+						<div class="mt-6 flex justify-end px-2 pb-14">
 							<a
 								href={buildSemanticSearchHref(searchQuery)}
 								data-testid="semantic-search-entry"
@@ -1438,6 +1442,13 @@
 			</div>
 		</section>
 	</main>
+
+	<!-- Same corner control as the semantic search page: the board's `의미`/
+	     `자동` search modes read the same engine, so its freshness belongs here
+	     too. Hidden while the feature is off, where the engine has no role. -->
+	{#if SEMANTIC_SEARCH_ENABLED}
+		<SemanticEngineStatus testIdPrefix="notices-engine-status" />
+	{/if}
 </div>
 
 <style>

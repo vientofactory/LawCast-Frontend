@@ -21,6 +21,9 @@
 	// Null means undecided — the banner must be shown.
 	let consent = $state<CookieConsentStatus | null>(null);
 	let bannerVisible = $state(false);
+	// Rendered height of the banner container (card plus its bottom padding),
+	// published as `--lc-consent-banner-height` for floating corner controls.
+	let bannerHeight = $state(0);
 
 	// True while the settings shortcut shows its text label. It starts
 	// expanded so first-time visitors notice it, then collapses to the
@@ -41,6 +44,14 @@
 		bannerVisible = consent === null;
 		// Restore the stored choice without resetting Google consent defaults.
 		initConsentMode();
+	});
+
+	// The banner owns the bottom-right corner while it is up. Publishing its
+	// height lets fixed corner controls (the semantic engine status pill) move
+	// above it instead of hiding behind a z-index they cannot win against.
+	$effect(() => {
+		const height = isAnalyticsEnabled && bannerVisible ? bannerHeight : 0;
+		document.documentElement.style.setProperty('--lc-consent-banner-height', `${height}px`);
 	});
 
 	// Collapse the settings shortcut to its icon-only form a few seconds
@@ -86,6 +97,7 @@
 
 {#if isAnalyticsEnabled && bannerVisible}
 	<div
+		bind:clientHeight={bannerHeight}
 		data-testid="cookie-consent-banner"
 		role="dialog"
 		aria-live="polite"

@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { onDestroy } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import SeoHead from '$lib/components/SeoHead.svelte';
@@ -9,17 +8,15 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import SemanticSearchUnavailableOverlay from '$lib/components/SemanticSearchUnavailableOverlay.svelte';
+	import SemanticEngineStatus from '$lib/components/SemanticEngineStatus.svelte';
 	import WandSparkleLoader from '$lib/components/WandSparkleLoader.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
 		faMagnifyingGlass,
-		faWandMagicSparkles,
-		faXmark
+		faWandMagicSparkles
 	} from '@fortawesome/free-solid-svg-icons';
-	import { semanticEngineHealth } from '$lib/api/client';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '$lib/types/api';
 	import {
 		SEMANTIC_MAX_QUERY_LENGTH,
@@ -72,20 +69,11 @@
 			: null
 	);
 	let displayError = $derived(error ?? serverError);
+	// The corner widget owns the health request and binds the result back here,
+	// because engine readiness also gates the search UI below.
 	let engineHealth = $state<SemanticEngineHealthResponse | null>(null);
 	let engineHealthLoading = $state(true);
 	let engineHealthError = $state<string | null>(null);
-	let engineStatusOpen = $state(false);
-	let engineStatusRoot = $state<HTMLDivElement | null>(null);
-	// Green only for a fully ready engine: an in-flight status fetch, an engine
-	// still loading, or a failed engine must never read as healthy.
-	let engineStatusDotClass = $derived(
-		engineHealth?.status === 'ready'
-			? 'lc-dot-success'
-			: engineHealthError || engineHealth?.status === 'failed'
-				? 'lc-text-danger bg-current'
-				: 'lc-dot-warning animate-pulse'
-	);
 	// Readiness gate for the search UI: once the engine health fetch settles,
 	// anything other than 'ready' — or a failed fetch — covers the form and the
 	// results with an overlay so the user is told search is unavailable instead
@@ -236,36 +224,6 @@
 		runSearch();
 	}
 
-	/**
-	 * Load the engine status (chunk index count, last update, last refresh run time)
-	 * once per page mount. Failures only affect the status block, never the
-	 * search itself.
-	 */
-	async function loadEngineHealth() {
-		engineHealthLoading = true;
-		engineHealthError = null;
-		try {
-			engineHealth = await semanticEngineHealth();
-		} catch (caught) {
-			engineHealth = null;
-			engineHealthError = (caught as Error).message || '엔진 상태를 확인할 수 없습니다.';
-		} finally {
-			engineHealthLoading = false;
-		}
-	}
-
-	/**
-	 * Close the engine status widget when a click lands outside it, so the
-	 * panel behaves like a popover instead of a modal. Clicks on the widget
-	 * itself (trigger, panel, close button) are ignored.
-	 */
-	function handleWindowClick(event: MouseEvent) {
-		if (!engineStatusOpen) return;
-		const target = event.target;
-		if (target instanceof Node && engineStatusRoot?.contains(target)) return;
-		engineStatusOpen = false;
-	}
-
 	function handleExampleQuery(example: string) {
 		query = example;
 		runSearch();
@@ -291,17 +249,9 @@
 		}
 		if (loadError) dismissedServerError = loadError.message;
 	}
-
-	onMount(() => {
-		// Deep links and no-JS form submits are already served with results by
-		// the server load, so the browser only has to pick up the engine status.
-		void loadEngineHealth();
-	});
 </script>
 
 <SeoHead title={pageTitle} description={pageDescription} url={pageUrl} keywords={pageKeywords} />
-
-<svelte:window onclick={handleWindowClick} />
 
 <div class="lc-page-shell">
 	<Header />
@@ -610,96 +560,11 @@
 		</div>
 	</main>
 
-	<!-- Engine status: a small fixed corner control so casual readers skip
-	     it, while the full details stay one click away. -->
-	<div
-		bind:this={engineStatusRoot}
-		class="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-2"
-		data-testid="semantic-search-engine-status"
-	>
-		{#if engineStatusOpen}
-			<div
-				id="semantic-engine-status-panel"
-				class="lc-panel-card w-72 rounded-xl border p-4 shadow-lg"
-				role="dialog"
-				aria-labelledby="semantic-engine-status-heading"
-				data-testid="semantic-search-engine-status-panel"
-				transition:fly={{ y: 8, duration: 180, opacity: 0 }}
-			>
-				<div class="flex items-center justify-between">
-					<h2 id="semantic-engine-status-heading" class="lc-text-primary text-sm font-semibold">
-						엔진 상태
-					</h2>
-					<button
-						type="button"
-						class="lc-text-dim cursor-pointer rounded p-1 transition-opacity hover:opacity-70"
-						aria-label="엔진 상태 닫기"
-						data-testid="semantic-search-engine-status-close"
-						onclick={() => (engineStatusOpen = false)}
-					>
-						<FontAwesomeIcon icon={faXmark} class="h-3.5 w-3.5" />
-					</button>
-				</div>
-				{#if engineHealthLoading}
-					<p
-						class="lc-text-secondary mt-2 text-sm"
-						role="status"
-						aria-live="polite"
-						data-testid="semantic-search-engine-status-loading"
-					>
-						엔진 상태를 확인하는 중...
-					</p>
-				{:else if engineHealthError}
-					<p class="lc-text-danger mt-2 text-sm" data-testid="semantic-search-engine-status-error">
-						{engineHealthError}
-					</p>
-				{:else if engineHealth}
-					<dl
-						class="mt-2 flex flex-col gap-2 text-sm"
-						data-testid="semantic-search-engine-status-values"
-					>
-						<div>
-							<dt class="lc-text-dim text-xs">청크 인덱스 개수</dt>
-							<dd class="lc-text-primary font-semibold" data-testid="semantic-search-engine-chunks">
-								{engineHealth.indexedChunks.toLocaleString('ko-KR')}
-							</dd>
-						</div>
-						<div>
-							<dt class="lc-text-dim text-xs">마지막 업데이트</dt>
-							<dd class="lc-text-primary" data-testid="semantic-search-engine-last-update">
-								{engineHealth.lastUpdateAt
-									? formatDateTimeKST(engineHealth.lastUpdateAt)
-									: '기록 없음'}
-							</dd>
-						</div>
-						<div>
-							<dt class="lc-text-dim text-xs">마지막 업데이트 실행 시간</dt>
-							<dd class="lc-text-primary" data-testid="semantic-search-engine-last-update-run">
-								{engineHealth.lastUpdateTriggeredAt
-									? formatDateTimeKST(engineHealth.lastUpdateTriggeredAt)
-									: '기록 없음'}
-							</dd>
-						</div>
-					</dl>
-				{/if}
-			</div>
-		{/if}
-		<button
-			type="button"
-			class="lc-panel-card flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs shadow-sm opacity-70 transition-all duration-200 hover:-translate-y-0.5 hover:opacity-100"
-			aria-expanded={engineStatusOpen}
-			aria-controls={engineStatusOpen ? 'semantic-engine-status-panel' : undefined}
-			data-testid="semantic-search-engine-status-trigger"
-			onclick={() => (engineStatusOpen = !engineStatusOpen)}
-		>
-			<span
-				class={`h-1.5 w-1.5 rounded-full ${engineStatusDotClass}`}
-				data-testid="semantic-search-engine-status-dot"
-				aria-hidden="true"
-			></span>
-			<span class="lc-text-secondary">엔진 상태</span>
-		</button>
-	</div>
+	<SemanticEngineStatus
+		bind:health={engineHealth}
+		bind:loading={engineHealthLoading}
+		bind:error={engineHealthError}
+	/>
 
 	<RateLimitOverlay
 		visible={isRateLimited}
