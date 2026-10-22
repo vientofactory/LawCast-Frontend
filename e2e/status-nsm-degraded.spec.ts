@@ -10,7 +10,17 @@ import { expect, test } from '@playwright/test';
  * invisible; /status now has to render it as a failure and name how long the
  * source has been serving nothing.
  */
+const nsmDegradedEnabled = ['1', 'true', 'yes', 'on'].includes(
+	(process.env.E2E_NSM_DEGRADED ?? '').trim().toLowerCase()
+);
+
 test.describe('System Status Page — stalled NSM list scan', () => {
+	// These assertions only hold on the degraded mock payload, which only the
+	// dedicated config serves. Without this guard the plain `npm run test:e2e`
+	// run picks the spec up against the healthy mock and fails on purpose-driven
+	// mismatches.
+	test.skip(!nsmDegradedEnabled, 'stalled NSM fixtures require E2E_NSM_DEGRADED=1.');
+
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/status');
 	});

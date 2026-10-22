@@ -978,7 +978,7 @@
 						class="lc-button-neutral inline-flex cursor-not-allowed items-center rounded-lg border px-4 py-2 text-sm font-semibold opacity-70"
 					>
 						<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
-						의견 제출 기간이 종료되었습니다
+						제출 기간 종료
 					</button>
 				{:else if isPreTransfer}
 					<button
@@ -988,7 +988,7 @@
 						class="lc-button-neutral inline-flex cursor-not-allowed items-center rounded-lg border px-4 py-2 text-sm font-semibold opacity-70"
 					>
 						<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
-						국회 입법예고 이관 전에는 의견을 제출할 수 없습니다
+						의견 제출 불가
 					</button>
 				{:else}
 					<button

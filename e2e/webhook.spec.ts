@@ -146,7 +146,9 @@ test.describe('Full unsubscribe confirm modal', () => {
 		await startModalTransitionSample(page);
 		await openConfirm();
 
-		const dialog = page.getByRole('dialog');
+		// Scoped by test id: the cookie consent banner is also role="dialog", so
+		// an unscoped role query is ambiguous while consent is undecided.
+		const dialog = page.getByTestId('full-unsubscribe-modal');
 		await expect(dialog).toContainText('모든 웹 푸시 구독을 해지할까요?');
 		await expect(dialog).toHaveAttribute('aria-modal', 'true');
 		const labelledBy = await dialog.getAttribute('aria-labelledby');

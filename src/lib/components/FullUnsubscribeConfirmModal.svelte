@@ -22,6 +22,7 @@
 	{isOpen}
 	labelledBy="full-web-push-unsubscribe-title"
 	maxWidthClass="max-w-md"
+	testId="full-unsubscribe-modal"
 	onClose={() => onClose?.()}
 >
 	{#snippet icon()}
