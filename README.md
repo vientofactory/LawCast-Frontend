@@ -27,7 +27,7 @@ LawCast 서비스의 웹 프론트엔드 애플리케이션입니다.
 
 ### 사전 요구사항
 
-- Node.js (버전 18 이상)
+- Node.js 24.22.1 (권장, `.node-version` 참조). 지원 범위: 22.23.4 이상인 22.x, 24.22.1 이상인 24.x, 26.12.1 이상인 26.x.
 - npm 또는 yarn
 
 ### 설치
@@ -187,7 +187,7 @@ npm run check
 
 ### 사전 요구사항
 
-- Node.js 18 이상
+- Node.js 24.22.1 (`.node-version` 참조)
 - `npm install` 완료 상태
 - Chromium 브라우저 (`npx playwright install chromium`으로 설치)
 
@@ -298,7 +298,7 @@ Git 저장소를 Cloudflare Pages에 연결한 뒤 아래 빌드 설정을 입�
 - 루트 디렉토리: `frontend` (저장소 전체를 연결한 경우)
 - 빌드 명령어: `npm run build`
 - 빌드 출력 디렉토리: `.svelte-kit/cloudflare`
-- Node.js 버전: 18 이상
+- Node.js 버전: 24.22.1 (`.node-version` 참조). Pages의 `NODE_VERSION` 환경 변수가 있다면 같은 버전으로 맞춥니다.
 
 Pages 프로젝트의 **Settings > Variables and Secrets**에서 아래 환경 변수를 설정합니다.
 
