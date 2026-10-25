@@ -46,6 +46,7 @@
 		type NoticeDeadline
 	} from '$lib/utils/notice-deadline.util';
 	import NoticeDiscussions from '$lib/components/discussions/NoticeDiscussions.svelte';
+	import NoticeScreenshot from '$lib/components/NoticeScreenshot.svelte';
 
 	let {
 		data
@@ -1210,15 +1211,9 @@
 										다운로드
 									</a>
 								</div>
-								<div class="p-3">
-									<img
-										src={screenshotUrl}
-										alt="의안번호 {detail.notice.num} 국회 입법예고 페이지 스크린샷"
-										data-testid="notice-detail-screenshot-image"
-										class="w-full rounded-lg border border-[var(--lc-border-soft)] shadow-sm"
-										loading="lazy"
-									/>
-								</div>
+								{#key screenshotUrl}
+									<NoticeScreenshot src={screenshotUrl} noticeNum={detail.notice.num} />
+								{/key}
 							</div>
 						{/if}
 						<dl class="grid gap-3 text-sm sm:grid-cols-2">

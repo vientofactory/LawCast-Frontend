@@ -453,7 +453,7 @@ test.describe('Opinion submission CTA and deadline chip (mock fixtures)', () => 
 
 		const submit = page.getByTestId('notice-opinion-submit');
 		await expect(submit).toBeDisabled();
-		await expect(submit).toContainText('이관 전에는 의견을 제출할 수 없습니다');
+		await expect(submit).toHaveText('의견 제출 불가');
 		await expect(submit).toHaveClass(/lc-button-neutral/);
 		const guidance = page.getByTestId('notice-opinion-guidance');
 		await expect(guidance).toContainText('의안정보시스템에는 시민 의견 수렴 페이지가 없어');
@@ -467,7 +467,7 @@ test.describe('Opinion submission CTA and deadline chip (mock fixtures)', () => 
 
 		const submit = page.getByTestId('notice-opinion-submit');
 		await expect(submit).toBeDisabled();
-		await expect(submit).toContainText('의견 제출 기간이 종료되었습니다');
+		await expect(submit).toHaveText('제출 기간 종료');
 		await expect(page.getByTestId('notice-opinion-guidance')).toContainText(
 			'종료되어 더 이상 의견을 제출할 수 없습니다'
 		);
