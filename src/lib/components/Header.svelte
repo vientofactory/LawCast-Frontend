@@ -147,9 +147,12 @@
 				data-testid="site-brand"
 				class="text-decoration-none group flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
 			>
-				<div>
-					<BrandLogo />
-					<p class="mt-1 text-sm font-medium text-[var(--lc-text-secondary)]">
+				<div class="lc-brand-heading" data-testid="brand-heading">
+					<BrandLogo animate />
+					<p
+						class="lc-brand-tagline mt-1 text-sm font-medium text-[var(--lc-text-secondary)]"
+						data-testid="brand-tagline"
+					>
 						국회 입법예고 스냅샷 아카이브
 					</p>
 				</div>
@@ -305,6 +308,23 @@
 {/if}
 
 <style>
+	@media (prefers-reduced-motion: no-preference) {
+		.lc-brand-heading:has(:global([data-intro='true'])) .lc-brand-tagline {
+			animation: lc-reveal-tagline 450ms cubic-bezier(0.22, 1, 0.36, 1) 1700ms both;
+		}
+	}
+
+	@keyframes lc-reveal-tagline {
+		from {
+			opacity: 0;
+			transform: translateY(5px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
 	a {
 		text-decoration: none;
 		color: inherit;

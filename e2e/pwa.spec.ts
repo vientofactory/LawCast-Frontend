@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 
 async function openApp(page: Page) {
 	await page.goto('/');
@@ -37,6 +39,248 @@ async function offerInstall(page: Page, outcome = 'accepted', fail = false) {
 }
 
 test.describe('PWA', () => {
+	test('assembles the symbol before revealing the wordmark without shifting layout', async ({
+		page
+	}, testInfo) => {
+		await page.emulateMedia({ reducedMotion: 'no-preference' });
+		await openApp(page);
+		const brand = page.getByTestId('site-brand').getByTestId('brand-logo');
+		await expect(brand).toHaveAttribute('data-intro', 'true');
+		const bounds = await brand.boundingBox();
+		const heading = page.getByTestId('brand-heading');
+		const headingBounds = await heading.boundingBox();
+		const opacity = (part: string) =>
+			brand.getByTestId(part).evaluate((node) => Number(getComputedStyle(node).opacity));
+		for (const time of [0, 650, 1100, 1700, 1900, 2200]) {
+			await heading.evaluate((node, time) => {
+				for (const animation of node.getAnimations({ subtree: true })) {
+					animation.pause();
+					animation.currentTime = time;
+				}
+			}, time);
+			if (time === 0) {
+				expect(
+					await brand.locator('.lc-brand-echo').evaluate((node) => getComputedStyle(node).opacity)
+				).toBe('0');
+				for (const part of ['brand-arc', 'brand-letter', 'brand-dot', 'brand-wordmark'])
+					expect(await opacity(part)).toBe(0);
+			} else if (time === 650) {
+				expect(await opacity('brand-arc')).toBeGreaterThan(0.9);
+				expect(await opacity('brand-letter')).toBeGreaterThan(0.8);
+				expect(await opacity('brand-dot')).toBe(0);
+				expect(await opacity('brand-wordmark')).toBe(0);
+			} else if (time === 1100) {
+				expect(await opacity('brand-dot')).toBeGreaterThan(0.9);
+				expect(await opacity('brand-wordmark')).toBeGreaterThan(0);
+			} else {
+				for (const part of ['brand-arc', 'brand-letter', 'brand-dot', 'brand-wordmark'])
+					expect(await opacity(part)).toBe(1);
+			}
+			const taglineOpacity = await page
+				.getByTestId('brand-tagline')
+				.evaluate((node) => Number(getComputedStyle(node).opacity));
+			if (time <= 1700) expect(taglineOpacity).toBe(0);
+			else if (time === 1900) {
+				expect(taglineOpacity).toBeGreaterThan(0);
+				expect(taglineOpacity).toBeLessThan(1);
+			} else expect(taglineOpacity).toBe(1);
+			await page
+				.getByTestId('site-brand')
+				.screenshot({ path: testInfo.outputPath(`assembly-${time}.png`), animations: 'allow' });
+		}
+		expect(await brand.boundingBox()).toEqual(bounds);
+		expect(await heading.boundingBox()).toEqual(headingBounds);
+		expect(
+			await page
+				.getByTestId('footer-brand')
+				.evaluate((node) => node.getAnimations({ subtree: true }).length)
+		).toBe(0);
+	});
+
+	test('does not replay the intro on client navigation', async ({ page }) => {
+		await openApp(page);
+		await page.evaluate(() => {
+			document.documentElement.dataset.brandDocument = 'same';
+		});
+		await page.getByTestId('nav-link-webhook').click();
+		await expect(page).toHaveURL(/\/webhook$/);
+		await expect(page.getByTestId('site-brand').getByTestId('brand-logo')).toHaveAttribute(
+			'data-intro',
+			'false'
+		);
+		expect(await page.evaluate(() => document.documentElement.dataset.brandDocument)).toBe('same');
+		expect(
+			await page
+				.getByTestId('brand-heading')
+				.evaluate((node) => node.getAnimations({ subtree: true }).length)
+		).toBe(0);
+		expect(
+			await page.getByTestId('brand-tagline').evaluate((node) => getComputedStyle(node).opacity)
+		).toBe('1');
+	});
+
+	test('shows the complete logo immediately when reduced motion is requested', async ({ page }) => {
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		await openApp(page);
+		const brand = page.getByTestId('site-brand').getByTestId('brand-logo');
+		expect(
+			await page
+				.getByTestId('brand-heading')
+				.evaluate((node) => node.getAnimations({ subtree: true }).length)
+		).toBe(0);
+		expect(
+			await page.getByTestId('brand-tagline').evaluate((node) => getComputedStyle(node).opacity)
+		).toBe('1');
+		expect(await brand.evaluate((node) => node.getAnimations({ subtree: true }).length)).toBe(0);
+		for (const part of ['brand-arc', 'brand-letter', 'brand-dot', 'brand-wordmark']) {
+			expect(await brand.getByTestId(part).evaluate((node) => getComputedStyle(node).opacity)).toBe(
+				'1'
+			);
+		}
+	});
+
+	test('stops an in-progress logo intro when reduced motion is enabled', async ({ page }) => {
+		await page.emulateMedia({ reducedMotion: 'no-preference' });
+		await openApp(page);
+		const brand = page.getByTestId('site-brand').getByTestId('brand-logo');
+		await page.getByTestId('brand-heading').evaluate((node) => {
+			for (const animation of node.getAnimations({ subtree: true })) {
+				animation.pause();
+				animation.currentTime = 500;
+			}
+		});
+		expect(
+			await brand.getByTestId('brand-wordmark').evaluate((node) => getComputedStyle(node).opacity)
+		).toBe('0');
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		expect(
+			await page
+				.getByTestId('brand-heading')
+				.evaluate((node) => node.getAnimations({ subtree: true }).length)
+		).toBe(0);
+		expect(
+			await page.getByTestId('brand-tagline').evaluate((node) => getComputedStyle(node).opacity)
+		).toBe('1');
+		expect(await brand.evaluate((node) => node.getAnimations({ subtree: true }).length)).toBe(0);
+		for (const part of ['brand-arc', 'brand-letter', 'brand-dot', 'brand-wordmark']) {
+			expect(
+				await brand.getByTestId(part).evaluate((node) => {
+					const style = getComputedStyle(node);
+					return { opacity: style.opacity, transform: style.transform, clip: style.clipPath };
+				})
+			).toEqual({ opacity: '1', transform: 'none', clip: 'none' });
+		}
+		expect(
+			await brand.locator('.lc-brand-echo').evaluate((node) => getComputedStyle(node).opacity)
+		).toBe('0');
+	});
+
+	test('renders brand assets in both themes and at mobile size', async ({ page }, testInfo) => {
+		await openApp(page);
+		for (const theme of ['light', 'dark']) {
+			await page.evaluate((theme) => {
+				document.documentElement.dataset.theme = theme;
+			}, theme);
+			for (const region of ['site-brand', 'footer-brand']) {
+				const logo = page.getByTestId(region).locator(`.lc-brand-${theme}`);
+				await expect(logo).toHaveAttribute('src', `/brand/v2/wordmark-${theme}.svg`);
+				await expect(logo).toBeVisible();
+				expect(
+					await logo.evaluate(async (img: HTMLImageElement) => {
+						await img.decode();
+						return [img.naturalWidth, img.naturalHeight];
+					})
+				).toEqual([179, 64]);
+			}
+			await page
+				.getByTestId('site-brand')
+				.screenshot({ path: testInfo.outputPath(`brand-${theme}.png`) });
+		}
+		await page.setViewportSize({ width: 375, height: 812 });
+		await expect(page.getByTestId('site-brand')).toBeVisible();
+		await page.screenshot({ path: testInfo.outputPath('brand-mobile.png') });
+		for (const [src, size] of [
+			['/brand/v2/favicon.png', 32],
+			['/brand/v2/apple-touch-icon.png', 180],
+			['/brand/v2/badge-96.png', 96]
+		] as const) {
+			const result = await page.evaluate(async (src) => {
+				const image = new Image();
+				image.src = src;
+				await image.decode();
+				const canvas = document.createElement('canvas');
+				canvas.width = image.width;
+				canvas.height = image.height;
+				const ctx = canvas.getContext('2d')!;
+				ctx.drawImage(image, 0, 0);
+				const data = ctx.getImageData(0, 0, image.width, image.height).data;
+				let white = true;
+				let opaque = false;
+				for (let i = 0; i < data.length; i += 4) {
+					if (data[i + 3]) white &&= data[i] === 255 && data[i + 1] === 255 && data[i + 2] === 255;
+					opaque ||= data[i + 3] === 255;
+				}
+				return { size: [image.width, image.height], corner: data[3], white, opaque };
+			}, src);
+			expect(result.size).toEqual([size, size]);
+			if (src.includes('badge'))
+				expect(result).toMatchObject({ corner: 0, white: true, opaque: true });
+		}
+	});
+
+	test('replaces legacy icon caches and preserves unrelated caches', async ({ page }) => {
+		await page.goto('/offline.html');
+		await page.evaluate(async () => {
+			await (
+				await caches.open('lawcast-pwa-v2')
+			).put('/brand/icon-192.png', new Response('old icon'));
+			await caches.open('unrelated-cache');
+		});
+		await openApp(page);
+		const names = await page.evaluate(() => caches.keys());
+		expect(names).toContain('lawcast-pwa-v3');
+		expect(names).toContain('unrelated-cache');
+		expect(names).not.toContain('lawcast-pwa-v2');
+	});
+
+	test('uses reachable brand assets in push notification options', async ({ request }) => {
+		const handlers: Record<string, (event: unknown) => void> = {};
+		const notifications: { title: string; options: Record<string, unknown> }[] = [];
+		runInNewContext(readFileSync(new URL('../static/sw.js', import.meta.url), 'utf8'), {
+			self: {
+				addEventListener: (name: string, handler: (event: unknown) => void) => {
+					handlers[name] = handler;
+				},
+				registration: {
+					showNotification: async (title: string, options: Record<string, unknown>) => {
+						notifications.push({ title, options });
+					}
+				}
+			}
+		});
+		let pending: Promise<unknown> = Promise.resolve();
+		handlers.push({
+			data: { text: () => JSON.stringify({ title: 'Test notice', url: '/notices/2210001' }) },
+			waitUntil: (promise: Promise<unknown>) => {
+				pending = promise;
+			}
+		});
+		await pending;
+		expect(notifications[0]).toMatchObject({
+			title: 'Test notice',
+			options: {
+				icon: '/brand/v2/icon-192.png',
+				badge: '/brand/v2/badge-96.png',
+				data: { url: '/notices/2210001' }
+			}
+		});
+		for (const path of [notifications[0].options.icon, notifications[0].options.badge]) {
+			const response = await request.get(String(path));
+			expect(response.ok()).toBeTruthy();
+			expect(response.headers()['content-type']).toContain('image/png');
+		}
+	});
+
 	test('serves a discoverable installable manifest and existing brand icons', async ({
 		page,
 		request
@@ -51,6 +295,21 @@ test.describe('PWA', () => {
 		expect(response.ok()).toBeTruthy();
 		expect(response.headers()['content-type']).toContain('manifest+json');
 		const manifest = await response.json();
+		expect(manifest.icons.map((icon: { src: string }) => icon.src)).toEqual([
+			'/brand/v2/icon-192.png',
+			'/brand/v2/icon-512.png'
+		]);
+		for (const [selector, path] of [
+			['link[rel="icon"][type="image/png"]', '/brand/v2/favicon.png'],
+			['link[rel="icon"][type="image/svg+xml"]', '/brand/v2/favicon.svg'],
+			['link[rel="apple-touch-icon"]', '/brand/v2/apple-touch-icon.png']
+		]) {
+			expect(
+				await page
+					.locator(selector)
+					.evaluate((link: HTMLLinkElement) => new URL(link.href).pathname)
+			).toBe(path);
+		}
 		expect(manifest).toMatchObject({
 			id: '/',
 			start_url: '/',
@@ -140,7 +399,12 @@ test.describe('PWA', () => {
 				.flat()
 				.sort();
 		});
-		expect(cached).toEqual(['/brand/icon-192.png', '/brand/icon-512.png', '/offline.html']);
+		expect(cached).toEqual([
+			'/brand/v2/badge-96.png',
+			'/brand/v2/icon-192.png',
+			'/brand/v2/icon-512.png',
+			'/offline.html'
+		]);
 		await context.setOffline(true);
 		expect(
 			await page.evaluate(() =>

@@ -86,7 +86,7 @@
 		style="bottom: calc(max(5rem, env(safe-area-inset-bottom)) + var(--lc-consent-banner-height, 0px));"
 	>
 		<div class="flex items-center gap-3">
-			<img src="/brand/icon-192.png" alt="" width="48" height="48" class="shrink-0 rounded-lg" />
+			<img src="/brand/v2/icon-192.png" alt="" width="48" height="48" class="shrink-0 rounded-lg" />
 			<div class="min-w-0">
 				<p class="lc-text-primary font-semibold">LawCast를 앱으로 설치할까요?</p>
 				<p class="lc-text-secondary mt-1 text-sm">홈 화면에서 입법예고를 더 편하게 확인하세요.</p>
