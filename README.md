@@ -336,7 +336,9 @@ npm run start:node   # node --env-file-if-exists=.env build/index.js
 
 ## PWA 설치 및 오프라인 동작
 
-HTTPS 환경(로컬 테스트는 localhost 허용)에서 `manifest.webmanifest`와 기존 웹푸시 서비스워커 `/sw.js`를 사용합니다. 아이콘은 `static/brand/icon-192.png`, `icon-512.png`를 재사용합니다.
+HTTPS 환경(로컬 테스트는 localhost 허용)에서 `manifest.webmanifest`와 기존 웹푸시 서비스워커 `/sw.js`를 사용합니다. 새 로고와 아이콘은 `static/brand/v2/`에 배치하고, 매니페스트는 `/brand/v2/icon-192.png`, `/brand/v2/icon-512.png`를 사용합니다. 기존 경로의 에셋은 이전 클라이언트를 위해 유지합니다. 설치된 앱의 아이콘 변경을 브라우저가 감지할 수 있도록 이후 디자인 변경 시에도 에셋 URL 버전을 갱신합니다.
+
+에셋 재생성은 `node scripts/generate-brand-assets.mjs`로 실행합니다. Pretendard 워드마크 윤곽선과 라이선스를 보존하며, 심볼 경로는 `src/lib/brand-symbol.js`를 UI와 공유합니다. 헤더의 첫 로드 애니메이션은 심볼과 워드마크 조립 후 설명 문구를 표시하며, 페이지 이동에서는 반복하지 않습니다. 모션 감소 설정에서는 로고와 문구가 즉시 표시됩니다.
 
 브라우저가 `beforeinstallprompt`로 설치 가능 여부를 알리면 설치 안내를 표시합니다. 사용자가 **앱 설치**를 누르면 브라우저 내장 설치 창을 엽니다. 이미 앱으로 실행 중이거나 설치를 완료하면 안내를 숨기며, **나중에** 또는 내장 설치 창의 취소를 선택하면 7일간 안내를 미룹니다. 이 이벤트를 제공하지 않는 iOS Safari 등에서는 브라우저 메뉴의 홈 화면 추가 기능을 사용합니다.
 

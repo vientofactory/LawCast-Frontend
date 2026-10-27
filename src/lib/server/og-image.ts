@@ -1,7 +1,7 @@
 import { satori } from '@cf-wasm/satori';
 import type { ReactNode } from 'react';
 import { Resvg } from '@cf-wasm/resvg';
-import brandLogo from '../../../static/brand/logo-light.svg?raw';
+import brandLogo from '../../../static/brand/v2/logo-light.svg?raw';
 
 /**
  * Renders the Open Graph share image for a single bill as a PNG.

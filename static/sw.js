@@ -1,7 +1,7 @@
 const CACHE_PREFIX = 'lawcast-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v2`;
+const CACHE_NAME = `${CACHE_PREFIX}v3`;
 const OFFLINE_URL = '/offline.html';
-const STATIC_ASSETS = [OFFLINE_URL, '/brand/icon-192.png', '/brand/icon-512.png'];
+const STATIC_ASSETS = [OFFLINE_URL, '/brand/v2/icon-192.png', '/brand/v2/icon-512.png', '/brand/v2/badge-96.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -70,8 +70,8 @@ self.addEventListener('push', (event) => {
 
       await self.registration.showNotification(payload.title || 'LawCast 알림', {
         body: payload.body || '새로운 업데이트가 있습니다.',
-        icon: '/brand/icon-192.png',
-        badge: '/brand/badge-96.png',
+        icon: '/brand/v2/icon-192.png',
+        badge: '/brand/v2/badge-96.png',
         tag: payload.tag || 'lawcast-notification',
         data: {
           url: payload.url || '/',
