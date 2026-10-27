@@ -342,10 +342,11 @@ HTTPS 환경(로컬 테스트는 localhost 허용)에서 `manifest.webmanifest`�
 
 오프라인에서는 연결 안내와 재시도 링크를 표시합니다. 최신 입법예고·API 응답·로그인 정보는 오프라인 저장하지 않습니다. 오프라인 문서와 앱 아이콘만 캐시하며, 해당 에셋을 변경할 때는 `static/sw.js`의 `CACHE_NAME` 버전도 올려야 합니다.
 
-전용 Playwright 스위트는 Node 프로덕션 빌드를 만들고 별도 포트 `4185`에 mock 서버를 실행합니다.
+전용 Playwright 스위트는 Node 또는 Cloudflare Pages 프로덕션 빌드를 만들고 별도 포트 `4185`에 mock 서버를 실행합니다. Cloudflare 검증은 Wrangler의 로컬 Pages 런타임을 사용하며 HTML 확장자 정규화도 검사합니다.
 
 ```bash
 npm run test:e2e:pwa
+npm run test:e2e:pwa:cloudflare
 ```
 
 매니페스트와 아이콘, Chromium 설치 적합성, 기존 웹푸시와의 등록 공유, 오프라인 복구, 설치 안내·취소·재표시·모바일 배치를 검사합니다. 헤드리스 테스트에서는 설치 이벤트를 주입하여 내장 창 호출 계약을 검증하며, OS에 앱을 실제 설치하지는 않습니다.

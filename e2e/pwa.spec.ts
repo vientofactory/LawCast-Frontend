@@ -81,6 +81,15 @@ test.describe('PWA', () => {
 		expect(eligibility.installabilityErrors).toEqual([]);
 	});
 
+	test('serves the offline document after platform HTML normalization', async ({ request }) => {
+		const response = await request.get('/offline.html');
+		expect(response.status()).toBe(200);
+		expect(response.headers()['content-type']).toContain('text/html');
+		expect(await response.text()).toContain('data-testid="pwa-offline-page"');
+		if (process.env.PWA_CLOUDFLARE === '1')
+			expect(new URL(response.url()).pathname).toBe('/offline');
+	});
+
 	test('registers one root-scoped push worker on ordinary pages', async ({ page }) => {
 		await openApp(page);
 		const registrations = await page.evaluate(async () =>
