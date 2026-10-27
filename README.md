@@ -334,6 +334,22 @@ npm run start:node   # node --env-file-if-exists=.env build/index.js
 - Docker 이미지는 Dockerfile이 `SVELTE_ADAPTER=node` 빌드와 `--env-file-if-exists=.env` 시작을 자동 적용합니다.
 - Cloudflare Pages(CI 포함)의 기본 `npm run build` 경로는 변경되지 않았습니다.
 
+## PWA 설치 및 오프라인 동작
+
+HTTPS 환경(로컬 테스트는 localhost 허용)에서 `manifest.webmanifest`와 기존 웹푸시 서비스워커 `/sw.js`를 사용합니다. 아이콘은 `static/brand/icon-192.png`, `icon-512.png`를 재사용합니다.
+
+브라우저가 `beforeinstallprompt`로 설치 가능 여부를 알리면 설치 안내를 표시합니다. 사용자가 **앱 설치**를 누르면 브라우저 내장 설치 창을 엽니다. 이미 앱으로 실행 중이거나 설치를 완료하면 안내를 숨기며, **나중에** 또는 내장 설치 창의 취소를 선택하면 7일간 안내를 미룹니다. 이 이벤트를 제공하지 않는 iOS Safari 등에서는 브라우저 메뉴의 홈 화면 추가 기능을 사용합니다.
+
+오프라인에서는 연결 안내와 재시도 링크를 표시합니다. 최신 입법예고·API 응답·로그인 정보는 오프라인 저장하지 않습니다. 오프라인 문서와 앱 아이콘만 캐시하며, 해당 에셋을 변경할 때는 `static/sw.js`의 `CACHE_NAME` 버전도 올려야 합니다.
+
+전용 Playwright 스위트는 Node 프로덕션 빌드를 만들고 별도 포트 `4185`에 mock 서버를 실행합니다.
+
+```bash
+npm run test:e2e:pwa
+```
+
+매니페스트와 아이콘, Chromium 설치 적합성, 기존 웹푸시와의 등록 공유, 오프라인 복구, 설치 안내·취소·재표시·모바일 배치를 검사합니다. 헤드리스 테스트에서는 설치 이벤트를 주입하여 내장 창 호출 계약을 검증하며, OS에 앱을 실제 설치하지는 않습니다.
+
 ## 라이선스
 
 MIT License
