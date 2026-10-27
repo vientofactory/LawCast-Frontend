@@ -356,3 +356,11 @@ npm run test:e2e:pwa:cloudflare
 ## 라이선스
 
 MIT License
+
+## GitHub Actions 프로덕션 배포
+
+`.github/workflows/deploy-pages.yml`은 `main` 푸시 또는 `main`에서 실행한 수동 요청만 배포합니다. lint·타입 검사·빌드 후 기존 `lawcast-frontend` Pages 프로젝트에 `--branch main`으로 업로드하고 GitHub 커밋 SHA를 배포에 기록합니다.
+
+GitHub `production` 환경은 `main`만 허용합니다. 이 환경의 Secret `CLOUDFLARE_API_TOKEN`에는 해당 Cloudflare 계정의 Pages 편집 권한만 부여합니다. 저장소 Variables에는 `CLOUDFLARE_ACCOUNT_ID`와 운영 중인 `PUBLIC_GTM_CONTAINER_ID`를 설정합니다. 기존 Pages의 암호화된 런타임 변수는 유지하며 조회 시 반환되는 빈 값으로 다시 저장하지 않습니다.
+
+Cloudflare의 Git 연결을 해제한 뒤에도 프로젝트와 도메인은 그대로 사용합니다. Preview를 `none`으로 설정하는 것만으로는 skipped 기록이 남으므로 Git 이벤트 연결 해제가 필요합니다. 배포 검증 시 임시 비-main 브랜치 푸시 전후의 Pages 기록을 비교합니다.

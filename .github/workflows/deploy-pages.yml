@@ -1,0 +1,51 @@
+name: Deploy production Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-pages-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.repository == 'vientofactory/LawCast-Frontend'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Checkout release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - name: Set up npm
+        run: npm install --global npm@11.13.0
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint && git diff --exit-code
+      - name: Type check
+        run: npm run check
+      - name: Build production artifact
+        env:
+          PUBLIC_GTM_CONTAINER_ID: ${{ vars.PUBLIC_GTM_CONTAINER_ID }}
+        run: |
+          test -n "$PUBLIC_GTM_CONTAINER_ID" || { echo 'Missing required production build variable' >&2; exit 1; }
+          npm run build
+      - name: Deploy to existing production project
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing Pages deployment token' >&2; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing Cloudflare account ID' >&2; exit 1; }
+          npx --no-install wrangler pages deploy .svelte-kit/cloudflare --project-name lawcast-frontend --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=false
