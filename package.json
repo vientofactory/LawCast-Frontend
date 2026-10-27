@@ -1,6 +1,6 @@
 {
 	"name": "lawcast-frontend",
-	"version": "1.24.0",
+	"version": "1.24.1",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,
@@ -20,6 +20,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --write . && eslint . --fix",
+		"test:e2e:pwa:cloudflare": "PWA_CLOUDFLARE=1 playwright test --config playwright-configs/playwright.pwa.config.ts",
 		"test:e2e:pwa": "playwright test --config playwright-configs/playwright.pwa.config.ts",
 		"test:e2e": "playwright test --config playwright-configs/playwright.config.ts",
 		"test:e2e:integration": "playwright test --config playwright-configs/playwright.config.integration.ts",

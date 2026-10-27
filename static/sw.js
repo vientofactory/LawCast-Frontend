@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'lawcast-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v1`;
+const CACHE_NAME = `${CACHE_PREFIX}v2`;
 const OFFLINE_URL = '/offline.html';
 const STATIC_ASSETS = [OFFLINE_URL, '/brand/icon-192.png', '/brand/icon-512.png'];
 
@@ -27,7 +27,11 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).catch(async () => {
       const cache = await caches.open(CACHE_NAME);
-      return (await cache.match(OFFLINE_URL)) || Response.error();
+      const fallback = await cache.match(OFFLINE_URL);
+      // Pages redirects HTML assets; navigation fallbacks must not replay that redirect.
+      return fallback
+        ? new Response(fallback.body, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+        : Response.error();
     }));
   } else if (STATIC_ASSETS.includes(url.pathname) && !url.search) {
     event.respondWith(caches.open(CACHE_NAME).then(async (cache) =>

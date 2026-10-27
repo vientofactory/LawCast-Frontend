@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Production output exercises the same static worker used on Cloudflare Pages.
 const baseURL = 'http://127.0.0.1:4185';
+const cloudflare = process.env.PWA_CLOUDFLARE === '1';
 
 export default defineConfig({
 	testDir: '../e2e',
@@ -15,7 +16,9 @@ export default defineConfig({
 	projects: [{ name: 'chromium-pwa', use: { ...devices['Desktop Chrome'] } }],
 	webServer: {
 		cwd: fileURLToPath(new URL('..', import.meta.url)),
-		command: 'npm run build:node && node build/index.js',
+		command: cloudflare
+			? 'npm run build && wrangler pages dev .svelte-kit/cloudflare --ip 127.0.0.1 --port 4185 --binding DIFFCHAIN_UI_MOCK=1'
+			: 'npm run build:node && node build/index.js',
 		url: baseURL,
 		reuseExistingServer: false,
 		timeout: 180_000,
