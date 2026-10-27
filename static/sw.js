@@ -36,8 +36,8 @@ self.addEventListener('push', (event) => {
 
       await self.registration.showNotification(payload.title || 'LawCast 알림', {
         body: payload.body || '새로운 업데이트가 있습니다.',
-        icon: '/favicon.png',
-        badge: '/favicon.png',
+        icon: '/brand/icon-192.png',
+        badge: '/brand/badge-96.png',
         tag: payload.tag || 'lawcast-notification',
         data: {
           url: payload.url || '/',

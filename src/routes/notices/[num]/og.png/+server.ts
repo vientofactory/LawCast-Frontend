@@ -41,6 +41,10 @@ export const GET: RequestHandler = async ({ params, url, fetch }) => {
 	const png = await renderBillOgImage(
 		{
 			title: detail.notice.subject,
+			aiSummary:
+				detail.aiSummaryEnabled !== false && detail.notice.aiSummaryStatus === 'ready'
+					? detail.notice.aiSummary
+					: null,
 			committee: detail.originalContent.committee ?? detail.notice.committee ?? '',
 			noticePeriod: detail.originalContent.noticePeriod ?? '',
 			proposer: detail.originalContent.proposer ?? ''
