@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import PwaInstallPrompt from '$lib/components/PwaInstallPrompt.svelte';
 	import CloudflareChallengeReload from '$lib/components/CloudflareChallengeReload.svelte';
 	import CookieConsentBanner from '$lib/components/CookieConsentBanner.svelte';
 	import Footer from '$lib/components/Footer.svelte';
@@ -75,3 +76,5 @@
 </div>
 <Footer frontendVersion={data.frontendVersion} backendVersion={data.backendVersion} />
 <CookieConsentBanner />
+
+<PwaInstallPrompt />
