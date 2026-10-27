@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { theme } from '$lib/theme';
 	import UrgentNoticeBanner from '$lib/components/UrgentNoticeBanner.svelte';
+	import BrandLogo from '$lib/components/BrandLogo.svelte';
 	import type { AdminNoticeCard } from '$lib/types/api';
 	import {
 		faFileLines,
@@ -147,7 +148,7 @@
 				class="text-decoration-none group flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
 			>
 				<div>
-					<span class="lc-brand-wordmark text-3xl font-bold tracking-tight"> LawCast </span>
+					<BrandLogo />
 					<p class="mt-1 text-sm font-medium text-[var(--lc-text-secondary)]">
 						국회 입법예고 스냅샷 아카이브
 					</p>
@@ -337,9 +338,5 @@
 		box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
-	}
-
-	.lc-brand-wordmark {
-		color: var(--lc-text-primary);
 	}
 </style>

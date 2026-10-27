@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
+	import BrandLogo from '$lib/components/BrandLogo.svelte';
 	import { faGithub } from '@fortawesome/free-brands-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
@@ -15,6 +16,9 @@
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 		<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 			<div class="flex flex-col gap-3">
+				<a href="/" class="self-center sm:self-start" data-testid="footer-brand">
+					<BrandLogo compact />
+				</a>
 				<p class="lc-text-secondary text-center text-sm sm:text-left">
 					LawCast는 대한민국 국회와 관련이 없습니다. 모든 법률안은 기본적으로 퍼블릭 도메인으로
 					취급됩니다.

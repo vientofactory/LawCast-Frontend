@@ -1,13 +1,14 @@
 import { satori } from '@cf-wasm/satori';
 import type { ReactNode } from 'react';
 import { Resvg } from '@cf-wasm/resvg';
+import brandLogo from '../../../static/brand/logo-light.svg?raw';
 
 /**
  * Renders the Open Graph share image for a single bill as a PNG.
  *
  * Design: a light diagonal gradient over a faint 48px grid, the bill name as
  * the headline, the `소관위원회` / `입법예고 기간` / `제안자` fields as label-value
- * rows, and the LawCast brand pill on top.
+ * rows, and the LawCast logo on top.
  *
  * Rendering uses the @cf-wasm wrappers instead of satori/@resvg/resvg-wasm
  * directly: Cloudflare Workers forbids compiling WASM from raw bytes at
@@ -22,6 +23,7 @@ export const OG_IMAGE_HEIGHT = 630;
 
 export type BillOgImageContent = {
 	title: string;
+	aiSummary?: string | null;
 	committee: string;
 	noticePeriod: string;
 	proposer: string;
@@ -37,8 +39,6 @@ const COLORS = {
 	ink: '#0f172a',
 	value: '#1e293b',
 	muted: '#64748b',
-	accent: '#1d4ed8',
-	accentDeep: '#4f46e5',
 	grid: 'rgba(15, 23, 42, 0.05)',
 	divider: 'rgba(15, 23, 42, 0.12)'
 };
@@ -111,7 +111,8 @@ function buildGridLines(): ReactNode[] {
 	return lines;
 }
 
-function buildFieldRow(label: string, value: string): ReactNode {
+// Satori applies lineClamp only to text nodes with display: block.
+function buildFieldRow(label: string, value: string, compact: boolean): ReactNode {
 	return h(
 		'div',
 		{
@@ -119,7 +120,8 @@ function buildFieldRow(label: string, value: string): ReactNode {
 				display: 'flex',
 				flexDirection: 'row',
 				alignItems: 'flex-start',
-				marginTop: 16
+				marginTop: compact ? 12 : 16,
+				flexShrink: 0
 			}
 		},
 		h(
@@ -139,11 +141,12 @@ function buildFieldRow(label: string, value: string): ReactNode {
 			'div',
 			{
 				style: {
+					display: 'block',
 					flex: '1 1 auto',
-					fontSize: 28,
-					lineHeight: '36px',
+					fontSize: compact ? 24 : 28,
+					lineHeight: compact ? '32px' : '36px',
 					color: COLORS.value,
-					lineClamp: 2
+					lineClamp: compact ? 1 : 2
 				}
 			},
 			value || '-'
@@ -152,6 +155,8 @@ function buildFieldRow(label: string, value: string): ReactNode {
 }
 
 function buildTree(content: BillOgImageContent): ReactNode {
+	const aiSummary = content.aiSummary?.trim();
+	const hasSummary = !!aiSummary;
 	const header = h(
 		'div',
 		{
@@ -160,25 +165,15 @@ function buildTree(content: BillOgImageContent): ReactNode {
 				flexDirection: 'row',
 				alignItems: 'center',
 				justifyContent: 'space-between',
+				flexShrink: 0,
 				marginBottom: 28
 			}
 		},
-		h(
-			'div',
-			{
-				style: {
-					display: 'flex',
-					flexDirection: 'row',
-					backgroundImage: `linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentDeep} 100%)`,
-					color: '#ffffff',
-					fontSize: 32,
-					letterSpacing: '0.5px',
-					padding: '10px 24px',
-					borderRadius: 999
-				}
-			},
-			'LawCast'
-		),
+		h('img', {
+			src: `data:image/svg+xml;base64,${btoa(brandLogo)}`,
+			width: 259,
+			height: 64
+		}),
 		h('div', { style: { fontSize: 22, color: COLORS.muted } }, '국회 입법예고 스냅샷 아카이브')
 	);
 
@@ -186,23 +181,54 @@ function buildTree(content: BillOgImageContent): ReactNode {
 		'div',
 		{
 			style: {
+				display: 'block',
 				fontSize: 44,
 				lineHeight: '58px',
 				letterSpacing: '-0.5px',
 				color: COLORS.ink,
+				flexShrink: 0,
 				lineClamp: 3
 			}
 		},
 		content.title || '법률안 입법예고'
 	);
 
+	const summary = hasSummary
+		? h(
+				'div',
+				{
+					style: {
+						display: 'flex',
+						flexDirection: 'column',
+						flexShrink: 0,
+						marginTop: 16
+					}
+				},
+				h(
+					'div',
+					{
+						style: {
+							display: 'block',
+							fontSize: 24,
+							lineHeight: '34px',
+							color: COLORS.value,
+							lineClamp: 2
+						}
+					},
+					aiSummary
+				)
+			)
+		: null;
+
 	const infoBlock = h(
 		'div',
-		{ style: { display: 'flex', flexDirection: 'column', marginTop: 'auto' } },
-		h('div', { style: { height: 1, backgroundColor: COLORS.divider, marginTop: 24 } }),
-		buildFieldRow('소관위원회', content.committee),
-		buildFieldRow('입법예고 기간', content.noticePeriod),
-		buildFieldRow('제안자', content.proposer)
+		{ style: { display: 'flex', flexDirection: 'column', flexShrink: 0, marginTop: 'auto' } },
+		h('div', {
+			style: { height: 1, backgroundColor: COLORS.divider, marginTop: hasSummary ? 16 : 24 }
+		}),
+		buildFieldRow('소관위원회', content.committee, hasSummary),
+		buildFieldRow('입법예고 기간', content.noticePeriod, hasSummary),
+		buildFieldRow('제안자', content.proposer, hasSummary)
 	);
 
 	return h(
@@ -235,6 +261,7 @@ function buildTree(content: BillOgImageContent): ReactNode {
 			},
 			header,
 			title,
+			...(summary ? [summary] : []),
 			infoBlock
 		)
 	);
