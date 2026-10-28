@@ -81,6 +81,7 @@
 	--lc-text-muted: #5a6675;
 	--lc-text-dim: #626e7f;
 	--lc-text-accent: #1d4ed8;
+	--lc-progress-color: #c2410c;
 	--lc-shadow-soft: none;
 	--lc-shadow-card: none;
 	--lc-home-kicker-bg: rgba(29, 78, 216, 0.08);
@@ -116,6 +117,7 @@ html[data-theme='dark'] {
 	--lc-text-muted: #9aa7b5;
 	--lc-text-dim: #788796;
 	--lc-text-accent: #9bb9d9;
+	--lc-progress-color: #fb923c;
 	--lc-shadow-soft: none;
 	--lc-shadow-card: none;
 	--lc-home-kicker-bg: rgba(138, 164, 196, 0.08);
@@ -1559,8 +1561,8 @@ html[data-theme='dark'] .lc-alert {
 	top: 0;
 	left: 0;
 	width: 100%;
-	background: #3b82f6 !important;
-	height: 3px !important;
+	background: var(--lc-progress-color) !important;
+	height: 2px !important;
 	z-index: 99999 !important;
 }
 
@@ -1573,13 +1575,13 @@ html[data-theme='dark'] .lc-alert {
 	opacity: 1;
 	transform: rotate(3deg) translate(0, -4px);
 	box-shadow:
-		0 0 10px #6366f1,
-		0 0 5px #3b82f6 !important;
+		0 0 10px var(--lc-progress-color),
+		0 0 5px var(--lc-progress-color) !important;
 }
 
 #nprogress .spinner-icon {
-	border-top-color: #6366f1 !important;
-	border-left-color: #6366f1 !important;
+	border-top-color: var(--lc-progress-color) !important;
+	border-left-color: var(--lc-progress-color) !important;
 }
 
 /* Shared loading slide effect. */

@@ -1,7 +1,17 @@
 const CACHE_PREFIX = 'lawcast-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v3`;
+const CACHE_NAME = `${CACHE_PREFIX}v5`;
 const OFFLINE_URL = '/offline.html';
-const STATIC_ASSETS = [OFFLINE_URL, '/brand/v2/icon-192.png', '/brand/v2/icon-512.png', '/brand/v2/badge-96.png'];
+const LAUNCH_URL = '/pwa-start.html';
+const STATIC_ASSETS = [OFFLINE_URL, LAUNCH_URL, '/brand/v2/icon-192.png', '/brand/v2/icon-512.png', '/brand/v2/badge-96.png'];
+
+async function cachedDocument(path) {
+  const cache = await caches.open(CACHE_NAME);
+  const response = await cache.match(path);
+  // Pages redirects HTML assets; navigation responses must not replay that redirect.
+  return response
+    ? new Response(response.body, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } })
+    : fetch(path);
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -23,16 +33,16 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
 
+  // The installed app paints this local entry before starting the real navigation.
+  // Keep normal navigations intact so their status, redirects and headers survive.
+  if (request.mode === 'navigate' && ['/pwa-start', LAUNCH_URL].includes(url.pathname)) {
+    event.respondWith(cachedDocument(LAUNCH_URL));
+    return;
+  }
+
   // Keep SSR, API responses, errors and challenge pages out of offline storage.
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const fallback = await cache.match(OFFLINE_URL);
-      // Pages redirects HTML assets; navigation fallbacks must not replay that redirect.
-      return fallback
-        ? new Response(fallback.body, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
-        : Response.error();
-    }));
+    event.respondWith(fetch(request).catch(() => cachedDocument(OFFLINE_URL)));
   } else if (STATIC_ASSETS.includes(url.pathname) && !url.search) {
     event.respondWith(caches.open(CACHE_NAME).then(async (cache) =>
       (await cache.match(request)) || fetch(request),

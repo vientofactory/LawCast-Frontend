@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f8fafc" />
+    <meta name="robots" content="noindex" />
+    <title>불러오는 중 - LawCast</title>
+    <style>
+      :root { color-scheme: light; --bg: #f8fafc; --accent: #1d4ed8; }
+      @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { color-scheme: dark; --bg: #08111f; --accent: #60a5fa; } }
+      :root[data-theme='dark'] { color-scheme: dark; --bg: #08111f; --accent: #60a5fa; }
+      body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; background: var(--bg); font-family: system-ui, sans-serif; }
+      main { padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 2rem; }
+      .lc-brand-symbol { width: 80px; height: 80px; overflow: visible; color: var(--accent); }
+      .lc-brand-arc, .lc-brand-letter { transform-origin: 32px 32px; }
+      .lc-brand-dot, .lc-brand-echo { transform-box: fill-box; transform-origin: center; }
+      .lc-brand-echo { opacity: 0; }
+      a { display: inline-block; padding: .75rem 1.25rem; color: var(--accent); border: 1px solid currentColor; border-radius: .5rem; text-decoration: none; }
+      a:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+      @media (prefers-reduced-motion: no-preference) {
+        .lc-brand-arc { stroke-dasharray: 100; animation: lc-launch-arc 3s cubic-bezier(.22, 1, .36, 1) infinite; }
+        .lc-brand-letter { animation: lc-launch-letter 3s cubic-bezier(.34, 1.56, .64, 1) infinite; }
+        .lc-brand-dot { animation: lc-launch-dot 3s cubic-bezier(.34, 1.56, .64, 1) infinite; }
+        .lc-brand-echo { animation: lc-launch-echo 3s ease-out infinite; }
+      }
+      @keyframes lc-launch-arc {
+        0%, 3%, 100% { stroke-dashoffset: 100; transform: rotate(-55deg) scale(.85); opacity: 0; }
+        10% { opacity: 1; }
+        27%, 75% { stroke-dashoffset: 0; transform: rotate(0) scale(1); opacity: 1; }
+        94% { stroke-dashoffset: 0; transform: rotate(0) scale(.95); opacity: 0; }
+      }
+      @keyframes lc-launch-letter {
+        0%, 12%, 100% { transform: translate(-5px, 13px) rotate(-12deg); opacity: 0; }
+        31%, 75% { transform: translate(0, 0) rotate(0); opacity: 1; }
+        94% { transform: translate(0, 2px) rotate(0); opacity: 0; }
+      }
+      @keyframes lc-launch-dot {
+        0%, 25%, 100% { transform: translate(-9px, -12px) scale(.1); opacity: 0; }
+        42%, 75% { transform: translate(0, 0) scale(1); opacity: 1; }
+        94% { transform: translate(0, 0) scale(.95); opacity: 0; }
+      }
+      @keyframes lc-launch-echo {
+        0%, 32% { transform: scale(.8); opacity: 0; }
+        36% { opacity: .5; }
+        52%, 100% { transform: scale(2.4); opacity: 0; }
+      }
+    </style>
+    <script>
+      try {
+        const theme = localStorage.getItem('lawcast-theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch { /* Storage restrictions must not prevent launch. */ }
+    </script>
+  </head>
+  <body>
+    <main data-testid="pwa-loading-page" aria-label="LawCast 불러오는 중">
+      <div role="status" aria-label="불러오는 중">
+        <svg class="lc-brand-symbol" viewBox="0 0 64 64" aria-hidden="true" data-testid="pwa-loading-symbol">
+          <path class="lc-brand-arc" d="M48 13a25 25 0 1 0 0 38" pathLength="100" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" />
+          <path class="lc-brand-letter" d="M23 24v17h13" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+          <circle class="lc-brand-echo" cx="51" cy="32" r="6" fill="none" stroke="currentColor" stroke-width="1.5" />
+          <circle class="lc-brand-dot" cx="51" cy="32" r="6" fill="currentColor" />
+        </svg>
+      </div>
+      <a href="/" data-testid="pwa-loading-retry">다시 시도</a>
+    </main>
+    <script>
+      const retry = document.querySelector('[data-testid="pwa-loading-retry"]');
+      const destination = '/' + location.search + location.hash;
+      retry.href = destination;
+      let started = false;
+      const launch = () => {
+        if (started) return;
+        started = true;
+        location.replace(destination);
+      };
+      // Animation frames alone can run before first paint. Wait for the actual
+      // contentful paint so a pending navigation cannot suppress the local screen.
+      if (typeof PerformanceObserver !== 'undefined' && PerformanceObserver.supportedEntryTypes.includes('paint')) {
+        const observer = new PerformanceObserver((list) => {
+          if (list.getEntries().some((entry) => entry.name === 'first-contentful-paint')) {
+            observer.disconnect();
+            setTimeout(launch, 0);
+          }
+        });
+        observer.observe({ type: 'paint', buffered: true });
+      }
+      // Hidden windows and browsers without paint timing must still launch.
+      setTimeout(launch, 1000);
+    </script>
+  </body>
+</html>
