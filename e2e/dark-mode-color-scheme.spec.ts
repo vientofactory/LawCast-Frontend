@@ -183,9 +183,9 @@ test.describe('Auto Dark Mode + color-scheme conflict prevention', () => {
 		const themeToggle = page.getByRole('switch', { name: /테마로 전환/ });
 		await expect(themeToggle).toBeVisible();
 
-		await themeToggle.click();
-
 		await expect(async () => {
+			// SSR controls can be visible before hydration attaches their handlers.
+			if ((await getDataTheme(page)) === initialTheme) await themeToggle.click();
 			const newTheme = await getDataTheme(page);
 			const colorScheme = await getComputedColorScheme(page);
 			expect(newTheme).not.toBe(initialTheme);

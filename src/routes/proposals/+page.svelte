@@ -661,7 +661,14 @@
 							<FontAwesomeIcon icon={faDatabase} class="lc-text-info mr-2 h-4 w-4" />
 							상세 데이터
 						</h2>
-						<div class="table-scroll-wrapper">
+						<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable tables need a named keyboard focus target.) -->
+						<div
+							class="table-scroll-wrapper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+							tabindex="0"
+							role="region"
+							aria-label="발의 통계 표"
+							data-testid="proposals-table-scroll"
+						>
 							<table class="w-full text-sm">
 								<thead class="table-scroll-thead">
 									<tr class="border-b border-[var(--lc-border-soft)]">

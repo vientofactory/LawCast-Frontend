@@ -364,3 +364,18 @@ MIT License
 GitHub `production` 환경은 `main`만 허용합니다. 이 환경의 Secret `CLOUDFLARE_API_TOKEN`에는 해당 Cloudflare 계정의 Pages 편집 권한만 부여합니다. 저장소 Variables에는 `CLOUDFLARE_ACCOUNT_ID`와 운영 중인 `PUBLIC_GTM_CONTAINER_ID`를 설정합니다. 기존 Pages의 암호화된 런타임 변수는 유지하며 조회 시 반환되는 빈 값으로 다시 저장하지 않습니다.
 
 Cloudflare의 Git 연결을 해제한 뒤에도 프로젝트와 도메인은 그대로 사용합니다. Preview를 `none`으로 설정하는 것만으로는 skipped 기록이 남으므로 Git 이벤트 연결 해제가 필요합니다. 배포 검증 시 임시 비-main 브랜치 푸시 전후의 Pages 기록을 비교합니다.
+
+## Lighthouse 및 웹 바이탈 회귀 검사
+
+`npm run audit:lighthouse`는 프로덕션 공개 페이지를 모바일 조건에서 각각 3회 순차 측정하고 `lighthouse-reports/`에 원본 JSON/HTML과 중앙값 요약을 저장합니다. Chrome이 설치되어 있어야 합니다.
+
+```bash
+npm run audit:lighthouse
+npm run audit:lighthouse -- --form-factor desktop
+npm run audit:lighthouse -- --url http://127.0.0.1:4196 --routes /,/notices --runs 3 --assert
+npm run test:e2e:web-vitals
+```
+
+`--assert`는 페이지별 중앙값 LCP 2,500ms, TBT 200ms, CLS 0.1을 초과하면 실패합니다. 측정 실패와 HTTP 오류도 실패로 처리하며, 감점 항목을 숨기지 않습니다. `/status`, `/webhook`은 의도적으로 검색에서 제외하므로 SEO의 크롤링 감점을 정책과 구분해 해석해야 합니다. Cloudflare와 외부 서비스가 삽입한 스크립트의 감점은 로컬 빌드에서 재현되지 않을 수 있습니다. 비교할 때는 같은 코드·데이터·브라우저·네트워크 조건을 사용하고 다른 브라우저 테스트를 동시에 실행하지 마세요.
+
+웹 바이탈 Playwright 설정은 고정 mock 데이터로 Node 프로덕션 빌드를 실행해 모바일/데스크톱, 밝은/어두운 테마의 접근성, 외부 폰트 차단 시 렌더링, Discord 위젯의 명시적 로딩과 공간 보존, 테마 전환 직후 대비, CLS 및 입력 이벤트 지연을 검사합니다. 이미 실행 중인 동등한 빌드는 `WEB_VITALS_BASE_URL`로 지정할 수 있습니다. 입력 검사는 실험실 Event Timing 표본이며 실제 이용자 INP의 75백분위 측정을 대체하지 않습니다.

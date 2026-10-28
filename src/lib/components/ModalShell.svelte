@@ -43,8 +43,9 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
+	<!-- Keep active modal actions above consent and installation prompts. -->
 	<div
-		class="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 p-4"
+		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4"
 		role="presentation"
 		transition:fade={{ duration: 180 }}
 	>

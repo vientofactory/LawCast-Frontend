@@ -31,10 +31,7 @@
 	}
 </script>
 
-<section
-	class="lc-panel-card rounded-md border p-5 transition-all duration-300"
-	aria-label="최근 입법예고"
->
+<div class="lc-panel-card rounded-md border p-5 transition-all duration-300">
 	<div class="mb-6 flex items-center justify-between">
 		<h2 class="lc-text-primary flex items-center text-xl font-bold tracking-tight">
 			<div class="lc-icon-accent-success mr-3 rounded-lg p-2">
@@ -181,7 +178,7 @@
 			</div>
 		{/if}
 	{/if}
-</section>
+</div>
 
 <style>
 	.line-clamp-2 {

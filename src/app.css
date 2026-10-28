@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './lib/styles/pretendard.css';
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -161,9 +162,6 @@ body {
 	min-height: 100vh;
 	background: var(--lc-body-bg);
 	color: var(--lc-text-primary);
-	transition:
-		background-color 180ms ease,
-		color 180ms ease;
 }
 
 .lc-page-shell {
@@ -194,11 +192,10 @@ body {
 .lc-panel-card,
 .lc-panel-subtle,
 .lc-panel-inset {
+	/* Deferred panels must change foreground and background together when the theme changes. */
 	transition:
-		background-color 180ms ease,
 		border-color 180ms ease,
-		box-shadow 180ms ease,
-		color 180ms ease;
+		box-shadow 180ms ease;
 }
 
 .lc-panel-hero {

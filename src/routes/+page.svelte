@@ -25,6 +25,7 @@
 
 	let currentUrl = $state(page.url);
 	let isQuickSearchLoading = $state(false);
+	let showDiscordWidget = $state(false);
 
 	beforeNavigate(({ to }) => {
 		isQuickSearchLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
@@ -185,16 +186,14 @@
 
 						<section aria-labelledby="home-status-heading" data-testid="home-status-region">
 							<h2 id="home-status-heading" class="sr-only">플랫폼 핵심 상태</h2>
-							<div class="lc-home-signal-grid" role="list" aria-label="플랫폼 핵심 상태">
-								<article
+							<ul class="lc-home-signal-grid" aria-label="플랫폼 핵심 상태">
+								<li
 									class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
-									role="listitem"
 									data-testid="home-status-card-archive"
 								>
 									<a
 										href="/notices"
 										class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
-										aria-label="전체 입법예고 조회 페이지로 이동"
 										data-testid="home-status-link-archive"
 									>
 										<div class="lc-home-signal-head">
@@ -218,17 +217,15 @@
 											클릭해서 자세히 보기
 										</p>
 									</a>
-								</article>
+								</li>
 
-								<article
+								<li
 									class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
-									role="listitem"
 									data-testid="home-status-card-changes"
 								>
 									<a
 										href="/notices/changes"
 										class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
-										aria-label="변경 추적 페이지로 이동"
 										data-testid="home-status-link-changes"
 									>
 										<div class="lc-home-signal-head">
@@ -252,13 +249,9 @@
 											클릭해서 자세히 보기
 										</p>
 									</a>
-								</article>
+								</li>
 
-								<article
-									class="lc-home-signal-card"
-									role="listitem"
-									data-testid="home-status-card-sync"
-								>
+								<li class="lc-home-signal-card" data-testid="home-status-card-sync">
 									<div class="lc-home-signal-head">
 										<span class="lc-home-signal-icon" aria-hidden="true">
 											<FontAwesomeIcon icon={faClock} class="h-3.5 w-3.5" />
@@ -267,13 +260,9 @@
 									</div>
 									<p class="lc-home-signal-value">{lastUpdatedLabel}</p>
 									<p class="lc-home-signal-desc">최근에 새로 가져온 시각</p>
-								</article>
+								</li>
 
-								<article
-									class="lc-home-signal-card"
-									role="listitem"
-									data-testid="home-status-card-review"
-								>
+								<li class="lc-home-signal-card" data-testid="home-status-card-review">
 									<div class="lc-home-signal-head">
 										<span class="lc-home-signal-icon" aria-hidden="true">
 											<FontAwesomeIcon icon={faRobot} class="h-3.5 w-3.5" />
@@ -282,8 +271,8 @@
 									</div>
 									<p class="lc-home-signal-value">{aiReviewModeLabel}</p>
 									<p class="lc-home-signal-desc">검색 결과에서 원문과 요약을 함께 보기</p>
-								</article>
-							</div>
+								</li>
+							</ul>
 						</section>
 					</div>
 
@@ -332,7 +321,7 @@
 									/>
 									<button
 										type="submit"
-										aria-label="검색"
+										aria-label="통합 검색"
 										title="검색"
 										disabled={isQuickSearchLoading}
 										data-testid="home-search-submit"
@@ -412,7 +401,7 @@
 					<a
 						href="#recent-notices"
 						class="lc-home-scroll-cue mx-auto inline-flex flex-col items-center gap-2 pt-2 text-sm"
-						aria-label="최근 입법예고 섹션으로 이동"
+						aria-label="아래로 스크롤하세요! 최근 입법예고 섹션으로 이동"
 					>
 						<span class="lc-text-muted text-xs font-medium tracking-[0.14em]"
 							>아래로 스크롤하세요!</span
@@ -474,15 +463,34 @@
 									남길 수 있습니다. 운영 공지와 서비스 업데이트도 가장 빠르게 받아보세요.
 								</p>
 								{#if discordServerId}
-									<iframe
-										title="Discord Community Widget"
-										src={`https://discord.com/widget?id=${discordServerId}&theme=dark`}
-										width={350}
-										height={500}
-										allowtransparency
-										frameborder="0"
-										sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
-									></iframe>
+									<div
+										class="flex h-[500px] w-full max-w-[350px] items-center justify-center"
+										data-testid="discord-widget-region"
+									>
+										{#if showDiscordWidget}
+											<iframe
+												title="Discord 커뮤니티 위젯"
+												src={`https://discord.com/widget?id=${encodeURIComponent(discordServerId)}&theme=dark`}
+												width={350}
+												height={500}
+												class="h-full w-full border-0"
+												data-testid="discord-widget"
+												sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+											></iframe>
+										{:else}
+											<div class="space-y-3 text-center">
+												<p class="lc-text-secondary text-sm">
+													실시간 커뮤니티 정보를 보려면 위젯을 불러오세요.
+												</p>
+												<button
+													type="button"
+													class="lc-button-primary cursor-pointer rounded-lg px-4 py-3 text-sm font-semibold"
+													data-testid="discord-widget-load"
+													onclick={() => (showDiscordWidget = true)}>Discord 위젯 불러오기</button
+												>
+											</div>
+										{/if}
+									</div>
 								{/if}
 							</div>
 
@@ -491,7 +499,7 @@
 								target="_blank"
 								rel="noopener noreferrer"
 								class="lc-button-primary inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold sm:w-auto"
-								aria-label="LawCast 디스코드 커뮤니티 참여하기"
+								aria-label="디스코드 참여하기 — LawCast 커뮤니티"
 							>
 								<FontAwesomeIcon icon={faDiscord} class="h-4 w-4" />
 								디스코드 참여하기
