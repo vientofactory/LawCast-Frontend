@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
+import { BRAND_ARC, BRAND_LETTER, BRAND_DOT } from '../src/lib/brand-symbol.js';
 
 async function openApp(page: Page) {
 	await page.goto('/');
@@ -238,7 +239,7 @@ test.describe('PWA', () => {
 		});
 		await openApp(page);
 		const names = await page.evaluate(() => caches.keys());
-		expect(names).toContain('lawcast-pwa-v3');
+		expect(names).toContain('lawcast-pwa-v5');
 		expect(names).toContain('unrelated-cache');
 		expect(names).not.toContain('lawcast-pwa-v2');
 	});
@@ -312,7 +313,7 @@ test.describe('PWA', () => {
 		}
 		expect(manifest).toMatchObject({
 			id: '/',
-			start_url: '/',
+			start_url: '/pwa-start',
 			scope: '/',
 			display: 'standalone',
 			lang: 'ko'
@@ -365,6 +366,142 @@ test.describe('PWA', () => {
 		).toBe(1);
 	});
 
+	test('serves the launch document after platform HTML normalization', async ({ request }) => {
+		const response = await request.get('/pwa-start.html');
+		expect(response.status()).toBe(200);
+		expect(response.headers()['content-type']).toContain('text/html');
+		expect(await response.text()).toContain('data-testid="pwa-loading-page"');
+		if (process.env.PWA_CLOUDFLARE === '1')
+			expect(new URL(response.url()).pathname).toBe('/pwa-start');
+	});
+
+	test('loops the header symbol assembly smoothly and respects reduced motion', async ({
+		browser
+	}, testInfo) => {
+		// Disable only launch JavaScript so the standalone document stays available
+		// for deterministic CSS timeline checks without a replacement navigation.
+		const context = await browser.newContext({
+			javaScriptEnabled: false,
+			viewport: { width: 375, height: 812 }
+		});
+		try {
+			const page = await context.newPage();
+			await page.emulateMedia({ reducedMotion: 'no-preference' });
+			await page.goto(new URL('/pwa-start.html', testInfo.project.use.baseURL).href);
+			const symbol = page.getByTestId('pwa-loading-symbol');
+			await expect(symbol.locator('.lc-brand-arc')).toHaveAttribute('d', BRAND_ARC);
+			await expect(symbol.locator('.lc-brand-letter')).toHaveAttribute('d', BRAND_LETTER);
+			for (const [key, value] of Object.entries(BRAND_DOT)) {
+				await expect(symbol.locator('.lc-brand-dot')).toHaveAttribute(key, String(value));
+			}
+			await expect(page.locator('main')).toHaveText('다시 시도');
+			await expect(page.locator('main img, main h1, .spinner')).toHaveCount(0);
+			const bounds = await symbol.boundingBox();
+			const states: Record<number, string[]> = {};
+			for (const time of [0, 650, 1100, 1700, 2300, 2800, 3000, 4700]) {
+				states[time] = await symbol.evaluate((node, time) => {
+					for (const animation of node.getAnimations({ subtree: true })) {
+						animation.pause();
+						animation.currentTime = time;
+					}
+					return ['.lc-brand-arc', '.lc-brand-letter', '.lc-brand-dot'].map(
+						(part) => getComputedStyle(node.querySelector(part)!).opacity
+					);
+				}, time);
+				expect(await symbol.boundingBox()).toEqual(bounds);
+			}
+			expect(states[0]).toEqual(['0', '0', '0']);
+			expect(Number(states[650][0])).toBeGreaterThan(0.9);
+			expect(states[650][2]).toBe('0');
+			expect(Number(states[1100][2])).toBeGreaterThan(0);
+			expect(states[1700]).toEqual(['1', '1', '1']);
+			expect(Number(states[2800][0])).toBeLessThan(0.1);
+			expect(states[3000]).toEqual(states[0]);
+			expect(states[4700]).toEqual(states[1700]);
+			for (const colorScheme of ['light', 'dark'] as const) {
+				await page.emulateMedia({ colorScheme });
+				await page.screenshot({
+					path: testInfo.outputPath(`launch-symbol-${colorScheme}.png`),
+					animations: 'allow'
+				});
+			}
+			await page.emulateMedia({ reducedMotion: 'reduce' });
+			expect(await symbol.evaluate((node) => node.getAnimations({ subtree: true }).length)).toBe(0);
+			for (const part of ['.lc-brand-arc', '.lc-brand-letter', '.lc-brand-dot']) {
+				expect(await symbol.locator(part).evaluate((node) => getComputedStyle(node).opacity)).toBe(
+					'1'
+				);
+			}
+			await expect(page.getByTestId('pwa-loading-retry')).toBeVisible();
+		} finally {
+			await context.close();
+		}
+	});
+
+	test('paints the cached launch screen while the home response is delayed', async ({
+		page
+	}, testInfo) => {
+		await openApp(page);
+		await page.setViewportSize({ width: 375, height: 812 });
+		await page.evaluate(() => localStorage.setItem('lawcast-theme', 'dark'));
+		await page.emulateMedia({ reducedMotion: 'no-preference' });
+		const cdp = await page.context().newCDPSession(page);
+		// Locator assertions wait for pending navigation. Inspect the still-painted
+		// launch document directly while its replacement waits for HTTP headers.
+		const launchState = async () => {
+			const result = await cdp.send('Runtime.evaluate', {
+				expression: `JSON.stringify({
+					text: document.querySelector('main')?.textContent.trim(),
+					theme: document.documentElement.dataset.theme,
+					background: document.body && getComputedStyle(document.body).backgroundColor,
+					animation: document.querySelector('.lc-brand-arc') && getComputedStyle(document.querySelector('.lc-brand-arc')).animationName,
+					retryHidden: document.querySelector('[data-testid="pwa-loading-retry"]')?.hidden
+				})`,
+				returnByValue: true
+			});
+			return result.result.value ? JSON.parse(result.result.value) : {};
+		};
+		const response = await page.goto('/pwa-start?pwa-test=slow#launch', { waitUntil: 'commit' });
+		expect(response!.fromServiceWorker()).toBeTruthy();
+		await expect.poll(launchState).toMatchObject({
+			text: '다시 시도',
+			theme: 'dark',
+			background: 'rgb(8, 17, 31)',
+			animation: 'lc-launch-arc',
+			retryHidden: false
+		});
+		await new Promise((resolve) => setTimeout(resolve, 1700));
+		const assembled = await cdp.send('Page.captureScreenshot');
+		await new Promise((resolve) => setTimeout(resolve, 1500));
+		const screenshot = await cdp.send('Page.captureScreenshot');
+		expect(screenshot.data).not.toBe(assembled.data);
+		writeFileSync(
+			testInfo.outputPath('cached-launch-dark-mobile.png'),
+			Buffer.from(screenshot.data, 'base64')
+		);
+		await expect(page).toHaveURL('/?pwa-test=slow#launch', { timeout: 25_000 });
+		await expect(page.getByTestId('app-route-container')).toBeVisible();
+		await expect(page.getByTestId('pwa-loading-page')).toHaveCount(0);
+		await expect(page.locator('head title')).toHaveCount(1);
+		await page.setViewportSize({ width: 1280, height: 800 });
+		await page.getByTestId('nav-link-webhook').click();
+		await expect(page).toHaveURL('/webhook');
+	});
+
+	test('launches from cache offline and recovers with the existing retry', async ({
+		page,
+		context
+	}) => {
+		await openApp(page);
+		await context.setOffline(true);
+		const response = await page.goto('/pwa-start', { waitUntil: 'commit' });
+		expect(response!.fromServiceWorker()).toBeTruthy();
+		await expect(page.getByTestId('pwa-offline-page')).toBeVisible();
+		await context.setOffline(false);
+		await page.getByTestId('pwa-offline-retry').click();
+		await expect(page.getByTestId('app-route-container')).toBeVisible();
+	});
+
 	test('shows an offline fallback on deep navigation and recovers online', async ({
 		page,
 		context
@@ -381,7 +518,7 @@ test.describe('PWA', () => {
 		await expect(page.getByTestId('app-route-container')).toBeVisible();
 	});
 
-	test('caches only offline assets and leaves API failures as network failures', async ({
+	test('caches only launch and offline assets and leaves API failures as network failures', async ({
 		page,
 		context
 	}) => {
@@ -403,7 +540,8 @@ test.describe('PWA', () => {
 			'/brand/v2/badge-96.png',
 			'/brand/v2/icon-192.png',
 			'/brand/v2/icon-512.png',
-			'/offline.html'
+			'/offline.html',
+			'/pwa-start.html'
 		]);
 		await context.setOffline(true);
 		expect(

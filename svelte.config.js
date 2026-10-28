@@ -16,7 +16,7 @@ const adapter =
 		: adapterCloudflare({
 				routes: {
 					// Pages redirects HTML assets to extensionless URLs before routing.
-					exclude: ['<all>', '/offline']
+					exclude: ['<all>', '/offline', '/pwa-start']
 				}
 			});
 
