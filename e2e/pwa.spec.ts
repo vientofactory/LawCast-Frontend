@@ -239,7 +239,7 @@ test.describe('PWA', () => {
 		});
 		await openApp(page);
 		const names = await page.evaluate(() => caches.keys());
-		expect(names).toContain('lawcast-pwa-v6');
+		expect(names).toContain('lawcast-pwa-v7');
 		expect(names).toContain('unrelated-cache');
 		expect(names).not.toContain('lawcast-pwa-v2');
 	});
@@ -432,7 +432,22 @@ test.describe('PWA', () => {
 					'1'
 				);
 			}
-			await expect(page.getByTestId('pwa-loading-retry')).toBeVisible();
+			const retry = page.getByTestId('pwa-loading-retry');
+			await expect(retry).toBeHidden();
+			await expect(page.getByRole('link', { name: '다시 시도' })).toHaveCount(0);
+			await retry.evaluate((node) => {
+				const animation = node.getAnimations()[0];
+				animation.pause();
+				animation.currentTime = 14999;
+			});
+			await expect(retry).toBeHidden();
+			const reservedBounds = await symbol.boundingBox();
+			await retry.evaluate((node) => {
+				node.getAnimations()[0].currentTime = 15000;
+			});
+			await expect(retry).toBeVisible();
+			await expect(page.getByRole('link', { name: '다시 시도' })).toHaveCount(1);
+			expect(await symbol.boundingBox()).toEqual(reservedBounds);
 		} finally {
 			await context.close();
 		}
@@ -455,7 +470,7 @@ test.describe('PWA', () => {
 					theme: document.documentElement.dataset.theme,
 					background: document.body && getComputedStyle(document.body).backgroundColor,
 					animation: document.querySelector('.lc-brand-arc') && getComputedStyle(document.querySelector('.lc-brand-arc')).animationName,
-					retryHidden: document.querySelector('[data-testid="pwa-loading-retry"]')?.hidden
+					retryHidden: getComputedStyle(document.querySelector('[data-testid="pwa-loading-retry"]')).visibility === 'hidden'
 				})`,
 				returnByValue: true
 			});
@@ -468,7 +483,7 @@ test.describe('PWA', () => {
 			theme: 'dark',
 			background: 'rgb(8, 17, 31)',
 			animation: 'lc-launch-arc',
-			retryHidden: false
+			retryHidden: true
 		});
 		await new Promise((resolve) => setTimeout(resolve, 1700));
 		const assembled = await cdp.send('Page.captureScreenshot');
@@ -479,6 +494,7 @@ test.describe('PWA', () => {
 			testInfo.outputPath('cached-launch-dark-mobile.png'),
 			Buffer.from(screenshot.data, 'base64')
 		);
+		await expect(page.getByTestId('pwa-loading-retry')).toBeVisible({ timeout: 16_000 });
 		await expect(page).toHaveURL('/?pwa-test=slow#launch', { timeout: 25_000 });
 		await expect(page.getByTestId('app-route-container')).toBeVisible();
 		await expect(page.getByTestId('pwa-loading-page')).toHaveCount(0);
@@ -522,11 +538,13 @@ test.describe('PWA', () => {
 			await new Promise((resolve) => setTimeout(resolve, 2300));
 			expect((await animationTime()) - first).toBeGreaterThan(2100);
 			await expect(page).toHaveURL('/pwa-start?pwa-test=assets-slow');
+			await expect(page.getByTestId('pwa-loading-retry')).toBeHidden();
 			const response = await navigation;
 			expect(response.status()).toBe(200);
 			expect(response.headers()['content-security-policy']).toBe("frame-ancestors 'self'");
 			expect(response.headers()['x-pwa-test-target']).toBe(target);
 			await expect(page.getByTestId('app-route-container')).toBeVisible();
+			await expect(page.getByTestId('pwa-loading-retry')).toHaveCount(0);
 			const stats = await (await request.get('/__pwa-test/state')).json();
 			const styles = stats.requests.filter((entry: { style: boolean }) => entry.style);
 			expect(styles.length).toBeGreaterThan(0);
@@ -536,8 +554,16 @@ test.describe('PWA', () => {
 				expect(committedAt).toBeGreaterThanOrEqual(entry.finish);
 			}
 			expect(
-				stats.requests.filter((entry: { path: string }) => entry.path === target)
+				stats.requests.filter(
+					(entry: { path: string; mode: string }) => entry.path === target && entry.mode === 'cors'
+				)
 			).toHaveLength(1);
+			expect(
+				stats.requests.filter(
+					(entry: { path: string; mode: string }) =>
+						entry.path === target && entry.mode === 'navigate'
+				)
+			).toHaveLength(0);
 			const storedPaths = await page.evaluate(async () => {
 				const stores = await Promise.all((await caches.keys()).map((name) => caches.open(name)));
 				return (await Promise.all(stores.map((store) => store.keys())))
@@ -549,7 +575,10 @@ test.describe('PWA', () => {
 			await page.reload();
 			const replay = await (await request.get('/__pwa-test/state')).json();
 			expect(
-				replay.requests.filter((entry: { path: string }) => entry.path === target)
+				replay.requests.filter(
+					(entry: { path: string; mode: string }) =>
+						entry.path === target && entry.mode === 'navigate'
+				)
 			).toHaveLength(1);
 		} finally {
 			await request.post('/__pwa-test/state', { data: {} });

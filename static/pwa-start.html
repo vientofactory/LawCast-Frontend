@@ -19,6 +19,9 @@
       .lc-brand-echo { opacity: 0; }
       a { display: inline-block; padding: .75rem 1.25rem; color: var(--accent); border: 1px solid currentColor; border-radius: .5rem; text-decoration: none; }
       a:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+      /* Reserve space and retain this functional delay with reduced motion. */
+      .lc-retry { visibility: hidden; animation: lc-reveal-retry 0s 15s forwards; }
+      @keyframes lc-reveal-retry { to { visibility: visible; } }
       @media (prefers-reduced-motion: no-preference) {
         .lc-brand-arc { stroke-dasharray: 100; animation: lc-launch-arc 3s cubic-bezier(.22, 1, .36, 1) infinite; }
         .lc-brand-letter { animation: lc-launch-letter 3s cubic-bezier(.34, 1.56, .64, 1) infinite; }
@@ -64,7 +67,7 @@
           <circle class="lc-brand-dot" cx="51" cy="32" r="6" fill="currentColor" />
         </svg>
       </div>
-      <a href="/" data-testid="pwa-loading-retry">다시 시도</a>
+      <a href="/" class="lc-retry" data-testid="pwa-loading-retry">다시 시도</a>
     </main>
     <script>
       const retry = document.querySelector('[data-testid="pwa-loading-retry"]');
