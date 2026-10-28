@@ -28,6 +28,18 @@ for (const theme of ['light', 'dark'] as const) {
 			await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
 			await page.goto(path);
 			await expect(page.getByTestId('cookie-consent-banner')).toBeVisible();
+			// Expand deferred subtrees before scanning their computed colors.
+			// Native reveal and theme changes are covered separately below.
+			await page.addStyleTag({
+				content:
+					'.lc-defer-render, .lc-defer-render-sm, .lc-defer-render-lg { content-visibility: visible !important; }'
+			});
+			await page.evaluate(
+				() =>
+					new Promise<void>((resolve) =>
+						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+					)
+			);
 			const results = await new AxeBuilder({ page })
 				.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'])
 				.analyze();
@@ -66,6 +78,47 @@ test('renders content without waiting for external font CSS', async ({ page }) =
 	}
 });
 
+test('paints server-rendered content while hydration and analytics scripts are pending', async ({
+	page
+}) => {
+	let releaseScripts!: () => void;
+	const scriptsGate = new Promise<void>((resolve) => {
+		releaseScripts = resolve;
+	});
+	const pendingScripts: string[] = [];
+	await page.route(/\/_app\/immutable\/.*\.js|www\.googletagmanager\.com\//, async (route) => {
+		pendingScripts.push(route.request().url());
+		await scriptsGate;
+		await route.abort();
+	});
+	await page.addInitScript(() => {
+		Object.assign(window, { __pendingScriptLcp: 0 });
+		new PerformanceObserver((list) => {
+			Object.assign(window, { __pendingScriptLcp: list.getEntries().at(-1)?.startTime ?? 0 });
+		}).observe({ type: 'largest-contentful-paint', buffered: true });
+	});
+	try {
+		await page.goto('/license', { waitUntil: 'commit' });
+		await expect(page.locator('pre.lc-code-block')).toBeVisible();
+		await expect.poll(() => pendingScripts.some((url) => url.includes('/_app/'))).toBe(true);
+		await expect
+			.poll(() => pendingScripts.some((url) => url.includes('googletagmanager')))
+			.toBe(true);
+		await expect
+			.poll(() =>
+				page.evaluate(() => (window as Window & { __pendingScriptLcp: number }).__pendingScriptLcp)
+			)
+			.toBeGreaterThan(0);
+		const navigation = await page.evaluate(() => {
+			const timing = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+			return { load: timing.loadEventEnd };
+		});
+		expect(navigation).toEqual({ load: 0 });
+	} finally {
+		releaseScripts();
+	}
+});
+
 test('loads the Discord widget only on request and reserves its layout space', async ({ page }) => {
 	const discordRequests: string[] = [];
 	await page.route('https://discord.com/**', (route) => {
@@ -100,6 +153,18 @@ test('keeps offscreen text legible immediately after changing theme', async ({ p
 		selector: '#recent-discussions h2.lc-text-primary'
 	});
 	expect(heading.ratio).toBeGreaterThanOrEqual(3);
+});
+
+test('keeps a deferred primary action legible on reveal and theme change', async ({ page }) => {
+	await page.emulateMedia({ colorScheme: 'light' });
+	await page.goto('/');
+	await expect(page.getByTestId('cookie-consent-banner')).toBeVisible();
+	await page.getByTestId('discord-widget-load').scrollIntoViewIfNeeded();
+	const target = { selector: '[data-testid="discord-widget-load"]' };
+	expect((await measureContrast(page, target)).ratio).toBeGreaterThanOrEqual(4.5);
+	await page.emulateMedia({ colorScheme: 'dark' });
+	await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+	expect((await measureContrast(page, target)).ratio).toBeGreaterThanOrEqual(4.5);
 });
 
 test('keeps layout stable and responds promptly to a search input interaction', async ({

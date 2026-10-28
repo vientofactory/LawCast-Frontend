@@ -372,10 +372,17 @@ Cloudflare의 Git 연결을 해제한 뒤에도 프로젝트와 도메인은 그
 ```bash
 npm run audit:lighthouse
 npm run audit:lighthouse -- --form-factor desktop
+npm run audit:lighthouse -- --routes /license,/status --runs 6 --save-assets --assert-every-run
+npm run audit:lighthouse -- --routes /license,/status --runs 6 --browser-profile render-document --output-dir lighthouse-reports/render-document
+npm run audit:lighthouse -- --routes /license,/status --throttling-method devtools --output-dir lighthouse-reports/devtools
 npm run audit:lighthouse -- --url http://127.0.0.1:4196 --routes /,/notices --runs 3 --assert
 npm run test:e2e:web-vitals
 ```
 
 `--assert`는 페이지별 중앙값 LCP 2,500ms, TBT 200ms, CLS 0.1을 초과하면 실패합니다. 측정 실패와 HTTP 오류도 실패로 처리하며, 감점 항목을 숨기지 않습니다. `/status`, `/webhook`은 의도적으로 검색에서 제외하므로 SEO의 크롤링 감점을 정책과 구분해 해석해야 합니다. Cloudflare와 외부 서비스가 삽입한 스크립트의 감점은 로컬 빌드에서 재현되지 않을 수 있습니다. 비교할 때는 같은 코드·데이터·브라우저·네트워크 조건을 사용하고 다른 브라우저 테스트를 동시에 실행하지 마세요.
 
-웹 바이탈 Playwright 설정은 고정 mock 데이터로 Node 프로덕션 빌드를 실행해 모바일/데스크톱, 밝은/어두운 테마의 접근성, 외부 폰트 차단 시 렌더링, Discord 위젯의 명시적 로딩과 공간 보존, 테마 전환 직후 대비, CLS 및 입력 이벤트 지연을 검사합니다. 이미 실행 중인 동등한 빌드는 `WEB_VITALS_BASE_URL`로 지정할 수 있습니다. 입력 검사는 실험실 Event Timing 표본이며 실제 이용자 INP의 75백분위 측정을 대체하지 않습니다.
+요약에는 중앙값과 함께 p75, 최댓값, 예산 초과 횟수를 저장합니다. `--assert-every-run`은 한 번의 예산 초과도 실패로 처리합니다. `observed`는 실제 수집된 브라우저 타이밍이고 기본 LCP는 Lighthouse의 slow 4G 시뮬레이션 값이므로 서로 구분해 해석하세요. 이 표본의 p75는 실제 사용자 Core Web Vitals의 p75가 아닙니다. `--save-assets`는 네트워크 로그와 추가 compositor/Viz 카테고리를 포함한 Chrome trace를 보관합니다. 로그에는 URL 등의 민감 정보가 포함될 수 있으므로 공개 전 확인하세요.
+
+기본 `stock`은 chrome-launcher의 원래 플래그를 보존합니다. `render-document`는 그중 `--disable-features`의 `RenderDocument` 항목만 제거하는 원인 분리용 대조군입니다. [Lighthouse 이슈 #17148](https://github.com/GoogleChrome/lighthouse/issues/17148)과 유사한 첫 표시 지연을 구별하기 위한 옵션이며, 사이트 패치나 공식 PSI 결과를 의미하지 않습니다. 원본과 대조군은 별도 출력 폴더에 저장하세요. `--throttling-method devtools`는 실제로 네트워크와 CPU를 제한해 측정하므로 기본 시뮬레이션 점수와 직접 비교할 수 없습니다.
+
+웹 바이탈 Playwright 설정은 고정 mock 데이터로 Node 프로덕션 빌드를 실행해 모바일/데스크톱, 밝은/어두운 테마의 접근성, 외부 폰트 차단 시 렌더링, hydration·분석 스크립트가 대기 중일 때 SSR 콘텐츠의 LCP 발생, Discord 위젯의 명시적 로딩과 공간 보존, 테마 전환 직후 대비, CLS 및 입력 이벤트 지연을 검사합니다. 이미 실행 중인 동등한 빌드는 `WEB_VITALS_BASE_URL`로 지정할 수 있습니다. 입력 검사는 실험실 Event Timing 표본이며 실제 이용자 INP의 75백분위 측정을 대체하지 않습니다.

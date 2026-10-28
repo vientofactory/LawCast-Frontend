@@ -33,6 +33,8 @@ jobs:
         run: npm run lint && git diff --exit-code
       - name: Type check
         run: npm run check
+      - name: Test Lighthouse summaries
+        run: node --test scripts/lighthouse-summary.test.mjs
       - name: Install Chromium
         run: npx --no-install playwright install --with-deps chromium
       - name: Test production build
