@@ -21,6 +21,7 @@ import type {
 	SemanticSearchResponse,
 	SemanticEngineHealthResponse,
 	SystemStats,
+	HomeStats,
 	SystemHealth,
 	ApiResponse,
 	AdminNoticeListResponse,
@@ -578,6 +579,11 @@ export async function getSystemStats(customFetch?: Fetch): Promise<SystemStats> 
 	}
 }
 
+/** Fetches only the statistics rendered by the home page, without a health probe. */
+export async function getHomeStats(customFetch?: Fetch): Promise<HomeStats> {
+	return request<HomeStats>('/stats?view=home', { method: 'GET' }, customFetch);
+}
+
 /**
  * Fetches system health status.
  */
@@ -1036,6 +1042,7 @@ export const apiClient = {
 	getRecentNoticeChanges,
 	getComparableNoticeChangesSummary,
 	getSystemStats,
+	getHomeStats,
 	getSystemHealth,
 	getAdminNotices,
 	getTopAdminNotice,

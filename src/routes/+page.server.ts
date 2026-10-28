@@ -79,7 +79,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			.then(toHomeQuickKeywords)
 			.catch(() => ({ items: [], updatedAt: null, sourceNoticeCount: 0 })),
 		apiClient
-			.getSystemStats(fetch)
+			.getHomeStats(fetch)
 			.then(toHomeStats)
 			.catch(() => toHomeStats(DEFAULT_STATS)),
 		apiClient

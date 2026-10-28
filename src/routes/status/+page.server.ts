@@ -20,7 +20,8 @@ function pickStatusStats(stats: SystemStats) {
 	};
 }
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async ({ fetch, depends }) => {
+	depends('app:system-stats');
 	if (isDiffchainUiMockEnabled()) {
 		return {
 			stats: getMockSystemStats(),

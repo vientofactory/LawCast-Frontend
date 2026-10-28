@@ -5,7 +5,7 @@
 	import Alert from '$lib/components/Alert.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowsRotate,
@@ -43,7 +43,7 @@
 	let countdown = $state(0);
 	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
-		() => invalidateAll(),
+		() => invalidate('app:system-stats'),
 		(v) => {
 			countdown = v;
 		},
@@ -436,7 +436,7 @@
 		}
 		isRefreshing = true;
 		try {
-			await invalidateAll();
+			await invalidate('app:system-stats');
 		} finally {
 			lastRefreshAt = Date.now();
 			isRefreshing = false;

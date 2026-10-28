@@ -439,6 +439,13 @@ export interface IsDoneSyncStatus {
 	lastError: string | null;
 }
 
+export interface HomeStats {
+	archive: { count: number };
+	cache: { lastUpdated: string | null };
+	changeTracking?: { comparableEventTotal: number };
+	aiSummaryEnabled?: boolean;
+}
+
 export interface SystemStats {
 	webhooks: WebhookStats;
 	webPush?: WebPushStats;
