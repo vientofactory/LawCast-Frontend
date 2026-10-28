@@ -17,7 +17,13 @@ createServer(async (incoming, outgoing) => {
 		return;
 	}
 	const style = url.pathname.startsWith('/_app/immutable/assets/') && url.pathname.endsWith('.css');
-	const record = { path: incoming.url, style, start: Date.now(), finish: null };
+	const record = {
+		path: incoming.url,
+		mode: incoming.headers['sec-fetch-mode'],
+		style,
+		start: Date.now(),
+		finish: null
+	};
 	requests.push(record);
 	outgoing.on('finish', () => {
 		record.finish = Date.now();
