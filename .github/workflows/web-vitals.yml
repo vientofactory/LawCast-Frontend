@@ -39,3 +39,5 @@ jobs:
         run: npx --no-install playwright install --with-deps chromium
       - name: Test production build
         run: npm run test:e2e:web-vitals
+      - name: Test SSR API consumers
+        run: npx --no-install playwright test --config playwright-configs/playwright.consumers.config.ts
