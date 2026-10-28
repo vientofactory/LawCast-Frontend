@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Wand sparkle loading-animation tests (flag-gated, same as semantic-search.spec.ts).
+ * Open Signal loading-animation tests (flag-gated, same as semantic-search.spec.ts).
  *
  * The search API call itself is SSR (`+page.server.ts` runs it inside handleFetch), so the
  * route layer cannot intercept `/api/notices/semantic-search` directly. The observable
@@ -79,10 +79,65 @@ test.describe('Semantic Search loading animation', () => {
 		!semanticEnabled,
 		'semantic search tests require E2E_SEMANTIC_SEARCH=1 (dedicated config).'
 	);
+	test.beforeEach(async ({ page }) => {
+		await page.addInitScript(() => localStorage.setItem('lawcast-cookie-consent', 'declined'));
+	});
 
-	test('first search shows the wand sparkle stage mid-request and clears it once results render', async ({
+	test.describe('Touch keyboard dismissal', () => {
+		test.use({ hasTouch: true, isMobile: true, viewport: { width: 375, height: 812 } });
+
+		for (const target of [
+			{ path: '/notices', input: 'notices-search-input' },
+			{ path: '/notices/semantic-search', input: 'semantic-search-input' }
+		]) {
+			test(`releases input focus before requesting results on ${target.path}`, async ({ page }) => {
+				await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+				const hydrated = watchEngineHealth(page);
+				await page.goto(target.path);
+				await hydrated;
+				const input = page.getByTestId(target.input);
+				await input.fill('보호');
+				await expect(input).toBeFocused();
+				let release!: () => void;
+				const pending = new Promise<void>((resolve) => {
+					release = resolve;
+				});
+				await page.route(/\/notices(?:\/semantic-search)?\/__data\.json/, async (route) => {
+					await pending;
+					await route.fallback();
+				});
+				try {
+					await input.press('Enter');
+					await expect(page.getByTestId('open-signal-loader')).toBeVisible();
+					await expect(input).not.toBeFocused();
+				} finally {
+					release();
+				}
+				await expect(page.getByTestId('open-signal-loader')).toHaveCount(0);
+				await expect(input).not.toBeFocused();
+				await expect(input).toHaveValue('보호');
+			});
+		}
+
+		test('keeps focus available to correct an empty semantic query', async ({ page }) => {
+			await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+			const hydrated = watchEngineHealth(page);
+			await page.goto('/notices/semantic-search');
+			await hydrated;
+			const input = page.getByTestId('semantic-search-input');
+			await input.focus();
+			await input.press('Enter');
+			await expect(page.getByTestId('semantic-search-error')).toContainText(
+				'검색어를 입력해 주세요.'
+			);
+			await expect(input).toBeFocused();
+		});
+	});
+
+	test('first search shows the Open Signal stage mid-request and clears it once results render', async ({
 		page
-	}) => {
+	}, testInfo) => {
+		await page.setViewportSize({ width: 320, height: 740 });
 		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
 		const hydrated = watchEngineHealth(page);
 		await page.goto('/notices/semantic-search');
@@ -91,24 +146,42 @@ test.describe('Semantic Search loading animation', () => {
 
 		await fillAndSubmit(page, '전세 사기 피해자 구제');
 
-		// Mid-request: the stage scene and the button state are up (the rail-sweep
-		// track and sweep variant were removed by the loader simplification)...
-		await expect(page.getByTestId('wand-sparkle-stage')).toBeVisible();
+		// The loader replaces the results while the search is in flight.
+		await expect(page.getByTestId('open-signal-loader')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-loading-state')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-submit')).toContainText('검색 중');
 		await expect(page.getByTestId('semantic-search-submit')).toBeDisabled();
 		await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
 
-		// ...and the wand really animates rather than sitting there as a still
-		// frame. Svelte hash-prefixes scoped keyframe names in dev builds, so match
-		// the animation by name fragment instead of the literal string.
+		// Svelte scopes keyframe names, so match the stable name fragment.
 		expect(
-			await page.locator('.wand-sweep-group').evaluate((el) => getComputedStyle(el).animationName)
-		).toContain('wand-sweep');
+			await page.locator('.lc-signal-arc').evaluate((el) => getComputedStyle(el).animationName)
+		).toContain('lc-signal-draw');
+		const loader = page.getByTestId('open-signal-loader');
+		await loader.evaluate((el) => {
+			for (const animation of el.getAnimations({ subtree: true })) {
+				animation.pause();
+				animation.currentTime = 1500;
+			}
+		});
+		for (const theme of ['light', 'dark']) {
+			await page.evaluate((theme) => {
+				document.documentElement.dataset.theme = theme;
+			}, theme);
+			expect(await loader.evaluate((el) => getComputedStyle(el).color)).toBe(
+				theme === 'light' ? 'rgb(29, 78, 216)' : 'rgb(155, 185, 217)'
+			);
+			const bounds = (await loader.boundingBox())!;
+			expect(bounds.x).toBeGreaterThanOrEqual(0);
+			expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+			await page
+				.getByTestId('semantic-search-loading-state')
+				.screenshot({ path: testInfo.outputPath(`search-${theme}.png`) });
+		}
 
 		// Once results render, every piece of loading UI is gone again.
 		await expect(page.getByTestId('semantic-search-results-list')).toBeVisible({ timeout: 10000 });
-		await expect(page.getByTestId('wand-sparkle-stage')).toHaveCount(0);
+		await expect(page.getByTestId('open-signal-loader')).toHaveCount(0);
 		await expect(page.getByTestId('semantic-search-loading-state')).toHaveCount(0);
 		await expect(page.getByTestId('semantic-search-submit')).toHaveText('검색');
 	});
@@ -128,11 +201,9 @@ test.describe('Semantic Search loading animation', () => {
 		await delayRouteDataRequests(page, REQUEST_DELAY_MS);
 		await fillAndSubmit(page, '퇴근 후 카톡 업무 지시');
 
-		// Mid-request: the loading state shows during EVERY in-flight search (the
-		// first-search-only gate was removed with the rail-sweep track), so the
-		// stage scene replaces the previous results while the repeat runs.
+		// Repeat searches replace the previous results with the same loader.
 		await expect(page.getByTestId('semantic-search-loading-state')).toBeVisible();
-		await expect(page.getByTestId('wand-sparkle-stage')).toBeVisible();
+		await expect(page.getByTestId('open-signal-loader')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-submit')).toContainText('검색 중');
 		await expect(page.getByTestId('semantic-search-submit')).toBeDisabled();
 		await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
@@ -143,7 +214,7 @@ test.describe('Semantic Search loading animation', () => {
 			{ timeout: 10000 }
 		);
 		await expect(page.getByTestId('semantic-search-loading-state')).toHaveCount(0);
-		await expect(page.getByTestId('wand-sparkle-stage')).toHaveCount(0);
+		await expect(page.getByTestId('open-signal-loader')).toHaveCount(0);
 		await expect(page.getByTestId('semantic-search-submit')).toHaveText('검색');
 	});
 
@@ -159,35 +230,67 @@ test.describe('Semantic Search loading animation', () => {
 
 		await fillAndSubmit(page, '전세 사기 피해자 구제');
 
-		await expect(page.getByTestId('wand-sparkle-stage')).toBeVisible();
+		await expect(page.getByTestId('open-signal-loader')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-loading-state')).toBeVisible();
 
-		// Every animated part computes to an instantly-finished animation under the
-		// global reduced-motion override in app.css (0.01ms duration, one iteration)
-		// — Svelte hash-prefixes scoped keyframe names in dev builds, so the name
-		// itself is checked only for being present, not for a literal value.
-		for (const selector of ['.wand-sweep-group', '.wand-star', '.spark', '.dust']) {
-			const motion = await page
-				.locator(selector)
-				.first()
-				.evaluate((el) => {
-					const style = getComputedStyle(el);
-					const seconds = (value: string) =>
-						value.endsWith('ms') ? parseFloat(value) / 1000 : parseFloat(value);
-					return {
-						duration: seconds(style.animationDuration),
-						iterations: style.animationIterationCount,
-						name: style.animationName
-					};
-				});
-			expect(motion.name).not.toBe('none'); // the animation still exists; it just never moves
-			expect(motion.duration).toBeLessThanOrEqual(0.01);
-			expect(motion.iterations).toBe('1');
-		}
-
-		// ...while the scene itself stays rendered for the in-flight search.
-		await expect(page.getByTestId('wand-sparkle-stage')).toBeVisible();
-		await expect(page.locator('.wand-handle')).toBeVisible();
+		const loader = page.getByTestId('open-signal-loader');
+		expect(await loader.evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(0);
+		await expect(loader.locator('.lc-signal-arc')).toHaveCSS('stroke-dashoffset', '0px');
+		await expect(loader.locator('.lc-signal-letter')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-submit')).toContainText('검색 중');
 	});
+
+	for (const theme of ['light', 'dark']) {
+		for (const mode of ['semantic', 'auto', 'keyword']) {
+			test(`board uses the destination mode for ${mode} loading in ${theme} theme`, async ({
+				page
+			}, testInfo) => {
+				await page.setViewportSize({ width: 375, height: 812 });
+				await page.emulateMedia({ reducedMotion: 'reduce' });
+				await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+				const hydrated = watchEngineHealth(page);
+				const initialMode = mode === 'keyword' ? 'semantic' : 'keyword';
+				await page.goto(`/notices?search=보호&searchMode=${initialMode}`);
+				await hydrated;
+				await page.evaluate((theme) => {
+					document.documentElement.dataset.theme = theme;
+				}, theme);
+				let release!: () => void;
+				const pending = new Promise<void>((resolve) => {
+					release = resolve;
+				});
+				await page.route(/\/notices\/__data\.json/, async (route) => {
+					await pending;
+					await route.fallback();
+				});
+				try {
+					await page.getByTestId(`notices-search-mode-${mode}`).click();
+					const loader = page.getByTestId('open-signal-loader');
+					if (mode === 'keyword') {
+						await expect(page.locator('.lc-spinner-ring')).toBeVisible();
+						await expect(loader).toHaveCount(0);
+					} else {
+						await expect(loader).toBeVisible();
+						await expect(page.locator('.lc-spinner-ring')).toHaveCount(0);
+						const arc = loader.locator('.lc-signal-arc');
+						expect(await arc.evaluate((el) => getComputedStyle(el).stroke)).toBe(
+							theme === 'light' ? 'rgb(29, 78, 216)' : 'rgb(155, 185, 217)'
+						);
+						const bounds = (await loader.boundingBox())!;
+						expect(bounds.x).toBeGreaterThanOrEqual(16);
+						expect(bounds.x + bounds.width).toBeLessThanOrEqual(359);
+						expect(await loader.evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(
+							0
+						);
+						await page.screenshot({ path: testInfo.outputPath(`board-${mode}-${theme}.png`) });
+					}
+				} finally {
+					release();
+				}
+				await expect(page.getByTestId('open-signal-loader')).toHaveCount(0);
+				await expect(page.locator('.lc-spinner-ring')).toHaveCount(0);
+				await expect(page).toHaveURL(new RegExp(`searchMode=${mode}`));
+			});
+		}
+	}
 });
