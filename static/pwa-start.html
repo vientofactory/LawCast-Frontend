@@ -71,11 +71,49 @@
       const destination = '/' + location.search + location.hash;
       retry.href = destination;
       let started = false;
+      let channel;
+      let timer;
+      let paintFallback;
       const launch = () => {
         if (started) return;
         started = true;
-        location.replace(destination);
+        clearTimeout(paintFallback);
+        const worker = navigator.serviceWorker?.controller;
+        if (!worker) {
+          location.replace(destination);
+          return;
+        }
+        channel = new MessageChannel();
+        const activeChannel = channel;
+        const finish = () => {
+          clearTimeout(timer);
+          activeChannel.port1.close();
+          location.replace(destination);
+        };
+        // Older workers do not implement preparation; retain normal navigation.
+        timer = setTimeout(finish, 2000);
+        activeChannel.port1.onmessage = ({ data }) => {
+          if (channel !== activeChannel) return;
+          if (data.status === 'accepted') {
+            clearTimeout(timer);
+          } else if (data.status === 'ready' || data.status === 'navigate') {
+            finish();
+          } else if (data.status === 'retry') {
+            activeChannel.port1.close();
+            started = false;
+            retry.setAttribute('aria-label', '불러오지 못했습니다. 다시 시도');
+          }
+        };
+        worker.postMessage({ type: 'PREPARE_LAUNCH', url: destination }, [activeChannel.port2]);
       };
+      retry.addEventListener('click', (event) => {
+        if (!navigator.serviceWorker?.controller) return;
+        event.preventDefault();
+        clearTimeout(timer);
+        channel?.port1.close();
+        started = false;
+        launch();
+      });
       // Animation frames alone can run before first paint. Wait for the actual
       // contentful paint so a pending navigation cannot suppress the local screen.
       if (typeof PerformanceObserver !== 'undefined' && PerformanceObserver.supportedEntryTypes.includes('paint')) {
@@ -88,7 +126,7 @@
         observer.observe({ type: 'paint', buffered: true });
       }
       // Hidden windows and browsers without paint timing must still launch.
-      setTimeout(launch, 1000);
+      paintFallback = setTimeout(launch, 1000);
     </script>
   </body>
 </html>

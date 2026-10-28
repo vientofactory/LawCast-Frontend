@@ -239,7 +239,7 @@ test.describe('PWA', () => {
 		});
 		await openApp(page);
 		const names = await page.evaluate(() => caches.keys());
-		expect(names).toContain('lawcast-pwa-v5');
+		expect(names).toContain('lawcast-pwa-v6');
 		expect(names).toContain('unrelated-cache');
 		expect(names).not.toContain('lawcast-pwa-v2');
 	});
@@ -486,6 +486,176 @@ test.describe('PWA', () => {
 		await page.setViewportSize({ width: 1280, height: 800 });
 		await page.getByTestId('nav-link-webhook').click();
 		await expect(page).toHaveURL('/webhook');
+	});
+
+	test('keeps animating until uncached styles finish and transfers each response once', async ({
+		page,
+		request
+	}) => {
+		await openApp(page);
+		const cdp = await page.context().newCDPSession(page);
+		await cdp.send('Network.enable');
+		await cdp.send('Network.clearBrowserCache');
+		await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
+		await request.post('/__pwa-test/state', { data: { cssDelay: 4000 } });
+		const target = '/?pwa-test=assets-slow';
+		let committedAt = 0;
+		page.on('framenavigated', (frame) => {
+			if (frame === page.mainFrame() && frame.url().endsWith(target)) committedAt = Date.now();
+		});
+		const navigation = page.waitForResponse(
+			(response) => response.url().endsWith(target) && response.request().isNavigationRequest()
+		);
+		try {
+			await page.goto('/pwa-start?pwa-test=assets-slow', { waitUntil: 'domcontentloaded' });
+			await expect
+				.poll(async () => {
+					const stats = await (await request.get('/__pwa-test/state')).json();
+					return stats.requests.filter((entry: { style: boolean }) => entry.style).length;
+				})
+				.toBeGreaterThan(0);
+			const animationTime = () =>
+				page
+					.locator('.lc-brand-arc')
+					.evaluate((node) => Number(node.getAnimations()[0].currentTime));
+			const first = await animationTime();
+			await new Promise((resolve) => setTimeout(resolve, 2300));
+			expect((await animationTime()) - first).toBeGreaterThan(2100);
+			await expect(page).toHaveURL('/pwa-start?pwa-test=assets-slow');
+			const response = await navigation;
+			expect(response.status()).toBe(200);
+			expect(response.headers()['content-security-policy']).toBe("frame-ancestors 'self'");
+			expect(response.headers()['x-pwa-test-target']).toBe(target);
+			await expect(page.getByTestId('app-route-container')).toBeVisible();
+			const stats = await (await request.get('/__pwa-test/state')).json();
+			const styles = stats.requests.filter((entry: { style: boolean }) => entry.style);
+			expect(styles.length).toBeGreaterThan(0);
+			expect(new Set(styles.map((entry: { path: string }) => entry.path)).size).toBe(styles.length);
+			for (const entry of styles) {
+				expect(entry.finish).not.toBeNull();
+				expect(committedAt).toBeGreaterThanOrEqual(entry.finish);
+			}
+			expect(
+				stats.requests.filter((entry: { path: string }) => entry.path === target)
+			).toHaveLength(1);
+			const storedPaths = await page.evaluate(async () => {
+				const stores = await Promise.all((await caches.keys()).map((name) => caches.open(name)));
+				return (await Promise.all(stores.map((store) => store.keys())))
+					.flat()
+					.map((entry) => new URL(entry.url).pathname);
+			});
+			expect(storedPaths.some((path) => path === '/' || path.startsWith('/_app/'))).toBe(false);
+			await request.post('/__pwa-test/state', { data: {} });
+			await page.reload();
+			const replay = await (await request.get('/__pwa-test/state')).json();
+			expect(
+				replay.requests.filter((entry: { path: string }) => entry.path === target)
+			).toHaveLength(1);
+		} finally {
+			await request.post('/__pwa-test/state', { data: {} });
+		}
+	});
+
+	test('keeps the loader active after stylesheet failure and retries preparation', async ({
+		page,
+		request
+	}) => {
+		await openApp(page);
+		const cdp = await page.context().newCDPSession(page);
+		await cdp.send('Network.clearBrowserCache');
+		await request.post('/__pwa-test/state', { data: { cssFailure: true } });
+		try {
+			await page.goto('/pwa-start?pwa-test=retry', { waitUntil: 'domcontentloaded' });
+			await expect(page.getByTestId('pwa-loading-retry')).toHaveAttribute(
+				'aria-label',
+				'불러오지 못했습니다. 다시 시도'
+			);
+			await expect(page.getByTestId('pwa-loading-symbol')).toBeVisible();
+			await expect(page).toHaveURL('/pwa-start?pwa-test=retry');
+			await request.post('/__pwa-test/state', { data: {} });
+			await page.getByTestId('pwa-loading-retry').click();
+			await expect(page).toHaveURL('/?pwa-test=retry');
+			await expect(page.getByTestId('app-route-container')).toBeVisible();
+		} finally {
+			await request.post('/__pwa-test/state', { data: {} });
+		}
+	});
+
+	test('preserves HTTP error status and real redirects during launch', async ({ page }) => {
+		await openApp(page);
+		const error = page.waitForResponse(
+			(response) =>
+				response.url().endsWith('/?pwa-test=status') && response.request().isNavigationRequest()
+		);
+		await page.goto('/pwa-start?pwa-test=status', { waitUntil: 'domcontentloaded' });
+		expect((await error).status()).toBe(503);
+		await expect(page.getByTestId('app-route-container')).toBeVisible();
+		await page.goto('/pwa-start?pwa-test=redirect', { waitUntil: 'domcontentloaded' });
+		await expect(page).toHaveURL('/webhook');
+		await expect(page.getByTestId('app-route-container')).toBeVisible();
+	});
+
+	test('keeps simultaneous launch responses scoped to their own windows', async ({
+		page,
+		context,
+		request
+	}) => {
+		await openApp(page);
+		const other = await context.newPage();
+		await openApp(other);
+		const cdp = await context.newCDPSession(page);
+		await cdp.send('Network.clearBrowserCache');
+		await request.post('/__pwa-test/state', { data: { cssDelay: 1000 } });
+		try {
+			const first = page.waitForResponse(
+				(response) =>
+					response.url().endsWith('/?pwa-test=client-a') && response.request().isNavigationRequest()
+			);
+			const second = other.waitForResponse(
+				(response) =>
+					response.url().endsWith('/?pwa-test=client-b') && response.request().isNavigationRequest()
+			);
+			await Promise.all([
+				page.goto('/pwa-start?pwa-test=client-a', { waitUntil: 'domcontentloaded' }),
+				other.goto('/pwa-start?pwa-test=client-b', { waitUntil: 'domcontentloaded' })
+			]);
+			expect((await first).headers()['x-pwa-test-target']).toBe('/?pwa-test=client-a');
+			expect((await second).headers()['x-pwa-test-target']).toBe('/?pwa-test=client-b');
+			await expect(page.getByTestId('app-route-container')).toBeVisible();
+			await expect(other.getByTestId('app-route-container')).toBeVisible();
+		} finally {
+			await request.post('/__pwa-test/state', { data: {} });
+			await other.close();
+		}
+	});
+
+	test('rejects preparation messages sent outside the launch document', async ({
+		page,
+		request
+	}) => {
+		await openApp(page);
+		await request.post('/__pwa-test/state', { data: {} });
+		expect(
+			await page.evaluate(
+				() =>
+					new Promise((resolve) => {
+						const channel = new MessageChannel();
+						channel.port1.onmessage = () => resolve('accepted');
+						navigator.serviceWorker.controller!.postMessage(
+							{ type: 'PREPARE_LAUNCH', url: '/?pwa-test=forbidden' },
+							[channel.port2]
+						);
+						setTimeout(() => {
+							channel.port1.close();
+							resolve('rejected');
+						}, 300);
+					})
+			)
+		).toBe('rejected');
+		const stats = await (await request.get('/__pwa-test/state')).json();
+		expect(
+			stats.requests.filter((entry: { path: string }) => entry.path.includes('forbidden'))
+		).toHaveLength(0);
 	});
 
 	test('launches from cache offline and recovers with the existing retry', async ({
