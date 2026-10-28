@@ -82,8 +82,8 @@
 		data-testid="pwa-install-prompt"
 		aria-label="LawCast 앱 설치"
 		aria-live="polite"
-		class="fixed inset-x-3 z-[9988] mx-auto w-[calc(100%-1.5rem)] max-w-md rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-4 shadow-xl sm:right-auto sm:left-6 sm:w-full"
-		style="bottom: calc(max(5rem, env(safe-area-inset-bottom)) + var(--lc-consent-banner-height, 0px));"
+		class="fixed inset-x-3 z-[9988] mx-auto w-[calc(100%-1.5rem)] max-w-lg overflow-y-auto rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-4 shadow-xl sm:right-6 sm:left-auto sm:max-w-md sm:p-5"
+		style="--lc-install-bottom: max(calc(5rem + env(safe-area-inset-bottom)), calc(var(--lc-consent-banner-height, 0px) + 0.75rem)); bottom: var(--lc-install-bottom); max-height: calc(100dvh - var(--lc-install-bottom) - 0.75rem);"
 	>
 		<div class="flex items-center gap-3">
 			<img src="/brand/v2/icon-192.png" alt="" width="48" height="48" class="shrink-0 rounded-lg" />

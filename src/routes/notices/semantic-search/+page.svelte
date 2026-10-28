@@ -9,7 +9,7 @@
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import SemanticSearchUnavailableOverlay from '$lib/components/SemanticSearchUnavailableOverlay.svelte';
 	import SemanticEngineStatus from '$lib/components/SemanticEngineStatus.svelte';
-	import WandSparkleLoader from '$lib/components/WandSparkleLoader.svelte';
+	import OpenSignalLoader from '$lib/components/OpenSignalLoader.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
@@ -17,6 +17,7 @@
 		faWandMagicSparkles
 	} from '@fortawesome/free-solid-svg-icons';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
+	import { dismissTouchKeyboard } from '$lib/utils/keyboard';
 	import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '$lib/types/api';
 	import {
 		SEMANTIC_MAX_QUERY_LENGTH,
@@ -208,6 +209,8 @@
 		error = null;
 		dismissedServerError = null;
 		isRateLimited = false;
+		// Blur before navigation snapshots focus so it cannot reopen the mobile keyboard.
+		dismissTouchKeyboard();
 
 		// Submitting the same query again (a retry after an error, say) cannot
 		// be expressed as a URL change, so reload the data instead — a goto to
@@ -367,13 +370,15 @@
 					<h2 id="semantic-search-results-heading" class="sr-only">의미 검색 결과</h2>
 					{#if isLoading}
 						<div
-							class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
+							class="lc-empty-state rounded-2xl border p-6 pb-20 text-center shadow-xl sm:p-16"
 							data-testid="semantic-search-loading-state"
+							role="status"
+							aria-live="polite"
 						>
-							<div class="mb-6 inline-block">
-								<WandSparkleLoader />
+							<div class="mx-auto mb-6 w-full max-w-[260px]">
+								<OpenSignalLoader />
 							</div>
-							<p class="lc-text-secondary text-sm">법률안을 읽고 의미를 분석하는 중입니다...</p>
+							<p class="lc-text-secondary text-sm">의미가 가까운 법률안을 찾고 있습니다</p>
 						</div>
 					{:else if hasQuery && !isLoading && response && response.results.length === 0 && !showingWeak}
 						<div

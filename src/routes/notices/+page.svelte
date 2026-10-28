@@ -10,6 +10,7 @@
 	import { extractProposerFromSubject } from '$lib/utils/proposer';
 	import { buildNoticeDeadline } from '$lib/utils/notice-deadline.util';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
+	import { dismissTouchKeyboard } from '$lib/utils/keyboard';
 	import { apiClient } from '$lib/api/client';
 	import { page } from '$app/state';
 	import SeoHead from '$lib/components/SeoHead.svelte';
@@ -74,6 +75,7 @@
 	// recompute when afterNavigate reassigns it after client-side navigation.
 	let currentUrl = $state(page.url);
 	let isServerLoading = $state(false);
+	let isSemanticLoading = $state(false);
 	let countdown = $state(0);
 	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
@@ -100,11 +102,18 @@
 
 	beforeNavigate(({ to }) => {
 		isServerLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
+		// Read the destination: the previous results may use a different search mode.
+		isSemanticLoading =
+			isServerLoading &&
+			SEMANTIC_SEARCH_ENABLED &&
+			!!to?.url.searchParams.get('search')?.trim() &&
+			normalizeBoardSearchMode(to?.url.searchParams.get('searchMode') ?? null, true) !== 'keyword';
 	});
 
 	afterNavigate(() => {
 		currentUrl = page.url;
 		isServerLoading = false;
+		isSemanticLoading = false;
 	});
 
 	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
@@ -462,6 +471,7 @@
 		event.preventDefault();
 		const form = event.currentTarget as HTMLFormElement;
 		const formData = new FormData(form);
+		dismissTouchKeyboard();
 		const params = new SvelteURLSearchParams();
 		params.set('page', '1');
 		const requestedLimit = Number.parseInt((formData.get('limit') || '').toString(), 10);
@@ -1437,7 +1447,11 @@
 						</div>
 					{/if}
 
-					<LoadingOverlay visible={isServerLoading} />
+					<LoadingOverlay
+						visible={isServerLoading}
+						variant={isSemanticLoading ? 'semantic' : 'spinner'}
+						message={isSemanticLoading ? '의미가 가까운 법률안을 찾고 있습니다' : '불러오는 중...'}
+					/>
 				</section>
 			</div>
 		</section>
