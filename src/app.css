@@ -800,9 +800,8 @@ html[data-theme='dark'] .lc-diff-added {
 	color: #fff;
 	box-shadow: none;
 	border-radius: 0.5rem;
-	transition:
-		background-color 180ms ease,
-		transform 180ms ease;
+	/* Deferred controls must not transition from the UA background on first reveal. */
+	transition: transform 180ms ease;
 }
 
 .lc-button-primary:hover {
