@@ -14,7 +14,12 @@
 
 	config.autoAddCss = false;
 
-	NProgress.configure({ showSpinner: false });
+	NProgress.configure({
+		showSpinner: false,
+		barSelector: '.bar',
+		template:
+			'<div role="region" aria-label="페이지 로딩 상태"><div class="bar" role="progressbar" aria-label="페이지 불러오는 중" data-testid="navigation-progress"><div class="peg"></div></div></div>'
+	});
 
 	$effect(() => {
 		if (navigating.to) {

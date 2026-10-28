@@ -93,7 +93,14 @@ SOFTWARE.</pre>
 					<FontAwesomeIcon icon={faServer} class="lc-text-muted h-3.5 w-3.5" />
 					백엔드 (NestJS)
 				</h3>
-				<div class="overflow-x-auto">
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable tables need a named keyboard focus target.) -->
+				<div
+					class="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+					tabindex="0"
+					role="region"
+					aria-label="백엔드 패키지 라이선스 표"
+					data-testid="license-backend-table-scroll"
+				>
 					<table class="w-full min-w-120 border-collapse text-sm">
 						<thead>
 							<tr class="lc-text-muted border-b border-[var(--lc-border-soft)] text-xs">
@@ -134,7 +141,14 @@ SOFTWARE.</pre>
 					<FontAwesomeIcon icon={faDesktop} class="lc-text-muted h-3.5 w-3.5" />
 					프론트엔드 (SvelteKit)
 				</h3>
-				<div class="overflow-x-auto">
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable tables need a named keyboard focus target.) -->
+				<div
+					class="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+					tabindex="0"
+					role="region"
+					aria-label="프론트엔드 패키지 라이선스 표"
+					data-testid="license-frontend-table-scroll"
+				>
 					<table class="w-full min-w-120 border-collapse text-sm">
 						<thead>
 							<tr class="lc-text-muted border-b border-[var(--lc-border-soft)] text-xs">

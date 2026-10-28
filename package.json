@@ -1,6 +1,6 @@
 {
 	"name": "lawcast-frontend",
-	"version": "1.25.1",
+	"version": "1.25.2",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,
@@ -20,6 +20,8 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --write . && eslint . --fix",
+		"audit:lighthouse": "node scripts/lighthouse-audit.mjs",
+		"test:e2e:web-vitals": "playwright test --config playwright-configs/playwright.web-vitals.config.ts",
 		"test:e2e:pwa:cloudflare": "PWA_CLOUDFLARE=1 playwright test --config playwright-configs/playwright.pwa.config.ts",
 		"test:e2e:pwa": "playwright test --config playwright-configs/playwright.pwa.config.ts",
 		"test:e2e": "playwright test --config playwright-configs/playwright.config.ts",
@@ -61,6 +63,7 @@
 		"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "^4.14.0",
 		"@eslint/compat": "^2.0.0",
 		"@eslint/js": "^10.0.0",
 		"@playwright/test": "^1.62.1",
@@ -70,10 +73,12 @@
 		"@tailwindcss/vite": "^4.1.14",
 		"@types/node": "^24.0.0",
 		"@types/react": "^19.3.0",
+		"chrome-launcher": "1.2.2",
 		"eslint": "^10.0.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.12.4",
 		"globals": "^17.0.0",
+		"lighthouse": "13.6.0",
 		"prettier": "^3.6.2",
 		"prettier-plugin-svelte": "^4.0.0",
 		"prettier-plugin-tailwindcss": "^0.8.0",

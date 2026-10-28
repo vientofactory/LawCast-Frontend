@@ -535,10 +535,10 @@
 				<!-- PAL Crawler -->
 				<section data-testid="crawler-pal" class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 					<div class="mb-3 flex items-center justify-between">
-						<h3 class="lc-text-primary flex items-center text-sm font-bold">
+						<h2 class="lc-text-primary flex items-center text-sm font-bold">
 							<FontAwesomeIcon icon={faGlobe} class="lc-text-accent mr-2 h-4 w-4" />
 							{palCrawlerName}
-						</h3>
+						</h2>
 						<span
 							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palBadge?.badge ?? ''}`}
 						>
@@ -580,10 +580,10 @@
 				<!-- NSM Crawler -->
 				<section data-testid="crawler-nsm" class="lc-panel-card rounded-2xl border p-4 shadow-sm">
 					<div class="mb-3 flex items-center justify-between">
-						<h3 class="lc-text-primary flex items-center text-sm font-bold">
+						<h2 class="lc-text-primary flex items-center text-sm font-bold">
 							<FontAwesomeIcon icon={faGlobe} class="lc-text-purple mr-2 h-4 w-4" />
 							{nsmCrawlerName}
-						</h3>
+						</h2>
 						<span
 							class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${nsmBadge?.badge ?? ''}`}
 						>

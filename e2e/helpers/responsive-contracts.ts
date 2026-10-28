@@ -128,8 +128,8 @@ export const routes: ResponsiveRoute[] = [
 		visible: [
 			'main h1',
 			'main button:has-text("새로고침")',
-			'main [data-testid="crawler-pal"] h3',
-			'main [data-testid="crawler-nsm"] h3',
+			'main [data-testid="crawler-pal"] h2',
+			'main [data-testid="crawler-nsm"] h2',
 			'main h2:has-text("크론 작업 현황")',
 			// Crawler-owned cron cards badge the collection source their crawler
 			// currently pulls from (`cron-source-<pal|nsm>`).

@@ -63,7 +63,7 @@ test.describe('System Status Page', () => {
 		const text = (await card.innerText()).replace(/\s+/g, ' ');
 		const usesLikms = text.includes('likms.assembly.go.kr');
 
-		await expect(card.locator('h3')).toContainText(
+		await expect(card.getByRole('heading', { level: 2 })).toContainText(
 			usesLikms ? '의안정보시스템' : '국민참여입법센터'
 		);
 	});
