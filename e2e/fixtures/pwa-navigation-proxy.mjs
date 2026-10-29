@@ -5,6 +5,10 @@ let state = { cssDelay: 0, cssFailure: false };
 let requests = [];
 createServer(async (incoming, outgoing) => {
 	const url = new URL(incoming.url, 'http://127.0.0.1:4187');
+	if (url.pathname === '/__pwa-test/network-failure') {
+		incoming.socket.destroy();
+		return;
+	}
 	if (url.pathname === '/__pwa-test/state') {
 		if (incoming.method === 'POST') {
 			let body = '';

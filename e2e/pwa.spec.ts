@@ -239,7 +239,7 @@ test.describe('PWA', () => {
 		});
 		await openApp(page);
 		const names = await page.evaluate(() => caches.keys());
-		expect(names).toContain('lawcast-pwa-v7');
+		expect(names).toContain('lawcast-pwa-v8');
 		expect(names).toContain('unrelated-cache');
 		expect(names).not.toContain('lawcast-pwa-v2');
 	});
@@ -374,6 +374,31 @@ test.describe('PWA', () => {
 		if (process.env.PWA_CLOUDFLARE === '1')
 			expect(new URL(response.url()).pathname).toBe('/pwa-start');
 	});
+
+	for (const path of ['/pwa-start', '/pwa-start.html']) {
+		test(`recovers a cold launch with a missing cached document at ${path}`, async ({
+			page,
+			context
+		}) => {
+			await openApp(page);
+			await page.evaluate(async () => {
+				for (const name of await caches.keys()) {
+					if (name.startsWith('lawcast-pwa-')) {
+						await (await caches.open(name)).delete('/pwa-start.html');
+					}
+				}
+			});
+			const session = await context.newCDPSession(page);
+			await session.send('ServiceWorker.enable');
+			await session.send('ServiceWorker.stopAllWorkers');
+			await session.detach();
+			const response = await page.goto(`${path}?pwa-test=cache-miss#cold`, { waitUntil: 'commit' });
+			expect(response!.status()).toBe(200);
+			expect(response!.fromServiceWorker()).toBeTruthy();
+			await expect(page).toHaveURL('/?pwa-test=cache-miss#cold');
+			await expect(page.getByTestId('app-route-container')).toBeVisible();
+		});
+	}
 
 	test('loops the header symbol assembly smoothly and respects reduced motion', async ({
 		browser
@@ -713,6 +738,25 @@ test.describe('PWA', () => {
 			192
 		);
 		await context.setOffline(false);
+		await page.getByTestId('pwa-offline-retry').click();
+		await expect(page.getByTestId('app-route-container')).toBeVisible();
+	});
+
+	test('fetches a missing offline document without replaying the platform redirect', async ({
+		page
+	}) => {
+		await openApp(page);
+		await page.evaluate(async () => {
+			for (const name of await caches.keys()) {
+				if (name.startsWith('lawcast-pwa-')) {
+					await (await caches.open(name)).delete('/offline.html');
+				}
+			}
+		});
+		const response = await page.goto('/__pwa-test/network-failure');
+		expect(response!.status()).toBe(200);
+		expect(response!.fromServiceWorker()).toBeTruthy();
+		await expect(page.getByTestId('pwa-offline-page')).toBeVisible();
 		await page.getByTestId('pwa-offline-retry').click();
 		await expect(page.getByTestId('app-route-container')).toBeVisible();
 	});

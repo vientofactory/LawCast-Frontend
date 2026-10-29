@@ -1,16 +1,20 @@
 const CACHE_PREFIX = 'lawcast-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v7`;
+const CACHE_NAME = `${CACHE_PREFIX}v8`;
 const OFFLINE_URL = '/offline.html';
 const LAUNCH_URL = '/pwa-start.html';
 const STATIC_ASSETS = [OFFLINE_URL, LAUNCH_URL, '/brand/v2/icon-192.png', '/brand/v2/icon-512.png', '/brand/v2/badge-96.png'];
 
 async function cachedDocument(path) {
   const cache = await caches.open(CACHE_NAME);
-  const response = await cache.match(path);
-  // Pages redirects HTML assets; navigation responses must not replay that redirect.
-  return response
-    ? new Response(response.body, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } })
-    : fetch(path);
+  const response = (await cache.match(path)) || (await fetch(path));
+  // Pages redirects HTML assets, including on a cache miss after eviction or an
+  // overlapping worker update. Normalize both sources for manual-redirect navigations.
+  const headers = new Headers(response.headers);
+  // Fetch and Cache Storage expose decoded bodies, so transfer headers are stale.
+  headers.delete('content-encoding');
+  headers.delete('content-length');
+  headers.set('Cache-Control', 'no-store');
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
 // These bounded, per-client transfers are never written to Cache Storage.
