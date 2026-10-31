@@ -29,8 +29,14 @@
 		}
 	});
 
-	// The helper reports initial and SPA page views only after analytics consent.
 	afterNavigate((navigation) => {
+		// Reset route and query navigation immediately, including history traversal.
+		// Hash destinations retain native anchor and skip-link behavior.
+		if (navigation.type !== 'enter' && !navigation.to?.url.hash) {
+			window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
+		}
+
+		// Report initial and SPA page views only after analytics consent.
 		if (!GTM_CONTAINER_ID) return;
 		const path = navigation.to?.url.pathname
 			? `${navigation.to.url.pathname}${navigation.to.url.search}`
