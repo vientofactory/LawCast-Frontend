@@ -466,7 +466,7 @@ export async function getNoticeDetail(
  */
 export async function getNoticeChanges(
 	noticeNum: number,
-	params: { limit?: number } = {},
+	params: { limit?: number; beforeHeight?: number; signal?: AbortSignal } = {},
 	customFetch?: Fetch
 ): Promise<NoticeChangeTimelineResponse> {
 	try {
@@ -474,15 +474,19 @@ export async function getNoticeChanges(
 		if (params.limit && params.limit > 0) {
 			query.set('limit', String(params.limit));
 		}
+		if (params.beforeHeight !== undefined) {
+			query.set('beforeHeight', String(params.beforeHeight));
+		}
 
 		const suffix = query.toString() ? `?${query.toString()}` : '';
 		return await request<NoticeChangeTimelineResponse>(
 			`/notices/${noticeNum}/changes${suffix}`,
-			{ method: 'GET' },
+			{ method: 'GET', signal: params.signal },
 			customFetch
 		);
 	} catch (error) {
-		console.error(`Failed to load notice changes (${noticeNum}):`, error);
+		if (!params.signal?.aborted)
+			console.error(`Failed to load notice changes (${noticeNum}):`, error);
 		throw normalizeError(error);
 	}
 }

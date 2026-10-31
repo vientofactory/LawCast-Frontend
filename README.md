@@ -353,10 +353,6 @@ npm run test:e2e:pwa:cloudflare
 
 매니페스트와 아이콘, Chromium 설치 적합성, 기존 웹푸시와의 등록 공유, 오프라인 복구, 설치 안내·취소·재표시·모바일 배치를 검사합니다. 헤드리스 테스트에서는 설치 이벤트를 주입하여 내장 창 호출 계약을 검증하며, OS에 앱을 실제 설치하지는 않습니다.
 
-## 라이선스
-
-MIT License
-
 ## GitHub Actions 프로덕션 배포
 
 `.github/workflows/deploy-pages.yml`은 `main` 푸시 또는 `main`에서 실행한 수동 요청만 배포합니다. lint·타입 검사·빌드 후 기존 `lawcast-frontend` Pages 프로젝트에 `--branch main`으로 업로드하고 GitHub 커밋 SHA를 배포에 기록합니다.
@@ -386,3 +382,7 @@ npm run test:e2e:web-vitals
 기본 `stock`은 chrome-launcher의 원래 플래그를 보존합니다. `render-document`는 그중 `--disable-features`의 `RenderDocument` 항목만 제거하는 원인 분리용 대조군입니다. [Lighthouse 이슈 #17148](https://github.com/GoogleChrome/lighthouse/issues/17148)과 유사한 첫 표시 지연을 구별하기 위한 옵션이며, 사이트 패치나 공식 PSI 결과를 의미하지 않습니다. 원본과 대조군은 별도 출력 폴더에 저장하세요. `--throttling-method devtools`는 실제로 네트워크와 CPU를 제한해 측정하므로 기본 시뮬레이션 점수와 직접 비교할 수 없습니다.
 
 웹 바이탈 Playwright 설정은 고정 mock 데이터로 Node 프로덕션 빌드를 실행해 모바일/데스크톱, 밝은/어두운 테마의 접근성, 외부 폰트 차단 시 렌더링, hydration·분석 스크립트가 대기 중일 때 SSR 콘텐츠의 LCP 발생, Discord 위젯의 명시적 로딩과 공간 보존, 테마 전환 직후 대비, CLS 및 입력 이벤트 지연을 검사합니다. 이미 실행 중인 동등한 빌드는 `WEB_VITALS_BASE_URL`로 지정할 수 있습니다. 입력 검사는 실험실 Event Timing 표본이며 실제 이용자 INP의 75백분위 측정을 대체하지 않습니다.
+
+## 라이선스
+
+MIT License

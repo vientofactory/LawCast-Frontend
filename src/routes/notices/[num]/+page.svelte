@@ -7,7 +7,14 @@
 	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import SeoHead from '$lib/components/SeoHead.svelte';
-	import { onDestroy, onMount, tick } from 'svelte';
+	import { onDestroy, tick, untrack } from 'svelte';
+	import { apiClient } from '$lib/api/client';
+	import {
+		mergeRevisionHistory,
+		revisionHistoryCursor,
+		validateOlderRevisionPage,
+		REVISION_HISTORY_PAGE_SIZE
+	} from '$lib/utils/revision-history';
 	import NoticeChangeTimeline from '$lib/components/NoticeChangeTimeline.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -70,7 +77,117 @@
 	} = $props();
 
 	let detail = $derived(data.detail);
-	let changes = $derived(data.changes);
+	let historyOwner = $state<number | null>(null);
+	let historyItems = $state.raw<NoticeChangeTimelineResponse['items']>([]);
+	let historyHasMore = $state(false);
+	let historyBeforeHeight = $state<number | null>(null);
+	let historyLoading = $state(false);
+	let historyPageError = $state('');
+	let historyGeneration = 0;
+	let historyController: AbortController | null = null;
+	let changes = $derived(
+		historyOwner === detail.notice.num
+			? {
+					noticeNum: historyOwner,
+					items: historyItems,
+					count: historyItems.length,
+					hasMore: historyHasMore,
+					nextBeforeHeight: historyBeforeHeight
+				}
+			: data.changes
+	);
+
+	$effect(() => {
+		const noticeNum = detail.notice.num;
+		const initial = data.changes;
+		untrack(() => {
+			if (historyOwner !== noticeNum) {
+				historyGeneration++;
+				historyController?.abort();
+				historyOwner = noticeNum;
+				historyItems = mergeRevisionHistory([], initial.items);
+				historyLoading = false;
+				historyPageError = '';
+				const cursor = revisionHistoryCursor(initial);
+				historyHasMore = cursor.hasMore;
+				historyBeforeHeight = cursor.nextBeforeHeight;
+			} else {
+				const oldMinimum = historyItems.at(-1)?.eventHeight ?? Infinity;
+				const initialMinimum = initial.items.length
+					? Math.min(...initial.items.map((item) => item.eventHeight))
+					: Infinity;
+				historyItems = mergeRevisionHistory(historyItems, initial.items);
+				// Preserve older pages when a historical view or refresh reruns the SSR loader.
+				if (oldMinimum >= initialMinimum) {
+					const cursor = revisionHistoryCursor(initial);
+					historyHasMore = cursor.hasMore;
+					historyBeforeHeight = cursor.nextBeforeHeight;
+				}
+			}
+		});
+	});
+
+	onDestroy(() => historyController?.abort());
+
+	async function loadOlderHistory(): Promise<void> {
+		if (
+			historyLoading ||
+			!historyHasMore ||
+			historyBeforeHeight === null ||
+			historyOwner !== detail.notice.num
+		)
+			return;
+		const noticeNum = historyOwner;
+		const beforeHeight = historyBeforeHeight;
+		const generation = historyGeneration;
+		const originalUrl = page.url.href;
+		const focusedControl =
+			document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		const controller = new AbortController();
+		historyController = controller;
+		historyLoading = true;
+		historyPageError = '';
+		try {
+			const next = await apiClient.getNoticeChanges(noticeNum, {
+				limit: REVISION_HISTORY_PAGE_SIZE,
+				beforeHeight,
+				signal: controller.signal
+			});
+			if (
+				generation !== historyGeneration ||
+				detail.notice.num !== noticeNum ||
+				controller.signal.aborted
+			)
+				return;
+			const cursor = validateOlderRevisionPage(next, noticeNum, beforeHeight);
+			historyItems = mergeRevisionHistory(historyItems, next.items);
+			historyHasMore = cursor.hasMore;
+			historyBeforeHeight = cursor.nextBeforeHeight;
+		} catch {
+			if (
+				generation === historyGeneration &&
+				detail.notice.num === noticeNum &&
+				!controller.signal.aborted
+			) {
+				historyPageError =
+					'이전 기록을 불러오지 못했습니다. 기존 기록은 그대로 유지됩니다. 다시 시도해주세요.';
+			}
+		} finally {
+			if (generation === historyGeneration) {
+				historyLoading = false;
+				await tick();
+				if (page.url.href === originalUrl && document.activeElement === document.body) {
+					if (focusedControl?.isConnected) focusedControl.focus({ preventScroll: true });
+					else if (focusedControl?.dataset.testid?.startsWith('revision-history-load-older')) {
+						document
+							.querySelector<HTMLElement>('[data-testid="revision-history-complete"]')
+							?.focus({ preventScroll: true });
+					}
+				}
+			}
+			if (historyController === controller) historyController = null;
+		}
+	}
 	let loadError = $derived(data.loadError);
 	let aiSummaryEnabled = $derived(detail.aiSummaryEnabled !== false);
 
@@ -104,6 +221,9 @@
 	let currentUrl = $state(page.url);
 	afterNavigate(() => {
 		currentUrl = page.url;
+		const token = ++timelineScrollToken;
+		// Comparison controls explicitly preserve the user's current reading position.
+		if (!comparisonPending) void scrollToRequestedHistory(page.url, token);
 	});
 
 	function buildExcerpt(content: string, maxLength = 180): string {
@@ -340,36 +460,53 @@
 	let shareState: 'idle' | 'copied' = $state('idle');
 	let exportArchiveError: string | null = $state(null);
 	let timelineSectionElement: HTMLElement | null = null;
-	let hasAutoScrolledToTimeline = false;
+	let timelineScrollToken = 0;
+	let timelineVisibilityRequests = 0;
+	onDestroy(() => timelineScrollToken++);
 
-	async function autoScrollToTimelineOnLoad(): Promise<void> {
+	async function scrollToRequestedHistory(url: URL, token: number): Promise<void> {
+		const wantsComparison = ['cmpFrom', 'cmpTo', 'cmpShowAll'].some((key) =>
+			url.searchParams.has(key)
+		);
 		if (
-			hasAutoScrolledToTimeline ||
-			currentUrl.hash ||
-			!(
-				parseBooleanParam(currentUrl.searchParams.get('timeline')) === true ||
-				currentUrl.searchParams.has('cmpFrom') ||
-				currentUrl.searchParams.has('cmpTo')
-			)
-		) {
+			(!wantsComparison && parseBooleanParam(url.searchParams.get('timeline')) !== true) ||
+			(url.hash && !['#change-tracking-timeline', '#revision-comparison'].includes(url.hash))
+		)
 			return;
-		}
 
+		isChangeTimelineOpen = true;
 		await tick();
-		if (!timelineSectionElement) {
-			return;
+		const section = timelineSectionElement;
+		if (!section) return;
+		// Deferred, offscreen content can pause its disclosure animations indefinitely.
+		timelineVisibilityRequests++;
+		section.style.contentVisibility = 'visible';
+		try {
+			await Promise.all(
+				section
+					.getAnimations({ subtree: true })
+					.filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+					.map((animation) => animation.finished.catch(() => {}))
+			);
+		} finally {
+			timelineVisibilityRequests--;
+			if (timelineVisibilityRequests === 0) section.style.removeProperty('content-visibility');
 		}
-
-		timelineSectionElement.scrollIntoView({
-			behavior: 'instant',
-			block: 'start'
+		await new Promise<void>((resolve) =>
+			requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+		);
+		if (token !== timelineScrollToken || page.url.href !== url.href || !section.isConnected) return;
+		const target = wantsComparison
+			? (section.querySelector<HTMLElement>('#revision-comparison') ?? section)
+			: section;
+		const margin = Number.parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+		// Scroll the document only after restoring deferred rendering and clearing slide clips.
+		window.scrollTo({
+			left: 0,
+			top: scrollY + target.getBoundingClientRect().top - margin,
+			behavior: 'instant'
 		});
-		hasAutoScrolledToTimeline = true;
 	}
-
-	onMount(() => {
-		void autoScrollToTimelineOnLoad();
-	});
 
 	function parseBooleanParam(value: string | null): boolean | null {
 		if (!value) {
@@ -506,7 +643,7 @@
 
 	$effect(() => {
 		const timelineFromQuery = parseBooleanParam(currentUrl.searchParams.get('timeline'));
-		if (currentUrl.searchParams.has('cmpFrom') || currentUrl.searchParams.has('cmpTo')) {
+		if (['cmpFrom', 'cmpTo', 'cmpShowAll'].some((key) => currentUrl.searchParams.has(key))) {
 			isChangeTimelineOpen = true;
 		} else if (timelineFromQuery !== null) {
 			isChangeTimelineOpen = timelineFromQuery;
@@ -538,7 +675,11 @@
 			if (raw !== null) {
 				const revision = getPositiveIntQueryParam(raw);
 				if (revision === null || !snapshotsByRevision[revision]) {
-					return '선택한 기록이 현재 목록에 없습니다. 아래 목록에서 비교할 기록을 다시 선택해주세요.';
+					return revision !== null &&
+						revision < (changes.items.at(-1)?.eventHeight ?? 0) &&
+						historyHasMore
+						? '선택한 기록은 아직 불러오지 않았습니다. 이전 기록을 더 불러오면 비교할 수 있습니다.'
+						: '선택한 기록이 현재 목록에 없습니다. 아래 목록에서 비교할 기록을 다시 선택해주세요.';
 				}
 			}
 		}
@@ -1028,6 +1169,10 @@
 			<NoticeChangeTimeline
 				bind:isOpen={isChangeTimelineOpen}
 				{changes}
+				hasMore={revisionHistoryCursor(changes).hasMore}
+				loadingMore={historyLoading}
+				loadMoreError={historyPageError}
+				onLoadMore={loadOlderHistory}
 				historyError={data.changesLoadError}
 				onRetryHistory={invalidateAll}
 				{activeRevisionForUi}

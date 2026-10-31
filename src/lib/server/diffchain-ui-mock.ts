@@ -31,6 +31,13 @@ const MOCK_NOW = Date.now();
 
 const DEFAULT_MOCK_PAGE_SIZE = 10;
 
+export const PROGRESSIVE_HISTORY_MOCK = {
+	noticeNum: 2210010,
+	recordCount: 125,
+	subject: '국가재정법 일부개정법률안 (변경 기록 125개·점진 로딩 테스트)',
+	pageDelayMs: 650
+};
+
 const LONG_MOCK_NOTICE = {
 	num: 2210001,
 	subject:
@@ -43,6 +50,7 @@ const LONG_MOCK_NOTICE = {
 
 function getMockNoticeSubject(noticeNum: number, lifecycleStatus: string): string {
 	if (noticeNum === LONG_MOCK_NOTICE.num) return LONG_MOCK_NOTICE.subject;
+	if (noticeNum === PROGRESSIVE_HISTORY_MOCK.noticeNum) return PROGRESSIVE_HISTORY_MOCK.subject;
 	if (lifecycleStatus === 'source_deleted') return '원본 소스 미존재 보존 테스트 법률안';
 	if (lifecycleStatus === 'renumbered') return '의안번호 변경 체인 테스트 법률안';
 	return 'Project Diffchain UI 테스트 법률안';
@@ -242,13 +250,14 @@ function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 	const isPreTransferFixture = noticeNum === PRE_TRANSFER_MOCK_NOTICE_NUM;
 	const isStaleLinkFixture = noticeNum === STALE_LINK_MOCK_NOTICE_NUM;
 	const isOpinionFixture = isPreTransferFixture || isStaleLinkFixture;
-	const lifecycleStatus = isOpinionFixture
-		? 'active'
-		: isDeleted
-			? 'source_deleted'
-			: isRenumbered
-				? 'renumbered'
-				: 'active';
+	const lifecycleStatus =
+		isOpinionFixture || noticeNum === PROGRESSIVE_HISTORY_MOCK.noticeNum
+			? 'active'
+			: isDeleted
+				? 'source_deleted'
+				: isRenumbered
+					? 'renumbered'
+					: 'active';
 	const sourceDeletedAt = !isOpinionFixture && isDeleted ? hoursAgo(1) : null;
 	const isDoneFixture = isOpinionFixture ? false : lifecycleStatus !== 'source_deleted';
 
@@ -282,7 +291,8 @@ function buildMockNoticeRecord(noticeNum: number): MockNoticeRecord {
 			hwpFile: `https://example.com/lawcast/mock/${noticeNum}.hwp`
 		},
 		revision: {
-			headRev: 3,
+			headRev:
+				noticeNum === PROGRESSIVE_HISTORY_MOCK.noticeNum ? PROGRESSIVE_HISTORY_MOCK.recordCount : 3,
 			currentLifecycleStatus: lifecycleStatus,
 			sourceDeletedAt
 		}
@@ -360,7 +370,13 @@ function buildMockNoticeDetail(noticeNum: number, requestedRev?: number): Notice
 			contentId: record.notice.contentId,
 			attachments: record.notice.attachments
 		},
-		originalContent: record.originalContent,
+		originalContent:
+			noticeNum === PROGRESSIVE_HISTORY_MOCK.noticeNum
+				? {
+						...record.originalContent,
+						proposalReason: `기록 ${resolvedRev ?? headRev}의 제안이유\n줄바꿈을 보존합니다.`
+					}
+				: record.originalContent,
 		archiveMetadata: record.archiveMetadata,
 		screenshotMeta: {
 			hasScreenshot: true,
@@ -463,8 +479,8 @@ const MOCK_ARCHIVE_OVERRIDE_CONFIG: {
 		proposalReason: '재생에너지 산업의 경쟁력 강화와 에너지 전환 정책 지원을 위함.'
 	},
 	{
-		num: 2210010,
-		subject: '국가재정법 일부개정법률안',
+		num: PROGRESSIVE_HISTORY_MOCK.noticeNum,
+		subject: PROGRESSIVE_HISTORY_MOCK.subject,
 		committee: '기획재정위원회',
 		archiveDaysAgo: 12,
 		isDoneOverride: true,
@@ -497,11 +513,13 @@ function buildMockArchiveNotices(): Notice[] {
 
 		// Override lifecycleStatus based on isDoneOverride for correct filter behavior.
 		const lifecycleStatus: NoticeLifecycleStatus =
-			override.isDoneOverride === true
-				? 'renumbered'
-				: override.isDoneOverride === false
-					? 'active'
-					: (notice.lifecycleStatus ?? 'active');
+			override.num === PROGRESSIVE_HISTORY_MOCK.noticeNum
+				? 'active'
+				: override.isDoneOverride === true
+					? 'renumbered'
+					: override.isDoneOverride === false
+						? 'active'
+						: (notice.lifecycleStatus ?? 'active');
 
 		return {
 			num: override.num,
@@ -518,7 +536,10 @@ function buildMockArchiveNotices(): Notice[] {
 			lifecycleStatus,
 			sourceDeletedAt: notice.sourceDeletedAt,
 			contentId: notice.contentId,
-			changeEventCount: record.changes.count,
+			changeEventCount:
+				override.num === PROGRESSIVE_HISTORY_MOCK.noticeNum
+					? PROGRESSIVE_HISTORY_MOCK.recordCount
+					: record.changes.count,
 			attachments: notice.attachments
 		};
 	});
@@ -780,8 +801,52 @@ export function getMockNoticeDetail(noticeNum: number, requestedRev?: number): N
 	return buildMockNoticeDetail(noticeNum, requestedRev);
 }
 
-export function getMockNoticeChanges(noticeNum: number): NoticeChangeTimelineResponse {
-	return buildMockNoticeRecord(noticeNum).changes;
+export function getMockNoticeChanges(
+	noticeNum: number,
+	params: { limit?: number; beforeHeight?: number } = {}
+): NoticeChangeTimelineResponse {
+	const limit = Math.min(Math.max(params.limit ?? 20, 1), 100);
+	const allItems =
+		noticeNum === PROGRESSIVE_HISTORY_MOCK.noticeNum
+			? Array.from({ length: PROGRESSIVE_HISTORY_MOCK.recordCount }, (_, index) => {
+					const height = index + 1;
+					return {
+						id: noticeNum * 1000 + height,
+						noticeNum,
+						eventHeight: height,
+						detectedAt: hoursAgo(PROGRESSIVE_HISTORY_MOCK.recordCount + 1 - height),
+						eventType: height === 1 ? ('created' as const) : ('updated' as const),
+						source: NoticeChangeSource.ARCHIVE_UPDATE_SOURCE_HTML,
+						prevEventHash: height > 1 ? `page-event-${height - 1}` : null,
+						eventHash: `page-event-${height}`,
+						changedFieldCount: 1,
+						hashAlgo: 'sha256',
+						canonVersion: 1,
+						diffSummary: null,
+						details: [
+							buildDetail(
+								'proposalReason',
+								height === 1 ? 'added' : 'modified',
+								height === 1 ? null : `기록 ${height - 1}의 제안이유\n줄바꿈을 보존합니다.`,
+								`기록 ${height}의 제안이유\n줄바꿈을 보존합니다.`,
+								height
+							)
+						]
+					};
+				})
+			: buildMockNoticeRecord(noticeNum).changes.items;
+	const candidates = allItems
+		.filter((item) => params.beforeHeight === undefined || item.eventHeight < params.beforeHeight)
+		.sort((a, b) => b.eventHeight - a.eventHeight);
+	const items = candidates.slice(0, limit);
+	const hasMore = candidates.length > limit;
+	return {
+		noticeNum,
+		items,
+		count: items.length,
+		hasMore,
+		nextBeforeHeight: hasMore ? items[items.length - 1].eventHeight : null
+	};
 }
 
 function getMockDiscussionThreadId(noticeNum: number): number {
