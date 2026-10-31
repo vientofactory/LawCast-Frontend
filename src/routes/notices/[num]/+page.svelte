@@ -39,6 +39,7 @@
 	} from '$lib/types/api';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { buildRevisionSnapshots, compareRevisionSnapshots } from '$lib/utils/revision-comparison';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import {
 		buildNoticeDeadline,
@@ -54,6 +55,7 @@
 		data: {
 			detail: NoticeDetail;
 			changes: NoticeChangeTimelineResponse;
+			changesLoadError?: string;
 			discussions?: DiscussionThreadListResponse;
 			discussionError?: {
 				status: number;
@@ -341,7 +343,15 @@
 	let hasAutoScrolledToTimeline = false;
 
 	async function autoScrollToTimelineOnLoad(): Promise<void> {
-		if (hasAutoScrolledToTimeline || !currentUrl.searchParams.has('timeline')) {
+		if (
+			hasAutoScrolledToTimeline ||
+			currentUrl.hash ||
+			!(
+				parseBooleanParam(currentUrl.searchParams.get('timeline')) === true ||
+				currentUrl.searchParams.has('cmpFrom') ||
+				currentUrl.searchParams.has('cmpTo')
+			)
+		) {
 			return;
 		}
 
@@ -351,7 +361,7 @@
 		}
 
 		timelineSectionElement.scrollIntoView({
-			behavior: 'smooth',
+			behavior: 'instant',
 			block: 'start'
 		});
 		hasAutoScrolledToTimeline = true;
@@ -485,8 +495,9 @@
 			return null;
 		}
 
-		const parsed = Number.parseInt(raw, 10);
-		if (!Number.isInteger(parsed) || parsed <= 0) {
+		if (!/^[1-9]\d*$/.test(raw)) return null;
+		const parsed = Number(raw);
+		if (!Number.isSafeInteger(parsed) || parsed <= 0) {
 			return null;
 		}
 
@@ -495,7 +506,9 @@
 
 	$effect(() => {
 		const timelineFromQuery = parseBooleanParam(currentUrl.searchParams.get('timeline'));
-		if (timelineFromQuery !== null) {
+		if (currentUrl.searchParams.has('cmpFrom') || currentUrl.searchParams.has('cmpTo')) {
+			isChangeTimelineOpen = true;
+		} else if (timelineFromQuery !== null) {
 			isChangeTimelineOpen = timelineFromQuery;
 		}
 
@@ -510,116 +523,64 @@
 		}
 	});
 
-	const CHANGE_FIELD_LABELS: Record<string, string> = {
-		num: '의안번호',
-		contentId: '국회 의안 ID',
-		subject: '법률안명',
-		proposerCategory: '제안자 구분',
-		committee: '소관위원회',
-		proposalReason: '제안이유',
-		billNumber: '입법예고 의안번호',
-		contentBillNumber: '입법예고 의안번호',
-		proposer: '입법예고 제안자',
-		contentProposer: '입법예고 제안자',
-		proposalDate: '입법예고 제안일',
-		contentProposalDate: '입법예고 제안일',
-		contentCommittee: '입법예고 소관위원회',
-		referralDate: '입법예고 회부일',
-		contentReferralDate: '입법예고 회부일',
-		noticePeriod: '입법예고 기간',
-		contentNoticePeriod: '입법예고 기간',
-		proposalSession: '입법예고 제안회기',
-		contentProposalSession: '입법예고 제안회기',
-		isDone: '처리 상태',
-		lifecycleStatus: '보존 상태',
-		sourceDeletedAt: '소스 삭제 감지 시각'
-	};
-
-	function toReadableFieldLabel(fieldPath: string): string {
-		return CHANGE_FIELD_LABELS[fieldPath] ?? fieldPath;
-	}
-
-	type RevisionSnapshot = Record<string, string | null>;
-	type RevisionDiffItem = {
-		fieldPath: string;
-		fieldLabel: string;
-		changeType: 'added' | 'removed' | 'modified' | 'unchanged';
-		beforeValue: string | null;
-		afterValue: string | null;
-	};
-
-	function buildSnapshotsByRevision(
-		events: NoticeChangeTimelineResponse['items']
-	): Record<number, RevisionSnapshot> {
-		const snapshots: Record<number, RevisionSnapshot> = {};
-		const current: RevisionSnapshot = {};
-		const asc = [...events].sort((a, b) => a.eventHeight - b.eventHeight);
-
-		for (const event of asc) {
-			for (const detail of event.details) {
-				current[detail.fieldPath] = detail.afterValue;
-			}
-			snapshots[event.eventHeight] = { ...current };
-		}
-
-		return snapshots;
-	}
-
-	let snapshotsByRevision = $derived(buildSnapshotsByRevision(changes.items));
+	let snapshotsByRevision = $derived(buildRevisionSnapshots(changes.items));
 	let selectedFromRev = $derived(getPositiveIntQueryParam(currentUrl.searchParams.get('cmpFrom')));
 	let selectedToRev = $derived(getPositiveIntQueryParam(currentUrl.searchParams.get('cmpTo')));
 	let showAllCompareFields = $derived(
 		currentUrl.searchParams.get('cmpShowAll') === '1' ||
 			currentUrl.searchParams.get('cmpShowAll') === 'true'
 	);
-	let fromSnapshot = $derived(
-		selectedFromRev === null ? {} : (snapshotsByRevision[selectedFromRev] ?? {})
-	);
-	let toSnapshot = $derived(
-		selectedToRev === null ? {} : (snapshotsByRevision[selectedToRev] ?? {})
-	);
-	let comparableRevisionCount = $derived(Object.keys(snapshotsByRevision).length);
-	let canSelectCompareBase = $derived(comparableRevisionCount > 1);
-	let revisionDiffItems = $derived(
-		(() => {
-			const keys = new Set<string>([
-				...Object.keys(CHANGE_FIELD_LABELS),
-				...Object.keys(fromSnapshot),
-				...Object.keys(toSnapshot)
-			]);
-			const items: RevisionDiffItem[] = [];
-
-			for (const key of keys) {
-				const beforeValue = fromSnapshot[key] ?? null;
-				const afterValue = toSnapshot[key] ?? null;
-				if (!showAllCompareFields && beforeValue === afterValue) {
-					continue;
+	let comparisonPending = $state(false);
+	let comparisonError = $state('');
+	let selectionIssue = $derived.by(() => {
+		for (const key of ['cmpFrom', 'cmpTo']) {
+			const raw = currentUrl.searchParams.get(key);
+			if (raw !== null) {
+				const revision = getPositiveIntQueryParam(raw);
+				if (revision === null || !snapshotsByRevision[revision]) {
+					return '선택한 기록이 현재 목록에 없습니다. 아래 목록에서 비교할 기록을 다시 선택해주세요.';
 				}
-
-				const changeType: RevisionDiffItem['changeType'] =
-					beforeValue === afterValue
-						? 'unchanged'
-						: beforeValue === null
-							? 'added'
-							: afterValue === null
-								? 'removed'
-								: 'modified';
-
-				items.push({
-					fieldPath: key,
-					fieldLabel: toReadableFieldLabel(key),
-					changeType,
-					beforeValue,
-					afterValue
-				});
 			}
-
-			return items.sort((a, b) => a.fieldLabel.localeCompare(b.fieldLabel, 'ko-KR'));
-		})()
-	);
+		}
+		return selectedFromRev !== null && selectedFromRev === selectedToRev
+			? '서로 다른 두 기록을 선택해주세요.'
+			: '';
+	});
 	let isCompareMode = $derived(
-		selectedFromRev !== null && selectedToRev !== null && selectedFromRev !== selectedToRev
+		!selectionIssue && selectedFromRev !== null && selectedToRev !== null
 	);
+	let revisionDiffItems = $derived(
+		isCompareMode
+			? compareRevisionSnapshots(
+					snapshotsByRevision[selectedFromRev!],
+					snapshotsByRevision[selectedToRev!]
+				)
+			: []
+	);
+
+	async function navigateComparison(params: SvelteURLSearchParams): Promise<void> {
+		if (comparisonPending) return;
+		comparisonPending = true;
+		comparisonError = '';
+		const focusedControl =
+			document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		try {
+			const query = params.toString();
+			await goto(query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname, {
+				replaceState: true,
+				noScroll: true,
+				keepFocus: true
+			});
+		} catch {
+			comparisonError = '비교할 기록을 선택하지 못했습니다. 잠시 후 다시 시도해주세요.';
+		} finally {
+			comparisonPending = false;
+			await tick();
+			if (document.activeElement === document.body && focusedControl?.isConnected) {
+				focusedControl.focus({ preventScroll: true });
+			}
+		}
+	}
 
 	function buildRevisionLink(rev: number | null): string {
 		const params = new SvelteURLSearchParams(currentUrl.searchParams);
@@ -638,27 +599,6 @@
 		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
 	}
 
-	function buildCompareEntryLink(fromRev: number | null, toRev: number | null): string {
-		const params = new SvelteURLSearchParams(currentUrl.searchParams);
-
-		if (fromRev && fromRev > 0) {
-			params.set('cmpFrom', String(fromRev));
-		} else {
-			params.delete('cmpFrom');
-		}
-
-		if (toRev && toRev > 0) {
-			params.set('cmpTo', String(toRev));
-		} else {
-			params.delete('cmpTo');
-		}
-
-		params.delete('cmpShowAll');
-
-		const query = params.toString();
-		return query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname;
-	}
-
 	async function toggleCompareShowAll(): Promise<void> {
 		const next = !showAllCompareFields;
 		const params = new SvelteURLSearchParams(currentUrl.searchParams);
@@ -669,12 +609,7 @@
 			params.delete('cmpShowAll');
 		}
 
-		const query = params.toString();
-		await goto(query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname, {
-			replaceState: true,
-			noScroll: true,
-			keepFocus: true
-		});
+		await navigateComparison(params);
 	}
 
 	async function updateCompareQuery(fromRev: number | null, toRev: number | null): Promise<void> {
@@ -694,12 +629,7 @@
 
 		params.delete('cmpShowAll');
 
-		const query = params.toString();
-		await goto(query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname, {
-			replaceState: true,
-			noScroll: true,
-			keepFocus: true
-		});
+		await navigateComparison(params);
 	}
 </script>
 
@@ -772,11 +702,14 @@
 		{/if}
 
 		{#if isHistoricalView && activeRevision !== null}
-			<div class="lc-banner-warning mb-6 rounded-xl border px-4 py-3 text-sm">
-				현재 Rev #{activeRevision} 시점 원문을 열람 중입니다.
+			<div
+				class="lc-banner-warning mb-6 rounded-xl border px-4 py-3 text-sm"
+				data-testid="historical-revision-banner"
+			>
+				기록 #{activeRevision}에 보존된 내용을 열람 중입니다. 현재 정보와 다를 수 있습니다.
 				{#if headRevision !== null}
 					<a href={buildRevisionLink(null)} class="ml-2 font-semibold lc-link">
-						최신 리비전 #{headRevision} 보기
+						최신 기록 #{headRevision} 보기
 					</a>
 				{/if}
 			</div>
@@ -1079,9 +1012,9 @@
 			bind:this={timelineSectionElement}
 			aria-labelledby="notice-detail-timeline-heading"
 			data-testid="notice-detail-timeline"
-			class="lc-defer-render"
+			class="lc-defer-render scroll-mt-40"
 		>
-			<h2 id="notice-detail-timeline-heading" class="sr-only">변경 추적 타임라인</h2>
+			<h2 id="notice-detail-timeline-heading" class="sr-only">변경 기록</h2>
 			{#if hasLegacyGenesisBoundary}
 				<div class="lc-banner-muted mb-4 rounded-xl border px-4 py-3 text-sm">
 					변경 추적 이력은
@@ -1095,16 +1028,18 @@
 			<NoticeChangeTimeline
 				bind:isOpen={isChangeTimelineOpen}
 				{changes}
+				historyError={data.changesLoadError}
+				onRetryHistory={invalidateAll}
 				{activeRevisionForUi}
 				{buildRevisionLink}
 				{isCompareMode}
 				{selectedFromRev}
 				{selectedToRev}
 				{showAllCompareFields}
-				clearCompareHref={buildCompareEntryLink(null, null)}
+				{comparisonPending}
+				comparisonError={comparisonError || selectionIssue}
 				onToggleCompareShowAll={toggleCompareShowAll}
 				{revisionDiffItems}
-				{canSelectCompareBase}
 				onSelectCompare={updateCompareQuery}
 			/>
 		</section>

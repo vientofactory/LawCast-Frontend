@@ -30,9 +30,9 @@
 	});
 
 	afterNavigate((navigation) => {
-		// Reset route and query navigation immediately, including history traversal.
-		// Hash destinations retain native anchor and skip-link behavior.
-		if (navigation.type !== 'enter' && !navigation.to?.url.hash) {
+		// Let SvelteKit reset normal navigation and honor explicit noScroll options.
+		// Override history restoration only; hash destinations keep native behavior.
+		if (navigation.type === 'popstate' && !navigation.to?.url.hash) {
 			window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
 		}
 

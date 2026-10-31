@@ -69,11 +69,13 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 		// tolerated changes/discussions fallbacks are simply ignored), while
 		// changes/discussions failures keep their own fallbacks.
 		const detailPromise = apiClient.getNoticeDetail(noticeNum, { rev: resolvedRev }, fetch);
-		const changesPromise = apiClient.getNoticeChanges(noticeNum, {}, fetch).catch(() => ({
-			noticeNum,
-			items: [],
-			count: 0
-		}));
+		const changesPromise = apiClient
+			.getNoticeChanges(noticeNum, {}, fetch)
+			.then((changes) => ({ changes, changesLoadError: undefined as string | undefined }))
+			.catch(() => ({
+				changes: { noticeNum, items: [], count: 0 },
+				changesLoadError: '변경 기록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
+			}));
 		const discussionsPromise: Promise<DiscussionLoadResult> = apiClient
 			.getNoticeDiscussions(noticeNum, {}, fetch)
 			.catch((err): DiscussionLoadResult => {
@@ -94,11 +96,15 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 				};
 			});
 		const detail = await detailPromise;
-		const [changes, discussions] = await Promise.all([changesPromise, discussionsPromise]);
+		const [{ changes, changesLoadError }, discussions] = await Promise.all([
+			changesPromise,
+			discussionsPromise
+		]);
 		const { discussionError, ...discussionList } = discussions;
 		return {
 			detail,
 			changes,
+			changesLoadError,
 			discussions: discussionList,
 			...(discussionError ? { discussionError } : {})
 		};

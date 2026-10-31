@@ -212,11 +212,8 @@ test.describe('Notice Detail Page', () => {
 		// Open the change-tracking timeline panel. Clicks before hydration do
 		// nothing and hydration can re-close a panel opened too early, so toggle
 		// until the panel body renders (same retry pattern as other specs).
-		const summary = page.locator('summary').filter({ hasText: '변경 추적 타임라인' });
-		const timelineDetails = page
-			.locator('details')
-			.filter({ hasText: '변경 추적 타임라인' })
-			.first();
+		const summary = page.locator('summary').filter({ hasText: '변경 기록' });
+		const timelineDetails = page.locator('details').filter({ hasText: '변경 기록' }).first();
 		const timelineBody = timelineDetails.locator(':scope > div').first();
 		await expect(async () => {
 			if ((await timelineDetails.getAttribute('open')) === null) {
@@ -240,9 +237,9 @@ test.describe('Notice Detail Page', () => {
 		// Selecting the target enters compare mode.
 		await targetButton.click();
 		await expect(page).toHaveURL(/cmpTo=/);
-		await expect(page.getByText('리비전 비교 열람 중')).toBeVisible({ timeout: 5000 });
-		await expect(page.getByText('비교 기준', { exact: true }).first()).toBeVisible();
-		await expect(page.getByText('비교 대상', { exact: true }).first()).toBeVisible();
+		await expect(page.getByTestId('revision-comparison')).toBeVisible({ timeout: 5000 });
+		await expect(page.getByTestId('comparison-direction')).toBeVisible();
+		await expect(page.getByTestId('comparison-status')).toBeVisible();
 
 		// The "show all fields" toggle rewrites the URL and must keep both params.
 		await page.getByRole('button', { name: '전체 필드 보기' }).click();

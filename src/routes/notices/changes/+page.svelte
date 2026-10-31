@@ -604,13 +604,22 @@
 										{formatDateTimeKST(item.detectedAt)} · 바뀐 항목 {item.changedFieldCount}개
 									</p>
 								</div>
-								<a
-									href={buildNoticeTimelineHref(item.noticeNum)}
-									class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 text-xs font-semibold"
-								>
-									<FontAwesomeIcon icon={faCodeCompare} class="mr-1.5 h-3.5 w-3.5" />
-									변경 내역 보기
-								</a>
+								<div class="flex flex-wrap gap-2">
+									<a
+										href={buildNoticeTimelineHref(item.noticeNum)}
+										class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 text-xs font-semibold"
+									>
+										<FontAwesomeIcon icon={faCodeCompare} class="mr-1.5 h-3.5 w-3.5" />
+										변경 내역 보기
+									</a>
+									{#if item.eventHeight > 1}
+										<a
+											href={`/notices/${item.noticeNum}?timeline=true&cmpFrom=${item.eventHeight - 1}&cmpTo=${item.eventHeight}`}
+											class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 text-xs font-semibold"
+											data-testid={`change-compare-${item.id}`}>이 변경 비교</a
+										>
+									{/if}
+								</div>
 							</div>
 						</article>
 					{/each}
