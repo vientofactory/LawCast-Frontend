@@ -142,6 +142,8 @@ export interface NoticeChangeTimelineResponse {
 	noticeNum: number;
 	items: NoticeChangeEventItem[];
 	count: number;
+	hasMore?: boolean;
+	nextBeforeHeight?: number | null;
 }
 
 export interface RecentNoticeChangeItem {

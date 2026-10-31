@@ -23,7 +23,11 @@
 		comparisonPending,
 		comparisonError,
 		historyError,
-		onRetryHistory
+		onRetryHistory,
+		hasMore,
+		loadingMore,
+		loadMoreError,
+		onLoadMore
 	}: {
 		isOpen?: boolean;
 		changes: NoticeChangeTimelineResponse;
@@ -40,6 +44,10 @@
 		comparisonError: string;
 		historyError?: string;
 		onRetryHistory: () => Promise<void>;
+		hasMore: boolean;
+		loadingMore: boolean;
+		loadMoreError: string;
+		onLoadMore: () => Promise<void>;
 	} = $props();
 
 	let historyRetrying = $state(false);
@@ -59,7 +67,31 @@
 
 	let records = $derived([...changes.items].sort((a, b) => b.eventHeight - a.eventHeight));
 	let latest = $derived(records[0]);
-	let oldest = $derived(records.at(-1));
+	let loadMoreSentinel = $state<HTMLDivElement | null>(null);
+	$effect(() => {
+		if (
+			!isOpen ||
+			!loadMoreSentinel ||
+			!hasMore ||
+			loadingMore ||
+			loadMoreError ||
+			historyError ||
+			typeof IntersectionObserver === 'undefined'
+		)
+			return;
+		let disposed = false;
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (!disposed && entries.some((entry) => entry.isIntersecting)) void onLoadMore();
+			},
+			{ rootMargin: '0px 0px 240px 0px' }
+		);
+		observer.observe(loadMoreSentinel);
+		return () => {
+			disposed = true;
+			observer.disconnect();
+		};
+	});
 	let fromRecord = $derived(records.find((record) => record.eventHeight === selectedFromRev));
 	let toRecord = $derived(records.find((record) => record.eventHeight === selectedToRev));
 	let hasSelection = $derived(selectedFromRev !== null || selectedToRev !== null);
@@ -121,13 +153,21 @@
 					>
 				</p>
 
-				{#if oldest && oldest.eventHeight > 1}
+				{#if hasMore}
 					<p
 						class="lc-banner-muted rounded-lg border p-3 text-sm"
 						data-testid="revision-history-window"
 					>
-						최근 {records.length}개 기록을 표시하고 있습니다. 비교 결과는 이 목록에서 확인할 수 있는
-						항목을 기준으로 합니다.
+						현재 {records.length}개 기록을 불러왔습니다. 목록 아래로 이동하면 이전 기록이
+						이어집니다.
+						<button
+							type="button"
+							class="lc-link ml-1 underline disabled:cursor-wait"
+							disabled={loadingMore}
+							onclick={onLoadMore}
+							data-testid="revision-history-load-older-top"
+							>{loadingMore ? '불러오는 중…' : '이전 기록 불러오기'}</button
+						>
 					</p>
 				{/if}
 
@@ -391,6 +431,67 @@
 							</li>
 						{/each}
 					</ol>
+					<div bind:this={loadMoreSentinel} class="h-px" aria-hidden="true"></div>
+					<p class="sr-only" role="status" data-testid="revision-history-loading-status">
+						{loadingMore ? '이전 변경 기록을 불러오는 중입니다.' : ''}
+					</p>
+					<div aria-busy={loadingMore} data-testid="revision-history-loading-region">
+						{#if loadingMore}
+							<div
+								class="lc-timeline space-y-4"
+								aria-hidden="true"
+								data-testid="revision-history-skeleton"
+							>
+								{#each [0, 1, 2] as index (index)}
+									<div
+										class="lc-panel-inset space-y-3 rounded-xl border p-4 motion-safe:animate-pulse"
+									>
+										<div class="flex gap-2">
+											<div class="h-5 w-24 rounded bg-(--lc-border-soft)"></div>
+											<div class="h-5 w-16 rounded bg-(--lc-border-soft)"></div>
+										</div>
+										<div class="h-4 w-40 rounded bg-(--lc-border-soft)"></div>
+										<div class="h-4 w-3/4 rounded bg-(--lc-border-soft)"></div>
+										<div class="flex gap-2">
+											<div class="h-9 w-24 rounded bg-(--lc-border-soft)"></div>
+											<div class="h-9 w-32 rounded bg-(--lc-border-soft)"></div>
+										</div>
+									</div>
+								{/each}
+							</div>
+						{:else if loadMoreError}
+							<p
+								role="alert"
+								class="lc-banner-warning mb-3 rounded-lg border p-3 text-sm"
+								data-testid="revision-history-more-error"
+							>
+								{loadMoreError}
+							</p>
+						{/if}
+						{#if hasMore}
+							<button
+								type="button"
+								class="lc-button-neutral mt-4 w-full rounded-lg border px-4 py-3 text-sm disabled:cursor-wait"
+								disabled={loadingMore}
+								onclick={onLoadMore}
+								data-testid="revision-history-load-older"
+								>{loadingMore
+									? '이전 기록 불러오는 중…'
+									: loadMoreError
+										? '이전 기록 다시 불러오기'
+										: '이전 기록 더 보기'}</button
+							>
+						{:else}
+							<p
+								role="status"
+								class="lc-text-muted py-4 text-center text-sm"
+								tabindex="-1"
+								data-testid="revision-history-complete"
+							>
+								보존된 변경 기록 {records.length}개를 모두 불러왔습니다.
+							</p>
+						{/if}
+					</div>
 				{/if}
 			</div>
 		</div>

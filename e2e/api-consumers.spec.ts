@@ -70,13 +70,15 @@ test('explains when only one record is available', async ({ page, request }) => 
 	await expect(page.getByTestId('revision-view-1')).toBeVisible();
 });
 
-test('discloses a partial history window and explains identical comparison content', async ({
+test('recognizes a complete legacy window and explains identical comparison content', async ({
 	page,
 	request
 }) => {
 	await request.get(`${fixture}/control?historyCount=2&historyWindow=1`);
 	await page.goto('/notices/2210001?cmpFrom=4&cmpTo=5');
-	await expect(page.getByTestId('revision-history-window')).toContainText('최근 2개 기록');
+	await expect(page.getByTestId('revision-history-complete')).toContainText(
+		'2개를 모두 불러왔습니다.'
+	);
 	await expect(page.getByTestId('comparison-no-changes')).toBeVisible();
 	await expect(page.getByTestId('revision-diff-summary')).toContainText('바뀐 항목 0개');
 });
@@ -86,4 +88,25 @@ test('does not mistake missing field values for identical content', async ({ pag
 	await page.goto('/notices/2210001?cmpFrom=1&cmpTo=2');
 	await expect(page.getByTestId('comparison-unavailable-fields')).toBeVisible();
 	await expect(page.getByTestId('comparison-no-changes')).toHaveCount(0);
+});
+
+test('loads an older history page through the browser proxy with its exclusive cursor', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?historyCount=45`);
+	await page.goto('/notices/2210001?timeline=open');
+	await expect(page.getByTestId('revision-records').locator(':scope > li')).toHaveCount(20);
+	await page.getByTestId('revision-history-load-older-top').click();
+	await expect(page.getByTestId('revision-records').locator(':scope > li')).toHaveCount(40);
+	const paths: string[] = await (await request.get(`${fixture}/requests`)).json();
+	expect(paths.filter((path) => path.includes('/2210001/changes'))).toEqual([
+		'/api/notices/2210001/changes',
+		'/api/notices/2210001/changes?limit=20&beforeHeight=26'
+	]);
+	await page.getByTestId('revision-history-load-older-top').click();
+	await expect(page.getByTestId('revision-history-complete')).toContainText(
+		'45개를 모두 불러왔습니다.'
+	);
+	await expect(page.getByTestId('compare-from-select').locator('option[value="1"]')).toHaveCount(1);
 });

@@ -40,7 +40,7 @@ jobs:
       - name: Test revision history and scroll navigation
         env:
           DIFFCHAIN_UI_MOCK: '1'
-        run: npx --no-install playwright test --config playwright-configs/playwright.config.ts e2e/revision-history.spec.ts e2e/navigation-scroll.spec.ts
+        run: npx --no-install playwright test --config playwright-configs/playwright.config.ts e2e/revision-history.spec.ts e2e/revision-history-pagination.spec.ts e2e/navigation-scroll.spec.ts
       - name: Test production build
         run: npm run test:e2e:web-vitals
       - name: Test SSR API consumers

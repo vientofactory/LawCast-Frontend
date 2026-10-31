@@ -4,6 +4,8 @@ import { error } from '@sveltejs/kit';
 import {
 	getMockArchiveNoticesResponse,
 	getMockDiscussionThread,
+	getMockNoticeChanges,
+	PROGRESSIVE_HISTORY_MOCK,
 	isDiffchainUiMockEnabled
 } from '$lib/server/diffchain-ui-mock';
 import { getMockSemanticApiResponse } from '$lib/server/semantic-search-mock';
@@ -18,8 +20,30 @@ function parseNonNegativeInteger(value: string | null, fallback: number): number
 	return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
-function getMockResponse(path: string, url: URL): Response | null {
+async function getMockResponse(path: string, url: URL): Promise<Response | null> {
 	if (!isDiffchainUiMockEnabled()) return null;
+
+	const historyMatch = path.match(/^notices\/(\d+)\/changes$/);
+	if (historyMatch) {
+		const raw = url.searchParams.get('beforeHeight');
+		if (raw !== null && (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(Number(raw)))) {
+			return Response.json(
+				{ success: false, message: '기록 번호가 올바르지 않습니다.' },
+				{ status: 400 }
+			);
+		}
+		// Delay only older pages of the manual fixture so its skeleton is observable.
+		if (raw !== null && Number(historyMatch[1]) === PROGRESSIVE_HISTORY_MOCK.noticeNum) {
+			await new Promise((resolve) => setTimeout(resolve, PROGRESSIVE_HISTORY_MOCK.pageDelayMs));
+		}
+		return Response.json({
+			success: true,
+			data: getMockNoticeChanges(Number(historyMatch[1]), {
+				limit: parseNonNegativeInteger(url.searchParams.get('limit'), 20),
+				beforeHeight: raw === null ? undefined : Number(raw)
+			})
+		});
+	}
 
 	// The board's on-demand keyword-count check is a BROWSER-issued archive read,
 	// and `handleFetch` only intercepts server-side calls — so without this branch
@@ -65,7 +89,7 @@ async function forwardRequest(
 	url: URL
 ) {
 	if (method === 'GET') {
-		const mockResponse = getMockResponse(path, url);
+		const mockResponse = await getMockResponse(path, url);
 		if (mockResponse) return mockResponse;
 		// This proxy is the seam for BROWSER-issued /api requests (handleFetch
 		// never sees them: the forward below goes cross-origin to the backend),

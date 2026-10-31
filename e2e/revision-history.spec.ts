@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { measureContrast } from './helpers/contrast';
 import {
@@ -85,7 +85,77 @@ test('preserves long text when the bounded diff falls back', () => {
 	expect(diff.afterSegments.map((segment) => segment.text).join('')).toBe(after);
 });
 
+async function expectHistoryDestination(page: Page, testId: string) {
+	await expect
+		.poll(() =>
+			page
+				.getByTestId(testId)
+				.evaluate((element) =>
+					Math.abs(
+						element.getBoundingClientRect().top -
+							Number.parseFloat(getComputedStyle(element).scrollMarginTop)
+					)
+				)
+		)
+		.toBeLessThan(3);
+	await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+}
+
 test.describe('Revision history (mock fixtures)', () => {
+	for (const [query, target] of [
+		['timeline=true', 'notice-detail-timeline'],
+		['cmpFrom=1&cmpTo=2', 'revision-comparison'],
+		['cmpShowAll=1', 'notice-detail-timeline']
+	] as const) {
+		test(`scrolls a loaded history deep link into view: ${query}`, async ({ page }) => {
+			await page.goto(`/notices/2210001?${query}`);
+			await expect(page.getByTestId('revision-history')).toHaveAttribute('open', '');
+			await expectHistoryDestination(page, target);
+		});
+	}
+
+	test('scrolls again when client navigation reuses the detail component', async ({ page }) => {
+		await page.goto('/notices/2210001?timeline=true');
+		await expectHistoryDestination(page, 'notice-detail-timeline');
+		await page.getByTestId('revision-view-1').click();
+		await expect(page).toHaveURL(/rev=1/);
+		await expectHistoryDestination(page, 'notice-detail-timeline');
+	});
+
+	test('keeps in-place comparison selection at the record being read', async ({ page }) => {
+		await page.goto('/notices/2210001?cmpFrom=1&cmpTo=2');
+		await expectHistoryDestination(page, 'revision-comparison');
+		await page.getByTestId('revision-record-3').evaluate((element) =>
+			window.scrollTo({
+				top: element.getBoundingClientRect().top + scrollY - 150,
+				behavior: 'instant'
+			})
+		);
+		expect(
+			await page
+				.getByTestId('revision-comparison')
+				.evaluate((element) => element.getBoundingClientRect().top)
+		).toBeLessThan(100);
+		await page.getByTestId('revision-base-3').click();
+		await expect(page.getByTestId('compare-from-select')).toHaveValue('3');
+		await page.getByTestId('revision-history').evaluate(async (element) => {
+			await Promise.all(
+				element
+					.getAnimations({ subtree: true })
+					.filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+					.map((animation) => animation.finished.catch(() => {}))
+			);
+			await new Promise<void>((resolve) =>
+				requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+			);
+		});
+		expect(
+			await page
+				.getByTestId('revision-comparison')
+				.evaluate((element) => element.getBoundingClientRect().top)
+		).toBeLessThan(100);
+	});
+
 	test('opens the selected change directly from the changes list', async ({ page }) => {
 		await page.goto('/notices/changes');
 		const link = page.getByRole('link', { name: '이 변경 비교', exact: true }).first();
@@ -96,6 +166,7 @@ test.describe('Revision history (mock fixtures)', () => {
 		await expect(page.getByTestId('revision-comparison')).toBeVisible();
 		await expect(page.getByTestId('compare-from-select')).toHaveValue(params.get('cmpFrom')!);
 		await expect(page.getByTestId('compare-to-select')).toHaveValue(params.get('cmpTo')!);
+		await expectHistoryDestination(page, 'revision-comparison');
 	});
 
 	test.skip(process.env.DIFFCHAIN_UI_MOCK !== '1', 'Requires pinned mock revision records.');

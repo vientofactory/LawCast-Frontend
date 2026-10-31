@@ -80,7 +80,7 @@ createServer((request, response) => {
 			response.end(JSON.stringify({ success: false, message: '변경 기록 조회 실패' }));
 			return;
 		}
-		const items = Array.from({ length: historyCount }, (_, i) => ({
+		const candidates = Array.from({ length: historyCount }, (_, i) => ({
 			id: i + 1,
 			noticeNum: 2210001,
 			eventHeight: historyWindow ? i + 4 : i + 1,
@@ -107,7 +107,20 @@ createServer((request, response) => {
 						}
 					]
 		}));
-		data = { noticeNum: 2210001, count: items.length, items };
+		const beforeHeight = Number(url.searchParams.get('beforeHeight') || Infinity);
+		const limit = Math.min(Number(url.searchParams.get('limit') || 20), 100);
+		const available = candidates
+			.filter((item) => item.eventHeight < beforeHeight)
+			.sort((a, b) => b.eventHeight - a.eventHeight);
+		const items = available.slice(0, limit);
+		const hasMore = available.length > limit;
+		data = {
+			noticeNum: 2210001,
+			count: items.length,
+			items,
+			hasMore,
+			nextBeforeHeight: hasMore ? items.at(-1).eventHeight : null
+		};
 	} else if (url.pathname === '/api/notices/2210001/discussions') {
 		data = { items: [], total: 0, page: 1, limit: 20 };
 	} else if (url.pathname === '/api/announcements/top') data = { item: null };
