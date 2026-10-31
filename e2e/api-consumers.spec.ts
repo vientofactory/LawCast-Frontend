@@ -42,3 +42,48 @@ test('status refresh reruns its own loader without refetching the layout announc
 		before.filter((path) => path.startsWith('/api/announcements/top')).length
 	);
 });
+
+test('distinguishes unavailable history from empty history and retries without resetting scroll', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?failChanges=1`);
+	await page.goto('/notices/2210001?timeline=open');
+	await expect(page.getByTestId('revision-history-error')).toBeVisible();
+	await expect(page.getByTestId('revision-history')).not.toContainText(
+		'아직 보존된 변경 기록이 없습니다.'
+	);
+	await request.get(`${fixture}/control`);
+	await page.getByTestId('revision-history-retry').click();
+	await expect(page.getByTestId('revision-history-error')).toHaveCount(0);
+	await expect(page.getByTestId('revision-history')).toContainText(
+		'아직 보존된 변경 기록이 없습니다.'
+	);
+	await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
+
+test('explains when only one record is available', async ({ page, request }) => {
+	await request.get(`${fixture}/control?historyCount=1`);
+	await page.goto('/notices/2210001?timeline=open');
+	await expect(page.getByTestId('revision-history')).toContainText('아직 기록이 하나뿐입니다.');
+	await expect(page.getByTestId('revision-selection')).toHaveCount(0);
+	await expect(page.getByTestId('revision-view-1')).toBeVisible();
+});
+
+test('discloses a partial history window and explains identical comparison content', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?historyCount=2&historyWindow=1`);
+	await page.goto('/notices/2210001?cmpFrom=4&cmpTo=5');
+	await expect(page.getByTestId('revision-history-window')).toContainText('최근 2개 기록');
+	await expect(page.getByTestId('comparison-no-changes')).toBeVisible();
+	await expect(page.getByTestId('revision-diff-summary')).toContainText('바뀐 항목 0개');
+});
+
+test('does not mistake missing field values for identical content', async ({ page, request }) => {
+	await request.get(`${fixture}/control?historyCount=2&noFields=1`);
+	await page.goto('/notices/2210001?cmpFrom=1&cmpTo=2');
+	await expect(page.getByTestId('comparison-unavailable-fields')).toBeVisible();
+	await expect(page.getByTestId('comparison-no-changes')).toHaveCount(0);
+});

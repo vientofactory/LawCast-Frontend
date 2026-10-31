@@ -1,182 +1,156 @@
 <script lang="ts">
-	type RevisionDiffItem = {
-		fieldPath: string;
-		fieldLabel: string;
-		changeType: 'added' | 'removed' | 'modified' | 'unchanged';
-		beforeValue: string | null;
-		afterValue: string | null;
-	};
+	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import {
+		buildInlineDiffSegments,
+		formatRevisionValue,
+		type RevisionDiffItem
+	} from '$lib/utils/revision-comparison';
 
 	let {
 		isCompareMode,
 		selectedFromRev,
 		selectedToRev,
 		showAllCompareFields,
-		clearCompareHref,
 		onToggleCompareShowAll,
-		revisionDiffItems
+		revisionDiffItems,
+		comparisonPending,
+		fromDate,
+		toDate
 	}: {
 		isCompareMode: boolean;
 		selectedFromRev: number | null;
 		selectedToRev: number | null;
 		showAllCompareFields: boolean;
-		clearCompareHref: string;
 		onToggleCompareShowAll: () => Promise<void> | void;
 		revisionDiffItems: RevisionDiffItem[];
+		comparisonPending: boolean;
+		fromDate?: string;
+		toDate?: string;
 	} = $props();
 
+	let changedItems = $derived(revisionDiffItems.filter((item) => item.changeType !== 'unchanged'));
+	let visibleItems = $derived(showAllCompareFields ? revisionDiffItems : changedItems);
+	let unchangedCount = $derived(revisionDiffItems.length - changedItems.length);
+
 	function changeTypeLabel(changeType: RevisionDiffItem['changeType']): string {
-		switch (changeType) {
-			case 'added':
-				return '추가됨';
-			case 'removed':
-				return '삭제됨';
-			case 'modified':
-				return '수정됨';
-			default:
-				return '변경 없음';
-		}
-	}
-
-	function buildInlineDiffSegments(
-		beforeValue: string | null,
-		afterValue: string | null
-	): {
-		beforeSegments: Array<{ text: string; kind: 'context' | 'removed' | 'added' }>;
-		afterSegments: Array<{ text: string; kind: 'context' | 'removed' | 'added' }>;
-	} {
-		const before = beforeValue ?? '';
-		const after = afterValue ?? '';
-
-		if (before === after) {
-			return {
-				beforeSegments: before ? [{ text: before, kind: 'context' }] : [],
-				afterSegments: after ? [{ text: after, kind: 'context' }] : []
-			};
-		}
-
-		let prefixLength = 0;
-		const maxPrefixLength = Math.min(before.length, after.length);
-		while (prefixLength < maxPrefixLength && before[prefixLength] === after[prefixLength]) {
-			prefixLength += 1;
-		}
-
-		let suffixLength = 0;
-		const maxSuffixLength = Math.min(before.length - prefixLength, after.length - prefixLength);
-		while (
-			suffixLength < maxSuffixLength &&
-			before[before.length - 1 - suffixLength] === after[after.length - 1 - suffixLength]
-		) {
-			suffixLength += 1;
-		}
-
-		const beforePrefix = before.slice(0, prefixLength);
-		const beforeChanged = before.slice(prefixLength, before.length - suffixLength);
-		const beforeSuffix = before.slice(before.length - suffixLength);
-
-		const afterPrefix = after.slice(0, prefixLength);
-		const afterChanged = after.slice(prefixLength, after.length - suffixLength);
-		const afterSuffix = after.slice(after.length - suffixLength);
-
-		return {
-			beforeSegments: [
-				...(beforePrefix ? [{ text: beforePrefix, kind: 'context' as const }] : []),
-				...(beforeChanged ? [{ text: beforeChanged, kind: 'removed' as const }] : []),
-				...(beforeSuffix ? [{ text: beforeSuffix, kind: 'context' as const }] : [])
-			],
-			afterSegments: [
-				...(afterPrefix ? [{ text: afterPrefix, kind: 'context' as const }] : []),
-				...(afterChanged ? [{ text: afterChanged, kind: 'added' as const }] : []),
-				...(afterSuffix ? [{ text: afterSuffix, kind: 'context' as const }] : [])
-			]
-		};
+		if (changeType === 'added') return '추가됨';
+		if (changeType === 'removed') return '삭제됨';
+		if (changeType === 'modified') return '수정됨';
+		return '변경 없음';
 	}
 </script>
 
 {#if isCompareMode && selectedFromRev !== null && selectedToRev !== null}
-	<div class="lc-panel-inset mb-4 rounded-xl border p-3">
-		<div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-			<p class="lc-text-secondary text-xs font-semibold">
-				리비전 비교 열람 중: Rev #{selectedFromRev} -> Rev #{selectedToRev}
-				{#if showAllCompareFields}
-					<span
-						class="ml-2 rounded-full border border-(--lc-border-soft) px-2 py-0.5 text-[11px] font-bold"
-					>
-						전체 필드
-					</span>
-				{/if}
-			</p>
-			<div class="flex flex-wrap items-center gap-2">
-				<button
-					type="button"
-					onclick={onToggleCompareShowAll}
-					class="lc-button-neutral cursor-pointer rounded-md border px-2 py-1.5 text-xs font-semibold"
-				>
-					{showAllCompareFields ? '변경 필드만 보기' : '전체 필드 보기'}
-				</button>
-				<a
-					href={clearCompareHref}
-					class="lc-button-neutral cursor-pointer rounded-md border px-2 py-1.5 text-xs font-semibold"
-				>
-					비교 종료
-				</a>
+	<section
+		id="revision-comparison"
+		class="lc-panel-inset scroll-mt-40 space-y-4 rounded-xl border p-4"
+		aria-labelledby="revision-comparison-heading"
+		data-testid="revision-comparison"
+	>
+		<div class="flex flex-wrap items-start justify-between gap-3">
+			<div>
+				<h3 id="revision-comparison-heading" class="lc-text-primary font-semibold">
+					변경 내용 비교
+				</h3>
+				<p class="lc-text-secondary mt-1 text-sm" role="status" data-testid="revision-diff-summary">
+					바뀐 항목 {changedItems.length}개 · 변경 없는 항목 {unchangedCount}개
+				</p>
+			</div>
+			<button
+				type="button"
+				class="lc-button-neutral rounded-lg border px-3 py-2 text-sm"
+				disabled={comparisonPending}
+				aria-pressed={showAllCompareFields}
+				onclick={onToggleCompareShowAll}
+				data-testid="compare-show-all"
+				>{showAllCompareFields ? '변경 필드만 보기' : '전체 필드 보기'}</button
+			>
+		</div>
+		<div class="grid gap-3 sm:grid-cols-2" data-testid="comparison-direction">
+			<div class="rounded-lg border border-(--lc-border-soft) bg-(--lc-surface-primary) p-3">
+				<p class="lc-text-primary text-sm font-semibold">기준 기록 #{selectedFromRev}</p>
+				{#if fromDate}<p class="lc-text-muted mt-1 text-xs">{formatDateTimeKST(fromDate)}</p>{/if}
+			</div>
+			<div class="rounded-lg border border-(--lc-border-soft) bg-(--lc-surface-primary) p-3">
+				<p class="lc-text-primary text-sm font-semibold">대상 기록 #{selectedToRev}</p>
+				{#if toDate}<p class="lc-text-muted mt-1 text-xs">{formatDateTimeKST(toDate)}</p>{/if}
 			</div>
 		</div>
+		{#if selectedFromRev > selectedToRev}
+			<p class="lc-banner-muted rounded-lg border p-3 text-sm" data-testid="comparison-reverse">
+				이전 시점으로 거슬러 비교하고 있습니다. 시간순으로 보려면 ‘기준·대상 바꾸기’를 눌러주세요.
+			</p>
+		{/if}
+		<p class="lc-text-secondary flex flex-wrap gap-3 text-xs">
+			<span><span class="lc-diff-removed px-1">삭제된 내용</span>은 기준 기록에만 있습니다.</span
+			><span><span class="lc-diff-added px-1">추가된 내용</span>은 대상 기록에만 있습니다.</span>
+		</p>
 
 		{#if revisionDiffItems.length === 0}
-			<p class="lc-text-muted text-xs">표시할 비교 항목이 없습니다.</p>
-		{:else}
-			<div class="space-y-2">
-				{#each revisionDiffItems as item (`main-revision-diff-${item.fieldPath}`)}
-					{@const diffSegments = buildInlineDiffSegments(item.beforeValue, item.afterValue)}
-					<div class="lc-code-block rounded-md border px-3 py-2 text-xs">
-						<div class="mb-1 flex items-center gap-2">
-							<p class="lc-text-primary font-semibold">{item.fieldLabel}</p>
-							<span class="lc-chip-muted rounded-full px-2 py-0.5 text-[11px] font-semibold">
-								{changeTypeLabel(item.changeType)}
-							</span>
-						</div>
-						<div class="grid gap-2 md:grid-cols-2">
-							<div>
-								<p class="lc-text-muted mb-1">Rev #{selectedFromRev}</p>
-								<div
-									class="rounded border border-(--lc-border-soft) bg-(--lc-surface-primary) px-2 py-1 font-mono leading-6 wrap-break-word whitespace-pre-wrap"
-								>
-									{#if diffSegments.beforeSegments.length === 0}
-										<span class="lc-text-dim">(비어 있음)</span>
-									{:else}
-										{#each diffSegments.beforeSegments as segment, segmentIndex (`main-before-${item.fieldPath}-${segmentIndex}`)}
-											<span
-												class={segment.kind === 'removed'
-													? 'lc-diff-removed'
-													: 'text-(--lc-text-primary)'}>{segment.text}</span
-											>
-										{/each}
-									{/if}
-								</div>
+			<p
+				class="lc-panel-card rounded-lg border p-4 text-sm"
+				data-testid="comparison-unavailable-fields"
+			>
+				두 기록에서 비교할 수 있는 항목을 확인하지 못했습니다.
+			</p>
+		{:else if changedItems.length === 0}
+			<p class="lc-panel-card rounded-lg border p-4 text-sm" data-testid="comparison-no-changes">
+				두 기록에서 확인할 수 있는 항목의 내용이 같습니다.
+			</p>
+		{/if}
+		{#if !showAllCompareFields && unchangedCount > 0}
+			<p class="lc-text-muted text-xs">
+				변경 없는 {unchangedCount}개 항목은 접어두었습니다. ‘전체 필드 보기’에서 확인할 수 있습니다.
+			</p>
+		{/if}
+		<div class="space-y-3">
+			{#each visibleItems as item (item.fieldPath)}
+				{@const diff = buildInlineDiffSegments(
+					formatRevisionValue(item.fieldPath, item.beforeValue),
+					formatRevisionValue(item.fieldPath, item.afterValue)
+				)}
+				<details
+					open={item.changeType !== 'unchanged'}
+					class="lc-panel-card rounded-lg border p-3"
+					data-testid={`revision-diff-${item.fieldPath}`}
+				>
+					<summary class="lc-text-primary cursor-pointer text-sm font-semibold">
+						{item.fieldLabel}
+						<span class="lc-chip-muted ml-2 rounded-full px-2 py-1 text-xs font-normal"
+							>{changeTypeLabel(item.changeType)}</span
+						>
+					</summary>
+					<div class="mt-3 grid gap-3 md:grid-cols-2">
+						<div class="min-w-0">
+							<p class="lc-text-secondary mb-1 text-xs font-semibold">
+								기준 기록 #{selectedFromRev}
+							</p>
+							<div
+								class="lc-text-primary rounded-lg border border-(--lc-border-soft) bg-(--lc-surface-primary) p-3 text-sm leading-7 wrap-anywhere whitespace-pre-wrap"
+								data-testid={`revision-before-${item.fieldPath}`}
+							>
+								{#if diff.beforeSegments.length === 0}<span class="lc-text-muted">내용 없음</span>
+								{:else}{#each diff.beforeSegments as segment, index (index)}<span
+											class={segment.kind === 'removed' ? 'lc-diff-removed' : ''}
+											>{segment.text}</span
+										>{/each}{/if}
 							</div>
-							<div>
-								<p class="lc-text-muted mb-1">Rev #{selectedToRev}</p>
-								<div
-									class="rounded border border-(--lc-border-soft) bg-(--lc-surface-muted) px-2 py-1 font-mono leading-6 wrap-break-word whitespace-pre-wrap"
-								>
-									{#if diffSegments.afterSegments.length === 0}
-										<span class="lc-text-dim">(비어 있음)</span>
-									{:else}
-										{#each diffSegments.afterSegments as segment, segmentIndex (`main-after-${item.fieldPath}-${segmentIndex}`)}
-											<span
-												class={segment.kind === 'added'
-													? 'lc-diff-added'
-													: 'text-(--lc-text-primary)'}>{segment.text}</span
-											>
-										{/each}
-									{/if}
-								</div>
+						</div>
+						<div class="min-w-0">
+							<p class="lc-text-secondary mb-1 text-xs font-semibold">대상 기록 #{selectedToRev}</p>
+							<div
+								class="lc-text-primary rounded-lg border border-(--lc-border-soft) bg-(--lc-surface-primary) p-3 text-sm leading-7 wrap-anywhere whitespace-pre-wrap"
+								data-testid={`revision-after-${item.fieldPath}`}
+							>
+								{#if diff.afterSegments.length === 0}<span class="lc-text-muted">내용 없음</span>
+								{:else}{#each diff.afterSegments as segment, index (index)}<span
+											class={segment.kind === 'added' ? 'lc-diff-added' : ''}>{segment.text}</span
+										>{/each}{/if}
 							</div>
 						</div>
 					</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
+				</details>
+			{/each}
+		</div>
+	</section>
 {/if}
