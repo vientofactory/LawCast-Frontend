@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#f8fafc" />
+    <meta name="theme-color" content="#fafafb" />
     <meta name="robots" content="noindex" />
     <title>불러오는 중 - LawCast</title>
     <style>
-      :root { color-scheme: light; --bg: #f8fafc; --accent: #1d4ed8; }
-      @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { color-scheme: dark; --bg: #08111f; --accent: #60a5fa; } }
-      :root[data-theme='dark'] { color-scheme: dark; --bg: #08111f; --accent: #60a5fa; }
+      :root { color-scheme: light; --bg: #fafafb; --accent: #1d4ed8; }
+      @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { color-scheme: dark; --bg: #0b1117; --accent: #60a5fa; } }
+      :root[data-theme='dark'] { color-scheme: dark; --bg: #0b1117; --accent: #60a5fa; }
       body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; background: var(--bg); font-family: system-ui, sans-serif; }
       main { padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 2rem; }
       .lc-brand-symbol { width: 80px; height: 80px; overflow: visible; color: var(--accent); }
@@ -51,10 +51,18 @@
       }
     </style>
     <script>
-      try {
-        const theme = localStorage.getItem('lawcast-theme');
-        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-      } catch { /* Storage restrictions must not prevent launch. */ }
+      (() => {
+        let savedTheme = null;
+        try {
+          savedTheme = localStorage.getItem('lawcast-theme');
+        } catch { /* Use the system theme when storage is unavailable. */ }
+        const theme = savedTheme === 'light' || savedTheme === 'dark'
+          ? savedTheme
+          : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#0b1117' : '#fafafb';
+      })();
     </script>
   </head>
   <body>

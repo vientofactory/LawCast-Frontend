@@ -4,8 +4,16 @@ import { writable } from 'svelte/store';
 export type ThemeMode = 'light' | 'dark';
 
 const STORAGE_KEY = 'lawcast-theme';
-const DARK_THEME_COLOR = '#08111f';
-const LIGHT_THEME_COLOR = '#3b82f6';
+const DARK_THEME_COLOR = '#0b1117';
+const LIGHT_THEME_COLOR = '#fafafb';
+
+function readSavedTheme(): string | null {
+	try {
+		return window.localStorage.getItem(STORAGE_KEY);
+	} catch {
+		return null;
+	}
+}
 
 function isThemeMode(value: string | null): value is ThemeMode {
 	return value === 'light' || value === 'dark';
@@ -24,7 +32,7 @@ function readInitialTheme(): ThemeMode {
 		return 'light';
 	}
 
-	const savedTheme = window.localStorage.getItem(STORAGE_KEY);
+	const savedTheme = readSavedTheme();
 	if (isThemeMode(savedTheme)) {
 		return savedTheme;
 	}
@@ -57,7 +65,7 @@ const themeStore = writable<ThemeMode>(initialTheme);
 if (browser) {
 	const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 	const handleSystemThemeChange = (event: MediaQueryListEvent) => {
-		if (isThemeMode(window.localStorage.getItem(STORAGE_KEY))) {
+		if (isThemeMode(readSavedTheme())) {
 			return;
 		}
 
@@ -73,7 +81,11 @@ export const theme = {
 	subscribe: themeStore.subscribe,
 	set(nextTheme: ThemeMode) {
 		if (browser) {
-			window.localStorage.setItem(STORAGE_KEY, nextTheme);
+			try {
+				window.localStorage.setItem(STORAGE_KEY, nextTheme);
+			} catch {
+				// Theme changes still apply when persistence is unavailable.
+			}
 		}
 
 		syncTheme(nextTheme);
