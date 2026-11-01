@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'lawcast-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v8`;
+const CACHE_NAME = `${CACHE_PREFIX}v9`;
 const OFFLINE_URL = '/offline.html';
 const LAUNCH_URL = '/pwa-start.html';
 const STATIC_ASSETS = [OFFLINE_URL, LAUNCH_URL, '/brand/v2/icon-192.png', '/brand/v2/icon-512.png', '/brand/v2/badge-96.png'];

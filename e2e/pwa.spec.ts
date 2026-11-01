@@ -40,6 +40,103 @@ async function offerInstall(page: Page, outcome = 'accepted', fail = false) {
 }
 
 test.describe('PWA', () => {
+	test('theme bootstraps match the app palette before hydration, including blocked storage', () => {
+		for (const file of ['src/app.html', 'static/pwa-start.html', 'static/offline.html']) {
+			const html = readFileSync(file, 'utf8');
+			const script = html.match(/<script>([\s\S]*?)<\/script>/)![1];
+			for (const system of ['light', 'dark']) {
+				for (const saved of [null, 'light', 'dark', 'invalid', 'blocked']) {
+					const expected = saved === 'light' || saved === 'dark' ? saved : system;
+					const root = { dataset: { theme: '' }, style: { colorScheme: '' } };
+					const meta = {
+						content: '',
+						setAttribute(_name: string, value: string) {
+							this.content = value;
+						}
+					};
+					const localStorage = {
+						getItem() {
+							if (saved === 'blocked') throw new Error('Storage blocked');
+							return saved;
+						}
+					};
+					const matchMedia = () => ({ matches: system === 'dark' });
+					runInNewContext(script, {
+						window: { localStorage, matchMedia },
+						localStorage,
+						matchMedia,
+						document: { documentElement: root, querySelector: () => meta }
+					});
+					expect(root.dataset.theme).toBe(expected);
+					expect(root.style.colorScheme).toBe(expected);
+					expect(meta.content).toBe(expected === 'dark' ? '#0b1117' : '#fafafb');
+				}
+			}
+		}
+	});
+
+	for (const saved of ['light', 'dark'] as const) {
+		test(`theme chrome follows saved ${saved} mode through toggles and reloads`, async ({
+			page
+		}) => {
+			await page.emulateMedia({ colorScheme: saved === 'light' ? 'dark' : 'light' });
+			await page.addInitScript((value) => {
+				if (!localStorage.getItem('lawcast-theme')) localStorage.setItem('lawcast-theme', value);
+			}, saved);
+			await openApp(page);
+			const chrome = page.locator('meta[name="theme-color"]');
+			await expect(chrome).toHaveCount(1);
+			await expect(chrome).toHaveAttribute('content', saved === 'dark' ? '#0b1117' : '#fafafb');
+			const next = saved === 'light' ? 'dark' : 'light';
+			await expect(async () => {
+				if ((await page.locator('html').getAttribute('data-theme')) !== next)
+					await page.getByRole('switch', { name: /테마로 전환/ }).click();
+				await expect(page.locator('html')).toHaveAttribute('data-theme', next);
+			}).toPass();
+			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#0b1117' : '#fafafb');
+			await page.reload();
+			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#0b1117' : '#fafafb');
+			await page.setViewportSize({ width: 375, height: 812 });
+			await page.emulateMedia({ colorScheme: saved });
+			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#0b1117' : '#fafafb');
+			await page.context().setOffline(true);
+			await page.goto('/notices?theme-offline');
+			await expect(page.getByTestId('pwa-offline-page')).toBeVisible();
+			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#0b1117' : '#fafafb');
+			await expect(page.locator('body')).toHaveCSS(
+				'background-color',
+				next === 'dark' ? 'rgb(11, 17, 23)' : 'rgb(250, 250, 251)'
+			);
+		});
+	}
+
+	test('theme chrome tracks system changes without a saved preference', async ({ page }) => {
+		await page.emulateMedia({ colorScheme: 'light' });
+		await openApp(page);
+		const chrome = page.locator('meta[name="theme-color"]');
+		await expect(chrome).toHaveAttribute('content', '#fafafb');
+		await page.emulateMedia({ colorScheme: 'dark' });
+		await expect(chrome).toHaveAttribute('content', '#0b1117');
+		await page.emulateMedia({ colorScheme: 'light' });
+		await expect(chrome).toHaveAttribute('content', '#fafafb');
+	});
+
+	test('theme controls still work when storage is blocked', async ({ page }) => {
+		await page.addInitScript(() => {
+			Storage.prototype.getItem = Storage.prototype.setItem = () => {
+				throw new Error('Storage blocked');
+			};
+		});
+		await page.emulateMedia({ colorScheme: 'dark' });
+		await openApp(page);
+		await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0b1117');
+		await expect(async () => {
+			if ((await page.locator('html').getAttribute('data-theme')) !== 'light')
+				await page.getByRole('switch', { name: /테마로 전환/ }).click();
+			await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#fafafb');
+		}).toPass();
+	});
+
 	test('assembles the symbol before revealing the wordmark without shifting layout', async ({
 		page
 	}, testInfo) => {
@@ -239,7 +336,7 @@ test.describe('PWA', () => {
 		});
 		await openApp(page);
 		const names = await page.evaluate(() => caches.keys());
-		expect(names).toContain('lawcast-pwa-v8');
+		expect(names).toContain('lawcast-pwa-v9');
 		expect(names).toContain('unrelated-cache');
 		expect(names).not.toContain('lawcast-pwa-v2');
 	});
@@ -316,7 +413,9 @@ test.describe('PWA', () => {
 			start_url: '/pwa-start',
 			scope: '/',
 			display: 'standalone',
-			lang: 'ko'
+			lang: 'ko',
+			theme_color: '#fafafb',
+			background_color: '#fafafb'
 		});
 		expect(manifest.icons.map((icon: { sizes: string }) => icon.sizes)).toEqual([
 			'192x192',
@@ -506,7 +605,7 @@ test.describe('PWA', () => {
 		await expect.poll(launchState).toMatchObject({
 			text: '다시 시도',
 			theme: 'dark',
-			background: 'rgb(8, 17, 31)',
+			background: 'rgb(11, 17, 23)',
 			animation: 'lc-launch-arc',
 			retryHidden: true
 		});

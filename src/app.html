@@ -17,13 +17,18 @@
 		/>
 		<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="theme-color" content="#1d4ed8" />
+		<meta name="theme-color" content="#fafafb" />
 		<meta name="color-scheme" content="light dark" />
 		<script>
 			(() => {
 				const storageKey = 'lawcast-theme';
 				const root = document.documentElement;
-				const savedTheme = window.localStorage.getItem(storageKey);
+				let savedTheme = null;
+				try {
+					savedTheme = window.localStorage.getItem(storageKey);
+				} catch {
+					// Fall back to the system theme when storage is unavailable.
+				}
 				const preferredTheme =
 					savedTheme === 'light' || savedTheme === 'dark'
 						? savedTheme
@@ -35,11 +40,11 @@
 				root.style.colorScheme = preferredTheme;
 				const metaThemeColor = document.querySelector('meta[name="theme-color"]');
 				if (metaThemeColor) {
-					metaThemeColor.setAttribute('content', preferredTheme === 'dark' ? '#08111f' : '#3b82f6');
+					metaThemeColor.setAttribute('content', preferredTheme === 'dark' ? '#0b1117' : '#fafafb');
 				} else {
 					const meta = document.createElement('meta');
 					meta.name = 'theme-color';
-					meta.content = preferredTheme === 'dark' ? '#08111f' : '#3b82f6';
+					meta.content = preferredTheme === 'dark' ? '#0b1117' : '#fafafb';
 					document.head.appendChild(meta);
 				}
 			})();
