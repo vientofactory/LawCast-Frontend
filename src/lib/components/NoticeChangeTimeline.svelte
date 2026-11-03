@@ -363,13 +363,23 @@
 										].join(' · ') || '보존 정보 갱신'}
 									</p>
 									<div class="flex flex-wrap gap-2">
-										<a
-											href={buildRevisionLink(record.eventHeight)}
-											aria-current={isViewed ? 'page' : undefined}
-											class="lc-button-neutral rounded-lg border px-3 py-2 text-sm"
-											aria-label={`이 기록 열람: 기록 #${record.eventHeight}`}
-											data-testid={`revision-view-${record.eventHeight}`}>이 기록 열람</a
-										>
+										{#if isViewed}
+											<button
+												type="button"
+												disabled
+												aria-current="page"
+												class="lc-text-muted cursor-not-allowed rounded-lg border border-(--lc-border-soft) bg-(--lc-surface-muted) px-3 py-2 text-sm"
+												aria-label={`현재 열람 중: 기록 #${record.eventHeight}`}
+												data-testid={`revision-view-${record.eventHeight}`}>열람 중</button
+											>
+										{:else}
+											<a
+												href={buildRevisionLink(record.eventHeight)}
+												class="lc-button-neutral rounded-lg border px-3 py-2 text-sm"
+												aria-label={`이 기록 열람: 기록 #${record.eventHeight}`}
+												data-testid={`revision-view-${record.eventHeight}`}>이 기록 열람</a
+											>
+										{/if}
 										{#if records[index + 1]}
 											<button
 												type="button"

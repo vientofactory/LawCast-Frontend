@@ -102,6 +102,38 @@ async function expectHistoryDestination(page: Page, testId: string) {
 }
 
 test.describe('Revision history (mock fixtures)', () => {
+	for (const width of [1280, 390]) {
+		test(`disables viewing the active revision and updates after navigation at ${width}px`, async ({
+			page
+		}) => {
+			await page.setViewportSize({ width, height: 844 });
+			await page.goto('/notices/2210001?timeline=true');
+			const latest = page.getByTestId('revision-view-3');
+			await expect(latest).toBeDisabled();
+			await expect(latest).toHaveText('열람 중');
+			await expect(latest).toHaveAttribute('aria-current', 'page');
+			await expect(latest).not.toHaveAttribute('href');
+			const latestUrl = page.url();
+			await latest.evaluate((element) => (element as HTMLButtonElement).click());
+			expect(page.url()).toBe(latestUrl);
+			await page.getByTestId('revision-view-1').click();
+			await expect(page).toHaveURL(/rev=1/);
+			await expect(page.getByTestId('revision-view-1')).toBeDisabled();
+			await expect(page.getByTestId('revision-view-1')).toHaveText('열람 중');
+			await expect(latest).toBeEnabled();
+			await expect(latest).toHaveAttribute('href', /rev=3/);
+			await page.getByTestId('revision-view-2').focus();
+			await page.keyboard.press('Enter');
+			await expect(page).toHaveURL(/rev=2/);
+			await expect(page.getByTestId('revision-view-2')).toBeDisabled();
+			await expect(page.getByTestId('revision-view-1')).toBeEnabled();
+			await page.getByTestId('historical-revision-banner').getByRole('link').click();
+			await expect(page).not.toHaveURL(/rev=/);
+			await expect(latest).toBeDisabled();
+			await expect(page.getByTestId('revision-view-2')).toBeEnabled();
+		});
+	}
+
 	for (const [query, target] of [
 		['timeline=true', 'notice-detail-timeline'],
 		['cmpFrom=1&cmpTo=2', 'revision-comparison'],

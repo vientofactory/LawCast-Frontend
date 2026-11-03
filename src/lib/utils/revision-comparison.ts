@@ -8,7 +8,7 @@ export type RevisionDiffItem = {
 	beforeValue: string | null;
 	afterValue: string | null;
 };
-type DiffSegment = { text: string; kind: 'context' | 'removed' | 'added' };
+export { buildInlineDiffSegments } from './revision-text-diff';
 
 const FIELD_LABELS: Record<string, string> = {
 	num: '의안번호',
@@ -94,77 +94,4 @@ export function compareRevisionSnapshots(
 			};
 		})
 		.sort((a, b) => a.fieldLabel.localeCompare(b.fieldLabel, 'ko-KR'));
-}
-
-export function buildInlineDiffSegments(beforeValue: string, afterValue: string) {
-	const beforeSegments: DiffSegment[] = [];
-	const afterSegments: DiffSegment[] = [];
-	function append(segments: DiffSegment[], text: string, kind: DiffSegment['kind']) {
-		if (!text) return;
-		const last = segments.at(-1);
-		if (last?.kind === kind) last.text += text;
-		else segments.push({ text, kind });
-	}
-	const beforeCharacters = Array.from(beforeValue);
-	const afterCharacters = Array.from(afterValue);
-	let prefix = 0;
-	while (
-		prefix < Math.min(beforeCharacters.length, afterCharacters.length) &&
-		beforeCharacters[prefix] === afterCharacters[prefix]
-	)
-		prefix++;
-	let suffix = 0;
-	while (
-		suffix < Math.min(beforeCharacters.length, afterCharacters.length) - prefix &&
-		beforeCharacters.at(-suffix - 1) === afterCharacters.at(-suffix - 1)
-	)
-		suffix++;
-	append(beforeSegments, beforeCharacters.slice(0, prefix).join(''), 'context');
-	append(afterSegments, afterCharacters.slice(0, prefix).join(''), 'context');
-	const before =
-		beforeCharacters
-			.slice(prefix, beforeCharacters.length - suffix)
-			.join('')
-			.match(/\s+|[\p{L}\p{N}]+|[^\s\p{L}\p{N}]/gu) ?? [];
-	const after =
-		afterCharacters
-			.slice(prefix, afterCharacters.length - suffix)
-			.join('')
-			.match(/\s+|[\p{L}\p{N}]+|[^\s\p{L}\p{N}]/gu) ?? [];
-	// Bound the LCS matrix for long legislative text; retain lossless fallback output.
-	if ((before.length + 1) * (after.length + 1) <= 40_000) {
-		const matrix = Array.from(
-			{ length: before.length + 1 },
-			() => new Uint16Array(after.length + 1)
-		);
-		for (let i = before.length - 1; i >= 0; i--) {
-			for (let j = after.length - 1; j >= 0; j--) {
-				matrix[i][j] =
-					before[i] === after[j]
-						? matrix[i + 1][j + 1] + 1
-						: Math.max(matrix[i + 1][j], matrix[i][j + 1]);
-			}
-		}
-		let i = 0;
-		let j = 0;
-		while (i < before.length || j < after.length) {
-			if (i < before.length && j < after.length && before[i] === after[j]) {
-				append(beforeSegments, before[i++], 'context');
-				append(afterSegments, after[j++], 'context');
-			} else if (
-				i < before.length &&
-				(j === after.length || matrix[i + 1][j] >= matrix[i][j + 1])
-			) {
-				append(beforeSegments, before[i++], 'removed');
-			} else append(afterSegments, after[j++], 'added');
-		}
-	} else {
-		append(beforeSegments, before.join(''), 'removed');
-		append(afterSegments, after.join(''), 'added');
-	}
-	if (suffix) {
-		append(beforeSegments, beforeCharacters.slice(-suffix).join(''), 'context');
-		append(afterSegments, afterCharacters.slice(-suffix).join(''), 'context');
-	}
-	return { beforeSegments, afterSegments };
 }
