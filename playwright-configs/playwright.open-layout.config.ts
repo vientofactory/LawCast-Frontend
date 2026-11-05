@@ -10,7 +10,18 @@ export default defineConfig({
 	retries: 0,
 	reporter: 'list',
 	use: { baseURL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
-	projects: [{ name: 'open-layout', use: { ...devices['Desktop Chrome'] } }],
+	projects: [
+		{
+			name: 'open-layout',
+			grepInvert: /mobile touch theme from/,
+			use: { ...devices['Desktop Chrome'] }
+		},
+		{
+			name: 'open-layout-touch',
+			grep: /mobile touch theme from/,
+			use: { ...devices['Pixel 7'] }
+		}
+	],
 	webServer: {
 		cwd: fileURLToPath(new URL('..', import.meta.url)),
 		command: 'npm run build:node && node build/index.js',
