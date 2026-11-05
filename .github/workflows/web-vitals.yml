@@ -35,6 +35,8 @@ jobs:
         run: npm run check
       - name: Test Lighthouse summaries
         run: node --test scripts/lighthouse-summary.test.mjs
+      - name: Test request failure classification
+        run: node --test scripts/request-failure.test.mjs
       - name: Install Chromium
         run: npx --no-install playwright install --with-deps chromium
       - name: Test revision history and scroll navigation
@@ -43,6 +45,8 @@ jobs:
         run: npx --no-install playwright test --config playwright-configs/playwright.config.ts e2e/revision-history.spec.ts e2e/revision-text-diff.spec.ts e2e/revision-history-pagination.spec.ts e2e/navigation-scroll.spec.ts
       - name: Test production build
         run: npm run test:e2e:web-vitals
+      - name: Test request failure recovery
+        run: npx --no-install playwright test --config playwright-configs/playwright.load-failures.config.ts
       - name: Test open layout and accessibility
         run: npx --no-install playwright test --config playwright-configs/playwright.open-layout.config.ts
       - name: Test SSR API consumers

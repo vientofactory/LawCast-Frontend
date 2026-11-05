@@ -1,8 +1,9 @@
 <script lang="ts">
+	import type { LoadErrorPayload } from '$lib/utils/request-failure';
 	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
@@ -26,10 +27,7 @@
 		data: {
 			threads: DiscussionThreadCardListResponse;
 			status?: DiscussionThreadStatus;
-			loadError?: {
-				message: string;
-				retryAfter?: number;
-			};
+			loadError?: LoadErrorPayload;
 		};
 	} = $props();
 
@@ -48,16 +46,7 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$effect(() => {
-		if (data.loadError !== retry.lastSeenError) {
-			retry.lastSeenError = data.loadError;
-			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
-				retry.start(data.loadError.retryAfter);
-			} else {
-				retry.stop();
-			}
-		}
-	});
+	$effect(() => retry.sync(data.loadError));
 
 	afterNavigate(() => {
 		currentUrl = page.url;
@@ -172,8 +161,8 @@
 			data-testid="discussions-page-region"
 		>
 			<h2 id="discussions-results-heading" class="sr-only">토론 스레드 목록</h2>
-			<RateLimitOverlay
-				visible={Boolean(data.loadError)}
+			<LoadFailureState
+				error={data.loadError}
 				retryAfter={countdown}
 				onRetry={() => retry.retry()}
 				{isRetrying}

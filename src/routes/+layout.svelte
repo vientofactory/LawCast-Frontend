@@ -1,5 +1,8 @@
 <script lang="ts">
 	import '../app.css';
+	import ServerOfflineState from '$lib/components/ServerOfflineState.svelte';
+	import { isServerUnavailable } from '$lib/utils/request-failure';
+	import { invalidateAll } from '$app/navigation';
 	import { provideNotifications } from '$lib/utils/notifications';
 	import NotificationViewport from '$lib/components/NotificationViewport.svelte';
 	provideNotifications();
@@ -60,10 +63,33 @@
 	// Consent defaults and returning-visitor updates must precede GTM bootstrap.
 	const isGtmEnabled = /^GTM-[A-Za-z0-9]+$/.test(GTM_CONTAINER_ID);
 	const gtmHeadHtml = buildGtmHeadHtml(GTM_CONTAINER_ID);
+
+	let serverFailure = $derived(
+		page.status < 400 && page.data.loadError && isServerUnavailable(page.data.loadError)
+			? page.data.loadError
+			: null
+	);
+	let hideSiteChrome = $derived(
+		Boolean(serverFailure) || (page.status >= 400 && page.error?.kind === 'network')
+	);
+	let retryingServer = $state(false);
+	async function retryServer() {
+		if (retryingServer) return;
+		retryingServer = true;
+		try {
+			await invalidateAll();
+		} finally {
+			retryingServer = false;
+		}
+	}
 </script>
 
 <svelte:head>
-	<meta name="robots" content="index, follow, max-image-preview:large" />
+	<meta
+		name="robots"
+		content={serverFailure ? 'noindex, nofollow' : 'index, follow, max-image-preview:large'}
+	/>
+	{#if serverFailure}<title>서버 연결 안내 | LawCast</title>{/if}
 	<meta property="og:site_name" content="LawCast" />
 	<meta property="og:locale" content="ko_KR" />
 	<meta name="twitter:card" content="summary_large_image" />
@@ -87,9 +113,28 @@
 	메인 콘텐츠로 건너뛰기
 </a>
 <div data-route-path={routePath} data-route-id={routeId} data-testid="app-route-container">
-	{@render children()}
+	{#if serverFailure}
+		<main
+			id="main-content"
+			class="lc-main lc-main--form flex min-h-svh items-center"
+			data-testid="server-offline-page"
+		>
+			<div class="w-full">
+				<ServerOfflineState
+					error={serverFailure}
+					onRetry={retryServer}
+					isRetrying={retryingServer}
+					headingLevel={1}
+				/>
+			</div>
+		</main>
+	{:else}
+		{@render children()}
+	{/if}
 </div>
-<Footer frontendVersion={data.frontendVersion} backendVersion={data.backendVersion} />
+{#if !hideSiteChrome}
+	<Footer frontendVersion={data.frontendVersion} backendVersion={data.backendVersion} />
+{/if}
 <CookieConsentBanner />
 
 <PwaInstallPrompt />

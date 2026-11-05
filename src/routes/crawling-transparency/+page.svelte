@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -43,16 +43,7 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$effect(() => {
-		if (loadError !== retry.lastSeenError) {
-			retry.lastSeenError = loadError;
-			if (loadError?.retryAfter && loadError.retryAfter > 0) {
-				retry.start(loadError.retryAfter);
-			} else {
-				retry.stop();
-			}
-		}
-	});
+	$effect(() => retry.sync(loadError));
 
 	function formatNumber(n: number): string {
 		return n.toLocaleString('ko-KR');
@@ -116,8 +107,8 @@
 		</div>
 
 		{#if loadError}
-			<RateLimitOverlay
-				visible={Boolean(loadError)}
+			<LoadFailureState
+				error={loadError}
 				retryAfter={countdown}
 				onRetry={() => retry.retry()}
 				{isRetrying}

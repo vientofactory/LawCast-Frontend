@@ -1,10 +1,11 @@
 <script lang="ts">
+	import type { LoadErrorPayload } from '$lib/utils/request-failure';
 	import Alert from '$lib/components/Alert.svelte';
 	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
 	import { disclosureMotion, syncDisclosure } from '$lib/utils/disclosure-motion';
 	import Header from '$lib/components/Header.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
 	import { buildOpinionSubmissionUrlForContentId } from '$lib/utils/opinion-submission-url.util';
 	import { afterNavigate, goto, invalidateAll, replaceState } from '$app/navigation';
@@ -65,15 +66,8 @@
 			changes: NoticeChangeTimelineResponse;
 			changesLoadError?: string;
 			discussions?: DiscussionThreadListResponse;
-			discussionError?: {
-				status: number;
-				message: string;
-				retryAfter?: number;
-			};
-			loadError?: {
-				message: string;
-				retryAfter?: number;
-			};
+			discussionError?: LoadErrorPayload;
+			loadError?: LoadErrorPayload;
 		};
 	} = $props();
 
@@ -205,16 +199,7 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$effect(() => {
-		if (loadError !== retry.lastSeenError) {
-			retry.lastSeenError = loadError;
-			if (loadError?.retryAfter && loadError.retryAfter > 0) {
-				retry.start(loadError.retryAfter);
-			} else {
-				retry.stop();
-			}
-		}
-	});
+	$effect(() => retry.sync(loadError));
 
 	// Must be $state: every URL-derived value below (compare selection, timeline
 	// query flags, revision links, back link) recomputes only when this updates
@@ -841,8 +826,8 @@
 		</nav>
 
 		{#if loadError}
-			<RateLimitOverlay
-				visible={Boolean(loadError)}
+			<LoadFailureState
+				error={loadError}
 				retryAfter={countdown}
 				onRetry={() => retry.retry()}
 				{isRetrying}

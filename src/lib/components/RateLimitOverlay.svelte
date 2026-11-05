@@ -16,7 +16,13 @@
 </script>
 
 {#if visible}
-	<div class="lc-rate-limit-overlay" aria-live="polite">
+	<div
+		class="lc-rate-limit-overlay"
+		data-testid="rate-limit-failure"
+		data-failure-kind="rate-limit"
+		role="status"
+		aria-live="polite"
+	>
 		<div class="lc-rate-limit-overlay-backdrop absolute inset-0 z-20" aria-hidden="true"></div>
 		<div class="lc-rate-limit-overlay-content pointer-events-auto z-30">
 			<div class="lc-rate-limit-overlay-card">

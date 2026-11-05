@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
-import { error } from '@sveltejs/kit';
+import { getFailureKind, PROXY_CONNECTION_FAILURE_HEADER } from '$lib/utils/request-failure';
 import {
 	getMockArchiveNoticesResponse,
 	getMockDiscussionThread,
@@ -118,14 +118,31 @@ async function forwardRequest(
 
 		const response = await fetch(targetUrl, {
 			method,
+			signal: request.signal,
 			headers,
 			body
 		});
 
-		return response;
+		const responseHeaders = new Headers(response.headers);
+		responseHeaders.delete(PROXY_CONNECTION_FAILURE_HEADER);
+		return new Response(response.body, {
+			status: response.status,
+			statusText: response.statusText,
+			headers: responseHeaders
+		});
 	} catch (err) {
 		console.error(`Proxy error: ${err}`);
-		throw error(502, 'Bad Gateway');
+		const kind = getFailureKind(err);
+		const failureHeaders = new Headers({ 'cache-control': 'no-store' });
+		if (kind === 'network' || kind === 'timeout')
+			failureHeaders.set(PROXY_CONNECTION_FAILURE_HEADER, kind);
+		return Response.json(
+			{
+				message:
+					kind === 'network' ? '데이터 서버에 연결하지 못했습니다.' : '요청을 처리하지 못했습니다.'
+			},
+			{ status: 502, headers: failureHeaders }
+		);
 	}
 }
 

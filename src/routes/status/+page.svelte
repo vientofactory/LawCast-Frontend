@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { invalidate } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -52,16 +52,7 @@
 		}
 	);
 
-	$effect(() => {
-		if (loadError !== retry.lastSeenError) {
-			retry.lastSeenError = loadError;
-			if (loadError?.retryAfter && loadError.retryAfter > 0) {
-				retry.start(loadError.retryAfter);
-			} else {
-				retry.stop();
-			}
-		}
-	});
+	$effect(() => retry.sync(loadError));
 
 	let crawlers = $derived(stats.crawlers);
 	let isDoneSync = $derived(stats.archive.isDoneSync as IsDoneSyncStatus | null | undefined);
@@ -493,8 +484,8 @@
 		</div>
 
 		{#if loadError}
-			<RateLimitOverlay
-				visible={Boolean(loadError)}
+			<LoadFailureState
+				error={loadError}
 				retryAfter={countdown}
 				onRetry={() => retry.retry()}
 				{isRetrying}

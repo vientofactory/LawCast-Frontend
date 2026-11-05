@@ -1,11 +1,12 @@
 <script lang="ts">
+	import type { LoadErrorPayload } from '$lib/utils/request-failure';
 	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
 	import { disclosureMotion } from '$lib/utils/disclosure-motion';
 	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -51,10 +52,7 @@
 				fromDetectedAt: string | null;
 				toDetectedAt: string | null;
 			};
-			loadError?: {
-				message: string;
-				retryAfter?: number;
-			};
+			loadError?: LoadErrorPayload;
 		};
 	} = $props();
 	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
@@ -102,19 +100,10 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$effect(() => {
-		if (data.loadError !== retry.lastSeenError) {
-			retry.lastSeenError = data.loadError;
-			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
-				retry.start(data.loadError.retryAfter);
-			} else {
-				retry.stop();
-			}
-		}
-	});
+	$effect(() => retry.sync(data.loadError));
 
 	function isRateLimitLoadError(): boolean {
-		return loadError?.retryAfter !== undefined;
+		return loadError?.status === 429;
 	}
 
 	let isServerLoading = $state(false);
@@ -397,8 +386,8 @@
 		</div>
 
 		{#if loadError}
-			<RateLimitOverlay
-				visible={Boolean(loadError)}
+			<LoadFailureState
+				error={loadError}
 				retryAfter={countdown}
 				onRetry={() => retry.retry()}
 				{isRetrying}

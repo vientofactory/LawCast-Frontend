@@ -6,7 +6,7 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
 	import SemanticSearchUnavailableOverlay from '$lib/components/SemanticSearchUnavailableOverlay.svelte';
 	import SemanticEngineStatus from '$lib/components/SemanticEngineStatus.svelte';
 	import OpenSignalLoader from '$lib/components/OpenSignalLoader.svelte';
@@ -63,13 +63,9 @@
 	);
 	// Validation feedback stays client-side; backend failures arrive as loadError.
 	let error = $state<string | null>(null);
-	let dismissedServerError = $state<string | null>(null);
-	let serverError = $derived(
-		loadError && loadError.retryAfter === undefined && dismissedServerError !== loadError.message
-			? loadError.message
-			: null
-	);
-	let displayError = $derived(error ?? serverError);
+
+	let displayError = $derived(error);
+
 	// The corner widget owns the health request and binds the result back here,
 	// because engine readiness also gates the search UI below.
 	let engineHealth = $state<SemanticEngineHealthResponse | null>(null);
@@ -81,7 +77,9 @@
 	// of submitting into a degraded state. The in-flight window stays uncovered:
 	// readiness is simply not known yet, and a flash on every mount would be noise.
 	let searchUnavailable = $derived(
-		!engineHealthLoading && (engineHealthError !== null || engineHealth?.status !== 'ready')
+		!loadError &&
+			!engineHealthLoading &&
+			(engineHealthError !== null || engineHealth?.status !== 'ready')
 	);
 	let searchUnavailableReason = $derived(
 		engineHealthError !== null
@@ -91,7 +89,6 @@
 				: '의미 검색 엔진이 현재 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
 	);
 	let rateLimitRetryAfter = $state(0);
-	let isRateLimited = $state(false);
 	let isRetrying = $state(false);
 
 	// Retrying a 429 means asking the server load to run again: the URL does
@@ -111,18 +108,7 @@
 
 	// A 429 from the server load starts the shared countdown overlay; any other
 	// loadError (or a clean reload) tears it down again.
-	$effect(() => {
-		if (data.loadError !== retry.lastSeenError) {
-			retry.lastSeenError = data.loadError;
-			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
-				retry.start(data.loadError.retryAfter);
-				isRateLimited = true;
-			} else {
-				retry.stop();
-				isRateLimited = false;
-			}
-		}
-	});
+	$effect(() => retry.sync(data.loadError));
 
 	let isFallbackMode = $derived(response?.mode === 'keyword_fallback');
 	// Weak-tier hits (below the engine's clear threshold, above its relatedness
@@ -207,8 +193,6 @@
 			return;
 		}
 		error = null;
-		dismissedServerError = null;
-		isRateLimited = false;
 		// Blur before navigation snapshots focus so it cannot reopen the mobile keyboard.
 		dismissTouchKeyboard();
 
@@ -240,7 +224,6 @@
 		lastSyncedQuery = urlQuery;
 		query = urlQuery;
 		error = null;
-		dismissedServerError = null;
 	});
 
 	// The alert is shared by validation messages and backend failures, so
@@ -250,7 +233,6 @@
 			error = null;
 			return;
 		}
-		if (loadError) dismissedServerError = loadError.message;
 	}
 </script>
 
@@ -337,6 +319,12 @@
 					</form>
 				</section>
 
+				<LoadFailureState
+					error={loadError}
+					retryAfter={rateLimitRetryAfter}
+					isRetrying={isLoading || isRetrying}
+					onRetry={() => retry.retry()}
+				/>
 				{#if displayError}
 					<Alert
 						type="error"
@@ -563,15 +551,5 @@
 		bind:health={engineHealth}
 		bind:loading={engineHealthLoading}
 		bind:error={engineHealthError}
-	/>
-
-	<RateLimitOverlay
-		visible={isRateLimited}
-		retryAfter={rateLimitRetryAfter}
-		isRetrying={isLoading || isRetrying}
-		onRetry={() => {
-			isRateLimited = false;
-			void retry.retry();
-		}}
 	/>
 </div>

@@ -1,11 +1,9 @@
 import { isRateLimitError, getRateLimitRetryAfter } from '$lib/api/client';
 import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
 
-export interface LoadErrorPayload {
-	message: string;
-	/** Seconds until the client may retry. Present only for 429 responses. */
-	retryAfter?: number;
-}
+export type { LoadErrorPayload } from '$lib/utils/request-failure';
+import type { LoadErrorPayload } from '$lib/utils/request-failure';
+import { getFailureKind, getFailureStatus } from '$lib/utils/request-failure';
 
 /**
  * Convert an unknown load error into a user-facing payload.
@@ -17,6 +15,8 @@ export function toLoadErrorPayload(error: unknown, fallbackMessage: string): Loa
 	if (isRateLimitError(error)) {
 		const retryAfter = getRateLimitRetryAfter(error);
 		return {
+			status: 429,
+			kind: 'rate-limit',
 			message:
 				retryAfter > 0
 					? `요청이 너무 많습니다. ${retryAfter}초 후 다시 시도해주세요.`
@@ -26,7 +26,11 @@ export function toLoadErrorPayload(error: unknown, fallbackMessage: string): Loa
 	}
 
 	// Raw infrastructure text (e.g. "Bad Gateway") must not reach the banner.
-	return { message: toUserFacingErrorMessage(error, fallbackMessage) };
+	return {
+		status: getFailureStatus(error),
+		kind: getFailureKind(error),
+		message: toUserFacingErrorMessage(error, fallbackMessage)
+	};
 }
 
 /**

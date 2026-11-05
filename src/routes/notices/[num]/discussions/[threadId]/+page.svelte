@@ -4,7 +4,7 @@
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import SeoHead from '$lib/components/SeoHead.svelte';
-	import { onDestroy, onMount, tick } from 'svelte';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { DiscussionThreadStatus } from '$lib/types/api';
 	import { faArrowLeft, faScaleBalanced, faRotateRight } from '@fortawesome/free-solid-svg-icons';
@@ -19,7 +19,12 @@
 	import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
 	import ThreadDetailView from '$lib/components/discussions/ThreadDetailView.svelte';
 	import ThreadDetailSkeleton from '$lib/components/discussions/ThreadDetailSkeleton.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
+	import {
+		getFailureKind,
+		getFailureStatus,
+		type LoadErrorPayload
+	} from '$lib/utils/request-failure';
 	import type { Component, ComponentProps } from 'svelte';
 	import type CommentActionModal from '$lib/components/discussions/CommentActionModal.svelte';
 	import type DiscussionPushConsentModal from '$lib/components/discussions/DiscussionPushConsentModal.svelte';
@@ -32,11 +37,7 @@
 			threadId: number;
 			detail: NoticeDetail;
 			discussion: DiscussionThreadDetailResponse | null;
-			discussionError?: {
-				status: number;
-				message: string;
-				retryAfter?: number;
-			};
+			discussionError?: LoadErrorPayload;
 		};
 	} = $props();
 
@@ -76,6 +77,7 @@
 	> | null = $state(null);
 
 	let errorMessage = $state('');
+	let threadFailure = $state<LoadErrorPayload | null>(untrack(() => data.discussionError ?? null));
 	let successMessage = $state('');
 	let threadDetailViewComponent: ThreadDetailView | undefined = $state();
 	let isLoading = $state(false);
@@ -91,7 +93,15 @@
 	$effect(() => {
 		discussionData = data.discussion;
 		errorMessage = data.discussionError?.message ?? '';
-		rateLimitRemaining = data.discussionError?.retryAfter ?? 0;
+		threadFailure = data.discussionError ?? null;
+		const initialFailure = data.discussionError;
+		untrack(() => {
+			if (initialFailure?.status === 429) startRateLimitCooldown(initialFailure.retryAfter ?? 60);
+			else {
+				if (rateLimitTimer) clearInterval(rateLimitTimer);
+				rateLimitRemaining = 0;
+			}
+		});
 	});
 
 	function canPromptForQuotePush(): boolean {
@@ -148,9 +158,6 @@
 			isWebPushAvailableByServer = false;
 		}
 
-		if (data.discussionError) {
-			startRateLimitCooldown(data.discussionError.retryAfter ?? 60);
-		}
 		if (sessionStorage.getItem(newThreadMarkerKey) === '1') {
 			sessionStorage.removeItem(newThreadMarkerKey);
 			if (canPromptForQuotePush()) {
@@ -165,6 +172,8 @@
 
 	function discussionErrorMessage(error: unknown, fallback: string): string {
 		if (!isRateLimitError(error)) {
+			if (rateLimitTimer) clearInterval(rateLimitTimer);
+			rateLimitRemaining = 0;
 			// Raw error text is logged by callers; the banner gets Korean guidance only.
 			return toUserFacingErrorMessage(error, fallback);
 		}
@@ -188,9 +197,21 @@
 		try {
 			discussionData = await apiClient.getDiscussionThread(data.threadId, { limit: 20 });
 			errorMessage = '';
+			threadFailure = null;
+			if (rateLimitTimer) clearInterval(rateLimitTimer);
+			rateLimitRemaining = 0;
 		} catch (err: unknown) {
 			console.error('Failed to reload discussion:', err);
 			errorMessage = discussionErrorMessage(err, '토론 내용을 새로고침하지 못했습니다.');
+			if (!isRateLimitError(err)) {
+				if (rateLimitTimer) clearInterval(rateLimitTimer);
+				rateLimitRemaining = 0;
+			}
+			threadFailure = {
+				status: getFailureStatus(err),
+				kind: getFailureKind(err),
+				message: errorMessage
+			};
 		} finally {
 			isLoading = false;
 			isRetryingLoad = false;
@@ -513,7 +534,7 @@
 			<Alert type="success" message={successMessage} onDismiss={() => (successMessage = '')} />
 		{/if}
 
-		{#if errorMessage}
+		{#if errorMessage && discussionData}
 			<Alert
 				type="error"
 				message={errorMessage}
@@ -548,14 +569,19 @@
 				{/key}
 			</section>
 		{:else}
-			<section class="lc-discussion-body relative" aria-label="토론 불러오는 중" aria-busy="true">
-				<RateLimitOverlay
-					visible={rateLimitRemaining > 0}
+			<section
+				class="lc-discussion-body relative"
+				class:min-h-72={threadFailure?.status === 429}
+				aria-label={threadFailure ? '토론 불러오기 실패' : '토론 불러오는 중'}
+				aria-busy={isLoading || !threadFailure}
+			>
+				<LoadFailureState
+					error={threadFailure}
 					retryAfter={rateLimitRemaining}
 					onRetry={reloadThread}
 					isRetrying={isRetryingLoad}
 				/>
-				<ThreadDetailSkeleton />
+				{#if !threadFailure}<ThreadDetailSkeleton />{/if}
 			</section>
 		{/if}
 	</main>

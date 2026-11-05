@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
 	import { onMount } from 'svelte';
 	import { modalPanel } from '$lib/utils/modal-motion';
 	import ModalCloseButton from './ModalCloseButton.svelte';
@@ -52,7 +53,7 @@
 			health = await semanticEngineHealth();
 		} catch (caught) {
 			health = null;
-			error = (caught as Error).message || '엔진 상태를 확인할 수 없습니다.';
+			error = toUserFacingErrorMessage(caught, '의미 검색 엔진 상태를 확인할 수 없습니다.');
 		} finally {
 			loading = false;
 		}

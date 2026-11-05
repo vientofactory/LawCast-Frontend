@@ -393,7 +393,8 @@ test.describe('Semantic Search UI', () => {
 	test('shows an error state when the API fails', async ({ page }) => {
 		await search(page, '의미 검색 오류 발생');
 
-		await expect(page.getByTestId('semantic-search-error')).toBeVisible();
+		await expect(page.getByTestId('load-failure')).toHaveAttribute('data-failure-kind', 'server');
+		await expect(page.locator('.lc-rate-limit-overlay')).toHaveCount(0);
 	});
 	test('validates blank queries client-side', async ({ page }) => {
 		await page.goto('/notices/semantic-search');

@@ -1,3 +1,4 @@
+import { toLoadErrorPayload } from '$lib/server/load-error';
 import { error } from '@sveltejs/kit';
 import { apiClient } from '$lib/api/client';
 import type { PageServerLoad } from './$types';
@@ -53,20 +54,15 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 		try {
 			discussion = await discussionPromise;
 		} catch (discussionError) {
-			if (getHttpStatus(discussionError) === 429) {
-				return {
-					noticeNum,
-					threadId,
-					detail,
-					discussion: null,
-					discussionError: {
-						status: 429,
-						message: getErrorMessage(discussionError) ?? '요청이 너무 많습니다.',
-						retryAfter: (discussionError as { retryAfter?: number } | undefined)?.retryAfter ?? 60
-					}
-				};
-			}
-			throw discussionError;
+			const status = getHttpStatus(discussionError);
+			if (status && status >= 400 && status < 500 && status !== 429) throw discussionError;
+			return {
+				noticeNum,
+				threadId,
+				detail,
+				discussion: null,
+				discussionError: toLoadErrorPayload(discussionError, '토론 내용을 불러오지 못했습니다.')
+			};
 		}
 
 		if (discussion.thread.noticeNum !== noticeNum) {
@@ -99,6 +95,14 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 			throw error(status, getErrorMessage(err) ?? '요청을 처리할 수 없습니다.');
 		}
 
-		throw error(500, '토론 정보를 불러오는 중 오류가 발생했습니다.');
+		const failure = toLoadErrorPayload(err, '토론 정보를 불러오는 중 오류가 발생했습니다.');
+		throw error(
+			failure.kind === 'timeout'
+				? 504
+				: failure.status && failure.status >= 500
+					? failure.status
+					: 503,
+			{ message: failure.message, kind: failure.kind }
+		);
 	}
 };

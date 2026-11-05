@@ -10,7 +10,8 @@ export default defineConfig({
 		'web-vitals.spec.ts',
 		'api-consumers.spec.ts',
 		'open-layout.spec.ts',
-		'notifications.spec.ts'
+		'notifications.spec.ts',
+		'load-failures.spec.ts'
 	],
 	fullyParallel: false,
 	forbidOnly: !!process.env.CI,

@@ -1,11 +1,12 @@
 <script lang="ts">
+	import type { LoadErrorPayload } from '$lib/utils/request-failure';
 	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import FilterDialog from '$lib/components/FilterDialog.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
 	import SemanticEngineStatus from '$lib/components/SemanticEngineStatus.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
 	import { extractProposerFromSubject } from '$lib/utils/proposer';
@@ -63,10 +64,7 @@
 				isDigestContext: boolean;
 				noticeNums: number[];
 			};
-			loadError?: {
-				message: string;
-				retryAfter?: number;
-			};
+			loadError?: LoadErrorPayload;
 		};
 	} = $props();
 
@@ -91,16 +89,7 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$effect(() => {
-		if (data.loadError !== retry.lastSeenError) {
-			retry.lastSeenError = data.loadError;
-			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
-				retry.start(data.loadError.retryAfter);
-			} else {
-				retry.stop();
-			}
-		}
-	});
+	$effect(() => retry.sync(data.loadError));
 
 	beforeNavigate(({ to }) => {
 		isServerLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices';
@@ -590,8 +579,8 @@
 			aria-labelledby="notices-page-title"
 			data-testid="notices-page-region"
 		>
-			<RateLimitOverlay
-				visible={Boolean(data.loadError)}
+			<LoadFailureState
+				error={data.loadError}
 				retryAfter={countdown}
 				onRetry={() => retry.retry()}
 				{isRetrying}
