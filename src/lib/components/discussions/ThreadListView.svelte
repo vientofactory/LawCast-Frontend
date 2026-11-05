@@ -82,15 +82,12 @@
 			</button>
 		</div>
 	{:else}
-		<div
-			class="divide-y divide-[var(--lc-border-soft)] rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] overflow-hidden"
-			class:opacity-40={isRateLimitError}
-		>
+		<div class="divide-y divide-[var(--lc-border-soft)]" class:opacity-40={isRateLimitError}>
 			{#each threads as thread (thread.id)}
 				<a
 					href={`/notices/${thread.noticeNum}/discussions/${thread.id}`}
 					data-testid={`discussion-thread-link-${thread.id}`}
-					class="group flex cursor-pointer flex-col justify-between gap-2 p-4 transition-colors hover:bg-[var(--lc-surface-hover)] sm:flex-row sm:items-center no-underline text-inherit"
+					class="group flex cursor-pointer flex-col justify-between gap-2 py-4 transition-colors hover:bg-[var(--lc-surface-hover)] sm:flex-row sm:items-center no-underline text-inherit"
 					onclick={(e) => {
 						if (onSelectThread) {
 							e.preventDefault();
@@ -124,7 +121,7 @@
 									잠김
 								</span>
 							{/if}
-							<h3 class="lc-text-primary truncate text-sm font-semibold group-hover:text-blue-600">
+							<h3 class="lc-link truncate text-sm font-semibold">
 								{thread.title}
 							</h3>
 						</div>

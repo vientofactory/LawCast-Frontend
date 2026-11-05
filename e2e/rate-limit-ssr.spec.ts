@@ -105,3 +105,47 @@ test.describe('SSR rate-limit handling', () => {
 		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible();
 	});
 });
+
+for (const theme of ['light', 'dark'] as const) {
+	for (const width of [390, 1440]) {
+		test(`retry loading palette at ${width}px in ${theme}`, async ({ page }) => {
+			test.skip(!simEnabled, 'Requires the isolated rate-limit simulation server.');
+			await page.setViewportSize({ width, height: 900 });
+			await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
+			await page.goto('/notices/changes');
+			const card = page.locator('.lc-rate-limit-overlay-card');
+			await expect(card).toBeVisible();
+			await expect(card).toHaveCSS(
+				'background-color',
+				theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(48, 49, 50)'
+			);
+			await expect(card).toHaveCSS(
+				'border-color',
+				theme === 'light' ? 'rgb(215, 216, 212)' : 'rgb(80, 82, 83)'
+			);
+			await expect(card).toHaveCSS('border-radius', '8px');
+			const backdrop = page.locator('.lc-rate-limit-overlay-backdrop');
+			const colors = await backdrop.evaluate((node) => {
+				const probe = document.createElement('span');
+				probe.style.background = 'color-mix(in srgb, var(--lc-body-bg) 55%, transparent)';
+				document.body.append(probe);
+				const result = {
+					actual: getComputedStyle(node).backgroundColor,
+					expected: getComputedStyle(probe).backgroundColor
+				};
+				probe.remove();
+				return result;
+			});
+			expect(colors.actual).toBe(colors.expected);
+			await expect(page.getByRole('button', { name: /다시 시도/ })).toHaveCSS('min-height', '44px');
+			await expect(page.locator('.lc-rate-limit-overlay-countdown')).toHaveCSS(
+				'color',
+				theme === 'light' ? 'rgb(180, 83, 9)' : 'rgb(253, 230, 138)'
+			);
+			if (process.env.UI_SCREENSHOT_DIR)
+				await page.screenshot({
+					path: `${process.env.UI_SCREENSHOT_DIR}/retry-${width}-${theme}.png`
+				});
+		});
+	}
+}

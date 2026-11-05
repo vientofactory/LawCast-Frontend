@@ -39,14 +39,17 @@ export async function measureContrast(
 				};
 			}
 
-			const hex = value.trim().match(/^#([0-9a-f]{6})$/i);
+			// Production CSS may shorten equivalent hex colors during minification.
+			const shortHex = value.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{4})$/i);
+			if (shortHex) value = '#' + Array.from(shortHex[1], (digit) => digit + digit).join('');
+			const hex = value.trim().match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i);
 			if (hex) {
 				const int = Number.parseInt(hex[1], 16);
 				return {
 					r: (int >> 16) & 255,
 					g: (int >> 8) & 255,
 					b: int & 255,
-					a: 1
+					a: hex[2] ? Number.parseInt(hex[2], 16) / 255 : 1
 				};
 			}
 

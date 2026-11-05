@@ -27,7 +27,14 @@ const reuseExistingServer = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 
 export default defineConfig({
 	testDir: '../e2e',
-	testIgnore: ['sitemap.spec.ts', 'pwa.spec.ts', 'web-vitals.spec.ts', 'api-consumers.spec.ts'],
+	testIgnore: [
+		'sitemap.spec.ts',
+		'pwa.spec.ts',
+		'web-vitals.spec.ts',
+		'api-consumers.spec.ts',
+		'open-layout.spec.ts',
+		'notifications.spec.ts'
+	],
 	fullyParallel: false,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,

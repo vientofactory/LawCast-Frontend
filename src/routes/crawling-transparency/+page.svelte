@@ -96,9 +96,9 @@
 <div class="lc-page-shell">
 	<Header />
 
-	<main id="main-content" class="relative mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+	<main id="main-content" class="lc-main">
 		<!-- Hero -->
-		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
+		<div class="lc-page-heading">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
 					<p class="lc-text-info text-xs font-semibold tracking-wide">TRANSPARENCY</p>
@@ -125,15 +125,15 @@
 		{/if}
 
 		<!-- ── Data collection sources ────────────────────────────────────────── -->
-		<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
-			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
+		<section class="lc-section">
+			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
 				<FontAwesomeIcon icon={faGlobe} class="lc-text-accent mr-2 h-4 w-4" />
 				데이터 수집 소스
 			</h2>
 			<div class="grid gap-4 sm:grid-cols-2">
 				{#each transparency.noticeSources as source (source.id)}
-					<div class="rounded-xl border border-(--lc-border-soft) p-4">
-						<h3 class="lc-text-primary mb-2 text-sm font-bold">{source.name}</h3>
+					<div class="lc-data-row">
+						<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">{source.name}</h3>
 						<a
 							href={source.url}
 							target="_blank"
@@ -143,7 +143,7 @@
 							{source.url.replace('https://', '')}
 							<FontAwesomeIcon icon={faGlobe} class="h-3 w-3" />
 						</a>
-						<p class="lc-text-secondary mb-3 text-xs leading-relaxed">{source.description}</p>
+						<p class="lc-text-secondary mb-3 text-sm leading-relaxed">{source.description}</p>
 						<div class="lc-text-secondary space-y-1 text-xs">
 							<p>
 								수집된 의안:
@@ -165,8 +165,8 @@
 		</section>
 
 		<!-- ── Collected data status ─────────────────────────────────────────── -->
-		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
-			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
+		<section class="lc-section">
+			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
 				<FontAwesomeIcon icon={faDatabase} class="lc-text-success mr-2 h-4 w-4" />
 				수집 데이터 현황
 			</h2>
@@ -180,8 +180,8 @@
 
 			<div class="grid gap-4 sm:grid-cols-2">
 				<!-- By bill status -->
-				<div class="rounded-xl border border-(--lc-border-soft) p-4">
-					<h3 class="lc-text-primary mb-2 text-xs font-bold">의안 상태</h3>
+				<div class="lc-data-row">
+					<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">의안 상태</h3>
 					<div class="lc-text-secondary space-y-1.5 text-xs">
 						{#each Object.entries(transparency.collection.byLifecycle) as [status, count] (status)}
 							<div class="flex items-center justify-between">
@@ -196,8 +196,8 @@
 				</div>
 
 				<!-- By collection path -->
-				<div class="rounded-xl border border-(--lc-border-soft) p-4">
-					<h3 class="lc-text-primary mb-2 text-xs font-bold">수집 경로별 이벤트</h3>
+				<div class="lc-data-row">
+					<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">수집 경로별 이벤트</h3>
 					<div class="lc-text-secondary space-y-1.5 text-xs">
 						{#each Object.entries(transparency.collection.bySource) as [source, count] (source)}
 							<div class="flex items-center justify-between">
@@ -214,8 +214,8 @@
 		</section>
 
 		<!-- ── Change tracking status ──────────────────────────────────────────── -->
-		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
-			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
+		<section class="lc-section">
+			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
 				<FontAwesomeIcon icon={faCodeCompare} class="lc-text-info mr-2 h-4 w-4" />
 				변경 추적 현황
 			</h2>
@@ -225,8 +225,8 @@
 					{formatNumber(transparency.changeTracking.totalEvents)}
 				</p>
 			</div>
-			<div class="rounded-xl border border-(--lc-border-soft) p-4">
-				<h3 class="lc-text-primary mb-2 text-xs font-bold">변경 유형별</h3>
+			<div class="lc-data-row">
+				<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">변경 유형별</h3>
 				<div class="lc-text-secondary space-y-1.5 text-xs">
 					{#each Object.entries(transparency.changeTracking.byType) as [type, count] (type)}
 						<div class="flex items-center justify-between">
@@ -239,8 +239,8 @@
 		</section>
 
 		<!-- ── Collection schedule ───────────────────────────────────────────── -->
-		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
-			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
+		<section class="lc-section">
+			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
 				<FontAwesomeIcon icon={faCalendarCheck} class="lc-text-accent mr-2 h-4 w-4" />
 				자동 수집 스케줄
 			</h2>
@@ -261,12 +261,12 @@
 		</section>
 
 		<!-- ── Bill hand-off flow ────────────────────────────────────────────── -->
-		<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
-			<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
+		<section class="lc-section">
+			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
 				<FontAwesomeIcon icon={faArrowRight} class="lc-text-info mr-2 h-4 w-4" />
 				의안 이관 흐름
 			</h2>
-			<div class="rounded-xl border border-(--lc-border-soft) p-4">
+			<div class="lc-data-row">
 				<p class="lc-text-secondary mb-4 text-sm leading-relaxed">
 					{transparency.transferFlow.description}
 				</p>
@@ -306,12 +306,12 @@
 
 		<!-- ── AI summary ──────────────────────────────────────────────────── -->
 		{#if aiSummary}
-			<section data-testid="ai-summary" class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
-				<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
+			<section data-testid="ai-summary" class="lc-section">
+				<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
 					<FontAwesomeIcon icon={faRobot} class="lc-text-info mr-2 h-4 w-4" />
 					AI 요약
 				</h2>
-				<div class="rounded-xl border border-(--lc-border-soft) p-4">
+				<div class="lc-data-row">
 					<p class="lc-text-secondary text-sm leading-relaxed">
 						{aiSummary.policy}
 					</p>
@@ -330,7 +330,9 @@
 					</div>
 				</div>
 				<div class="mt-3 rounded-xl border border-(--lc-border-soft) p-4">
-					<h3 class="lc-text-primary mb-2 text-xs font-bold">실제 요약 프롬프트 전문</h3>
+					<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">
+						실제 요약 프롬프트 전문
+					</h3>
 					<pre
 						data-testid="ai-summary-prompt"
 						class="lc-text-secondary overflow-x-auto font-mono text-xs leading-relaxed whitespace-pre-wrap break-words">{aiSummary.prompt}</pre>

@@ -1,8 +1,27 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function submitChangeFilter(
+	page: Page,
+	key: string,
+	value: string,
+	update: () => Promise<unknown>
+) {
+	// Retry the complete GET action if hydration replaced a field before the first submit.
+	await expect(async () => {
+		if (new URL(page.url()).searchParams.get(key) !== value) {
+			await update();
+			await page.getByRole('button', { name: '검색', exact: true }).click();
+		}
+		await expect(page).toHaveURL((url) => url.searchParams.get(key) === value, { timeout: 1000 });
+	}).toPass({ timeout: 15_000 });
+}
 
 test.describe('Changes Page', () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/notices/changes');
+		const settings = page.getByTestId('changes-settings');
+		await expect(settings).toHaveAttribute('data-disclosure-enhanced', '');
+		await settings.locator('summary').click();
 	});
 
 	test('renders the page with title', async ({ page }) => {
@@ -73,34 +92,28 @@ test.describe('Changes Page', () => {
 
 	test('filter form submits and updates URL', async ({ page }) => {
 		const searchInput = page.locator('#changes-search');
-		await searchInput.fill('테스트');
-		await page.locator('button[type="submit"]').click();
-		await page.waitForURL(/search=/, { timeout: 10_000 });
-		const url = new URL(page.url());
-		expect(url.searchParams.get('search')).toBeTruthy();
+		await submitChangeFilter(page, 'search', '테스트', () => searchInput.fill('테스트'));
+		await expect(searchInput).toHaveValue('테스트');
 	});
 
 	test('notice number filter works', async ({ page }) => {
 		const noticeNumInput = page.locator('#changes-notice-num');
-		await noticeNumInput.fill('123');
-		await page.locator('button[type="submit"]').click();
-		await page.waitForURL(/noticeNum/, { timeout: 10_000 });
-		const url = new URL(page.url());
-		expect(url.searchParams.get('noticeNum')).toBe('123');
+		await submitChangeFilter(page, 'noticeNum', '123', () => noticeNumInput.fill('123'));
+		await expect(noticeNumInput).toHaveValue('123');
 	});
 
 	test('event type filter works', async ({ page }) => {
 		const eventTypeSelect = page.locator('#changes-event-type');
-		await eventTypeSelect.selectOption('updated');
-		await page.locator('button[type="submit"]').click();
-		await expect(page).toHaveURL(/eventType=updated/);
+		await submitChangeFilter(page, 'eventType', 'updated', () =>
+			eventTypeSelect.selectOption('updated')
+		);
+		await expect(eventTypeSelect).toHaveValue('updated');
 	});
 
 	test('sort order filter works', async ({ page }) => {
 		const sortOrderSelect = page.locator('#changes-sort-order');
-		await sortOrderSelect.selectOption('asc');
-		await page.locator('button[type="submit"]').click();
-		await expect(page).toHaveURL(/sortOrder=asc/);
+		await submitChangeFilter(page, 'sortOrder', 'asc', () => sortOrderSelect.selectOption('asc'));
+		await expect(sortOrderSelect).toHaveValue('asc');
 	});
 
 	test('isDone checkbox is present and can be unchecked', async ({ page }) => {

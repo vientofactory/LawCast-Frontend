@@ -10,6 +10,14 @@ function mockCommentId(sequence: number): number {
 	return threadId * 1000 + sequence;
 }
 
+// Settle automatic pagination before typing so appended comments cannot move the submit target.
+async function prepareReplyComposer(page: Page): Promise<void> {
+	await expect(async () => {
+		await page.getByTestId('discussion-reply-form').scrollIntoViewIfNeeded();
+		await expect(page.getByTestId('discussion-comment-54')).toBeAttached({ timeout: 1000 });
+	}).toPass({ timeout: 15_000 });
+}
+
 // Clicking before hydration completes silently does nothing, so retry until the
 // async-triggered modal is actually on screen.
 async function untilVisible(
@@ -147,6 +155,7 @@ test.describe('Discussion UI', () => {
 		);
 		await expect(page.getByTestId('discussion-reply-form')).toBeVisible();
 
+		await prepareReplyComposer(page);
 		await page.getByTestId('discussion-reply-nickname').fill('테스터');
 		await page.getByTestId('discussion-reply-password').fill('1234');
 		await page.getByTestId('discussion-reply-content').fill('새 테스트 의견입니다.');
@@ -200,16 +209,16 @@ test.describe('Discussion UI', () => {
 
 		// Empty title must fail client-side validation without any network call.
 		await page.getByTestId('discussion-new-thread-submit').click();
-		await expect(page.getByTestId('discussion-new-thread-error')).toHaveText(
-			'토론 주제를 2자 이상 입력해주세요.'
-		);
+		await expect(
+			page.locator('[data-testid="discussion-new-thread-error"]:not([inert])')
+		).toContainText('토론 주제를 2자 이상 입력해주세요.');
 
 		// Whitespace-only title must be rejected too (trim happens before the length check).
 		await page.getByTestId('discussion-new-thread-title').fill('   ');
 		await page.getByTestId('discussion-new-thread-submit').click();
-		await expect(page.getByTestId('discussion-new-thread-error')).toHaveText(
-			'토론 주제를 2자 이상 입력해주세요.'
-		);
+		await expect(
+			page.locator('[data-testid="discussion-new-thread-error"]:not([inert])')
+		).toContainText('토론 주제를 2자 이상 입력해주세요.');
 
 		expect(postCount).toBe(0);
 	});
@@ -266,6 +275,7 @@ test.describe('Discussion UI', () => {
 
 		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
 		await expect(page.getByTestId('discussion-reply-form')).toBeVisible();
+		await prepareReplyComposer(page);
 		await page.getByTestId('discussion-reply-nickname').fill('테스터');
 		await page.getByTestId('discussion-reply-password').fill('1234');
 		await page.getByTestId('discussion-reply-content').fill('재시도할 의견입니다.');
@@ -288,6 +298,7 @@ test.describe('Discussion UI', () => {
 
 		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
 		await expect(page.getByTestId('discussion-reply-form')).toBeVisible();
+		await prepareReplyComposer(page);
 		await page.getByTestId('discussion-reply-nickname').fill('테스터');
 		await page.getByTestId('discussion-reply-password').fill('1234');
 		await page.getByTestId('discussion-reply-content').fill('네트워크 오류 검증 의견입니다.');
@@ -629,3 +640,28 @@ test.describe('Global discussions list page', () => {
 		);
 	});
 });
+
+for (const width of [390, 1440]) {
+	test(`centers every discussion status label at ${width}px`, async ({ page }) => {
+		await page.setViewportSize({ width, height: 900 });
+		await page.goto('/discussions?status=open');
+		for (const status of ['open', 'closed', 'all']) {
+			const tab = page.getByTestId(`discussions-filter-${status}`);
+			await tab.focus();
+			await tab.press('Enter');
+			await expect(tab).toHaveAttribute('aria-selected', 'true');
+			const metrics = await tab.evaluate((node) => {
+				const bounds = node.getBoundingClientRect();
+				const range = document.createRange();
+				range.selectNodeContents(node);
+				const text = range.getBoundingClientRect();
+				return {
+					height: bounds.height,
+					offset: text.top + text.height / 2 - bounds.top - bounds.height / 2
+				};
+			});
+			expect(metrics.height).toBeGreaterThanOrEqual(44);
+			expect(Math.abs(metrics.offset)).toBeLessThanOrEqual(2);
+		}
+	});
+}

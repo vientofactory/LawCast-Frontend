@@ -1,4 +1,6 @@
 <script lang="ts">
+	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '$lib/utils/disclosure-motion';
 	import RevisionTextDiff from '$lib/components/RevisionTextDiff.svelte';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import { formatRevisionValue, type RevisionDiffItem } from '$lib/utils/revision-comparison';
@@ -42,7 +44,8 @@
 {#if isCompareMode && selectedFromRev !== null && selectedToRev !== null}
 	<section
 		id="revision-comparison"
-		class="lc-panel-inset scroll-mt-40 space-y-4 rounded-xl border p-2 sm:p-4"
+		tabindex="-1"
+		class="lc-comparison-workspace scroll-mt-40 space-y-4"
 		aria-labelledby="revision-comparison-heading"
 		data-testid="revision-comparison"
 	>
@@ -112,20 +115,24 @@
 		<div class="space-y-3">
 			{#each visibleItems as item (item.fieldPath)}
 				<details
+					use:disclosureMotion
 					open={item.changeType !== 'unchanged'}
-					class="lc-panel-card rounded-lg border p-2 sm:p-3"
+					class="lc-comparison-field"
 					data-testid={`revision-diff-${item.fieldPath}`}
 				>
-					<summary class="lc-text-primary cursor-pointer text-sm font-semibold">
-						{item.fieldLabel}
-						<span class="lc-chip-muted ml-2 rounded-full px-2 py-1 text-xs font-normal"
-							>{changeTypeLabel(item.changeType)}</span
-						>
-					</summary>
+					<summary class="lc-disclosure-trigger lc-disclosure-trigger--compact"
+						><span class="lc-disclosure-label">
+							{item.fieldLabel}
+							<span class="lc-chip-muted ml-2 rounded-full px-2 py-1 text-xs font-normal"
+								>{changeTypeLabel(item.changeType)}</span
+							>
+						</span><DisclosureIndicator /></summary
+					>
 					<RevisionTextDiff
 						before={formatRevisionValue(item.fieldPath, item.beforeValue)}
 						after={formatRevisionValue(item.fieldPath, item.afterValue)}
 						fieldPath={item.fieldPath}
+						fieldLabel={item.fieldLabel}
 						{showContext}
 					/>
 				</details>

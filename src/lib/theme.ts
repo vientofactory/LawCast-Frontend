@@ -4,8 +4,8 @@ import { writable } from 'svelte/store';
 export type ThemeMode = 'light' | 'dark';
 
 const STORAGE_KEY = 'lawcast-theme';
-const DARK_THEME_COLOR = '#0b1117';
-const LIGHT_THEME_COLOR = '#fafafb';
+const DARK_THEME_COLOR = '#242526';
+const LIGHT_THEME_COLOR = '#ffffff';
 
 function readSavedTheme(): string | null {
 	try {
@@ -45,12 +45,26 @@ function readInitialTheme(): ThemeMode {
 	return getSystemTheme();
 }
 
+let paletteFrame: number | null = null;
+
 function syncTheme(theme: ThemeMode) {
 	if (!browser) {
 		return;
 	}
 
-	document.documentElement.dataset.theme = theme;
+	const root = document.documentElement;
+	if (root.dataset.theme !== theme) {
+		// Apply foreground and surface tokens atomically, retaining transform/opacity motion.
+		root.setAttribute('data-theme-changing', '');
+		if (paletteFrame !== null) cancelAnimationFrame(paletteFrame);
+		paletteFrame = requestAnimationFrame(() => {
+			paletteFrame = requestAnimationFrame(() => {
+				root.removeAttribute('data-theme-changing');
+				paletteFrame = null;
+			});
+		});
+	}
+	root.dataset.theme = theme;
 	document.documentElement.style.colorScheme = theme;
 
 	const metaThemeColor = document.querySelector('meta[name="theme-color"]');

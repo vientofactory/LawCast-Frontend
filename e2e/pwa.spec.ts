@@ -1,3 +1,4 @@
+import { measureContrast } from './helpers/contrast';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
@@ -69,7 +70,7 @@ test.describe('PWA', () => {
 					});
 					expect(root.dataset.theme).toBe(expected);
 					expect(root.style.colorScheme).toBe(expected);
-					expect(meta.content).toBe(expected === 'dark' ? '#0b1117' : '#fafafb');
+					expect(meta.content).toBe(expected === 'dark' ? '#242526' : '#ffffff');
 				}
 			}
 		}
@@ -86,26 +87,26 @@ test.describe('PWA', () => {
 			await openApp(page);
 			const chrome = page.locator('meta[name="theme-color"]');
 			await expect(chrome).toHaveCount(1);
-			await expect(chrome).toHaveAttribute('content', saved === 'dark' ? '#0b1117' : '#fafafb');
+			await expect(chrome).toHaveAttribute('content', saved === 'dark' ? '#242526' : '#ffffff');
 			const next = saved === 'light' ? 'dark' : 'light';
 			await expect(async () => {
 				if ((await page.locator('html').getAttribute('data-theme')) !== next)
 					await page.getByRole('switch', { name: /테마로 전환/ }).click();
 				await expect(page.locator('html')).toHaveAttribute('data-theme', next);
 			}).toPass();
-			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#0b1117' : '#fafafb');
+			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#242526' : '#ffffff');
 			await page.reload();
-			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#0b1117' : '#fafafb');
+			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#242526' : '#ffffff');
 			await page.setViewportSize({ width: 375, height: 812 });
 			await page.emulateMedia({ colorScheme: saved });
-			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#0b1117' : '#fafafb');
+			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#242526' : '#ffffff');
 			await page.context().setOffline(true);
 			await page.goto('/notices?theme-offline');
 			await expect(page.getByTestId('pwa-offline-page')).toBeVisible();
-			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#0b1117' : '#fafafb');
+			await expect(chrome).toHaveAttribute('content', next === 'dark' ? '#242526' : '#ffffff');
 			await expect(page.locator('body')).toHaveCSS(
 				'background-color',
-				next === 'dark' ? 'rgb(11, 17, 23)' : 'rgb(250, 250, 251)'
+				next === 'dark' ? 'rgb(36, 37, 38)' : 'rgb(255, 255, 255)'
 			);
 		});
 	}
@@ -114,11 +115,11 @@ test.describe('PWA', () => {
 		await page.emulateMedia({ colorScheme: 'light' });
 		await openApp(page);
 		const chrome = page.locator('meta[name="theme-color"]');
-		await expect(chrome).toHaveAttribute('content', '#fafafb');
+		await expect(chrome).toHaveAttribute('content', '#ffffff');
 		await page.emulateMedia({ colorScheme: 'dark' });
-		await expect(chrome).toHaveAttribute('content', '#0b1117');
+		await expect(chrome).toHaveAttribute('content', '#242526');
 		await page.emulateMedia({ colorScheme: 'light' });
-		await expect(chrome).toHaveAttribute('content', '#fafafb');
+		await expect(chrome).toHaveAttribute('content', '#ffffff');
 	});
 
 	test('theme controls still work when storage is blocked', async ({ page }) => {
@@ -129,11 +130,11 @@ test.describe('PWA', () => {
 		});
 		await page.emulateMedia({ colorScheme: 'dark' });
 		await openApp(page);
-		await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0b1117');
+		await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#242526');
 		await expect(async () => {
 			if ((await page.locator('html').getAttribute('data-theme')) !== 'light')
 				await page.getByRole('switch', { name: /테마로 전환/ }).click();
-			await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#fafafb');
+			await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#ffffff');
 		}).toPass();
 	});
 
@@ -182,6 +183,11 @@ test.describe('PWA', () => {
 				expect(taglineOpacity).toBeGreaterThan(0);
 				expect(taglineOpacity).toBeLessThan(1);
 			} else expect(taglineOpacity).toBe(1);
+			// Measure contrast once the intentionally delayed brand caption is fully visible.
+			if (time === 2200) {
+				const contrast = await measureContrast(page, { selector: '[data-testid="brand-tagline"]' });
+				expect(contrast.ratio).toBeGreaterThanOrEqual(4.5);
+			}
 			await page
 				.getByTestId('site-brand')
 				.screenshot({ path: testInfo.outputPath(`assembly-${time}.png`), animations: 'allow' });
@@ -414,8 +420,8 @@ test.describe('PWA', () => {
 			scope: '/',
 			display: 'standalone',
 			lang: 'ko',
-			theme_color: '#fafafb',
-			background_color: '#fafafb'
+			theme_color: '#ffffff',
+			background_color: '#ffffff'
 		});
 		expect(manifest.icons.map((icon: { sizes: string }) => icon.sizes)).toEqual([
 			'192x192',
@@ -605,7 +611,7 @@ test.describe('PWA', () => {
 		await expect.poll(launchState).toMatchObject({
 			text: '다시 시도',
 			theme: 'dark',
-			background: 'rgb(11, 17, 23)',
+			background: 'rgb(36, 37, 38)',
 			animation: 'lc-launch-arc',
 			retryHidden: true
 		});
@@ -992,10 +998,9 @@ test.describe('PWA', () => {
 		});
 		await offerInstall(page, 'accepted', true);
 		await page.getByTestId('pwa-install-button').click();
-		await expect(page.getByTestId('pwa-install-prompt').getByRole('status')).toContainText(
-			'설치 창을 열지 못했습니다.'
-		);
-		await page.getByTestId('pwa-install-dismiss').click();
+		await expect(page.getByTestId('pwa-install-error')).toContainText('설치 창을 열지 못했습니다.');
+		await page.getByTestId('pwa-install-error').getByRole('button', { name: '알림 닫기' }).click();
+		await expect(page.getByTestId('pwa-install-error')).toHaveCount(0);
 		await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
 	});
 });

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
+	import FilterDialog from '$lib/components/FilterDialog.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
@@ -74,6 +75,7 @@
 	// Reactive URL snapshot: $derived filters (isDoneFilter, searchMode, ...) must
 	// recompute when afterNavigate reassigns it after client-side navigation.
 	let currentUrl = $state(page.url);
+	let filtersOpen = $state(false);
 	let isServerLoading = $state(false);
 	let isSemanticLoading = $state(false);
 	let countdown = $state(0);
@@ -112,6 +114,7 @@
 
 	afterNavigate(() => {
 		currentUrl = page.url;
+		filtersOpen = false;
 		isServerLoading = false;
 		isSemanticLoading = false;
 	});
@@ -471,6 +474,7 @@
 		event.preventDefault();
 		const form = event.currentTarget as HTMLFormElement;
 		const formData = new FormData(form);
+		filtersOpen = false;
 		dismissTouchKeyboard();
 		const params = new SvelteURLSearchParams();
 		params.set('page', '1');
@@ -543,60 +547,13 @@
 
 	<main
 		id="main-content"
-		class="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
+		class="lc-main"
 		aria-labelledby="notices-page-title"
 		data-testid="notices-main"
 	>
-		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
-			<a
-				href="../"
-				class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 transition-all duration-200"
-			>
-				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-4 w-4" />
-				메인으로
-			</a>
-			<span class="lc-text-dim" aria-hidden="true">/</span>
-			<span class="lc-text-secondary font-semibold">전체 입법예고</span>
-		</nav>
-
-		{#if aiSummaryEnabled}
-			<div class="lc-banner-warning mb-6 rounded-xl border p-4 shadow-sm">
-				<div class="flex items-start gap-3">
-					<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
-						<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
-					</div>
-					<div>
-						<p class="text-sm font-semibold">안내</p>
-						<p class="mt-1 text-sm leading-relaxed">
-							AI 요약은 참고용으로 제공되며 해석상 오류가 있을 수 있습니다. 중요 판단 전 반드시 각
-							법률안의 원문(제안이유 및 주요내용)을 함께 확인해주세요.
-						</p>
-					</div>
-				</div>
-			</div>
-		{/if}
-
-		<section
-			class="lc-panel-card mb-6 flex items-center justify-between rounded-xl border px-4 py-3 shadow-sm"
-			role="status"
-			aria-live="polite"
-			aria-labelledby="notices-page-title"
-			data-testid="notices-results-summary"
-		>
-			<p class="lc-text-secondary text-sm font-medium">
-				{hasActiveFilters ? '현재 검색 결과' : '입법예고 아카이브 건수'}
-			</p>
-			<p class="lc-text-primary text-lg font-bold">
-				{#if hasActiveFilters}
-					{totalItems.toLocaleString('ko-KR')}건
-					<span class="lc-text-muted ml-1 text-sm font-medium"
-						>/ 전체 {archiveCount.toLocaleString('ko-KR')}건</span
-					>
-				{:else}
-					{archiveCount.toLocaleString('ko-KR')}건
-				{/if}
-			</p>
-		</section>
+		<div class="lc-page-heading">
+			<h1 id="notices-page-title" class="lc-text-primary text-2xl font-bold">입법예고</h1>
+		</div>
 
 		{#if archive?.appliedMode === 'semantic' && searchQuery.trim() && notices.length > 0}
 			<p class="lc-text-dim -mt-4 mb-6 text-xs" data-testid="notices-semantic-scope-note">
@@ -640,16 +597,15 @@
 				{isRetrying}
 			/>
 			<div class:opacity-60={Boolean(data.loadError)}>
-				<h1 id="notices-page-title" class="sr-only">전체 입법예고</h1>
 				{#if !isDigestContext}
-					<section class="lc-panel-card mb-5 rounded-xl border p-4 shadow-sm">
+					<section class="lc-search-section">
 						<form
 							method="GET"
 							action="/notices"
-							class:pointer-events-none={isServerLoading}
-							class:opacity-80={isServerLoading}
-							aria-busy={isServerLoading}
+							id="archive-filter-form"
+							class="lc-search-toolbar"
 							aria-describedby="notices-filter-help"
+							aria-busy={isServerLoading}
 							data-testid="notices-filter-form"
 							onsubmit={handleFilterSubmit}
 						>
@@ -657,47 +613,58 @@
 								키워드, 기간, 상태, 정렬로 입법예고 목록을 필터링합니다. 검색어는 제안이유(원문)까지
 								함께 찾습니다.
 							</p>
-							<div class="mb-2 flex flex-wrap items-center gap-2">
-								<span id="notices-quick-date-heading" class="lc-text-muted text-xs font-semibold"
-									>빠른 기간</span
+							<div class="lc-search-row">
+								<div class="relative flex-1">
+									<label for="archive-search" class="sr-only">검색어</label>
+									<FontAwesomeIcon
+										icon={faMagnifyingGlass}
+										class="lc-text-dim pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
+									/>
+									<input
+										id="archive-search"
+										type="search"
+										name="search"
+										value={searchQuery}
+										enterkeyhint="search"
+										placeholder="법률안명, 소관위원회, 제안자, 제안이유 검색"
+										data-testid="notices-search-input"
+										class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
+										onkeydown={handleSearchInputKeydown}
+									/>
+								</div>
+								<button
+									type="submit"
+									disabled={isServerLoading}
+									data-testid="notices-search-submit"
+									class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
 								>
-								<a
-									href={buildFilterLink({ startDate: quickStart7Days, endDate: todayInputDate })}
-									data-testid="notices-quick-range-7-days"
-									class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-										isQuick7DaysActive ? 'lc-chip-blue' : 'lc-button-neutral'
-									}`}
+									{#if isServerLoading}
+										<FontAwesomeIcon icon={faSpinner} class="mr-2 h-4 w-4 animate-spin" />
+										불러오는 중
+									{:else}
+										검색
+									{/if}
+								</button>
+							</div>
+							{#if SEMANTIC_SEARCH_ENABLED && !searchQuery.trim() && exampleQueries.length > 0}
+								<div
+									class="mt-2 flex flex-wrap items-center gap-2 text-xs"
+									data-testid="notices-example-queries"
 								>
-									최근 7일
-								</a>
-								<a
-									href={buildFilterLink({ startDate: quickStart30Days, endDate: todayInputDate })}
-									data-testid="notices-quick-range-30-days"
-									class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-										isQuick30DaysActive ? 'lc-chip-blue' : 'lc-button-neutral'
-									}`}
-								>
-									최근 30일
-								</a>
-								<a
-									href={buildFilterLink({ startDate: quickMonthStart, endDate: todayInputDate })}
-									data-testid="notices-quick-range-this-month"
-									class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-										isQuickThisMonthActive ? 'lc-chip-blue' : 'lc-button-neutral'
-									}`}
-								>
-									이번 달
-								</a>
-								<a
-									href={buildFilterLink({ startDate: '', endDate: '' })}
-									data-testid="notices-quick-range-clear"
-									class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-										isQuickClearRangeActive ? 'lc-chip-blue' : 'lc-button-neutral'
-									}`}
-								>
-									기간 해제
-								</a>
-								<span class="hidden h-4 w-px bg-[var(--lc-border-soft)] sm:block"></span>
+									<span class="lc-text-muted font-semibold">예시 검색어</span>
+									{#each exampleQueries as example, index (example)}
+										<a
+											href={buildFilterLink({ search: example, searchMode: 'auto' })}
+											data-testid={`notices-example-query-${index}`}
+											title="이 예시로 의미 검색을 실행합니다."
+											class="lc-chip-muted inline-flex min-h-11 items-center rounded-full px-2 py-1 font-semibold transition-colors hover:-translate-y-0.5"
+										>
+											{example}
+										</a>
+									{/each}
+								</div>
+							{/if}
+							<div class="lc-toolbar-row">
 								<div
 									class="lc-chip-group inline-flex items-center rounded-full border p-0.5 text-xs font-semibold"
 									role="group"
@@ -738,143 +705,189 @@
 										종료된
 									</a>
 								</div>
-							</div>
-							<div class="grid gap-2 md:grid-cols-[1fr_auto_auto_auto_auto] md:items-center">
-								<div class="relative flex-1">
-									<label for="archive-search" class="sr-only">검색어</label>
-									<FontAwesomeIcon
-										icon={faMagnifyingGlass}
-										class="lc-text-dim pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
-									/>
-									<input
-										id="archive-search"
-										type="search"
-										name="search"
-										value={searchQuery}
-										enterkeyhint="search"
-										placeholder="법률안명, 소관위원회, 제안자, 제안이유 검색"
-										data-testid="notices-search-input"
-										class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
-										onkeydown={handleSearchInputKeydown}
-									/>
-								</div>
-								<label for="archive-start-date" class="sr-only">시작일</label>
-								<input
-									id="archive-start-date"
-									type="date"
-									name="startDate"
-									value={startDate}
-									max={endDate || undefined}
-									data-testid="notices-start-date"
-									class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
-									title="시작일"
-								/>
-								<label for="archive-end-date" class="sr-only">종료일</label>
-								<input
-									id="archive-end-date"
-									type="date"
-									name="endDate"
-									value={endDate}
-									min={startDate || undefined}
-									data-testid="notices-end-date"
-									class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
-									title="종료일"
-								/>
-								{#if archive?.appliedMode === 'semantic'}
-									<span
-										class="lc-chip-purple inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold"
-										title="의미 검색은 관련도순으로 정렬됩니다."
-										data-testid="notices-sort-relevance"
-									>
-										관련도순
-									</span>
-									<input type="hidden" name="sortOrder" value={sortOrder} />
-								{:else}
-									<label for="archive-sort-order" class="sr-only">정렬</label>
-									<select
-										id="archive-sort-order"
-										name="sortOrder"
-										value={sortOrder}
-										data-testid="notices-sort-order"
-										class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
-									>
-										<option value="desc">내림차순</option>
-										<option value="asc">오름차순</option>
-									</select>
-								{/if}
-								<label for="archive-limit" class="sr-only">페이지당 개수</label>
-								<select
-									id="archive-limit"
-									name="limit"
-									value={String(limit)}
-									data-testid="notices-page-size"
-									class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
-									title="페이지당 개수"
+								<button
+									type="button"
+									class="lc-button-neutral rounded-lg border px-3 py-2 text-sm"
+									data-testid="notices-filter-toggle"
+									aria-haspopup="dialog"
+									aria-expanded={filtersOpen}
+									onclick={() => (filtersOpen = true)}>상세 필터</button
+								><a
+									href="/notices"
+									data-testid="notices-reset-filters"
+									class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
 								>
-									{#each PAGE_SIZE_OPTIONS as size (size)}
-										<option value={String(size)}>{size}개씩</option>
-									{/each}
-								</select>
-								<input type="hidden" name="page" value="1" />
-								<input type="hidden" name="searchMode" value={searchMode} />
-								{#if isDoneFilter !== undefined}
-									<input type="hidden" name="isDone" value={String(isDoneFilter)} />
-								{/if}
-								{#if proposerQuery.trim()}
-									<input type="hidden" name="proposer" value={proposerQuery.trim()} />
-								{/if}
+									필터 초기화
+								</a>
 							</div>
-							{#if SEMANTIC_SEARCH_ENABLED}
-								<div
-									class="mt-2 flex flex-wrap items-center gap-2"
-									data-testid="notices-search-mode"
-								>
-									<span class="lc-text-muted text-xs font-semibold">검색 방식</span>
-									<div
-										class="lc-chip-group inline-flex items-center rounded-full border p-0.5 text-xs font-semibold"
-										role="group"
-										aria-label="검색 방식"
-									>
-										{#each BOARD_SEARCH_MODES as mode (mode)}
-											<a
-												href={buildFilterLink({ searchMode: mode })}
-												data-testid={`notices-search-mode-${mode}`}
-												aria-current={searchMode === mode ? 'true' : undefined}
-												title={BOARD_SEARCH_MODE_HINTS[mode]}
-												class={`rounded-full px-3 py-1 transition-colors ${
-													searchMode === mode
-														? 'bg-[var(--lc-surface-primary)] text-[var(--lc-text-primary)] shadow-sm'
-														: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
-												}`}
-											>
-												{BOARD_SEARCH_MODE_LABELS[mode]}
-											</a>
-										{/each}
+							<FilterDialog
+								bind:isOpen={filtersOpen}
+								title="상세 필터"
+								testId="notices-filter-dialog"
+							>
+								{#snippet children(cancel)}
+									<div class="lc-filter-ranges">
+										<span
+											id="notices-quick-date-heading"
+											class="lc-text-muted text-xs font-semibold">빠른 기간</span
+										>
+										<a
+											href={buildFilterLink({
+												startDate: quickStart7Days,
+												endDate: todayInputDate
+											})}
+											data-testid="notices-quick-range-7-days"
+											class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+												isQuick7DaysActive ? 'lc-chip-blue' : 'lc-button-neutral'
+											}`}
+										>
+											최근 7일
+										</a>
+										<a
+											href={buildFilterLink({
+												startDate: quickStart30Days,
+												endDate: todayInputDate
+											})}
+											data-testid="notices-quick-range-30-days"
+											class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+												isQuick30DaysActive ? 'lc-chip-blue' : 'lc-button-neutral'
+											}`}
+										>
+											최근 30일
+										</a>
+										<a
+											href={buildFilterLink({
+												startDate: quickMonthStart,
+												endDate: todayInputDate
+											})}
+											data-testid="notices-quick-range-this-month"
+											class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+												isQuickThisMonthActive ? 'lc-chip-blue' : 'lc-button-neutral'
+											}`}
+										>
+											이번 달
+										</a>
+										<a
+											href={buildFilterLink({ startDate: '', endDate: '' })}
+											data-testid="notices-quick-range-clear"
+											class={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+												isQuickClearRangeActive ? 'lc-chip-blue' : 'lc-button-neutral'
+											}`}
+										>
+											기간 해제
+										</a>
 									</div>
-									<span class="lc-text-dim text-xs" data-testid="notices-search-mode-hint">
-										{BOARD_SEARCH_MODE_HINTS[searchMode]}
-									</span>
-								</div>
-								{#if !searchQuery.trim() && exampleQueries.length > 0}
-									<div
-										class="mt-2 flex flex-wrap items-center gap-2 text-xs"
-										data-testid="notices-example-queries"
-									>
-										<span class="lc-text-muted font-semibold">예시 검색어</span>
-										{#each exampleQueries as example, index (example)}
-											<a
-												href={buildFilterLink({ search: example, searchMode: 'auto' })}
-												data-testid={`notices-example-query-${index}`}
-												title="이 예시로 의미 검색을 실행합니다."
-												class="lc-chip-muted inline-flex items-center rounded-full px-2 py-1 font-semibold transition-colors hover:-translate-y-0.5"
+									<div class="lc-filter-grid">
+										<label for="archive-start-date" class="sr-only">시작일</label>
+										<input
+											id="archive-start-date"
+											type="date"
+											name="startDate"
+											value={startDate}
+											max={endDate || undefined}
+											data-testid="notices-start-date"
+											class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
+											title="시작일"
+										/>
+										<label for="archive-end-date" class="sr-only">종료일</label>
+										<input
+											id="archive-end-date"
+											type="date"
+											name="endDate"
+											value={endDate}
+											min={startDate || undefined}
+											data-testid="notices-end-date"
+											class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
+											title="종료일"
+										/>
+										{#if archive?.appliedMode === 'semantic'}
+											<span
+												class="lc-chip-purple inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold"
+												title="의미 검색은 관련도순으로 정렬됩니다."
+												data-testid="notices-sort-relevance"
 											>
-												{example}
-											</a>
-										{/each}
+												관련도순
+											</span>
+											<input type="hidden" name="sortOrder" value={sortOrder} />
+										{:else}
+											<label for="archive-sort-order" class="sr-only">정렬</label>
+											<select
+												id="archive-sort-order"
+												name="sortOrder"
+												value={sortOrder}
+												data-testid="notices-sort-order"
+												class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
+											>
+												<option value="desc">내림차순</option>
+												<option value="asc">오름차순</option>
+											</select>
+										{/if}
+										<label for="archive-limit" class="sr-only">페이지당 개수</label>
+										<select
+											id="archive-limit"
+											name="limit"
+											value={String(limit)}
+											data-testid="notices-page-size"
+											class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm shadow-sm"
+											title="페이지당 개수"
+										>
+											{#each PAGE_SIZE_OPTIONS as size (size)}
+												<option value={String(size)}>{size}개씩</option>
+											{/each}
+										</select>
+										<input type="hidden" name="page" value="1" />
+										<input type="hidden" name="searchMode" value={searchMode} />
+										{#if isDoneFilter !== undefined}
+											<input type="hidden" name="isDone" value={String(isDoneFilter)} />
+										{/if}
+										{#if proposerQuery.trim()}
+											<input type="hidden" name="proposer" value={proposerQuery.trim()} />
+										{/if}
 									</div>
-								{/if}
-							{/if}
-							{#if hasDateReversed}
+									{#if SEMANTIC_SEARCH_ENABLED}
+										<div
+											class="mt-2 flex flex-wrap items-center gap-2"
+											data-testid="notices-search-mode"
+										>
+											<span class="lc-text-muted text-xs font-semibold">검색 방식</span>
+											<div
+												class="lc-chip-group inline-flex items-center rounded-full border p-0.5 text-xs font-semibold"
+												role="group"
+												aria-label="검색 방식"
+											>
+												{#each BOARD_SEARCH_MODES as mode (mode)}
+													<a
+														href={buildFilterLink({ searchMode: mode })}
+														data-testid={`notices-search-mode-${mode}`}
+														aria-current={searchMode === mode ? 'true' : undefined}
+														title={BOARD_SEARCH_MODE_HINTS[mode]}
+														class={`rounded-full px-3 py-1 transition-colors ${
+															searchMode === mode
+																? 'bg-[var(--lc-surface-primary)] text-[var(--lc-text-primary)] shadow-sm'
+																: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
+														}`}
+													>
+														{BOARD_SEARCH_MODE_LABELS[mode]}
+													</a>
+												{/each}
+											</div>
+											<span class="lc-text-dim text-xs" data-testid="notices-search-mode-hint">
+												{BOARD_SEARCH_MODE_HINTS[searchMode]}
+											</span>
+										</div>
+									{/if}
+									<div class="lc-dialog-actions">
+										<button
+											type="submit"
+											class="lc-button-primary rounded-lg px-4 py-2"
+											data-testid="notices-filters-apply">조건 적용</button
+										><button
+											type="button"
+											class="lc-button-neutral rounded-lg border px-4 py-2"
+											onclick={cancel}>취소</button
+										>
+									</div>{/snippet}</FilterDialog
+							>{#if hasDateReversed}
 								<p class="lc-text-warning mt-2 text-xs font-medium">
 									시작일이 종료일보다 늦습니다. 검색 시 서버에서 자동으로 범위를 보정합니다.
 								</p>
@@ -961,28 +974,6 @@
 									</span>
 								</div>
 							{/if}
-							<div class="mt-2 flex flex-wrap items-center gap-2">
-								<button
-									type="submit"
-									disabled={isServerLoading}
-									data-testid="notices-search-submit"
-									class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									{#if isServerLoading}
-										<FontAwesomeIcon icon={faSpinner} class="mr-2 h-4 w-4 animate-spin" />
-										불러오는 중
-									{:else}
-										검색
-									{/if}
-								</button>
-								<a
-									href="/notices"
-									data-testid="notices-reset-filters"
-									class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
-								>
-									필터 초기화
-								</a>
-							</div>
 							{#if isServerLoading}
 								<div
 									class="lc-loading-track mt-3 h-1 w-full overflow-hidden rounded-full"
@@ -1041,6 +1032,30 @@
 				{/if}
 
 				<section
+					class="lc-results-summary"
+					role="status"
+					aria-live="polite"
+					aria-labelledby="notices-page-title"
+					data-testid="notices-results-summary"
+				>
+					<p class="lc-text-secondary text-sm font-medium">
+						{hasActiveFilters ? '현재 검색 결과' : '입법예고 아카이브 건수'}
+					</p>
+					<p class="lc-text-primary text-lg font-bold">
+						{#if hasActiveFilters}
+							{totalItems.toLocaleString('ko-KR')}건
+							<span class="lc-text-muted ml-1 text-sm font-medium"
+								>/ 전체 {archiveCount.toLocaleString('ko-KR')}건</span
+							>
+						{:else}
+							{archiveCount.toLocaleString('ko-KR')}건
+						{/if}
+					</p>
+				</section>
+				{#if aiSummaryEnabled}<p class="lc-text-muted lc-results-note">
+						AI 요약은 참고용입니다. 중요한 판단은 원문을 함께 확인해주세요.
+					</p>{/if}
+				<section
 					class="relative"
 					aria-labelledby="notices-results-heading"
 					data-testid="notices-results-region"
@@ -1073,7 +1088,7 @@
 						<div class="space-y-4" data-testid="notices-semantic-weak-list">
 							{#each weakVisibleResults as result (result.noticeNum)}
 								<article
-									class="lc-notice-card lc-notice-border-active rounded-lg border-l-4 p-4 shadow sm:p-6"
+									class="lc-notice-card lc-content-card lc-notice-border-active rounded-lg border-l-4 p-4 shadow sm:p-6"
 									data-testid={`notices-weak-result-${result.noticeNum}`}
 								>
 									<div class="flex flex-wrap items-center gap-2">
@@ -1222,7 +1237,7 @@
 						</div>
 					{:else}
 						<div
-							class="space-y-4"
+							class="lc-result-list"
 							class:opacity-85={isServerLoading}
 							data-testid="notices-results-list"
 						>
@@ -1233,7 +1248,7 @@
 								<article
 									aria-labelledby="notice-heading-{notice.num}"
 									data-testid={`notice-card-${notice.num}`}
-									class={`lc-notice-card rounded-lg border-l-4 p-4 shadow transition-shadow hover:shadow-md sm:p-6 ${
+									class={`lc-notice-card lc-result-row ${
 										notice.isDone
 											? 'lc-notice-card-done lc-notice-border-done'
 											: 'lc-notice-border-active'
@@ -1242,6 +1257,18 @@
 								>
 									<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 										<div class="min-w-0 flex-1">
+											<h3
+												id="notice-heading-{notice.num}"
+												class={`mb-3 text-lg leading-tight font-semibold wrap-break-word ${notice.isDone ? 'lc-text-muted' : 'lc-text-primary'}`}
+											>
+												<a
+													href={`/notices/${notice.num}?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&sortOrder=${sortOrder}`}
+													data-testid={`notice-detail-link-${notice.num}`}
+													class={`no-underline transition-colors duration-150 ${notice.isDone ? 'hover:text-[var(--lc-text-secondary)]' : 'hover:text-[var(--lc-text-accent)]'}`}
+												>
+													{notice.subject}
+												</a>
+											</h3>
 											<div class="mb-3 flex flex-wrap items-center gap-2">
 												<span
 													class="lc-chip-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-medium"
@@ -1313,19 +1340,6 @@
 												{/if}
 											</div>
 
-											<h3
-												id="notice-heading-{notice.num}"
-												class={`mb-3 text-lg leading-tight font-semibold wrap-break-word ${notice.isDone ? 'lc-text-muted' : 'lc-text-primary'}`}
-											>
-												<a
-													href={`/notices/${notice.num}?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&sortOrder=${sortOrder}`}
-													data-testid={`notice-detail-link-${notice.num}`}
-													class={`no-underline transition-colors duration-150 ${notice.isDone ? 'hover:text-[var(--lc-text-secondary)]' : 'hover:text-[var(--lc-text-accent)]'}`}
-												>
-													{notice.subject}
-												</a>
-											</h3>
-
 											{#if notice.relevance?.excerpt}
 												<p
 													class="lc-text-secondary mb-3 whitespace-pre-line text-sm"
@@ -1366,17 +1380,9 @@
 										</div>
 
 										<div
-											class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end lg:ml-4 lg:w-auto lg:shrink-0"
+											class="lc-result-actions w-full lg:ml-4 lg:w-auto lg:max-w-80"
+											data-testid={`notice-actions-${notice.num}`}
 										>
-											<a
-												href={`/notices/${notice.num}?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&sortOrder=${sortOrder}`}
-												data-testid={`notice-open-summary-${notice.num}`}
-												class="lc-chip-cyan inline-flex items-center rounded-md px-2.5 py-2 text-xs font-semibold transition-colors"
-												title="제안이유 및 주요내용 원문 조회"
-											>
-												원문 조회
-											</a>
-
 											{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
 												<div class="flex items-center gap-1">
 													{#if isDownloadable(notice.attachments.pdfFile)}
@@ -1385,9 +1391,10 @@
 																downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
 															aria-label="PDF 다운로드"
 															data-testid={`notice-download-pdf-${notice.num}`}
-															class="lc-action-chip-red cursor-pointer rounded-md p-2.5 transition-colors"
+															class="lc-result-action-secondary transition-colors"
 														>
-															<FontAwesomeIcon icon={faFileText} class="h-5 w-5" />
+															<FontAwesomeIcon icon={faFileText} class="h-4 w-4" />
+															<span>PDF</span>
 														</button>
 													{/if}
 													{#if isDownloadable(notice.attachments.hwpFile)}
@@ -1396,21 +1403,22 @@
 																downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
 															aria-label="HWP 다운로드"
 															data-testid={`notice-download-hwp-${notice.num}`}
-															class="lc-action-chip-blue cursor-pointer rounded-md p-2.5 transition-colors"
+															class="lc-result-action-secondary transition-colors"
 														>
-															<FontAwesomeIcon icon={faFileDownload} class="h-5 w-5" />
+															<FontAwesomeIcon icon={faFileDownload} class="h-4 w-4" />
+															<span>HWP</span>
 														</button>
 													{/if}
-													<div class="hidden h-6 w-px bg-[var(--lc-border-soft)] sm:block"></div>
 												</div>
 											{/if}
 											<button
 												onclick={() => openExternalLink(notice.link)}
-												aria-label="자세히 보기 (새 탭)"
+												aria-label="국회 원문 보기 (새 탭)"
 												data-testid={`notice-open-external-${notice.num}`}
-												class="lc-button-neutral cursor-pointer rounded-md p-2.5 transition-colors"
+												class="lc-result-action-secondary transition-colors"
 											>
-												<FontAwesomeIcon icon={faExternalLink} class="h-5 w-5" />
+												<FontAwesomeIcon icon={faExternalLink} class="h-4 w-4" />
+												<span>국회 원문</span>
 											</button>
 										</div>
 									</div>

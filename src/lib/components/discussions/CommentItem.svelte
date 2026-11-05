@@ -169,6 +169,7 @@
 <div
 	id={`res-${comment.sequence}`}
 	data-testid={`discussion-comment-${comment.sequence}`}
+	class:lc-content-card={!comment.isDeleted}
 	class={`group relative scroll-mt-24 rounded-xl border transition-colors ${
 		comment.isDeleted
 			? 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-muted)]/50 opacity-70'
@@ -221,36 +222,34 @@
 
 		<!-- Action Buttons -->
 		{#if !comment.isDeleted && !isNonUserMessage && !isThreadClosed}
-			<div
-				class="flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-			>
+			<div class="flex flex-wrap items-center gap-1.5">
 				<button
 					type="button"
 					onclick={handleQuote}
 					title={`#${comment.sequence} 인용하여 답글`}
 					data-testid={`discussion-comment-quote-${comment.sequence}`}
-					class="lc-text-muted hover:lc-text-primary inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
+					class="lc-text-muted hover:lc-text-primary inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
 				>
 					<FontAwesomeIcon icon={faQuoteRight} class="h-3 w-3" />
-					<span class="hidden sm:inline">인용</span>
+					<span>인용</span>
 				</button>
 				<button
 					type="button"
 					onclick={handleEdit}
 					title="의견 수정"
-					class="lc-text-muted hover:lc-text-primary inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
+					class="lc-text-muted hover:lc-text-primary inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
 				>
 					<FontAwesomeIcon icon={faPenToSquare} class="h-3 w-3" />
-					<span class="hidden sm:inline">수정</span>
+					<span>수정</span>
 				</button>
 				<button
 					type="button"
 					onclick={handleDelete}
 					title="의견 삭제"
-					class="lc-text-muted hover:text-red-500 inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs hover:bg-red-500/10"
+					class="lc-text-muted hover:text-red-500 inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-xs hover:bg-red-500/10"
 				>
 					<FontAwesomeIcon icon={faTrash} class="h-3 w-3" />
-					<span class="hidden sm:inline">삭제</span>
+					<span>삭제</span>
 				</button>
 			</div>
 		{/if}
@@ -270,7 +269,7 @@
 					<button
 						type="button"
 						onclick={(e) => scrollToComment(block.sequence, e)}
-						class="my-1.5 flex w-full max-w-sm items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium text-blue-600 transition-colors hover:bg-blue-500/20 dark:text-blue-400 cursor-pointer"
+						class="my-1.5 flex w-full max-w-sm items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium lc-text-accent transition-colors hover:bg-blue-500/20 cursor-pointer"
 					>
 						<span class="inline-flex items-center gap-1.5 font-semibold">
 							<FontAwesomeIcon icon={faQuoteLeft} class="h-3 w-3 opacity-80" />
@@ -279,7 +278,7 @@
 									({quoted.isDeleted ? '삭제됨' : quoted.authorNickname}){/if} 인용</span
 							>
 						</span>
-						<span class="inline-flex items-center gap-1 text-[11px] font-normal opacity-80">
+						<span class="inline-flex items-center gap-1 text-[11px] font-normal">
 							<span>이동</span>
 							<FontAwesomeIcon icon={faArrowRight} class="h-2.5 w-2.5" />
 						</span>

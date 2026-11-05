@@ -103,7 +103,7 @@ test.describe('Home Page', () => {
 	});
 
 	test('scroll cue is present in the DOM', async ({ page }) => {
-		const scrollCue = page.getByRole('link', { name: '최근 입법예고 섹션으로 이동' });
+		const scrollCue = page.getByRole('link', { name: '최근 입법예고 보기' });
 		await expect(scrollCue).toBeAttached();
 	});
 

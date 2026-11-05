@@ -69,6 +69,15 @@ async function setSessionStorage(
 	);
 }
 
+async function waitForHydratedNavigation(page: import('@playwright/test').Page) {
+	const toggle = page.getByTestId('site-header').getByRole('switch');
+	const initial = await toggle.getAttribute('aria-checked');
+	await expect(async () => {
+		await toggle.click();
+		await expect(toggle).not.toHaveAttribute('aria-checked', initial!, { timeout: 1000 });
+	}).toPass({ timeout: 15_000 });
+}
+
 test.describe('Cloudflare Under Attack challenge handling', () => {
 	test.skip(!mockEnabled, 'Cloudflare challenge tests require DIFFCHAIN_UI_MOCK=1.');
 	test.skip(
@@ -82,6 +91,7 @@ test.describe('Cloudflare Under Attack challenge handling', () => {
 
 			await page.goto('/');
 			await expect(page.getByTestId('site-header')).toBeVisible();
+			await waitForHydratedNavigation(page);
 
 			await page.route(noticesDataUrl, async (route) => {
 				intercepted = true;
@@ -101,6 +111,7 @@ test.describe('Cloudflare Under Attack challenge handling', () => {
 		test('detects implicit challenge (non-JSON 403) and sets sessionStorage', async ({ page }) => {
 			await page.goto('/');
 			await expect(page.getByTestId('site-header')).toBeVisible();
+			await waitForHydratedNavigation(page);
 
 			await page.route(noticesDataUrl, async (route) => {
 				await route.fulfill({
@@ -124,6 +135,7 @@ test.describe('Cloudflare Under Attack challenge handling', () => {
 		}) => {
 			await page.goto('/');
 			await expect(page.getByTestId('site-header')).toBeVisible();
+			await waitForHydratedNavigation(page);
 
 			await page.route(noticesDataUrl, async (route) => {
 				await route.fulfill(buildPlain403Json());
@@ -142,6 +154,7 @@ test.describe('Cloudflare Under Attack challenge handling', () => {
 		test('renders when sessionStorage mark exists and status is challenge', async ({ page }) => {
 			await page.goto('/');
 			await expect(page.getByTestId('site-header')).toBeVisible();
+			await waitForHydratedNavigation(page);
 
 			const now = Date.now();
 			await setSessionStorage(page, { guardTs: now - 60_000, detectTs: now });
@@ -159,6 +172,7 @@ test.describe('Cloudflare Under Attack challenge handling', () => {
 		test('manual refresh button triggers page reload', async ({ page }) => {
 			await page.goto('/');
 			await expect(page.getByTestId('site-header')).toBeVisible();
+			await waitForHydratedNavigation(page);
 
 			const now = Date.now();
 			await setSessionStorage(page, { guardTs: now - 60_000, detectTs: now });

@@ -53,6 +53,7 @@ for (const viewport of smallViewports) {
 		const detailPath = `/notices/${longNotice.num}`;
 		await page.goto(detailPath);
 		await expectFullText(page.locator('#notice-detail-title'), longNotice.title);
+		await page.getByTestId('notice-detail-facts').locator('summary').click();
 		await expectFullText(page.getByTestId('notice-fact-제안자'), longNotice.proposer);
 		await expectFullText(page.getByTestId('notice-fact-소관위원회'), longNotice.committee);
 		await expectFullText(

@@ -35,7 +35,7 @@
 
 	<main
 		id="main-content"
-		class="relative mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8"
+		class="lc-main lc-main--document"
 		aria-labelledby="admin-notice-title"
 		data-testid="admin-notice-detail"
 	>
@@ -52,7 +52,7 @@
 			<span class="lc-text-secondary font-semibold">공지 상세</span>
 		</nav>
 
-		<article class="lc-panel-card rounded-md border p-5 sm:p-6">
+		<article class="lc-section">
 			<h1
 				id="admin-notice-title"
 				class="lc-text-primary text-2xl leading-snug font-bold tracking-tight"
@@ -83,11 +83,7 @@
 			{/if}
 
 			{#if hasMarkdownBody}
-				<div
-					class="lc-md mt-4 border-t pt-4"
-					data-testid="admin-notice-body"
-					aria-label="공지 본문"
-				>
+				<div class="lc-md mt-4 border-t pt-4" data-testid="admin-notice-body">
 					<MarkdownBody tokens={data.bodyTokens} />
 				</div>
 			{:else if data.notice.content}

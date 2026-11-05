@@ -40,6 +40,7 @@
 	<Header />
 
 	<main
+		id="main-content"
 		class="mx-auto flex min-h-[calc(100vh-72px)] max-w-4xl items-center px-4 py-10 sm:px-6 lg:px-8"
 	>
 		{#if CF_RELOAD_ENABLED && isChallengeStatus(status)}

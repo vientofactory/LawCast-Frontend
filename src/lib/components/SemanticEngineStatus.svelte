@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
-	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { faXmark } from '@fortawesome/free-solid-svg-icons';
+	import { modalPanel } from '$lib/utils/modal-motion';
+	import ModalCloseButton from './ModalCloseButton.svelte';
 	import { semanticEngineHealth } from '$lib/api/client';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
 	import type { SemanticEngineHealthResponse } from '$lib/types/api';
@@ -91,21 +90,18 @@
 			role="dialog"
 			aria-labelledby={`${testIdPrefix}-heading`}
 			data-testid={`${testIdPrefix}-panel`}
-			transition:fly={{ y: 8, duration: 180, opacity: 0 }}
+			in:modalPanel
+			out:modalPanel={{ exiting: true }}
 		>
 			<div class="flex items-center justify-between">
 				<h2 id={`${testIdPrefix}-heading`} class="lc-text-primary text-sm font-semibold">
 					엔진 상태
 				</h2>
-				<button
-					type="button"
-					class="lc-text-dim cursor-pointer rounded p-1 transition-opacity hover:opacity-70"
-					aria-label="엔진 상태 닫기"
-					data-testid={`${testIdPrefix}-close`}
+				<ModalCloseButton
+					label="엔진 상태 닫기"
+					testId={`${testIdPrefix}-close`}
 					onclick={() => (open = false)}
-				>
-					<FontAwesomeIcon icon={faXmark} class="h-3.5 w-3.5" />
-				</button>
+				/>
 			</div>
 			{#if loading}
 				<p
@@ -148,7 +144,7 @@
 	{/if}
 	<button
 		type="button"
-		class="lc-panel-card flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs shadow-sm opacity-70 transition-all duration-200 hover:-translate-y-0.5 hover:opacity-100"
+		class="lc-panel-card flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 min-h-9 text-xs shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:opacity-100"
 		aria-expanded={open}
 		aria-controls={open ? panelId : undefined}
 		data-testid={`${testIdPrefix}-trigger`}

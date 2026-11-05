@@ -32,9 +32,17 @@ export async function maxTextNodeLines(locator: Locator): Promise<number> {
 }
 
 export async function expectNoClippedText(page: Page, path: string): Promise<void> {
+	// Height transitions intentionally clip content until the native disclosure settles.
+	await expect(page.locator('details[data-disclosure-state]')).toHaveCount(0);
 	const clippedText = await page.locator('main *').evaluateAll((elements) =>
 		elements.flatMap((element) => {
 			const style = getComputedStyle(element);
+			// Focus-revealed shortcuts are intentionally clipped only while focus is outside.
+			if (
+				element.matches('.lc-home-section-navigation:not(:focus-within)') &&
+				style.clipPath === 'inset(50%)'
+			)
+				return [];
 			const clipsX = ['hidden', 'clip'].includes(style.overflowX);
 			const clipsY = ['hidden', 'clip'].includes(style.overflowY);
 			if (!clipsX && !clipsY) return [];

@@ -18,7 +18,7 @@ export default defineConfig({
 		{
 			cwd: fileURLToPath(new URL('..', import.meta.url)),
 			command: cloudflare
-				? 'npm run build && wrangler pages dev .svelte-kit/cloudflare --ip 127.0.0.1 --port 4185 --binding DIFFCHAIN_UI_MOCK=1'
+				? 'npm run build && npx --no-install wrangler pages dev .svelte-kit/cloudflare --ip 127.0.0.1 --port 4185 --binding DIFFCHAIN_UI_MOCK=1'
 				: 'npm run build:node && node build/index.js',
 			url: 'http://127.0.0.1:4185',
 			reuseExistingServer: false,

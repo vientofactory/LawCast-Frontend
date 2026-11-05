@@ -40,7 +40,9 @@ async function installPushSubscriptionStub(page: Page): Promise<void> {
 }
 
 test.describe('Webhook Settings Page', () => {
-	test.beforeEach(async ({ page }) => {
+	test.beforeEach(async ({ page }, testInfo) => {
+		// The error test installs listeners before its first navigation.
+		if (testInfo.title === 'page loads without critical JavaScript errors') return;
 		await page.goto('/webhook');
 	});
 
@@ -151,6 +153,18 @@ test.describe('Full unsubscribe confirm modal', () => {
 		const dialog = page.getByTestId('full-unsubscribe-modal');
 		await expect(dialog).toContainText('모든 웹 푸시 구독을 해지할까요?');
 		await expect(dialog).toHaveAttribute('aria-modal', 'true');
+		for (let i = 0; i < 10; i++) {
+			await page.keyboard.press('Tab');
+			expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(
+				true
+			);
+		}
+		expect(
+			await page.getByTestId('app-route-container').evaluate((element) => {
+				const main = element.querySelector('main');
+				return !!main?.querySelector('[inert]');
+			})
+		).toBe(true);
 		const labelledBy = await dialog.getAttribute('aria-labelledby');
 		expect(labelledBy).toBeTruthy();
 		await expect(dialog.locator(`#${labelledBy}`)).toContainText('모든 웹 푸시 구독을 해지할까요?');
@@ -168,6 +182,9 @@ test.describe('Full unsubscribe confirm modal', () => {
 		// Escape closes without touching the API.
 		await page.keyboard.press('Escape');
 		await expect(dialog).toHaveCount(0);
+		await expect(
+			page.getByRole('button', { name: '모든 웹 푸시 구독 해지', exact: true })
+		).toBeFocused();
 		expect(deleteCalls).toBe(0);
 
 		// Cancelling also closes without touching the API.

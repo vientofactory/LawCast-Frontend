@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
 	import Header from '$lib/components/Header.svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -6,13 +7,7 @@
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { DiscussionThreadStatus } from '$lib/types/api';
-	import {
-		faArrowLeft,
-		faScaleBalanced,
-		faCircleCheck,
-		faCircleExclamation,
-		faRotateRight
-	} from '@fortawesome/free-solid-svg-icons';
+	import { faArrowLeft, faScaleBalanced, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 	import type {
 		NoticeDetail,
 		DiscussionThreadDetailResponse,
@@ -23,6 +18,7 @@
 	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '$lib/api/client';
 	import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
 	import ThreadDetailView from '$lib/components/discussions/ThreadDetailView.svelte';
+	import ThreadDetailSkeleton from '$lib/components/discussions/ThreadDetailSkeleton.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import type { Component, ComponentProps } from 'svelte';
 	import type CommentActionModal from '$lib/components/discussions/CommentActionModal.svelte';
@@ -81,7 +77,6 @@
 
 	let errorMessage = $state('');
 	let successMessage = $state('');
-	let successTimer: ReturnType<typeof setTimeout> | null = $state(null);
 	let threadDetailViewComponent: ThreadDetailView | undefined = $state();
 	let isLoading = $state(false);
 	let isRetryingLoad = $state(false);
@@ -131,10 +126,6 @@
 
 	function showSuccess(msg: string) {
 		successMessage = msg;
-		if (successTimer) clearTimeout(successTimer);
-		successTimer = setTimeout(() => {
-			successMessage = '';
-		}, 3500);
 	}
 
 	function startRateLimitCooldown(seconds: number): void {
@@ -170,7 +161,6 @@
 
 	onDestroy(() => {
 		if (rateLimitTimer) clearInterval(rateLimitTimer);
-		if (successTimer) clearTimeout(successTimer);
 	});
 
 	function discussionErrorMessage(error: unknown, fallback: string): string {
@@ -442,11 +432,7 @@
 <div class="lc-page-shell">
 	<Header />
 
-	<main
-		id="main-content"
-		class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8"
-		aria-labelledby="discussion-thread-title"
-	>
+	<main id="main-content" class="lc-main" aria-labelledby="discussion-thread-title">
 		<!-- Breadcrumbs Navigation -->
 		<nav class="mb-6 flex flex-wrap items-center gap-2 text-sm" aria-label="이동 경로">
 			<a
@@ -469,12 +455,11 @@
 			</span>
 		</nav>
 
-		<!-- Notice Context Header Card -->
-		<div
-			class="lc-panel-card mb-6 rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-5 shadow-sm"
-		>
-			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div class="min-w-0 flex-1 space-y-1">
+		<!-- Secondary bill context, separate from the discussion content. -->
+		<div class="lc-thread-context" data-testid="discussion-bill-context">
+			<p class="lc-text-muted mb-3 text-sm font-semibold">토론 대상 법률안</p>
+			<div class="flex flex-col items-start gap-3 lg:flex-row lg:items-center lg:justify-between">
+				<div class="min-w-0 w-full flex-1 space-y-1">
 					<div class="flex flex-wrap items-center gap-2">
 						<span
 							class="lc-chip-blue inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
@@ -491,7 +476,10 @@
 							제안자 구분: {detail.notice.proposerCategory}
 						</span>
 					</div>
-					<h1 class="lc-text-primary text-base font-bold truncate mt-3">
+					<h1
+						id="discussion-thread-title"
+						class="lc-text-primary text-lg leading-relaxed font-bold wrap-anywhere mt-3"
+					>
 						{detail.notice.subject}
 					</h1>
 				</div>
@@ -522,32 +510,21 @@
 
 		<!-- Feedback Alerts -->
 		{#if successMessage}
-			<div
-				class="lc-banner-success mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold"
-			>
-				<FontAwesomeIcon
-					icon={faCircleCheck}
-					class="h-4 w-4 text-emerald-600 dark:text-emerald-400"
-				/>
-				<span>{successMessage}</span>
-			</div>
+			<Alert type="success" message={successMessage} onDismiss={() => (successMessage = '')} />
 		{/if}
 
 		{#if errorMessage}
-			<div
-				data-testid="discussion-error-banner"
-				class="lc-banner-danger mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400"
-			>
-				<FontAwesomeIcon icon={faCircleExclamation} class="h-4 w-4" />
-				<span>{errorMessage}</span>
-			</div>
+			<Alert
+				type="error"
+				message={errorMessage}
+				onDismiss={() => (errorMessage = '')}
+				testId="discussion-error-banner"
+			/>
 		{/if}
 
 		<!-- Thread Detail View -->
 		{#if discussionData}
-			<section
-				class="lc-panel-card rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-6"
-			>
+			<section class="lc-discussion-body" aria-label="토론 본문">
 				{#key thread.status}
 					<ThreadDetailView
 						bind:this={threadDetailViewComponent}
@@ -571,46 +548,14 @@
 				{/key}
 			</section>
 		{:else}
-			<section
-				class="relative rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-6"
-			>
+			<section class="lc-discussion-body relative" aria-label="토론 불러오는 중" aria-busy="true">
 				<RateLimitOverlay
 					visible={rateLimitRemaining > 0}
 					retryAfter={rateLimitRemaining}
 					onRetry={reloadThread}
 					isRetrying={isRetryingLoad}
 				/>
-				<div class="space-y-4 opacity-40" aria-hidden="true">
-					<div class="flex items-center gap-3 border-b border-[var(--lc-border-soft)] pb-3">
-						<div class="h-8 w-20 animate-pulse rounded-lg bg-[var(--lc-surface-muted)]"></div>
-					</div>
-					<div
-						class="rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4"
-					>
-						<div class="mb-2 flex gap-2">
-							<div class="h-5 w-20 animate-pulse rounded-full bg-[var(--lc-surface-muted)]"></div>
-							<div class="h-5 w-16 animate-pulse rounded-full bg-[var(--lc-surface-muted)]"></div>
-						</div>
-						<div class="h-5 w-48 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
-						<div class="mt-2 h-3 w-32 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
-					</div>
-					<div class="space-y-3">
-						{#each [0, 1] as skeleton (skeleton)}
-							<div
-								class="rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4"
-							>
-								<div class="mb-2 flex items-center gap-2">
-									<div class="h-4 w-12 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
-									<div class="h-3 w-20 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
-								</div>
-								<div class="space-y-1.5">
-									<div class="h-3 w-full animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
-									<div class="h-3 w-3/4 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
+				<ThreadDetailSkeleton />
 			</section>
 		{/if}
 	</main>
@@ -639,3 +584,16 @@
 		onClose={() => (isQuotePushConsentOpen = false)}
 	/>
 {/if}
+
+<style>
+	.lc-thread-context {
+		padding: clamp(1rem, 2.5vw, 1.5rem);
+		background: var(--lc-surface-muted);
+		border-bottom: 1px solid var(--lc-border-soft);
+	}
+
+	.lc-discussion-body {
+		min-width: 0;
+		margin-top: clamp(1.5rem, 3vw, 2.5rem);
+	}
+</style>

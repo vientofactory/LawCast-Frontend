@@ -1,8 +1,10 @@
+import { openStatisticsSettings } from './helpers/filter-dialog';
 import { test, expect } from '@playwright/test';
 
 test.describe('Proposals Statistics Page', () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/proposals');
+		await openStatisticsSettings(page);
 	});
 
 	test('renders the page successfully', async ({ page }) => {
@@ -78,6 +80,7 @@ test.describe('Proposals Statistics Page', () => {
 		});
 
 		await page.goto('/proposals');
+		await openStatisticsSettings(page);
 		await page.waitForTimeout(2000);
 
 		const criticalErrors = errors.filter(

@@ -1,13 +1,16 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
+	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion, syncDisclosure } from '$lib/utils/disclosure-motion';
 	import Header from '$lib/components/Header.svelte';
 	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
 	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
 	import { openExternalLink } from '$lib/utils/helpers';
 	import { buildOpinionSubmissionUrlForContentId } from '$lib/utils/opinion-submission-url.util';
-	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
+	import { afterNavigate, goto, invalidateAll, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import SeoHead from '$lib/components/SeoHead.svelte';
-	import { onDestroy, tick, untrack } from 'svelte';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import {
 		mergeRevisionHistory,
@@ -16,13 +19,11 @@
 		REVISION_HISTORY_PAGE_SIZE
 	} from '$lib/utils/revision-history';
 	import NoticeChangeTimeline from '$lib/components/NoticeChangeTimeline.svelte';
-	import { fade, slide } from 'svelte/transition';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
 		faBell,
 		faCheck,
-		faChevronDown,
 		faClock,
 		faComments,
 		faDownload,
@@ -54,7 +55,7 @@
 		type NoticeDeadline
 	} from '$lib/utils/notice-deadline.util';
 	import NoticeDiscussions from '$lib/components/discussions/NoticeDiscussions.svelte';
-	import NoticeScreenshot from '$lib/components/NoticeScreenshot.svelte';
+	import NoticeScreenshotModal from '$lib/components/NoticeScreenshotModal.svelte';
 
 	let {
 		data
@@ -218,7 +219,7 @@
 	// Must be $state: every URL-derived value below (compare selection, timeline
 	// query flags, revision links, back link) recomputes only when this updates
 	// after client-side navigation. A plain let stays stale forever in runes mode.
-	let currentUrl = $state(page.url);
+	let currentUrl = $state<URL>(page.url);
 	afterNavigate(() => {
 		currentUrl = page.url;
 		const token = ++timelineScrollToken;
@@ -455,7 +456,8 @@
 	);
 
 	let isArchiveMetaOpen = $state(false);
-	let isScreenshotExpanded = $state(false);
+	let isScreenshotModalOpen = $state(false);
+	let screenshotTrigger = $state<HTMLButtonElement>();
 	let isExportingArchive = $state(false);
 	let shareState: 'idle' | 'copied' = $state('idle');
 	let exportArchiveError: string | null = $state(null);
@@ -492,6 +494,7 @@
 			timelineVisibilityRequests--;
 			if (timelineVisibilityRequests === 0) section.style.removeProperty('content-visibility');
 		}
+		await document.fonts.ready;
 		await new Promise<void>((resolve) =>
 			requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
 		);
@@ -655,10 +658,20 @@
 		}
 
 		const screenshotFromQuery = parseBooleanParam(currentUrl.searchParams.get('screenshot'));
-		if (screenshotFromQuery !== null && hasScreenshot) {
-			isScreenshotExpanded = screenshotFromQuery;
-		}
+		const openScreenshot = screenshotFromQuery === true && hasScreenshot;
+		isScreenshotModalOpen = openScreenshot;
+		if (openScreenshot) isArchiveMetaOpen = true;
 	});
+
+	function closeScreenshotModal() {
+		isScreenshotModalOpen = false;
+		if (currentUrl.searchParams.has('screenshot')) {
+			const url = new URL(currentUrl);
+			url.searchParams.delete('screenshot');
+			replaceState(url, page.state);
+			currentUrl = url;
+		}
+	}
 
 	let snapshotsByRevision = $derived(buildRevisionSnapshots(changes.items));
 	let selectedFromRev = $derived(getPositiveIntQueryParam(currentUrl.searchParams.get('cmpFrom')));
@@ -772,6 +785,17 @@
 
 		await navigateComparison(params);
 	}
+
+	let factsElement = $state<HTMLDetailsElement>();
+	onMount(() => {
+		const wide = window.matchMedia('(min-width: 1024px)');
+		const update = () => {
+			if (factsElement) syncDisclosure(factsElement, wide.matches);
+		};
+		if (wide.matches) update();
+		wide.addEventListener('change', update);
+		return () => wide.removeEventListener('change', update);
+	});
 </script>
 
 <SeoHead
@@ -799,11 +823,11 @@
 
 	<main
 		id="main-content"
-		class="relative mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8"
+		class="lc-main lc-main--detail"
 		aria-labelledby="notice-detail-title"
 		data-testid="notice-detail-main"
 	>
-		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
+		<nav class="mb-4 flex flex-wrap items-center gap-2 text-sm" aria-label="이동 경로">
 			<a
 				href={backLink}
 				data-testid="notice-detail-back-link"
@@ -825,23 +849,6 @@
 			/>
 		{/if}
 
-		{#if aiSummaryEnabled}
-			<section class="lc-banner-warning mb-6 rounded-xl border p-4 shadow-sm">
-				<div class="flex items-start gap-3">
-					<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
-						<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
-					</div>
-					<div>
-						<p class="text-sm font-semibold">안내</p>
-						<p class="mt-1 text-sm leading-relaxed">
-							AI 요약은 참고용이며 오류가 있을 수 있습니다. 아래 원문(제안이유 및 주요내용)을 최종
-							기준으로 확인해주세요.
-						</p>
-					</div>
-				</div>
-			</section>
-		{/if}
-
 		{#if isHistoricalView && activeRevision !== null}
 			<div
 				class="lc-banner-warning mb-6 rounded-xl border px-4 py-3 text-sm"
@@ -853,24 +860,6 @@
 						최신 기록 #{headRevision} 보기
 					</a>
 				{/if}
-			</div>
-		{/if}
-
-		{#if displayContent.isDone}
-			<div
-				class="lc-banner-muted mb-6 flex items-start gap-3 rounded-xl border px-5 py-4 shadow-sm"
-				role="status"
-				aria-label="입법예고 종료 안내"
-			>
-				<div class="lc-chip-muted mt-0.5 rounded-full p-1.5">
-					<FontAwesomeIcon icon={faLock} class="h-4 w-4" />
-				</div>
-				<div>
-					<p class="lc-text-secondary text-sm font-semibold">입법예고 종료</p>
-					<p class="lc-text-muted mt-0.5 text-sm">
-						이 법률안의 입법예고 기간이 종료되었습니다. 내용은 참고용으로만 확인하시기 바랍니다.
-					</p>
-				</div>
 			</div>
 		{/if}
 
@@ -912,235 +901,243 @@
 			</div>
 		{/if}
 
-		<section
-			class={`mb-6 rounded-2xl border p-6 shadow-lg ${displayContent.isDone ? 'lc-panel-subtle' : 'lc-panel-card'}`}
-			aria-labelledby="notice-detail-title"
-			data-testid="notice-detail-summary"
-		>
-			<div class="mb-4 flex flex-wrap items-start justify-between gap-3">
-				<div>
-					<div class="mb-2 flex flex-wrap items-center gap-2">
-						<div
-							class="lc-chip-blue inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
-						>
-							<FontAwesomeIcon icon={faScaleBalanced} class="mr-1.5 h-3.5 w-3.5" />
-							의안번호 {detail.notice.num}
+		<div class="lc-detail-grid">
+			<div class="lc-detail-reading">
+				<section
+					class="lc-detail-summary"
+					aria-labelledby="notice-detail-title"
+					data-testid="notice-detail-summary"
+				>
+					<div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+						<div>
+							<div class="mb-2 flex flex-wrap items-center gap-2">
+								<div
+									class="lc-chip-blue inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
+								>
+									<FontAwesomeIcon icon={faScaleBalanced} class="mr-1.5 h-3.5 w-3.5" />
+									의안번호 {detail.notice.num}
+								</div>
+								{#if displayContent.isDone}
+									<div
+										class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+									>
+										<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
+										종료됨
+									</div>
+								{:else}
+									<div
+										class="lc-chip-success inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+									>
+										<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
+										진행 중
+									</div>
+								{/if}
+								{#if deadline.kind !== 'none'}
+									<div
+										class={`${deadline.kind === 'open' ? 'lc-chip-danger' : 'lc-chip-muted'} inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold`}
+										data-testid="notice-detail-deadline-chip"
+									>
+										<FontAwesomeIcon icon={faClock} class="h-2.5 w-2.5" />
+										{deadline.label}
+									</div>
+								{/if}
+								{#if isSourceDeleted}
+									<div
+										class="lc-chip-warning inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+									>
+										소스 미존재(보존)
+									</div>
+								{:else if isRenumbered}
+									<div
+										class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+									>
+										번호 변경 이력
+									</div>
+								{/if}
+							</div>
+							<h1
+								id="notice-detail-title"
+								class={`text-2xl leading-snug font-bold ${'lc-text-primary'}`}
+							>
+								{displayContent.title}
+							</h1>
+							<div class="lc-text-secondary mt-3 flex flex-wrap gap-3 text-sm">
+								<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
+									<FontAwesomeIcon icon={faUser} class="mr-1.5 h-3.5 w-3.5" />
+									제안자 구분: {displayContent.proposerCategory}
+								</span>
+								{#if displayContent.committee}
+									<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
+										<FontAwesomeIcon icon={faBell} class="mr-1.5 h-3.5 w-3.5" />
+										{displayContent.committee}
+									</span>
+								{/if}
+								<span class="lc-chip-success inline-flex items-center rounded-md px-2 py-1">
+									<FontAwesomeIcon icon={faClock} class="mr-1.5 h-3.5 w-3.5" />
+									아카이브: {formatDateTime(detail.archiveMetadata.archivedAt)}
+								</span>
+							</div>
 						</div>
-						{#if displayContent.isDone}
-							<div
-								class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+						<div class="flex flex-wrap items-center gap-2">
+							<a
+								href="#notice-discussions"
+								data-testid="notice-detail-discussions-anchor"
+								class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors"
 							>
-								<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
-								종료됨
-							</div>
-						{:else}
-							<div
-								class="lc-chip-success inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+								<FontAwesomeIcon icon={faComments} class="mr-2 h-4 w-4" />
+								<span>토론</span>
+								{#if data.discussions?.total && data.discussions.total > 0}
+									<span
+										class="lc-chip-blue ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-bold"
+									>
+										{data.discussions.total}
+									</span>
+								{/if}
+							</a>
+							<button
+								onclick={shareNotice}
+								data-testid="notice-detail-share"
+								class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors"
 							>
-								<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
-								진행 중
-							</div>
-						{/if}
-						{#if deadline.kind !== 'none'}
-							<div
-								class={`${deadline.kind === 'open' ? 'lc-chip-danger' : 'lc-chip-muted'} inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold`}
-								data-testid="notice-detail-deadline-chip"
-							>
-								<FontAwesomeIcon icon={faClock} class="h-2.5 w-2.5" />
-								{deadline.label}
-							</div>
-						{/if}
-						{#if isSourceDeleted}
-							<div
-								class="lc-chip-warning inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
-							>
-								소스 미존재(보존)
-							</div>
-						{:else if isRenumbered}
-							<div
-								class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
-							>
-								번호 변경 이력
-							</div>
-						{/if}
-					</div>
-					<h1
-						id="notice-detail-title"
-						class={`text-2xl leading-snug font-bold ${displayContent.isDone ? 'lc-text-muted' : 'lc-text-primary'}`}
-					>
-						{displayContent.title}
-					</h1>
-					<div class="lc-text-secondary mt-3 flex flex-wrap gap-3 text-sm">
-						<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
-							<FontAwesomeIcon icon={faUser} class="mr-1.5 h-3.5 w-3.5" />
-							제안자 구분: {displayContent.proposerCategory}
-						</span>
-						{#if displayContent.committee}
-							<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
-								<FontAwesomeIcon icon={faBell} class="mr-1.5 h-3.5 w-3.5" />
-								{displayContent.committee}
-							</span>
-						{/if}
-						<span class="lc-chip-success inline-flex items-center rounded-md px-2 py-1">
-							<FontAwesomeIcon icon={faClock} class="mr-1.5 h-3.5 w-3.5" />
-							아카이브: {formatDateTime(detail.archiveMetadata.archivedAt)}
-						</span>
-					</div>
-				</div>
-				<div class="flex flex-wrap items-center gap-2">
-					<a
-						href="#notice-discussions"
-						data-testid="notice-detail-discussions-anchor"
-						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors"
-					>
-						<FontAwesomeIcon icon={faComments} class="mr-2 h-4 w-4" />
-						<span>토론</span>
-						{#if data.discussions?.total && data.discussions.total > 0}
-							<span
-								class="lc-chip-blue ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-bold"
-							>
-								{data.discussions.total}
-							</span>
-						{/if}
-					</a>
-					<button
-						onclick={shareNotice}
-						data-testid="notice-detail-share"
-						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors"
-					>
-						<FontAwesomeIcon
-							icon={shareState === 'copied' ? faCheck : faShareNodes}
-							class="mr-2 h-4 w-4"
-						/>
-						{shareState === 'copied' ? '링크 복사됨' : '공유'}
-					</button>
-					<!-- Utility link-out: kept neutral so the opinion CTA below owns the
+								<FontAwesomeIcon
+									icon={shareState === 'copied' ? faCheck : faShareNodes}
+									class="mr-2 h-4 w-4"
+								/>
+								{shareState === 'copied' ? '링크 복사됨' : '공유'}
+							</button>
+							<!-- Utility link-out: kept neutral so the opinion CTA below owns the
 					     page's single primary emphasis (both open the same URL). -->
-					<button
-						onclick={() => openExternalLink(detail.notice.link)}
-						data-testid="notice-detail-open-source"
-						class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors"
-					>
-						<FontAwesomeIcon icon={faExternalLink} class="mr-2 h-4 w-4" />
-						국회 페이지 열기
-					</button>
-				</div>
-			</div>
+							<button
+								onclick={() => openExternalLink(detail.notice.link)}
+								data-testid="notice-detail-open-source"
+								class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors"
+							>
+								<FontAwesomeIcon icon={faExternalLink} class="mr-2 h-4 w-4" />
+								국회 페이지 열기
+							</button>
+						</div>
+					</div>
 
-			{#if shouldShowAIBriefing}
-				<AIBriefingCard
-					summary={detail.notice.aiSummary ?? null}
-					status={detail.notice.aiSummaryStatus ?? 'unavailable'}
-				/>
-			{/if}
-		</section>
+					{#if aiSummaryEnabled}<p class="lc-text-muted mt-4 text-xs">
+							AI 요약은 참고용이며 오류가 있을 수 있습니다. 아래 원문을 최종 기준으로 확인해주세요.
+						</p>{/if}
+					{#if shouldShowAIBriefing}
+						<AIBriefingCard
+							summary={detail.notice.aiSummary ?? null}
+							status={detail.notice.aiSummaryStatus ?? 'unavailable'}
+						/>
+					{/if}
+				</section>
 
-		<!-- Opinion submission entry CTA: the notice period is the opinion window.
+				<!-- Opinion submission entry CTA: the notice period is the opinion window.
 		     Rendered as its own panel below the header card so the primary action
 		     stays visually separated from the title metadata. The CTA links the
 		     PAL opinion page built from the contentId, never the archived
 		     source link, which may still point at the pre-transfer system. -->
-		<section class="mb-6" aria-label="의견 제출">
-			<div
-				class="lc-panel-inset flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3"
-				data-testid="notice-opinion-cta"
-			>
-				{#if displayContent.isDone}
-					<button
-						type="button"
-						disabled
-						data-testid="notice-opinion-submit"
-						class="lc-button-neutral inline-flex cursor-not-allowed items-center rounded-lg border px-4 py-2 text-sm font-semibold opacity-70"
+				<section class="mb-6" aria-label="의견 제출">
+					<div
+						class="lc-opinion-action flex flex-wrap items-center gap-3"
+						data-testid="notice-opinion-cta"
 					>
-						<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
-						제출 기간 종료
-					</button>
-				{:else if isPreTransfer}
-					<button
-						type="button"
-						disabled
-						data-testid="notice-opinion-submit"
-						class="lc-button-neutral inline-flex cursor-not-allowed items-center rounded-lg border px-4 py-2 text-sm font-semibold opacity-70"
-					>
-						<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
-						의견 제출 불가
-					</button>
-				{:else}
-					<button
-						type="button"
-						onclick={() =>
-							openExternalLink(buildOpinionSubmissionUrlForContentId(opinionContentId))}
-						data-testid="notice-opinion-submit"
-						class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap"
-					>
-						<FontAwesomeIcon icon={faPaperPlane} class="mr-2 h-4 w-4" />
-						의견 제출하기
-					</button>
-				{/if}
-				<p class="lc-text-secondary text-sm" data-testid="notice-opinion-guidance">
-					{opinionGuidanceText}
-				</p>
-			</div>
-		</section>
+						{#if displayContent.isDone}
+							<button
+								type="button"
+								disabled
+								data-testid="notice-opinion-submit"
+								class="lc-button-neutral inline-flex cursor-not-allowed items-center rounded-lg border px-4 py-2 text-sm font-semibold opacity-70"
+							>
+								<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
+								제출 기간 종료
+							</button>
+						{:else if isPreTransfer}
+							<button
+								type="button"
+								disabled
+								data-testid="notice-opinion-submit"
+								class="lc-button-neutral inline-flex cursor-not-allowed items-center rounded-lg border px-4 py-2 text-sm font-semibold opacity-70"
+							>
+								<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
+								의견 제출 불가
+							</button>
+						{:else}
+							<button
+								type="button"
+								onclick={() =>
+									openExternalLink(buildOpinionSubmissionUrlForContentId(opinionContentId))}
+								data-testid="notice-opinion-submit"
+								class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap"
+							>
+								<FontAwesomeIcon icon={faPaperPlane} class="mr-2 h-4 w-4" />
+								의견 제출하기
+							</button>
+						{/if}
+						<p class="lc-text-secondary text-sm" data-testid="notice-opinion-guidance">
+							{opinionGuidanceText}
+						</p>
+					</div>
+				</section>
 
-		{#if contentFacts.length > 0}
-			<section
-				class="lc-panel-card lc-defer-render-sm mb-6 rounded-2xl border p-6 shadow-sm"
-				aria-labelledby="notice-detail-facts-heading"
-				data-testid="notice-detail-facts"
-			>
-				<div class="mb-4 flex items-center gap-2">
-					<FontAwesomeIcon icon={faScaleBalanced} class="lc-text-accent h-5 w-5" />
-					<h2 id="notice-detail-facts-heading" class="lc-text-primary text-lg font-bold">
-						입법예고 정보
-					</h2>
-				</div>
-				<dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-					{#each contentFacts as fact (fact.label)}
-						<div
-							class="lc-panel-inset rounded-lg border px-3 py-2"
-							data-testid={`notice-fact-${fact.label}`}
-						>
-							<dt class="lc-text-muted text-xs font-semibold">{fact.label}</dt>
-							<dd class="lc-text-primary mt-1 text-sm font-medium">{fact.value}</dd>
-						</div>
-					{/each}
-				</dl>
-			</section>
-		{/if}
-
-		<section
-			class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm"
-			aria-labelledby="notice-detail-content-heading"
-			data-testid="notice-detail-content"
-		>
-			<div class="mb-4 flex items-center gap-2">
-				<FontAwesomeIcon icon={faFileLines} class="lc-text-purple h-5 w-5" />
-				<h2 id="notice-detail-content-heading" class="lc-text-primary text-lg font-bold">
-					제안이유 및 주요내용 원문
-				</h2>
-			</div>
-
-			{#if displayContent.proposalReason}
-				<p
-					class="lc-text-primary text-sm leading-7 whitespace-pre-line"
-					data-testid="notice-detail-proposal-reason"
+				<section
+					class="lc-reading-content"
+					aria-labelledby="notice-detail-content-heading"
+					data-testid="notice-detail-content"
 				>
-					{displayContent.proposalReason}
-				</p>
-			{:else}
-				<div class="lc-banner-warning flex items-start gap-3 rounded-lg border p-4">
-					<FontAwesomeIcon
-						icon={faTriangleExclamation}
-						class="lc-text-warning mt-0.5 h-4 w-4 shrink-0"
-					/>
-					<p class="text-sm">
-						원문 데이터를 웹사이트에서 확인하지 못했습니다. 국회 페이지에서 직접 확인하시기
-						바랍니다.
-					</p>
-				</div>
-			{/if}
-		</section>
+					<div class="mb-4 flex items-center gap-2">
+						<FontAwesomeIcon icon={faFileLines} class="lc-text-purple h-5 w-5" />
+						<h2 id="notice-detail-content-heading" class="lc-text-primary text-lg font-bold">
+							제안이유 및 주요내용 원문
+						</h2>
+					</div>
+
+					{#if displayContent.proposalReason}
+						<p
+							class="lc-text-primary text-sm leading-7 whitespace-pre-line"
+							data-testid="notice-detail-proposal-reason"
+						>
+							{displayContent.proposalReason}
+						</p>
+					{:else}
+						<div class="lc-banner-warning flex items-start gap-3 rounded-lg border p-4">
+							<FontAwesomeIcon
+								icon={faTriangleExclamation}
+								class="lc-text-warning mt-0.5 h-4 w-4 shrink-0"
+							/>
+							<p class="text-sm">
+								원문 데이터를 웹사이트에서 확인하지 못했습니다. 국회 페이지에서 직접 확인하시기
+								바랍니다.
+							</p>
+						</div>
+					{/if}
+				</section>
+			</div>
+			<aside aria-label="입법예고 상세정보">
+				{#if contentFacts.length > 0}
+					<details
+						use:disclosureMotion
+						bind:this={factsElement}
+						class="lc-facts-disclosure"
+						aria-labelledby="notice-detail-facts-heading"
+						data-testid="notice-detail-facts"
+					>
+						<summary class="lc-disclosure-trigger">
+							<FontAwesomeIcon icon={faScaleBalanced} class="lc-text-accent h-5 w-5" />
+							<h2 id="notice-detail-facts-heading" class="lc-text-primary text-lg font-bold">
+								입법예고 정보
+							</h2>
+							<DisclosureIndicator />
+						</summary>
+						<dl class="lc-facts-list">
+							{#each contentFacts as fact (fact.label)}
+								<div class="lc-fact-row" data-testid={`notice-fact-${fact.label}`}>
+									<dt class="lc-text-muted text-xs font-semibold">{fact.label}</dt>
+									<dd class="lc-text-primary mt-1 text-sm font-medium">{fact.value}</dd>
+								</div>
+							{/each}
+						</dl>
+					</details>
+				{/if}
+			</aside>
+		</div>
 
 		<NoticeDiscussions
 			noticeNum={detail.notice.num}
@@ -1153,7 +1150,7 @@
 			bind:this={timelineSectionElement}
 			aria-labelledby="notice-detail-timeline-heading"
 			data-testid="notice-detail-timeline"
-			class="lc-defer-render scroll-mt-40"
+			class="lc-history-section scroll-mt-40"
 		>
 			<h2 id="notice-detail-timeline-heading" class="sr-only">변경 기록</h2>
 			{#if hasLegacyGenesisBoundary}
@@ -1190,44 +1187,37 @@
 		</section>
 
 		<details
+			use:disclosureMotion={{ onOpenChange: (open) => (isArchiveMetaOpen = open) }}
 			bind:open={isArchiveMetaOpen}
-			class="lc-panel-card lc-defer-render group rounded-2xl border p-6 shadow-sm"
+			class="lc-archive-disclosure lc-defer-render group"
 			data-testid="notice-detail-archive-meta"
 		>
-			<summary
-				class="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors duration-200 hover:bg-[var(--lc-surface-hover)]"
-			>
+			<summary class="lc-disclosure-trigger">
 				<span class="flex items-center gap-2">
 					<FontAwesomeIcon icon={faShieldHalved} class="lc-text-success h-5 w-5" />
 					<h2 id="notice-detail-archive-heading" class="lc-text-primary text-lg font-bold">
 						아카이브 상세정보
 					</h2>
 				</span>
-				<span
-					class="lc-button-neutral inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200"
-				>
-					<span
-						class="inline-flex transition-transform duration-200"
-						class:rotate-180={isArchiveMetaOpen}
-					>
-						<FontAwesomeIcon icon={faChevronDown} class="h-4 w-4" />
-					</span>
-				</span>
+				<DisclosureIndicator />
 			</summary>
 
 			{#if isArchiveMetaOpen}
-				<div in:slide={{ duration: 240 }} out:slide={{ duration: 180 }}>
-					<div in:fade={{ duration: 200 }} out:fade={{ duration: 140 }} class="mt-4">
+				<div>
+					<div class="mt-4">
 						<div class="mb-3 flex flex-wrap justify-end gap-2">
 							{#if hasScreenshot}
 								<button
-									onclick={() => (isScreenshotExpanded = !isScreenshotExpanded)}
+									type="button"
+									bind:this={screenshotTrigger}
+									aria-haspopup="dialog"
+									onclick={() => (isScreenshotModalOpen = true)}
 									data-testid="notice-detail-screenshot-toggle"
 									class="lc-button-neutral inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-xs font-semibold transition-colors"
-									aria-expanded={isScreenshotExpanded}
+									aria-expanded={isScreenshotModalOpen}
 								>
 									<FontAwesomeIcon icon={faImage} class="mr-1.5 h-3.5 w-3.5" />
-									{isScreenshotExpanded ? '미리보기 닫기' : '국회 페이지 미리보기'}
+									국회 페이지 미리보기
 								</button>
 							{/if}
 							<button
@@ -1242,7 +1232,12 @@
 							</button>
 						</div>
 						{#if exportArchiveError}
-							<p class="lc-text-danger mb-3 text-right text-xs">{exportArchiveError}</p>
+							<Alert
+								type="error"
+								message={exportArchiveError}
+								onDismiss={() => (exportArchiveError = '')}
+								testId="notice-archive-export-error"
+							/>
 						{/if}
 
 						{#if !hasScreenshot && screenshotCaptureError}
@@ -1268,34 +1263,6 @@
 							</div>
 						{/if}
 
-						{#if hasScreenshot && isScreenshotExpanded}
-							<div
-								class="lc-panel-inset mb-4 overflow-hidden rounded-xl border"
-								in:slide={{ duration: 220 }}
-								out:slide={{ duration: 160 }}
-							>
-								<div
-									class="flex items-center justify-between border-b border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-4 py-2.5"
-								>
-									<span class="lc-text-secondary flex items-center gap-2 text-xs font-semibold">
-										<FontAwesomeIcon icon={faImage} class="h-3.5 w-3.5" />
-										국회 입법예고 페이지 스크린샷
-									</span>
-									<a
-										href={screenshotUrl}
-										download={`notice-${detail.notice.num}-screenshot.${detail.screenshotMeta.format ?? 'jpeg'}`}
-										data-testid="notice-detail-screenshot-download"
-										class="lc-button-primary inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors"
-									>
-										<FontAwesomeIcon icon={faDownload} class="h-3 w-3" />
-										다운로드
-									</a>
-								</div>
-								{#key screenshotUrl}
-									<NoticeScreenshot src={screenshotUrl} noticeNum={detail.notice.num} />
-								{/key}
-							</div>
-						{/if}
 						<dl class="grid gap-3 text-sm sm:grid-cols-2">
 							<div class="lc-stat-tile rounded-lg border px-3 py-2">
 								<dt class="lc-text-muted text-xs font-semibold">아카이브 시각</dt>
@@ -1306,25 +1273,27 @@
 							</div>
 							<div class="lc-stat-tile rounded-lg border px-3 py-2">
 								<dt class="lc-text-muted text-xs font-semibold">무결성 검증</dt>
-								<dd class="lc-text-primary mt-1 font-medium">{integrityStatusLabel}</dd>
-								<p class="lc-text-secondary mt-1 text-xs">
-									검증 시각: {formatDateTime(detail.archiveMetadata.integrity.checkedAt)}
-								</p>
-								{#if detail.archiveMetadata.integrity.skipReason}
+								<dd class="lc-text-primary mt-1 font-medium">
+									{integrityStatusLabel}
 									<p class="lc-text-secondary mt-1 text-xs">
-										스킵 사유: {detail.archiveMetadata.integrity.skipReason}
+										검증 시각: {formatDateTime(detail.archiveMetadata.integrity.checkedAt)}
 									</p>
-								{/if}
+									{#if detail.archiveMetadata.integrity.skipReason}
+										<p class="lc-text-secondary mt-1 text-xs">
+											스킵 사유: {detail.archiveMetadata.integrity.skipReason}
+										</p>
+									{/if}
+								</dd>
 							</div>
 							<div class="lc-stat-tile rounded-lg border px-3 py-2 sm:col-span-2">
 								<dt class="lc-text-muted text-xs font-semibold">SHA256 지문</dt>
 								<dd class="lc-text-primary mt-1 font-mono text-xs break-all">
 									<FontAwesomeIcon icon={faFingerprint} class="lc-text-muted h-3.5 w-3.5" />
 									{detail.archiveMetadata.sourceHtmlSha256 || 'N/A'}
+									<p class="lc-text-secondary mt-1 text-xs">
+										원문 HTML 크기: {detail.archiveMetadata.sourceHtmlSize.toLocaleString('ko-KR')} bytes
+									</p>
 								</dd>
-								<p class="lc-text-secondary mt-1 text-xs">
-									원문 HTML 크기: {detail.archiveMetadata.sourceHtmlSize.toLocaleString('ko-KR')} bytes
-								</p>
 							</div>
 							<div class="lc-stat-tile rounded-lg border px-3 py-2">
 								<dt class="lc-text-muted text-xs font-semibold">HTTP 상태 코드</dt>
@@ -1345,3 +1314,13 @@
 		</details>
 	</main>
 </div>
+
+<!-- Keep fixed preview content outside deferred archive details and the reading column. -->
+<NoticeScreenshotModal
+	isOpen={isScreenshotModalOpen && hasScreenshot && !!screenshotTrigger}
+	src={screenshotUrl}
+	noticeNum={detail.notice.num}
+	format={detail.screenshotMeta?.format ?? 'jpeg'}
+	returnFocus={screenshotTrigger}
+	onClose={closeScreenshotModal}
+/>

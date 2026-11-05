@@ -1,14 +1,18 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { fade, scale } from 'svelte/transition';
-	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { faXmark } from '@fortawesome/free-solid-svg-icons';
+	import { modalFocus } from '$lib/utils/modal-focus';
+	import { modalBackdrop, modalPanel } from '$lib/utils/modal-motion';
+	import NotificationViewport from './NotificationViewport.svelte';
+	const notificationScope = $props.id();
+	import ModalCloseButton from './ModalCloseButton.svelte';
 
 	let {
 		isOpen = false,
 		labelledBy = 'modal-title',
 		maxWidthClass = 'max-w-lg',
 		testId,
+		returnFocus,
+		stickyHeader = false,
 		closeDisabled = false,
 		onClose,
 		icon,
@@ -20,6 +24,8 @@
 		labelledBy?: string;
 		maxWidthClass?: string;
 		testId?: string;
+		returnFocus?: HTMLElement;
+		stickyHeader?: boolean;
 		closeDisabled?: boolean;
 		onClose?: () => void;
 		icon?: Snippet;
@@ -47,7 +53,8 @@
 	<div
 		class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4"
 		role="presentation"
-		transition:fade={{ duration: 180 }}
+		in:modalBackdrop
+		out:modalBackdrop={{ exiting: true }}
 	>
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -55,14 +62,18 @@
 
 		<div
 			class={`relative w-full ${maxWidthClass} max-h-[90vh] overflow-y-auto rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-6 shadow-xl`}
+			use:modalFocus={{ returnFocus }}
+			tabindex="-1"
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby={labelledBy}
 			data-testid={testId}
-			transition:scale={{ duration: 200, start: 0.95 }}
+			data-notification-scope={notificationScope}
+			in:modalPanel
+			out:modalPanel={{ exiting: true }}
 		>
 			<div
-				class="mb-4 flex items-center justify-between border-b border-[var(--lc-border-soft)] pb-3"
+				class={`mb-4 flex items-center justify-between border-b border-[var(--lc-border-soft)] pb-3 ${stickyHeader ? 'sticky top-0 z-10 bg-[var(--lc-surface-elevated)]' : ''}`}
 			>
 				<div class="flex min-w-0 items-center gap-2">
 					<div class="shrink-0 rounded-lg p-2">
@@ -77,18 +88,11 @@
 						{/if}
 					</div>
 				</div>
-				<button
-					type="button"
-					onclick={handleClose}
-					disabled={closeDisabled}
-					class="lc-text-muted hover:lc-text-primary cursor-pointer p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-					aria-label="닫기"
-				>
-					<FontAwesomeIcon icon={faXmark} class="h-4 w-4" />
-				</button>
+				<ModalCloseButton onclick={handleClose} disabled={closeDisabled} />
 			</div>
 
 			{@render children?.()}
+			<NotificationViewport scope={notificationScope} />
 		</div>
 	</div>
 {/if}

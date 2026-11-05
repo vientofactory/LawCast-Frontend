@@ -31,7 +31,7 @@
 	}
 </script>
 
-<div class="lc-panel-card rounded-md border p-5 transition-all duration-300">
+<div class="lc-section">
 	<div class="mb-6 flex items-center justify-between">
 		<h2 class="lc-text-primary flex items-center text-xl font-bold tracking-tight">
 			<div class="lc-icon-accent-success mr-3 rounded-lg p-2">
@@ -84,18 +84,18 @@
 			{#each notices.slice(0, 5) as notice, index (notice.num)}
 				<article
 					aria-labelledby="recent-notice-{notice.num}"
-					class="lc-panel-inset group rounded-md border p-4 transition-all duration-200"
+					class="lc-data-row group"
 					class:lc-defer-render-sm={index > 1}
 				>
-					<div class="mb-3 flex items-start justify-between">
+					<div class="lc-recent-notice-heading mb-3">
 						<a
 							id="recent-notice-{notice.num}"
 							href="/notices/{notice.num}"
-							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150 hover:text-blue-600 group-hover:text-blue-600"
+							class="lc-text-primary text-lg leading-relaxed font-semibold no-underline transition-colors duration-150 hover:text-blue-600 group-hover:text-blue-600"
 						>
 							{notice.subject}
 						</a>
-						<div class="ml-3 flex shrink-0 items-center gap-1">
+						<div class="lc-result-actions">
 							<!-- File download buttons -->
 							{#if notice.attachments && (isDownloadable(notice.attachments.pdfFile) || isDownloadable(notice.attachments.hwpFile))}
 								<div class="flex gap-1">
@@ -103,30 +103,29 @@
 										<button
 											onclick={() => downloadFile(notice.attachments.pdfFile, `${notice.num}.pdf`)}
 											aria-label="PDF 다운로드"
-											class="lc-action-chip-red cursor-pointer rounded-md p-1.5 transition-colors"
+											class="lc-result-action-secondary transition-colors"
 										>
-											<FontAwesomeIcon icon={faFileText} class="h-3.5 w-3.5" />
+											<FontAwesomeIcon icon={faFileText} class="h-3.5 w-3.5" /><span>PDF</span>
 										</button>
 									{/if}
 									{#if isDownloadable(notice.attachments.hwpFile)}
 										<button
 											onclick={() => downloadFile(notice.attachments.hwpFile, `${notice.num}.hwp`)}
 											aria-label="HWP 다운로드"
-											class="lc-action-chip-blue cursor-pointer rounded-md p-1.5 transition-colors"
+											class="lc-result-action-secondary transition-colors"
 										>
-											<FontAwesomeIcon icon={faFileDownload} class="h-3.5 w-3.5" />
+											<FontAwesomeIcon icon={faFileDownload} class="h-3.5 w-3.5" /><span>HWP</span>
 										</button>
 									{/if}
 								</div>
-								<div class="lc-divider-soft h-4 w-px"></div>
 							{/if}
 							<!-- View details button -->
 							<button
 								onclick={() => openExternalLink(notice.link)}
-								aria-label="온라인 원문 보기 (새 탭)"
-								class="lc-button-neutral cursor-pointer rounded-md p-1.5 transition-colors"
+								aria-label="국회 원문 보기 (새 탭)"
+								class="lc-result-action-secondary transition-colors"
 							>
-								<FontAwesomeIcon icon={faExternalLink} class="h-3.5 w-3.5" />
+								<FontAwesomeIcon icon={faExternalLink} class="h-3.5 w-3.5" /><span>국회 원문</span>
 							</button>
 						</div>
 					</div>
@@ -175,13 +174,3 @@
 		{/if}
 	{/if}
 </div>
-
-<style>
-	.line-clamp-2 {
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-</style>

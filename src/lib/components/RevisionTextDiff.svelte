@@ -1,4 +1,6 @@
 <script lang="ts">
+	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '$lib/utils/disclosure-motion';
 	import { tick } from 'svelte';
 	import { buildRevisionTextDiff, splitRevisionContext } from '$lib/utils/revision-text-diff';
 
@@ -6,11 +8,13 @@
 		before,
 		after,
 		fieldPath,
+		fieldLabel = fieldPath,
 		showContext = false
 	}: {
 		before: string;
 		after: string;
 		fieldPath: string;
+		fieldLabel?: string;
 		showContext?: boolean;
 	} = $props();
 	let diff = $derived(buildRevisionTextDiff(before, after));
@@ -76,33 +80,34 @@
 				data-testid="diff-context"
 			>
 				{context.start}{#if context.hidden}<details
+						use:disclosureMotion
 						class="my-2 rounded-lg border border-(--lc-border-soft) p-2"
 						data-testid="diff-fold"
 					>
-						<summary class="cursor-pointer py-1 text-sm"
-							>변경 없는 구간 펼치기 · {Array.from(context.hidden).length.toLocaleString(
-								'ko-KR'
-							)}자</summary
+						<summary class="lc-disclosure-trigger lc-disclosure-trigger--compact text-sm"
+							><span class="lc-disclosure-label"
+								>변경 없는 구간 펼치기 · {Array.from(context.hidden).length.toLocaleString(
+									'ko-KR'
+								)}자</span
+							><DisclosureIndicator /></summary
 						>
 						<div class="mt-2" data-testid="diff-hidden-context">{context.hidden}</div>
 					</details>{/if}{context.end}
 			</div>
 		{:else}
 			<section
-				class="scroll-mt-44 overflow-hidden rounded-lg border border-(--lc-border-soft) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lc-text-accent)"
-				aria-label={`변경 ${changeNumber}`}
+				class="lc-diff-hunk focus-visible:outline-2 focus-visible:outline-(--lc-text-accent)"
+				aria-label={`${fieldLabel} 변경 ${changeNumber}`}
 				tabindex="-1"
 				data-diff-hunk
 				data-testid="diff-hunk"
 			>
-				<div
-					class="lc-text-secondary border-b border-(--lc-border-soft) bg-(--lc-surface-muted) px-3 py-2 text-xs"
-				>
+				<div class="lc-diff-hunk-heading">
 					변경 {changeNumber}
 				</div>
 				<div class="lc-diff-pair" data-testid="diff-pair">
 					{#if block.beforeText}
-						<div class="lc-text-primary min-w-0 bg-(--lc-surface-primary) p-3">
+						<div class="lc-diff-value lc-text-primary">
 							<p class="lc-text-secondary mb-1 text-xs font-semibold">− 이전 내용</p>
 							<div
 								class="text-sm leading-7 wrap-anywhere whitespace-pre-wrap"
@@ -115,7 +120,7 @@
 						</div>
 					{/if}
 					{#if block.afterText}
-						<div class="lc-text-primary min-w-0 bg-(--lc-surface-primary) p-3">
+						<div class="lc-diff-value lc-text-primary">
 							<p class="lc-text-secondary mb-1 text-xs font-semibold">+ 이후 내용</p>
 							<div
 								class="text-sm leading-7 wrap-anywhere whitespace-pre-wrap"

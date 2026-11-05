@@ -59,7 +59,7 @@ test('resets pagination and history navigation to the origin', async ({ page }) 
 test('preserves in-page anchor destinations', async ({ page }) => {
 	await page.goto('/');
 	await waitForHydration(page);
-	await page.getByRole('link', { name: '최근 입법예고 섹션으로 이동' }).click();
+	await page.getByRole('link', { name: '최근 입법예고 보기' }).click();
 	await expect(page).toHaveURL(/#recent-notices$/);
 	await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 });

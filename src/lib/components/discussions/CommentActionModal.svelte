@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faKey,
@@ -158,11 +159,12 @@
 	{/snippet}
 
 	{#if errorMessage}
-		<div
-			class="lc-banner-danger mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400"
-		>
-			{errorMessage}
-		</div>
+		<Alert
+			type="error"
+			message={errorMessage}
+			onDismiss={() => (errorMessage = '')}
+			testId="discussion-action-error"
+		/>
 	{/if}
 
 	<form

@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
+	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '$lib/utils/disclosure-motion';
 	import { onMount, onDestroy } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { browser } from '$app/environment';
@@ -326,7 +329,8 @@
 						borderWidth: 1,
 						cornerRadius: 8,
 						padding: 12,
-						titleFont: { weight: 700 },
+						titleFont: { weight: 700, size: 14 },
+						bodyFont: { size: 14 },
 						callbacks: {
 							label: (ctx: { parsed: { y: number | null } }) =>
 								` ${formatNumber(ctx.parsed.y ?? 0)}건`
@@ -341,7 +345,7 @@
 						},
 						ticks: {
 							color: textColor,
-							font: { size: 11 },
+							font: { size: 14 },
 							maxRotation: 45,
 							autoSkip: true,
 							maxTicksLimit: 30
@@ -356,7 +360,7 @@
 						},
 						ticks: {
 							color: textColor,
-							font: { size: 11 },
+							font: { size: 14 },
 							stepSize: maxVal > 100 ? undefined : 1,
 							callback: (tick: string | number) => formatNumber(Number(tick))
 						},
@@ -409,9 +413,9 @@
 <div class="lc-page-shell">
 	<Header />
 
-	<main id="main-content" class="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+	<main id="main-content" class="lc-main">
 		<!-- Hero -->
-		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
+		<div class="lc-page-heading">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
 					<p class="lc-text-info text-xs font-semibold tracking-wide">PROPOSAL STATISTICS</p>
@@ -438,173 +442,181 @@
 		{/if}
 
 		<!-- ── Filter controls ─────────────────────────────────────────── -->
-		<section class="lc-panel-card rounded-2xl border p-5 shadow-sm">
-			<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-				<h2 class="lc-text-primary flex items-center text-sm font-bold">
-					<FontAwesomeIcon icon={faChartLine} class="lc-text-accent mr-2 h-4 w-4" />
-					조회 설정
-				</h2>
-				<div class="relative" bind:this={exportMenuEl}>
+		<details use:disclosureMotion class="lc-settings-disclosure" data-testid="statistics-settings">
+			<summary class="lc-disclosure-trigger"
+				><span class="lc-disclosure-label">조회 설정 · 기간·집계 단위·차트 유형</span
+				><DisclosureIndicator /></summary
+			>
+			<section class="lc-statistics-controls">
+				<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+					<h2 class="lc-text-primary flex items-center text-sm font-bold">
+						<FontAwesomeIcon icon={faChartLine} class="lc-text-accent mr-2 h-4 w-4" />
+						조회 설정
+					</h2>
+					<div class="relative" bind:this={exportMenuEl}>
+						<button
+							type="button"
+							onclick={toggleExportMenu}
+							disabled={isLoading || isExporting || !statistics?.buckets?.length}
+							aria-haspopup="true"
+							aria-expanded={isExportMenuOpen}
+							class="lc-chip-muted inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							<FontAwesomeIcon
+								icon={faFileExport}
+								class={`h-3.5 w-3.5 ${isExporting ? 'animate-spin' : ''}`}
+							/>
+							데이터 내보내기
+						</button>
+						{#if isExportMenuOpen}
+							<div
+								role="menu"
+								class="lc-panel-card absolute right-0 z-30 mt-2 w-44 rounded-lg border py-1 shadow-lg"
+							>
+								{#each EXPORT_OPTIONS as option (option.format)}
+									<button
+										type="button"
+										role="menuitem"
+										onclick={() => handleExportSelect(option.format)}
+										class="lc-text-secondary hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs font-semibold transition-colors"
+									>
+										<FontAwesomeIcon icon={option.icon} class="h-3.5 w-3.5" />
+										{option.label}
+									</button>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				</div>
+
+				{#if exportError}
+					<Alert
+						type="error"
+						message={exportError}
+						onDismiss={() => (exportError = '')}
+						testId="proposals-export-error"
+					/>
+				{/if}
+
+				<!-- Granularity buttons -->
+				<div class="mb-4">
+					<p class="lc-text-muted mb-2 text-xs font-semibold">집계 단위</p>
+					<div class="flex flex-wrap gap-2">
+						{#each GRANULARITY_OPTIONS as option (option.value)}
+							<button
+								type="button"
+								onclick={() => updateGranularity(option.value)}
+								disabled={isLoading}
+								class={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+									currentGranularity === option.value
+										? 'border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
+										: 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)]'
+								}`}
+							>
+								<FontAwesomeIcon icon={option.icon} class="h-3.5 w-3.5" />
+								{option.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Chart type buttons -->
+				<div class="mb-4">
+					<p class="lc-text-muted mb-2 text-xs font-semibold">차트 유형</p>
+					<div class="flex flex-wrap gap-2">
+						{#each CHART_TYPE_OPTIONS as option (option.value)}
+							<button
+								type="button"
+								onclick={() => updateChartType(option.value)}
+								disabled={isLoading}
+								class={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+									chartType === option.value
+										? 'border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
+										: 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)]'
+								}`}
+							>
+								<FontAwesomeIcon icon={option.icon} class="h-3.5 w-3.5" />
+								{option.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Quick ranges -->
+				<div class="mb-4">
+					<p class="lc-text-muted mb-2 text-xs font-semibold">빠른 기간</p>
+					<div class="flex flex-wrap gap-2">
+						{#each QUICK_RANGES as range (range.days)}
+							<button
+								type="button"
+								onclick={() => applyQuickRange(range.days)}
+								disabled={isLoading}
+								class="lc-chip-cyan inline-flex cursor-pointer items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								{range.label}
+							</button>
+						{/each}
+						{#if startDate || endDate}
+							<button
+								type="button"
+								onclick={clearRange}
+								disabled={isLoading}
+								class="lc-chip-muted inline-flex cursor-pointer items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								기간 해제
+							</button>
+						{/if}
+					</div>
+				</div>
+				<!-- Custom date range -->
+				<div class="date-range-row">
+					<div>
+						<label for="start-date" class="lc-text-muted mb-1 block text-xs font-semibold"
+							>시작일</label
+						>
+						<input
+							id="start-date"
+							type="date"
+							bind:value={startDate}
+							disabled={isLoading}
+							class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+						/>
+					</div>
+					<div>
+						<label for="end-date" class="lc-text-muted mb-1 block text-xs font-semibold"
+							>종료일</label
+						>
+						<input
+							id="end-date"
+							type="date"
+							bind:value={endDate}
+							disabled={isLoading}
+							class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+						/>
+					</div>
 					<button
 						type="button"
-						onclick={toggleExportMenu}
-						disabled={isLoading || isExporting || !statistics?.buckets?.length}
-						aria-haspopup="true"
-						aria-expanded={isExportMenuOpen}
-						class="lc-chip-muted inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+						onclick={loadStatistics}
+						disabled={isLoading}
+						class="lc-button-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 					>
 						<FontAwesomeIcon
-							icon={faFileExport}
-							class={`h-3.5 w-3.5 ${isExporting ? 'animate-spin' : ''}`}
+							icon={faArrowsRotate}
+							class={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`}
 						/>
-						데이터 내보내기
+						조회
 					</button>
-					{#if isExportMenuOpen}
-						<div
-							role="menu"
-							class="lc-panel-card absolute right-0 z-30 mt-2 w-44 rounded-lg border py-1 shadow-lg"
-						>
-							{#each EXPORT_OPTIONS as option (option.format)}
-								<button
-									type="button"
-									role="menuitem"
-									onclick={() => handleExportSelect(option.format)}
-									class="lc-text-secondary hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs font-semibold transition-colors"
-								>
-									<FontAwesomeIcon icon={option.icon} class="h-3.5 w-3.5" />
-									{option.label}
-								</button>
-							{/each}
-						</div>
-					{/if}
 				</div>
-			</div>
-
-			{#if exportError}
-				<div
-					class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
-				>
-					{exportError}
-				</div>
-			{/if}
-
-			<!-- Granularity buttons -->
-			<div class="mb-4">
-				<p class="lc-text-muted mb-2 text-xs font-semibold">집계 단위</p>
-				<div class="flex flex-wrap gap-2">
-					{#each GRANULARITY_OPTIONS as option (option.value)}
-						<button
-							type="button"
-							onclick={() => updateGranularity(option.value)}
-							disabled={isLoading}
-							class={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-								currentGranularity === option.value
-									? 'border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
-									: 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)]'
-							}`}
-						>
-							<FontAwesomeIcon icon={option.icon} class="h-3.5 w-3.5" />
-							{option.label}
-						</button>
-					{/each}
-				</div>
-			</div>
-
-			<!-- Chart type buttons -->
-			<div class="mb-4">
-				<p class="lc-text-muted mb-2 text-xs font-semibold">차트 유형</p>
-				<div class="flex flex-wrap gap-2">
-					{#each CHART_TYPE_OPTIONS as option (option.value)}
-						<button
-							type="button"
-							onclick={() => updateChartType(option.value)}
-							disabled={isLoading}
-							class={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-								chartType === option.value
-									? 'border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
-									: 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)]'
-							}`}
-						>
-							<FontAwesomeIcon icon={option.icon} class="h-3.5 w-3.5" />
-							{option.label}
-						</button>
-					{/each}
-				</div>
-			</div>
-
-			<!-- Quick ranges -->
-			<div class="mb-4">
-				<p class="lc-text-muted mb-2 text-xs font-semibold">빠른 기간</p>
-				<div class="flex flex-wrap gap-2">
-					{#each QUICK_RANGES as range (range.days)}
-						<button
-							type="button"
-							onclick={() => applyQuickRange(range.days)}
-							disabled={isLoading}
-							class="lc-chip-cyan inline-flex cursor-pointer items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-						>
-							{range.label}
-						</button>
-					{/each}
-					{#if startDate || endDate}
-						<button
-							type="button"
-							onclick={clearRange}
-							disabled={isLoading}
-							class="lc-chip-muted inline-flex cursor-pointer items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-						>
-							기간 해제
-						</button>
-					{/if}
-				</div>
-			</div>
-			<!-- Custom date range -->
-			<div class="date-range-row">
-				<div>
-					<label for="start-date" class="lc-text-muted mb-1 block text-xs font-semibold"
-						>시작일</label
-					>
-					<input
-						id="start-date"
-						type="date"
-						bind:value={startDate}
-						disabled={isLoading}
-						class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-					/>
-				</div>
-				<div>
-					<label for="end-date" class="lc-text-muted mb-1 block text-xs font-semibold">종료일</label
-					>
-					<input
-						id="end-date"
-						type="date"
-						bind:value={endDate}
-						disabled={isLoading}
-						class="lc-input lc-input-focus rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-					/>
-				</div>
-				<button
-					type="button"
-					onclick={loadStatistics}
-					disabled={isLoading}
-					class="lc-button-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-				>
-					<FontAwesomeIcon
-						icon={faArrowsRotate}
-						class={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`}
-					/>
-					조회
-				</button>
-			</div>
-		</section>
+			</section>
+		</details>
 
 		<!-- ── Summary cards + charts + tables (loading overlay applied) -->
 		<div class="relative mt-4">
 			<LoadingOverlay visible={isLoading} message="데이터 갱신 중..." />
 
 			<div class="mt-0 grid gap-4 md:grid-cols-2">
-				<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
-					<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
+				<section class="lc-panel-card lc-content-card rounded-2xl border p-4 shadow-sm">
+					<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
 						<FontAwesomeIcon icon={faDatabase} class="lc-text-success mr-2 h-4 w-4" />
 						전체 발의 건수
 					</h2>
@@ -626,8 +638,8 @@
 					</p>
 				</section>
 
-				<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
-					<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
+				<section class="lc-panel-card lc-content-card rounded-2xl border p-4 shadow-sm">
+					<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
 						<FontAwesomeIcon icon={faChartBar} class="lc-text-info mr-2 h-4 w-4" />
 						집계 구간 수
 					</h2>
@@ -645,19 +657,20 @@
 
 				<!-- ── Charts ────────────────────────────────────────────────── -->
 				{#if statistics.buckets.length > 0}
-					<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
-						<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
+					<section class="lc-chart-surface">
+						<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
 							<FontAwesomeIcon icon={faChartBar} class="lc-text-accent mr-2 h-4 w-4" />
 							발의 건수 그래프
 						</h2>
 						<div class="chart-container">
-							<canvas bind:this={chartCanvas}></canvas>
+							<canvas bind:this={chartCanvas} aria-label="선택한 기간의 법률안 발의 건수 그래프"
+							></canvas>
 						</div>
 					</section>
 
 					<!-- ── Data table ────────────────────────────────────── -->
-					<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
-						<h2 class="lc-text-primary mb-4 flex items-center text-sm font-bold">
+					<section class="lc-chart-surface">
+						<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
 							<FontAwesomeIcon icon={faDatabase} class="lc-text-info mr-2 h-4 w-4" />
 							상세 데이터
 						</h2>
@@ -700,7 +713,7 @@
 						</div>
 					</section>
 				{:else}
-					<section class="lc-panel-card mt-4 rounded-2xl border p-5 shadow-sm">
+					<section class="lc-chart-surface">
 						<div class="lc-empty-state flex flex-col items-center justify-center py-12">
 							<div
 								class="lc-empty-state-icon mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"

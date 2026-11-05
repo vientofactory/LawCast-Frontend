@@ -14,7 +14,7 @@
 	let { threads = [] }: { threads?: DiscussionThreadCard[] } = $props();
 </script>
 
-<div class="lc-panel-card rounded-md border p-5 transition-all duration-300">
+<div class="lc-section">
 	<div class="mb-6 flex items-center justify-between">
 		<h2 class="lc-text-primary flex items-center text-xl font-bold tracking-tight">
 			<div class="lc-icon-accent-success mr-3 rounded-lg p-2">
@@ -40,7 +40,7 @@
 			{#each threads.slice(0, 5) as thread, index (thread.id)}
 				<article
 					aria-labelledby="recent-discussion-{thread.id}"
-					class="lc-panel-inset group rounded-md border p-4 transition-all duration-200"
+					class="lc-data-row group"
 					class:lc-defer-render-sm={index > 1}
 				>
 					<div class="mb-3 flex items-start justify-between gap-3">

@@ -1,5 +1,9 @@
 <script lang="ts">
 	import '../app.css';
+	import { provideNotifications } from '$lib/utils/notifications';
+	import NotificationViewport from '$lib/components/NotificationViewport.svelte';
+	provideNotifications();
+	import '$lib/styles/layout.css';
 	import PwaInstallPrompt from '$lib/components/PwaInstallPrompt.svelte';
 	import CloudflareChallengeReload from '$lib/components/CloudflareChallengeReload.svelte';
 	import CookieConsentBanner from '$lib/components/CookieConsentBanner.svelte';
@@ -89,3 +93,5 @@
 <CookieConsentBanner />
 
 <PwaInstallPrompt />
+
+<NotificationViewport />

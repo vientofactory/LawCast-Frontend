@@ -1,3 +1,4 @@
+import { openNoticeFilters } from './helpers/filter-dialog';
 import { test, expect, type Page } from '@playwright/test';
 import { expectHeadMetadata } from './helpers/head-metadata';
 
@@ -38,6 +39,7 @@ test.describe('Notices List Page', () => {
 	});
 
 	test('date range inputs are available', async ({ page }) => {
+		await openNoticeFilters(page);
 		const startDate = page.getByTestId('notices-start-date');
 		const endDate = page.getByTestId('notices-end-date');
 		await expect(startDate).toBeVisible();
@@ -45,11 +47,13 @@ test.describe('Notices List Page', () => {
 	});
 
 	test('sort order select is available', async ({ page }) => {
+		await openNoticeFilters(page);
 		const sortOrder = page.getByTestId('notices-sort-order');
 		await expect(sortOrder).toBeVisible();
 	});
 
 	test('page size select is available', async ({ page }) => {
+		await openNoticeFilters(page);
 		const pageSize = page.getByTestId('notices-page-size');
 		await expect(pageSize).toBeVisible();
 	});
@@ -73,6 +77,7 @@ test.describe('Notices List Page', () => {
 	});
 
 	test('quick range buttons are available', async ({ page }) => {
+		await openNoticeFilters(page);
 		await expect(page.getByTestId('notices-quick-range-7-days')).toBeVisible();
 		await expect(page.getByTestId('notices-quick-range-30-days')).toBeVisible();
 		await expect(page.getByTestId('notices-quick-range-this-month')).toBeVisible();
@@ -130,6 +135,7 @@ test.describe('Notices List Page', () => {
 	});
 
 	test('pagination is shown when there are results', async ({ page }) => {
+		await page.goto('/notices?limit=10');
 		const resultsList = page.getByTestId('notices-results-list');
 		const hasResults = await resultsList.isVisible().catch(() => false);
 
@@ -415,6 +421,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 	test.describe('Date range filtering', () => {
 		test('recent 7-day quick range shows notices within range', async ({ page }) => {
 			await page.goto('/notices');
+			await openNoticeFilters(page);
 			await page.getByTestId('notices-quick-range-7-days').click();
 			await page.waitForURL(/startDate=/, { timeout: 10_000 });
 			const count = await getResultCount(page);
@@ -431,6 +438,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 
 		test('recent 30-day quick range shows all notices', async ({ page }) => {
 			await page.goto('/notices');
+			await openNoticeFilters(page);
 			await page.getByTestId('notices-quick-range-30-days').click();
 			await page.waitForURL(/startDate=/, { timeout: 10_000 });
 			const count = await getResultCount(page);
@@ -463,8 +471,10 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 
 		test('clear range button removes date params', async ({ page }) => {
 			await page.goto('/notices');
+			await openNoticeFilters(page);
 			await page.getByTestId('notices-quick-range-7-days').click();
 			await page.waitForURL(/startDate=/, { timeout: 10_000 });
+			await openNoticeFilters(page);
 			await page.getByTestId('notices-quick-range-clear').click();
 			await page.waitForURL(
 				(url) => !url.searchParams.has('startDate') && !url.searchParams.has('endDate'),
@@ -476,6 +486,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 
 		test('active filter chip shows date range', async ({ page }) => {
 			await page.goto('/notices');
+			await openNoticeFilters(page);
 			await page.getByTestId('notices-quick-range-7-days').click();
 			await page.waitForURL(/startDate=/, { timeout: 10_000 });
 			const filterText = await getActiveFilterText(page);
@@ -484,6 +495,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 
 		test('quick range button highlights when active', async ({ page }) => {
 			await page.goto('/notices');
+			await openNoticeFilters(page);
 			await page.getByTestId('notices-quick-range-7-days').click();
 			await page.waitForURL(/startDate=/, { timeout: 10_000 });
 			// The button should have the active style class

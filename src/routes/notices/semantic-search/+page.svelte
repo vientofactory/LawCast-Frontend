@@ -261,11 +261,11 @@
 
 	<main
 		id="main-content"
-		class="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
+		class="lc-main"
 		aria-labelledby="semantic-search-page-title"
 		data-testid="semantic-search-main"
 	>
-		<nav class="mb-8 flex items-center space-x-3 text-sm" aria-label="이동 경로">
+		<nav class="mb-4 flex flex-wrap items-center gap-2 text-sm" aria-label="이동 경로">
 			<a
 				href="/notices"
 				class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 transition-all duration-200"
@@ -283,13 +283,13 @@
 		     of the inert div so only the content beneath it is taken out of play. -->
 		<div class="relative">
 			<div inert={searchUnavailable}>
-				<section class="lc-panel-card mb-6 rounded-xl border p-6 shadow-sm">
+				<section class="lc-search-section mb-6">
 					<div class="flex items-start gap-3">
 						<div class="lc-chip-purple mt-0.5 rounded-full p-1.5">
 							<FontAwesomeIcon icon={faWandMagicSparkles} class="h-4 w-4" />
 						</div>
 						<div>
-							<h1 id="semantic-search-page-title" class="lc-text-primary text-xl font-bold">
+							<h1 id="semantic-search-page-title" class="lc-text-primary lc-page-title font-bold">
 								의미 검색
 							</h1>
 							<p class="lc-text-secondary mt-1 text-sm">
@@ -338,9 +338,12 @@
 				</section>
 
 				{#if displayError}
-					<div class="mb-6" data-testid="semantic-search-error">
-						<Alert type="error" message={displayError} onDismiss={dismissError} />
-					</div>
+					<Alert
+						type="error"
+						message={displayError}
+						onDismiss={dismissError}
+						testId="semantic-search-error"
+					/>
 				{/if}
 
 				{#if hasQuery && isFallbackMode && response}
@@ -370,21 +373,18 @@
 					<h2 id="semantic-search-results-heading" class="sr-only">의미 검색 결과</h2>
 					{#if isLoading}
 						<div
-							class="lc-empty-state rounded-2xl border p-6 pb-20 text-center shadow-xl sm:p-16"
+							class="lc-inline-loading text-center"
 							data-testid="semantic-search-loading-state"
 							role="status"
 							aria-live="polite"
 						>
-							<div class="mx-auto mb-6 w-full max-w-[260px]">
+							<div class="mx-auto w-full max-w-[260px]">
 								<OpenSignalLoader />
 							</div>
 							<p class="lc-text-secondary text-sm">의미가 가까운 법률안을 찾고 있습니다</p>
 						</div>
 					{:else if hasQuery && !isLoading && response && response.results.length === 0 && !showingWeak}
-						<div
-							class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
-							data-testid="semantic-search-empty-state"
-						>
+						<div class="lc-semantic-introduction" data-testid="semantic-search-empty-state">
 							<div class="lc-empty-state-icon mb-6 inline-block rounded-full p-6">
 								<FontAwesomeIcon icon={faMagnifyingGlass} class="lc-text-dim h-16 w-16" />
 							</div>
@@ -453,7 +453,7 @@
 								<article
 									aria-labelledby="semantic-result-heading-{result.noticeNum}"
 									data-testid={`semantic-result-${result.noticeNum}`}
-									class="lc-notice-card lc-notice-border-active rounded-lg border-l-4 p-4 shadow transition-shadow hover:shadow-md sm:p-6"
+									class="lc-notice-card lc-semantic-result lc-notice-border-active rounded-lg border-l-4 p-4 shadow transition-shadow hover:shadow-md sm:p-6"
 								>
 									<div class="flex flex-wrap items-center gap-2">
 										<span
@@ -532,16 +532,10 @@
 							</a>
 						</div>
 					{:else if !hasQuery}
-						<div
-							class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
-							data-testid="semantic-search-initial-state"
-						>
-							<div class="lc-empty-state-icon mb-6 inline-block rounded-full p-6">
-								<FontAwesomeIcon icon={faWandMagicSparkles} class="lc-text-dim h-16 w-16" />
-							</div>
-							<h3 class="lc-text-primary mb-3 text-2xl font-bold">무엇이든 물어보세요</h3>
+						<div class="lc-semantic-introduction" data-testid="semantic-search-initial-state">
+							<h3 class="lc-text-primary mb-2 text-lg font-bold">무엇이든 물어보세요</h3>
 							<p class="lc-text-secondary text-sm">아래 예시처럼 일상 언어로 질문해 보세요.</p>
-							<div class="mt-5 flex flex-wrap justify-center gap-2">
+							<div class="mt-3 flex flex-wrap gap-2">
 								<!-- Drawn server-side: the SSR HTML already shows exactly these chips. -->
 								{#each data.exampleQueries as example (example)}
 									<button

@@ -1,3 +1,4 @@
+import { openNoticeFilters } from './helpers/filter-dialog';
 import { expect, test, type Page } from '@playwright/test';
 import { SEMANTIC_EXAMPLE_QUERIES } from '../src/lib/utils/semantic-search';
 
@@ -52,7 +53,17 @@ test.describe('Notices board search modes (semantic enabled)', () => {
 
 	test('cold start explains each mode and offers distinct example queries', async ({ page }) => {
 		await gotoBoard(page, '');
+		await expect(page.getByTestId('notices-example-queries')).toBeVisible();
+		expect(
+			await page
+				.getByTestId('notices-example-queries')
+				.evaluate((node) => node.closest('dialog') === null)
+		).toBe(true);
 
+		await openNoticeFilters(page);
+		await expect(
+			page.getByTestId('notices-filter-dialog').getByTestId('notices-example-queries')
+		).toHaveCount(0);
 		const mode = page.getByTestId('notices-search-mode');
 		await expect(mode).toBeVisible();
 		// The selected mode is explained in place: the labels alone cannot tell a
@@ -66,6 +77,11 @@ test.describe('Notices board search modes (semantic enabled)', () => {
 			);
 		}
 
+		await page
+			.getByTestId('notices-filter-dialog')
+			.getByRole('button', { name: '취소', exact: true })
+			.click();
+		await expect(page.getByTestId('notices-filter-dialog')).toBeHidden();
 		const chips = page.getByTestId('notices-example-queries');
 		await expect(chips).toBeVisible();
 		await expect(page.locator('[data-testid^="notices-example-query-"]')).toHaveCount(3);
@@ -104,6 +120,7 @@ test.describe('Notices board search modes (semantic enabled)', () => {
 		await gotoBoard(page, '');
 		const label = (await page.getByTestId('notices-example-query-1').innerText()).trim();
 
+		await expect(page.getByTestId('notices-filter-dialog')).toBeHidden();
 		await page.getByTestId('notices-example-query-1').click();
 
 		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(label);
@@ -210,3 +227,50 @@ test.describe('Notices board search modes (semantic enabled)', () => {
 		});
 	});
 });
+
+for (const width of [390, 1440]) {
+	test(`offers example queries outside the filter dialog and preserves filters at ${width}px`, async ({
+		page
+	}, testInfo) => {
+		test.skip(!semanticEnabled, 'Requires semantic search examples.');
+		await page.setViewportSize({ width, height: 900 });
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		await page.addInitScript(
+			(theme) => localStorage.setItem('lawcast-theme', theme),
+			width === 390 ? 'dark' : 'light'
+		);
+		await gotoBoard(page, 'isDone=false&limit=10&sortOrder=asc');
+		const examples = page.getByTestId('notices-example-queries');
+		await expect(examples).toBeVisible();
+		expect(await examples.evaluate((node) => node.closest('dialog') === null)).toBe(true);
+		const input = await page.getByTestId('notices-search-input').boundingBox();
+		const chips = await examples.boundingBox();
+		for (const link of await examples.getByRole('link').all())
+			expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+		expect(chips!.y).toBeGreaterThanOrEqual(input!.y + input!.height);
+		await openNoticeFilters(page);
+		await expect(
+			page.getByTestId('notices-filter-dialog').getByTestId('notices-example-queries')
+		).toHaveCount(0);
+		await page
+			.getByTestId('notices-filter-dialog')
+			.getByRole('button', { name: '취소', exact: true })
+			.click();
+		await expect(page.getByTestId('notices-filter-dialog')).toBeHidden();
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+			true
+		);
+		await page.screenshot({ path: testInfo.outputPath('examples-outside.png') });
+		const chip = page.getByTestId('notices-example-query-0');
+		const query = (await chip.innerText()).trim();
+		await chip.focus();
+		await page.keyboard.press('Enter');
+		await expect.poll(() => new URL(page.url()).searchParams.get('search')).toBe(query);
+		const params = new URL(page.url()).searchParams;
+		expect(params.get('searchMode')).toBe('auto');
+		expect(params.get('isDone')).toBe('false');
+		expect(params.get('limit')).toBe('10');
+		expect(params.get('sortOrder')).toBe('asc');
+		await expect(examples).toHaveCount(0);
+	});
+}

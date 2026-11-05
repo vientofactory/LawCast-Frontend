@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	import { onMount } from 'svelte';
+	import { modalFocus } from '$lib/utils/modal-focus';
+	import { reducedModalMotion } from '$lib/utils/modal-motion';
 	import { page } from '$app/state';
 	import { theme } from '$lib/theme';
 	import UrgentNoticeBanner from '$lib/components/UrgentNoticeBanner.svelte';
 	import BrandLogo from '$lib/components/BrandLogo.svelte';
+	import ModalCloseButton from '$lib/components/ModalCloseButton.svelte';
 	import type { AdminNoticeCard } from '$lib/types/api';
 	import {
 		faFileLines,
@@ -62,7 +65,7 @@
 
 	let mobileMenuOpen = $state(false);
 	let headerScrolled = $state(false);
-	let menuButton: HTMLButtonElement;
+	let menuButton = $state<HTMLButtonElement>();
 
 	onMount(() => {
 		const updateHeaderScrollState = () => {
@@ -71,9 +74,15 @@
 
 		updateHeaderScrollState();
 		window.addEventListener('scroll', updateHeaderScrollState, { passive: true });
+		const resize = new ResizeObserver(() => {
+			if (mobileMenuOpen && menuButton && getComputedStyle(menuButton).display === 'none')
+				closeMobileMenu();
+		});
+		if (menuButton?.parentElement) resize.observe(menuButton.parentElement);
 
 		return () => {
 			window.removeEventListener('scroll', updateHeaderScrollState);
+			resize.disconnect();
 		};
 	});
 
@@ -82,7 +91,6 @@
 	}
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
-		menuButton?.focus();
 	}
 
 	let isDarkTheme = $derived($theme === 'dark');
@@ -95,42 +103,18 @@
 	);
 
 	function trapFocus(node: HTMLElement) {
-		const focusableSelectors = [
-			'a[href]:not([tabindex="-1"])',
-			'button:not([disabled]):not([tabindex="-1"])',
-			'[tabindex]:not([tabindex="-1"])'
-		].join(', ');
-
-		function handleKeydown(event: KeyboardEvent) {
+		const focus = modalFocus(node, { returnFocus: menuButton });
+		const escape = (event: KeyboardEvent) => {
 			if (event.key === 'Escape') {
+				event.preventDefault();
 				closeMobileMenu();
-				return;
 			}
-			if (event.key !== 'Tab') return;
-			const focusables = Array.from(node.querySelectorAll<HTMLElement>(focusableSelectors));
-			if (focusables.length === 0) return;
-			const first = focusables[0];
-			const last = focusables[focusables.length - 1];
-			if (event.shiftKey) {
-				if (document.activeElement === first) {
-					event.preventDefault();
-					last.focus();
-				}
-			} else {
-				if (document.activeElement === last) {
-					event.preventDefault();
-					first.focus();
-				}
-			}
-		}
-
-		node.addEventListener('keydown', handleKeydown);
-		const firstFocusable = node.querySelector<HTMLElement>(focusableSelectors);
-		firstFocusable?.focus();
-
+		};
+		node.addEventListener('keydown', escape);
 		return {
 			destroy() {
-				node.removeEventListener('keydown', handleKeydown);
+				node.removeEventListener('keydown', escape);
+				focus.destroy();
 			}
 		};
 	}
@@ -140,8 +124,8 @@
 	class={`lc-header-shell border-b ${headerScrolled ? 'is-scrolled' : 'is-at-top'}`}
 	data-testid="site-header"
 >
-	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-		<div class="relative flex flex-wrap items-center gap-4 py-5 md:flex-nowrap md:gap-6">
+	<div class="lc-header-container">
+		<div class="lc-header-row">
 			<a
 				href="/"
 				data-testid="site-brand"
@@ -158,7 +142,7 @@
 				</div>
 			</a>
 
-			<div class="hidden items-center md:ml-auto md:flex">
+			<div class="lc-header-theme items-center">
 				<button
 					type="button"
 					onclick={() => theme.toggle()}
@@ -183,7 +167,7 @@
 			<!-- Hamburger/close button -->
 			<button
 				bind:this={menuButton}
-				class="ml-auto inline-flex items-center justify-center rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-[var(--lc-text-secondary)] transition-all duration-200 hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] md:hidden"
+				class="lc-header-menu-toggle ml-auto inline-flex items-center justify-center rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-[var(--lc-text-secondary)] transition-all duration-200 hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)]"
 				aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
 				onclick={toggleMobileMenu}
 				aria-expanded={mobileMenuOpen}
@@ -197,11 +181,7 @@
 			</button>
 
 			<!-- Desktop menu -->
-			<nav
-				class="hidden max-w-[min(92vw,48rem)] rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-2 md:absolute md:top-1/2 md:left-1/2 md:block md:w-auto md:-translate-x-1/2 md:-translate-y-1/2"
-				aria-label="주요 메뉴"
-				data-testid="primary-navigation"
-			>
+			<nav class="lc-desktop-navigation" aria-label="주요 메뉴" data-testid="primary-navigation">
 				<ul class="flex flex-nowrap items-center justify-center gap-1 text-sm font-semibold">
 					{#each menuItems as item (item.href)}
 						<li>
@@ -211,7 +191,8 @@
 								data-testid={`nav-link-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').replace(/[/]+/g, '-')}`}
 								data-nav-target={item.href}
 								title={item.label}
-								class={`group/menu inline-flex items-center gap-2 rounded-md px-2.5 py-2.5 whitespace-nowrap transition-all duration-200 lg:px-3 lg:py-3 ${
+								aria-label={item.label}
+								class={`lc-nav-link group/menu inline-flex items-center gap-2 rounded-md px-2.5 py-2.5 whitespace-nowrap transition-all duration-200 lg:px-3 lg:py-3 ${
 									isActive(item.href)
 										? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
 										: 'text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-accent)]'
@@ -223,7 +204,7 @@
 								>
 									<FontAwesomeIcon icon={item.icon} class="h-3.5 w-3.5" />
 								</span>
-								<span class="hidden lg:inline">{item.label}</span>
+								<span class="lc-desktop-nav-label">{item.label}</span>
 							</a>
 						</li>
 					{/each}
@@ -239,7 +220,7 @@
 
 <!-- Mobile dropdown menu -->
 {#if mobileMenuOpen}
-	<div class="fixed inset-0 z-1100 flex flex-col md:hidden">
+	<div class="lc-mobile-menu-overlay fixed inset-0 z-1100 flex flex-col">
 		<!-- Overlay -->
 		<button
 			type="button"
@@ -252,12 +233,13 @@
 		<nav
 			id="mobile-menu-panel"
 			use:trapFocus
-			class="relative z-10 w-full rounded-b-md border-b border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4 pt-6"
+			class="lc-mobile-menu-panel relative z-10 w-full rounded-b-md border-b border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4 pt-6"
 			aria-label="모바일 메뉴"
 			data-testid="mobile-navigation"
-			transition:fly={{ y: -16, duration: 180, opacity: 0 }}
+			transition:fly={{ y: -16, duration: reducedModalMotion() ? 0 : 180, opacity: 0 }}
 		>
-			<div class="mb-4 flex items-center justify-end">
+			<div class="mb-4 flex items-center justify-between">
+				<ModalCloseButton label="메뉴 닫기" testId="mobile-menu-close" onclick={closeMobileMenu} />
 				<button
 					type="button"
 					onclick={() => theme.toggle()}
@@ -285,7 +267,7 @@
 							aria-current={isActive(item.href) ? 'page' : undefined}
 							data-testid={`mobile-nav-link-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').replace(/[/]+/g, '-')}`}
 							data-nav-target={item.href}
-							class={`group/menu inline-flex items-center gap-2 rounded-xl px-3 py-3 transition-all duration-200 ${
+							class={`lc-nav-link group/menu inline-flex items-center gap-2 rounded-xl px-3 py-3 transition-all duration-200 ${
 								isActive(item.href)
 									? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)] shadow-sm'
 									: 'text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-accent)]'
@@ -337,10 +319,10 @@
 		position: sticky;
 		top: 0;
 		z-index: 1000;
-		background: color-mix(in srgb, var(--lc-header-gradient) 92%, transparent);
+		background: var(--lc-header-gradient);
 		border-color: var(--lc-border-soft);
-		backdrop-filter: blur(6px);
-		-webkit-backdrop-filter: blur(6px);
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
 		transition:
 			background-color 180ms ease,
 			border-color 180ms ease,
@@ -349,14 +331,14 @@
 	}
 
 	.lc-header-shell.is-at-top {
-		box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+		box-shadow: none;
 	}
 
 	.lc-header-shell.is-scrolled {
-		background: color-mix(in srgb, var(--lc-header-gradient) 80%, transparent);
+		background: var(--lc-header-gradient);
 		border-color: color-mix(in srgb, var(--lc-border-soft) 74%, var(--lc-border-strong) 26%);
-		box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
+		box-shadow: none;
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
 	}
 </style>

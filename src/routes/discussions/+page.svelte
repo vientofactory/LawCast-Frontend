@@ -118,8 +118,8 @@
 <div class="lc-page-shell">
 	<Header />
 
-	<main id="main-content" class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
+	<main id="main-content" class="lc-main">
+		<div class="lc-page-heading">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
 					<p class="lc-text-info text-xs font-semibold tracking-wide">DISCUSSIONS</p>
@@ -142,9 +142,9 @@
 			</div>
 		</div>
 
-		<section class="lc-panel-card mb-5 rounded-xl border p-4 shadow-sm" aria-label="토론 상태 필터">
+		<section class="lc-section" aria-label="토론 상태 필터">
 			<div
-				class="lc-chip-group inline-flex items-center rounded-full border p-0.5 text-xs font-semibold"
+				class="lc-chip-group inline-flex max-w-full items-center rounded-full border p-0.5 text-xs font-semibold"
 				role="tablist"
 				aria-label="토론 상태 필터"
 			>
@@ -154,7 +154,7 @@
 						role="tab"
 						aria-selected={activeStatus === tab.value}
 						data-testid={`discussions-filter-${tab.value ?? 'all'}`}
-						class={`rounded-full px-3 py-1 transition-colors ${
+						class={`inline-flex min-h-11 min-w-0 items-center justify-center rounded-full px-3 py-1 transition-colors ${
 							activeStatus === tab.value
 								? 'lc-button-primary border-transparent shadow-sm'
 								: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
@@ -192,14 +192,14 @@
 					</div>
 				{:else}
 					<div
-						class="lc-panel-card divide-y divide-[var(--lc-border-soft)] overflow-hidden rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] shadow-sm"
+						class="lc-panel-card lc-content-card divide-y divide-[var(--lc-border-soft)] overflow-hidden rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] shadow-sm"
 						data-testid="discussions-list"
 					>
 						{#each threads as thread (thread.id)}
 							<a
 								href={`/notices/${thread.noticeNum}/discussions/${thread.id}`}
 								data-testid={`discussions-list-link-${thread.id}`}
-								class="group flex cursor-pointer flex-col justify-between gap-2 p-4 text-inherit no-underline transition-colors hover:bg-[var(--lc-surface-hover)] sm:flex-row sm:items-center"
+								class="lc-card-list-link group flex cursor-pointer flex-col justify-between gap-2 p-4 text-inherit no-underline transition-colors sm:flex-row sm:items-center"
 							>
 								<div class="min-w-0 flex-1 space-y-1">
 									<div class="flex flex-wrap items-center gap-2">
@@ -218,9 +218,7 @@
 												닫힘
 											</span>
 										{/if}
-										<h2
-											class="lc-text-primary truncate text-sm font-semibold group-hover:text-blue-600"
-										>
+										<h2 class="lc-link lc-list-title">
 											{thread.title}
 										</h2>
 									</div>
