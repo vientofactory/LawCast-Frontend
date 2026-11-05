@@ -151,3 +151,21 @@ test('labels intentional HTTP errors without hiding application error output', (
 	assert.ok(fixture.includes('intentional HTTP 429 injection'));
 	assert.ok(workflow.includes('notice title=Intentional HTTP failures'));
 });
+
+test('runs specialized shared UI suites in independent cross-engine jobs', () => {
+	assert.match(workflow, /shared-ui:[\s\S]*fail-fast: false/);
+	assert.match(workflow, /suite: \[notifications, screenshot-modal, theme-states\]/);
+	assert.match(workflow, /playwright install --with-deps chromium firefox webkit/);
+	assert.ok(workflow.includes('playwright.${{ matrix.suite }}.config.ts'));
+	assert.match(workflow, /if: failure\(\)/);
+	assert.match(workflow, /retention-days: 7/);
+});
+
+test('assigns screenshot touch cases to a touch device in every general discovery config', () => {
+	for (const name of ['playwright.config.ts', 'playwright.config.integration.ts']) {
+		const source = readFileSync(join(root, 'playwright-configs', name), 'utf8');
+		assert.match(source, /name: 'chromium',[\s\S]*grepInvert: \/touch screenshot viewport\//);
+		assert.match(source, /name: 'chromium-touch',[\s\S]*grep: \/touch screenshot viewport\//);
+		assert.ok(source.includes("devices['Pixel 7']"));
+	}
+});

@@ -95,3 +95,35 @@ jobs:
         run: npx --no-install playwright test --config playwright-configs/playwright.open-layout.config.ts
       - name: Test SSR API consumers
         run: npx --no-install playwright test --config playwright-configs/playwright.consumers.config.ts
+
+  shared-ui:
+    name: Shared UI (${{ matrix.suite }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [notifications, screenshot-modal, theme-states]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - name: Set up npm
+        run: npm install --global npm@11.13.0
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+      - name: Install browser engines and system dependencies
+        run: npx --no-install playwright install --with-deps chromium firefox webkit
+      - name: Test shared UI across browser engines
+        run: npx --no-install playwright test --config playwright-configs/playwright.${{ matrix.suite }}.config.ts
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: shared-ui-${{ matrix.suite }}
+          path: test-results/
+          retention-days: 7

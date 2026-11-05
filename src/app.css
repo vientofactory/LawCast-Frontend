@@ -90,6 +90,9 @@
 	--lc-text-muted: #626660;
 	--lc-text-dim: #686c66;
 	--lc-text-accent: #1d4ed8;
+	--lc-status-success: #15803d;
+	--lc-status-warning: #b45309;
+	--lc-status-error: #b91c1c;
 	--lc-progress-color: #c2410c;
 	--lc-shadow-soft: none;
 	--lc-shadow-card: none;
@@ -131,6 +134,9 @@ html[data-theme='dark'] {
 	--lc-text-muted: #babdb7;
 	--lc-text-dim: #adb1aa;
 	--lc-text-accent: #9bb9d9;
+	--lc-status-success: #bfe8d1;
+	--lc-status-warning: #fde68a;
+	--lc-status-error: #fca5a5;
 	--lc-progress-color: #fb923c;
 	--lc-shadow-soft: none;
 	--lc-shadow-card: none;

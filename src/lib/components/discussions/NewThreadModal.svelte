@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
+	import FormFeedback from '$lib/components/FormFeedback.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faComments,
@@ -35,6 +35,8 @@
 	let password = $state('');
 	let content = $state('');
 	let errorMessage = $state('');
+	let invalidField = $state<'password' | 'content' | 'title' | null>(null);
+	let validationRevision = $state(0);
 
 	$effect(() => {
 		if (externalErrorMessage) {
@@ -61,16 +63,21 @@
 	}
 
 	function handleSubmit() {
+		validationRevision++;
+		invalidField = null;
 		errorMessage = '';
 		if (!threadTitle.trim() || threadTitle.trim().length < 2) {
+			invalidField = 'title';
 			errorMessage = '토론 주제를 2자 이상 입력해주세요.';
 			return;
 		}
 		if (!password || password.length < 4) {
+			invalidField = 'password';
 			errorMessage = '비밀번호를 4자 이상 입력해주세요 (수정/삭제 시 필요).';
 			return;
 		}
 		if (!content.trim() || content.trim().length < 2) {
+			invalidField = 'content';
 			errorMessage = '첫 발언 내용을 2자 이상 입력해주세요.';
 			return;
 		}
@@ -104,15 +111,25 @@
 	{/snippet}
 
 	{#if errorMessage}
-		<Alert
-			type="error"
+		<FormFeedback
 			message={errorMessage}
-			onDismiss={() => (errorMessage = '')}
+			id="thread-validation-error"
+			revision={validationRevision}
 			testId="discussion-new-thread-error"
 		/>
 	{/if}
 
 	<form
+		oninput={(event) => {
+			const fields = {
+				title: 'thread-title-input',
+				password: 'thread-password-input',
+				content: 'thread-content-input'
+			};
+			if (invalidField && (event.target as HTMLElement).id !== fields[invalidField]) return;
+			errorMessage = '';
+			invalidField = null;
+		}}
 		onsubmit={(e) => {
 			e.preventDefault();
 			handleSubmit();
@@ -125,6 +142,10 @@
 			</label>
 			<input
 				id="thread-title-input"
+				aria-invalid={Boolean(errorMessage) && invalidField === 'title'}
+				aria-describedby={errorMessage && invalidField === 'title'
+					? 'thread-validation-error'
+					: undefined}
 				data-testid="discussion-new-thread-title"
 				type="text"
 				bind:value={threadTitle}
@@ -159,6 +180,10 @@
 				</label>
 				<input
 					id="thread-password-input"
+					aria-invalid={Boolean(errorMessage) && invalidField === 'password'}
+					aria-describedby={errorMessage && invalidField === 'password'
+						? 'thread-validation-error'
+						: undefined}
 					data-testid="discussion-new-thread-password"
 					type="password"
 					bind:value={password}
@@ -177,6 +202,10 @@
 			</label>
 			<textarea
 				id="thread-content-input"
+				aria-invalid={Boolean(errorMessage) && invalidField === 'content'}
+				aria-describedby={errorMessage && invalidField === 'content'
+					? 'thread-validation-error'
+					: undefined}
 				data-testid="discussion-new-thread-content"
 				bind:value={content}
 				disabled={isSubmitting}

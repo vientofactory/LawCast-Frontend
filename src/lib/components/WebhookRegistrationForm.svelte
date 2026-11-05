@@ -151,6 +151,10 @@
 			</label>
 			<input
 				id="webhook-url"
+				aria-invalid={Boolean(newWebhookUrl && !validateDiscordWebhookUrl(newWebhookUrl).isValid)}
+				aria-describedby={newWebhookUrl && !validateDiscordWebhookUrl(newWebhookUrl).isValid
+					? 'webhook-url-error'
+					: undefined}
 				type="url"
 				bind:value={newWebhookUrl}
 				placeholder="https://discord.com/api/webhooks/..."
@@ -161,7 +165,7 @@
 				required
 			/>
 			{#if newWebhookUrl && !validateDiscordWebhookUrl(newWebhookUrl).isValid}
-				<p class="lc-text-danger mt-1 text-sm">
+				<p id="webhook-url-error" class="lc-text-danger mt-1 text-sm">
 					{validateDiscordWebhookUrl(newWebhookUrl).message}
 				</p>
 			{/if}

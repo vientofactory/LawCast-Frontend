@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
+	import FormFeedback from '$lib/components/FormFeedback.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { onMount } from 'svelte';
 	import {
@@ -62,6 +62,8 @@
 	let replyPassword = $state('');
 	let replyContent = $state('');
 	let replyErrorMessage = $state('');
+	let invalidField = $state<'password' | 'content' | null>(null);
+	let validationRevision = $state(0);
 	let commentsLoadSentinel: HTMLDivElement;
 
 	onMount(() => {
@@ -95,12 +97,16 @@
 	}
 
 	function handleCommentSubmit() {
+		validationRevision++;
+		invalidField = null;
 		replyErrorMessage = '';
 		if (!replyPassword || replyPassword.length < 4) {
+			invalidField = 'password';
 			replyErrorMessage = '비밀번호를 4자 이상 입력해주세요 (수정/삭제 시 필요).';
 			return;
 		}
 		if (!replyContent.trim() || replyContent.trim().length < 2) {
+			invalidField = 'content';
 			replyErrorMessage = '의견 본문을 2자 이상 입력해주세요.';
 			return;
 		}
@@ -287,15 +293,21 @@
 			</header>
 
 			{#if replyErrorMessage}
-				<Alert
-					type="error"
+				<FormFeedback
 					message={replyErrorMessage}
-					onDismiss={() => (replyErrorMessage = '')}
+					id="reply-validation-error"
+					revision={validationRevision}
 					testId="discussion-reply-error"
 				/>
 			{/if}
 
 			<form
+				oninput={(event) => {
+					const fields = { password: 'reply-password-input', content: 'reply-content-input' };
+					if (invalidField && (event.target as HTMLElement).id !== fields[invalidField]) return;
+					replyErrorMessage = '';
+					invalidField = null;
+				}}
 				onsubmit={(e) => {
 					e.preventDefault();
 					handleCommentSubmit();
@@ -332,6 +344,10 @@
 						</label>
 						<input
 							id="reply-password-input"
+							aria-invalid={Boolean(replyErrorMessage) && invalidField === 'password'}
+							aria-describedby={replyErrorMessage && invalidField === 'password'
+								? 'reply-validation-error'
+								: undefined}
 							data-testid="discussion-reply-password"
 							type="password"
 							bind:value={replyPassword}
@@ -353,11 +369,12 @@
 					</label>
 					<textarea
 						id="reply-content-input"
+						aria-invalid={Boolean(replyErrorMessage) && invalidField === 'content'}
+						aria-describedby={`discussion-reply-guidance discussion-reply-privacy${replyErrorMessage && invalidField === 'content' ? ' reply-validation-error' : ''}`}
 						data-testid="discussion-reply-content"
 						bind:value={replyContent}
 						disabled={isSubmittingComment || isRateLimited}
 						rows="5"
-						aria-describedby="discussion-reply-guidance discussion-reply-privacy"
 						maxlength="5000"
 						placeholder="이 토론에 대한 의견을 작성해주세요."
 						class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-3 text-base text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"

@@ -49,7 +49,13 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'chromium',
+			grepInvert: /touch screenshot viewport/,
 			use: { ...devices['Desktop Chrome'] }
+		},
+		{
+			name: 'chromium-touch',
+			grep: /touch screenshot viewport/,
+			use: { ...devices['Pixel 7'] }
 		}
 	],
 	webServer: {

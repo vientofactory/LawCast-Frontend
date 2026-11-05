@@ -103,22 +103,13 @@
 		--notification-color: var(--lc-text-accent);
 	}
 	.lc-notification[data-notification-type='success'] {
-		--notification-color: #15803d;
+		--notification-color: var(--lc-status-success);
 	}
 	.lc-notification[data-notification-type='warning'] {
-		--notification-color: #b45309;
+		--notification-color: var(--lc-status-warning);
 	}
 	.lc-notification[data-notification-type='error'] {
-		--notification-color: #b91c1c;
-	}
-	:global(html[data-theme='dark']) .lc-notification[data-notification-type='success'] {
-		--notification-color: #bfe8d1;
-	}
-	:global(html[data-theme='dark']) .lc-notification[data-notification-type='warning'] {
-		--notification-color: #fde68a;
-	}
-	:global(html[data-theme='dark']) .lc-notification[data-notification-type='error'] {
-		--notification-color: #fca5a5;
+		--notification-color: var(--lc-status-error);
 	}
 	.lc-notification {
 		pointer-events: auto;

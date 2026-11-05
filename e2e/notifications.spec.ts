@@ -220,3 +220,60 @@ test('keeps notification controls clear of the installation offer', async ({ pag
 		)
 		.toBe('');
 });
+
+test('retains field errors after toast expiry and clears only corrected validation state', async ({
+	page
+}) => {
+	await page.clock.install();
+	await page.getByRole('button', { name: '토론 폼 열기' }).click();
+	const modal = page.getByTestId('discussion-new-thread-modal');
+	const submit = () =>
+		modal
+			.locator('form')
+			.evaluate((form: HTMLFormElement) =>
+				form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+			);
+	const fields = [
+		{ name: 'title', value: '검증할 토론', message: '토론 주제를 2자 이상' },
+		{ name: 'password', value: '1234', message: '비밀번호를 4자 이상' },
+		{ name: 'content', value: '검증할 의견', message: '첫 발언 내용을 2자 이상' }
+	];
+	for (const field of fields) {
+		await submit();
+		const input = modal.getByTestId(`discussion-new-thread-${field.name}`);
+		await expect(input).toHaveAttribute('aria-invalid', 'true');
+		await expect(input).toHaveAttribute('aria-describedby', 'thread-validation-error');
+		const description = modal.locator('#thread-validation-error');
+		await expect(description).toContainText(field.message);
+		await modal.getByTestId('discussion-new-thread-nickname').fill('테스터');
+		await expect(input).toHaveAttribute('aria-invalid', 'true');
+		await page.mouse.move(0, 0);
+		await page.clock.fastForward(9000);
+		await expect(modal.getByTestId('discussion-new-thread-error')).toHaveCount(0);
+		await expect(description).toBeVisible();
+		await submit();
+		await expect(modal.getByTestId('discussion-new-thread-error')).toBeVisible();
+		await modal
+			.getByTestId('discussion-new-thread-error')
+			.getByRole('button', { name: '알림 닫기' })
+			.click();
+		await expect(description).toBeVisible();
+		await input.fill(field.value);
+		await expect(description).toHaveCount(0);
+		await expect(input).toHaveAttribute('aria-invalid', 'false');
+	}
+	await page.keyboard.press('Escape');
+	await expect(modal).toHaveCount(0);
+});
+
+test('associates the persistent webhook validation hint with its input', async ({ page }) => {
+	await page.goto('/webhook');
+	const input = page.getByRole('textbox', { name: '웹훅 URL *', exact: true });
+	await input.fill('https://example.com');
+	await expect(input).toHaveAttribute('aria-invalid', 'true');
+	await expect(input).toHaveAttribute('aria-describedby', 'webhook-url-error');
+	await expect(page.locator('#webhook-url-error')).toBeVisible();
+	await input.fill('');
+	await expect(input).toHaveAttribute('aria-invalid', 'false');
+	await expect(input).not.toHaveAttribute('aria-describedby');
+});

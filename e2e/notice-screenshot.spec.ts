@@ -341,7 +341,8 @@ for (const theme of ['light', 'dark'] as const) {
 		await expect(page.getByTestId('screenshot-original')).toBeEnabled();
 		await page.getByTestId('screenshot-original').tap();
 		await expect(page.getByTestId('screenshot-zoom-value')).toHaveText('100%');
-		await expect(viewport).toHaveCSS('touch-action', 'pan-x pan-y pinch-zoom');
+		// Chromium serializes the equivalent pan and pinch combination as manipulation.
+		await expect(viewport).toHaveCSS('touch-action', /^(pan-x pan-y pinch-zoom|manipulation)$/);
 		await viewport.evaluate((node) => {
 			node.scrollLeft = 200;
 			node.scrollTop = node.scrollHeight;

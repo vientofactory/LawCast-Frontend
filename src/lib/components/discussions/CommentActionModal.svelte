@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
+	import FormFeedback from '$lib/components/FormFeedback.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faKey,
@@ -49,6 +49,8 @@
 	let password = $state('');
 	let editContent = $state('');
 	let errorMessage = $state('');
+	let invalidField = $state<'password' | 'content' | null>(null);
+	let validationRevision = $state(0);
 
 	$effect(() => {
 		if (externalErrorMessage) {
@@ -77,14 +79,18 @@
 	}
 
 	function handleSubmit() {
+		validationRevision++;
+		invalidField = null;
 		errorMessage = '';
 		if (!password || password.length < 4) {
+			invalidField = 'password';
 			errorMessage = '비밀번호를 입력해주세요.';
 			return;
 		}
 
 		if (mode === 'edit-comment' && targetComment) {
 			if (!editContent.trim() || editContent.trim().length < 2) {
+				invalidField = 'content';
 				errorMessage = '수정할 내용을 2자 이상 입력해주세요.';
 				return;
 			}
@@ -159,15 +165,21 @@
 	{/snippet}
 
 	{#if errorMessage}
-		<Alert
-			type="error"
+		<FormFeedback
 			message={errorMessage}
-			onDismiss={() => (errorMessage = '')}
+			id="comment-action-validation-error"
+			revision={validationRevision}
 			testId="discussion-action-error"
 		/>
 	{/if}
 
 	<form
+		oninput={(event) => {
+			const fields = { password: 'action-password-input', content: 'edit-comment-content' };
+			if (invalidField && (event.target as HTMLElement).id !== fields[invalidField]) return;
+			errorMessage = '';
+			invalidField = null;
+		}}
 		onsubmit={(e) => {
 			e.preventDefault();
 			handleSubmit();
@@ -181,6 +193,10 @@
 				</label>
 				<textarea
 					id="edit-comment-content"
+					aria-invalid={Boolean(errorMessage) && invalidField === 'content'}
+					aria-describedby={errorMessage && invalidField === 'content'
+						? 'comment-action-validation-error'
+						: undefined}
 					bind:value={editContent}
 					disabled={isSubmitting}
 					rows="4"
@@ -220,6 +236,10 @@
 			</label>
 			<input
 				id="action-password-input"
+				aria-invalid={Boolean(errorMessage) && invalidField === 'password'}
+				aria-describedby={errorMessage && invalidField === 'password'
+					? 'comment-action-validation-error'
+					: undefined}
 				type="password"
 				bind:value={password}
 				disabled={isSubmitting || isRateLimited}
