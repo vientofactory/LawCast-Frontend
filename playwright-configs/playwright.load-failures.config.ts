@@ -15,6 +15,7 @@ export default defineConfig({
 		{
 			cwd,
 			command: 'node e2e/fixtures/load-failure-backend.mjs',
+			stdout: 'pipe',
 			url: 'http://127.0.0.1:4331/requests',
 			reuseExistingServer: false
 		},

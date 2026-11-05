@@ -139,3 +139,15 @@ test('rejects invalid cache configuration paths before invoking privileged comma
 		probe.cleanup();
 	}
 });
+
+test('labels intentional HTTP errors without hiding application error output', () => {
+	const config = readFileSync(
+		join(root, 'playwright-configs/playwright.load-failures.config.ts'),
+		'utf8'
+	);
+	const fixture = readFileSync(join(root, 'e2e/fixtures/load-failure-backend.mjs'), 'utf8');
+	assert.ok(config.includes("stdout: 'pipe'"));
+	assert.doesNotMatch(config, /stderr:\s*'ignore'/);
+	assert.ok(fixture.includes('intentional HTTP 429 injection'));
+	assert.ok(workflow.includes('notice title=Intentional HTTP failures'));
+});
