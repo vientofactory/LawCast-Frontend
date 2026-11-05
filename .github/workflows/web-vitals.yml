@@ -17,8 +17,6 @@ jobs:
   web-vitals:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    env:
-      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -46,6 +44,7 @@ jobs:
         id: browser-identity
         run: |
           echo "playwright=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright" >> "$GITHUB_ENV"
           echo "image-os=$ImageOS" >> "$GITHUB_OUTPUT"
           echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
       - name: Restore APT package archives
@@ -66,7 +65,7 @@ jobs:
         id: browser-cache
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
         with:
-          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          path: ${{ runner.temp }}/ms-playwright
           key: chromium-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.browser-identity.outputs.image-os }}-pw-${{ steps.browser-identity.outputs.playwright }}
       - name: Verify or install Chromium
         run: npx --no-install playwright install chromium
@@ -74,7 +73,7 @@ jobs:
         if: steps.browser-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
         with:
-          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          path: ${{ runner.temp }}/ms-playwright
           key: ${{ steps.browser-cache.outputs.cache-primary-key }}
       - name: Summarize dependency caches
         run: |

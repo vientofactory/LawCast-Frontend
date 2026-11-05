@@ -34,6 +34,8 @@ test('separates npm downloads, APT archives and versioned browser binaries', () 
 	assert.ok(workflow.includes('npm ci --prefer-offline'));
 	assert.doesNotMatch(workflow, /path:\s*node_modules/);
 	assert.ok(workflow.includes('runs-on: ubuntu-24.04'));
+	assert.doesNotMatch(workflow, / {4}env:\n {6}PLAYWRIGHT_BROWSERS_PATH: \$\{\{ runner/);
+	assert.ok(workflow.includes('PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright'));
 	assert.ok(workflow.includes("require('playwright-core/package.json').version"));
 	assert.ok(workflow.includes('outputs.image }}-pw-'));
 	assert.ok(workflow.includes('outputs.image-os }}-pw-'));
