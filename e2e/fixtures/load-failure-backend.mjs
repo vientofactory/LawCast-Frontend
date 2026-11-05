@@ -1,20 +1,28 @@
 import { createServer } from 'node:http';
 let mode = 'server';
 let requests = 0;
+let responsesByStatus = {};
 createServer(async (request, response) => {
 	const url = new URL(request.url, 'http://127.0.0.1:4331');
 	if (url.pathname === '/control') {
 		mode = url.searchParams.get('mode') || 'server';
 		requests = 0;
+		responsesByStatus = {};
+		if (['rate', 'rate-html', 'rate-json'].includes(mode))
+			console.info(`[failure-fixture] intentional HTTP 429 injection: ${mode}`);
 		response.setHeader('cache-control', 'no-store');
 		response.end(JSON.stringify({ mode }));
 		return;
 	}
 	if (url.pathname === '/requests') {
-		response.end(JSON.stringify({ requests, mode }));
+		response.end(JSON.stringify({ requests, mode, responsesByStatus }));
 		return;
 	}
 	requests++;
+	const completedResponses = responsesByStatus;
+	response.once('finish', () => {
+		completedResponses[response.statusCode] = (completedResponses[response.statusCode] || 0) + 1;
+	});
 	const requestMode = mode;
 	response.setHeader('cache-control', 'no-store');
 	response.setHeader('x-fixture-mode', requestMode);

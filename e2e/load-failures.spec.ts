@@ -71,6 +71,9 @@ for (const mode of ['rate', 'rate-html', 'rate-json'])
 		await page.goto('/notices');
 		await expect(page.locator('.lc-rate-limit-overlay')).toBeVisible();
 		await expect(page.getByTestId('load-failure')).toHaveCount(0);
+		const metrics = await (await request.get('http://127.0.0.1:4331/requests')).json();
+		expect(metrics.mode).toBe(mode);
+		expect(metrics.responsesByStatus['429']).toBeGreaterThan(0);
 	});
 test('clears cooldown when retry changes from 429 to 503 and then recovers', async ({
 	page,
