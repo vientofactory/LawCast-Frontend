@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { modalFocus } from '$lib/utils/modal-focus';
-	import { modalBackdrop, modalPanel } from '$lib/utils/modal-motion';
+	import { modalFocus } from '#lib/utils/modal-focus.ts';
+	import { modalBackdrop, modalPanel } from '#lib/utils/modal-motion.ts';
 	import NotificationViewport from './NotificationViewport.svelte';
 	const notificationScope = $props.id();
 	import ModalCloseButton from './ModalCloseButton.svelte';

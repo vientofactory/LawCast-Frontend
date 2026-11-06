@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
+	import * as env from '$app/env/public';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowUpRightFromSquare,
@@ -8,7 +8,7 @@
 		faServer
 	} from '@fortawesome/free-solid-svg-icons';
 	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
-	import { getFailureKind, type LoadErrorPayload } from '$lib/utils/request-failure';
+	import { getFailureKind, type LoadErrorPayload } from '#lib/utils/request-failure.ts';
 
 	let {
 		error,

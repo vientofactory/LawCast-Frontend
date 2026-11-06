@@ -29,6 +29,8 @@ export default defineConfig({
 	testDir: '../e2e',
 	testIgnore: [
 		'sitemap.spec.ts',
+		'floating-prompts.spec.ts',
+		'analytics-consent.spec.ts',
 		'pwa.spec.ts',
 		'web-vitals.spec.ts',
 		'api-consumers.spec.ts',

@@ -1,15 +1,15 @@
 import { error } from '@sveltejs/kit';
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import type { PageServerLoad } from './$types';
-import type { DiscussionThread } from '$lib/types/api';
+import type { DiscussionThread } from '#lib/types/api.ts';
 import {
 	isDiffchainUiMockEnabled,
 	getMockNoticeChanges,
 	getMockNoticeDetail,
 	getMockNoticeDiscussions
-} from '$lib/server/diffchain-ui-mock';
-import type { LoadErrorPayload } from '$lib/utils/request-failure';
-import { toLoadErrorPayload } from '$lib/server/load-error';
+} from '#lib/server/diffchain-ui-mock.ts';
+import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
 
 type DiscussionLoadResult = {
 	items: DiscussionThread[];

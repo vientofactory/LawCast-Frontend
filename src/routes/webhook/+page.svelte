@@ -1,17 +1,17 @@
 <script lang="ts">
-	import Header from '$lib/components/Header.svelte';
-	import WebhookRegistrationForm from '$lib/components/WebhookRegistrationForm.svelte';
-	import WebPushConsentForm from '$lib/components/WebPushConsentForm.svelte';
-	import { invalidateAll } from '$app/navigation';
+	import Header from '#lib/components/Header.svelte';
+	import WebhookRegistrationForm from '#lib/components/WebhookRegistrationForm.svelte';
+	import WebPushConsentForm from '#lib/components/WebPushConsentForm.svelte';
+	import { refreshAll } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { warmupHashGuardWorker } from '$lib/hashguard-worker';
+	import { warmupHashGuardWorker } from '#lib/hashguard-worker.ts';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 
 	let pageUrl = $derived(page.url.origin + page.url.pathname);
 
 	async function handleWebhookRegistered() {
-		await invalidateAll();
+		await refreshAll();
 	}
 
 	onMount(async () => {

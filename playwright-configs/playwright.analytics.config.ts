@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
 	testDir: '../e2e',
-	testMatch: 'analytics-consent.spec.ts',
+	testMatch: ['analytics-consent.spec.ts', 'floating-prompts.spec.ts'],
 	workers: 1,
 	reporter: 'list',
 	projects: [

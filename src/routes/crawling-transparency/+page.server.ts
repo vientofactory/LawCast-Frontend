@@ -1,10 +1,10 @@
-import { apiClient } from '$lib/api/client';
-import type { CrawlingTransparencyData } from '$lib/types/api';
+import { apiClient } from '#lib/api/client.ts';
+import type { CrawlingTransparencyData } from '#lib/types/api.ts';
 import {
 	isDiffchainUiMockEnabled,
 	getMockCrawlingTransparencyData
-} from '$lib/server/diffchain-ui-mock';
-import { toLoadErrorPayload } from '$lib/server/load-error';
+} from '#lib/server/diffchain-ui-mock.ts';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
 import type { PageServerLoad } from './$types';
 // Fallback mirrors the backend template in
 // `backend/src/modules/ollama/ai-summary-prompt.util.ts` for offline renders.

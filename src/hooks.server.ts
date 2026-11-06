@@ -1,10 +1,10 @@
-import type { HandleFetch } from '@sveltejs/kit';
-import { PROXY_CONNECTION_FAILURE_HEADER } from '$lib/utils/request-failure';
-import { env } from '$env/dynamic/private';
-import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
-import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
-import { resolveE2eReadClientIp } from '$lib/server/e2e-client-ip';
-import { getMockSemanticApiResponse } from '$lib/server/semantic-search-mock';
+import type { HandleFetch } from '@sveltejs/kit/hooks';
+import { PROXY_CONNECTION_FAILURE_HEADER } from '#lib/utils/request-failure.ts';
+import * as env from '$app/env/private';
+import { matchForced429, buildForced429Response } from '#lib/server/e2e-rate-limit-sim.ts';
+import { resolveClientIp, buildBackendForwardHeaders } from '#lib/server/client-ip.ts';
+import { resolveE2eReadClientIp } from '#lib/server/e2e-client-ip.ts';
+import { getMockSemanticApiResponse } from '#lib/server/semantic-search-mock.ts';
 
 const API_PATH_PREFIX = '/api/';
 const API_BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';

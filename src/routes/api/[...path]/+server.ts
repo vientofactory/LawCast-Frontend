@@ -1,16 +1,16 @@
-import { env } from '$env/dynamic/private';
+import * as env from '$app/env/private';
 import type { RequestHandler } from './$types';
-import { getFailureKind, PROXY_CONNECTION_FAILURE_HEADER } from '$lib/utils/request-failure';
+import { getFailureKind, PROXY_CONNECTION_FAILURE_HEADER } from '#lib/utils/request-failure.ts';
 import {
 	getMockArchiveNoticesResponse,
 	getMockDiscussionThread,
 	getMockNoticeChanges,
 	PROGRESSIVE_HISTORY_MOCK,
 	isDiffchainUiMockEnabled
-} from '$lib/server/diffchain-ui-mock';
-import { getMockSemanticApiResponse } from '$lib/server/semantic-search-mock';
-import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
-import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
+} from '#lib/server/diffchain-ui-mock.ts';
+import { getMockSemanticApiResponse } from '#lib/server/semantic-search-mock.ts';
+import { matchForced429, buildForced429Response } from '#lib/server/e2e-rate-limit-sim.ts';
+import { resolveClientIp, buildBackendForwardHeaders } from '#lib/server/client-ip.ts';
 
 const BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 

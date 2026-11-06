@@ -1,13 +1,13 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
 	import { onMount, tick } from 'svelte';
 	import type { Component, ComponentProps } from 'svelte';
-	import { disclosureSlide, disclosureFade } from '$lib/utils/disclosure-motion';
-	import { dev } from '$app/environment';
-	import { apiClient } from '$lib/api/client';
-	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
-	import { applyPowStatus, createPowDisplayState } from '$lib/utils/pow-status';
+	import { disclosureSlide, disclosureFade } from '#lib/utils/disclosure-motion.ts';
+	import { dev } from '$app/env';
+	import { apiClient } from '#lib/api/client.ts';
+	import { executePowInWorker, type PowStatus } from '#lib/hashguard-worker.ts';
+	import { applyPowStatus, createPowDisplayState } from '#lib/utils/pow-status.ts';
 	import PoWChallengeStatus from './PoWChallengeStatus.svelte';
 	import type FullUnsubscribeConfirmModal from './FullUnsubscribeConfirmModal.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -333,7 +333,7 @@
 	// Mount the modal with isOpen=false first so the intro transition still fires on first open.
 	async function openFullUnsubscribeConfirm(): Promise<void> {
 		if (!FullUnsubscribeConfirmModalComponent) {
-			const mod = await import('$lib/components/FullUnsubscribeConfirmModal.svelte');
+			const mod = await import('#lib/components/FullUnsubscribeConfirmModal.svelte');
 			FullUnsubscribeConfirmModalComponent = mod.default;
 			await tick();
 		}
@@ -545,35 +545,35 @@
 				<dl class="grid grid-cols-1 gap-1 text-slate-700">
 					<div>
 						<dt class="inline font-medium">supported:</dt>
-						<dd class="inline ml-1">{isSupported ? 'true' : 'false'}</dd>
+						<dd class="ml-1 inline">{isSupported ? 'true' : 'false'}</dd>
 					</div>
 					<div>
 						<dt class="inline font-medium">permission:</dt>
-						<dd class="inline ml-1">{isSupported ? Notification.permission : 'n/a'}</dd>
+						<dd class="ml-1 inline">{isSupported ? Notification.permission : 'n/a'}</dd>
 					</div>
 					<div>
 						<dt class="inline font-medium">serverEnabled:</dt>
-						<dd class="inline ml-1">{isPushEnabledByServer ? 'true' : 'false'}</dd>
+						<dd class="ml-1 inline">{isPushEnabledByServer ? 'true' : 'false'}</dd>
 					</div>
 					<div>
 						<dt class="inline font-medium">vapidLoaded:</dt>
-						<dd class="inline ml-1">{vapidPublicKey ? 'true' : 'false'}</dd>
+						<dd class="ml-1 inline">{vapidPublicKey ? 'true' : 'false'}</dd>
 					</div>
 					<div>
 						<dt class="inline font-medium">swScope:</dt>
-						<dd class="inline ml-1 break-all">{swScope ?? '(not registered)'}</dd>
+						<dd class="ml-1 inline break-all">{swScope ?? '(not registered)'}</dd>
 					</div>
 					<div>
 						<dt class="inline font-medium">swState:</dt>
-						<dd class="inline ml-1">{swActiveState ?? '(unknown)'}</dd>
+						<dd class="ml-1 inline">{swActiveState ?? '(unknown)'}</dd>
 					</div>
 					<div>
 						<dt class="inline font-medium">subscription:</dt>
-						<dd class="inline ml-1 break-all">{subscriptionEndpointPreview ?? '(none)'}</dd>
+						<dd class="ml-1 inline break-all">{subscriptionEndpointPreview ?? '(none)'}</dd>
 					</div>
 					<div>
 						<dt class="inline font-medium">updatedAt:</dt>
-						<dd class="inline ml-1">{lastDebugUpdatedAt ?? '(n/a)'}</dd>
+						<dd class="ml-1 inline">{lastDebugUpdatedAt ?? '(n/a)'}</dd>
 					</div>
 				</dl>
 			</div>

@@ -1,5 +1,5 @@
-import { browser } from '$app/environment';
-import { env } from '$env/dynamic/public';
+import { browser } from '$app/env';
+import * as env from '$app/env/public';
 import { HashGuardClient, initHashGuardWasm } from 'hashguard-client';
 
 const HASHGUARD_URL = env.PUBLIC_HASHGUARD_URL || 'https://hashguard.viento.me';

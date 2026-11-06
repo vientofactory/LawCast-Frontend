@@ -12,8 +12,8 @@
 		faClock,
 		faBan
 	} from '@fortawesome/free-solid-svg-icons';
-	import { DiscussionMessageType, type DiscussionComment } from '$lib/types/api';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import { DiscussionMessageType, type DiscussionComment } from '#lib/types/api.ts';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
 	import { onMount } from 'svelte';
 
 	let {
@@ -188,7 +188,7 @@
 			<button
 				type="button"
 				onclick={(e) => scrollToComment(comment.sequence, e)}
-				class="lc-chip-blue inline-flex items-center rounded-md px-2 py-0.5 font-mono text-xs font-bold hover:opacity-80 cursor-pointer"
+				class="lc-chip-blue inline-flex cursor-pointer items-center rounded-md px-2 py-0.5 font-mono text-xs font-bold hover:opacity-80"
 				title="댓글 번호"
 			>
 				#{comment.sequence}
@@ -246,7 +246,7 @@
 					type="button"
 					onclick={handleDelete}
 					title="의견 삭제"
-					class="lc-text-muted hover:text-red-500 inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-xs hover:bg-red-500/10"
+					class="lc-text-muted inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-xs hover:bg-red-500/10 hover:text-red-500"
 				>
 					<FontAwesomeIcon icon={faTrash} class="h-3 w-3" />
 					<span>삭제</span>
@@ -257,7 +257,7 @@
 
 	<!-- Comment Body -->
 	{#if comment.isDeleted}
-		<div class="flex items-center gap-2 py-2 text-xs italic text-[var(--lc-text-dim)]">
+		<div class="flex items-center gap-2 py-2 text-xs text-[var(--lc-text-dim)] italic">
 			<FontAwesomeIcon icon={faBan} class="h-3.5 w-3.5 text-gray-400" />
 			<span>{comment.content}</span>
 		</div>
@@ -269,7 +269,7 @@
 					<button
 						type="button"
 						onclick={(e) => scrollToComment(block.sequence, e)}
-						class="my-1.5 flex w-full max-w-sm items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium lc-text-accent transition-colors hover:bg-blue-500/20 cursor-pointer"
+						class="lc-text-accent my-1.5 flex w-full max-w-sm cursor-pointer items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium transition-colors hover:bg-blue-500/20"
 					>
 						<span class="inline-flex items-center gap-1.5 font-semibold">
 							<FontAwesomeIcon icon={faQuoteLeft} class="h-3 w-3 opacity-80" />
@@ -290,7 +290,7 @@
 						{block.text}
 					</blockquote>
 				{:else if block.type === 'paragraph'}
-					<div class="lc-text-primary whitespace-pre-wrap break-words text-sm leading-relaxed">
+					<div class="lc-text-primary text-sm leading-relaxed break-words whitespace-pre-wrap">
 						{#each block.tokens as token, tokenIndex (tokenIndex)}
 							{#if token.type === 'text'}
 								{token.text}
@@ -298,7 +298,7 @@
 								<button
 									type="button"
 									onclick={(e) => scrollToComment(token.sequence, e)}
-									class="lc-chip-blue mx-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs font-semibold transition-opacity hover:opacity-80 cursor-pointer align-baseline"
+									class="lc-chip-blue mx-0.5 inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 align-baseline font-mono text-xs font-semibold transition-opacity hover:opacity-80"
 									title={`#${token.sequence}번 의견으로 이동`}
 								>
 									<FontAwesomeIcon icon={faQuoteRight} class="h-2.5 w-2.5 opacity-70" />

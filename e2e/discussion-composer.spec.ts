@@ -28,9 +28,9 @@ for (const width of [320, 390, 768, 1440]) {
 			await expect(page.getByTestId('discussion-reply-content')).toBeFocused();
 			if (width === 320)
 				await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
-			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-				true
-			);
+			await expect
+				.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+				.toBe(true);
 		});
 	}
 }

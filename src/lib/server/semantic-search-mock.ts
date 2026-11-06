@@ -1,5 +1,5 @@
 import { isDiffchainUiMockEnabled } from './diffchain-ui-mock';
-import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '$lib/types/api';
+import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '#lib/types/api.ts';
 
 /**
  * Test-only canned responses for the semantic search API.

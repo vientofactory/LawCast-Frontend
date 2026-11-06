@@ -1,12 +1,12 @@
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import { redirect } from '@sveltejs/kit';
 import {
 	isDiffchainUiMockEnabled,
 	getMockRecentNoticeChangesResponse
-} from '$lib/server/diffchain-ui-mock';
-import { toLoadErrorPayload } from '$lib/server/load-error';
-import { toNoticeChangeCard } from '$lib/server/ssr-cards';
-import type { NoticeChangeCardListResponse, RecentNoticeChangesResponse } from '$lib/types/api';
+} from '#lib/server/diffchain-ui-mock.ts';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
+import { toNoticeChangeCard } from '#lib/server/ssr-cards.ts';
+import type { NoticeChangeCardListResponse, RecentNoticeChangesResponse } from '#lib/types/api.ts';
 import type { PageServerLoad } from './$types';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;

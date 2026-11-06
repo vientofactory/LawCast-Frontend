@@ -1,5 +1,5 @@
-import { browser } from '$app/environment';
-import { env } from '$env/dynamic/public';
+import { browser } from '$app/env';
+import * as env from '$app/env/public';
 import NProgress from 'nprogress';
 import {
 	getFailureKind,
@@ -7,13 +7,13 @@ import {
 	getFailureStatus,
 	parseRetryAfter,
 	PROXY_CONNECTION_FAILURE_HEADER
-} from '$lib/utils/request-failure';
+} from '#lib/utils/request-failure.ts';
 import {
 	isChallengeStatus,
 	isCloudflareChallengeHeader,
 	isJsonContentType,
 	isUnderAttackReloadEnabled
-} from '$lib/utils/cloudflare-challenge';
+} from '#lib/utils/cloudflare-challenge.ts';
 import type {
 	Notice,
 	NoticeDetail,

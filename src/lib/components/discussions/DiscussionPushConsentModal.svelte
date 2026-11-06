@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faBell } from '@fortawesome/free-solid-svg-icons';
-	import ModalShell from '$lib/components/ModalShell.svelte';
-	import WebPushConsentForm from '$lib/components/WebPushConsentForm.svelte';
+	import ModalShell from '#lib/components/ModalShell.svelte';
+	import WebPushConsentForm from '#lib/components/WebPushConsentForm.svelte';
 
 	let {
 		isOpen = false,

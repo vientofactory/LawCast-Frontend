@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Header from '$lib/components/Header.svelte';
-	import MarkdownBody from '$lib/components/MarkdownBody.svelte';
-	import SeoHead from '$lib/components/SeoHead.svelte';
-	import { formatDateOnlyKST } from '$lib/utils/helpers';
+	import Header from '#lib/components/Header.svelte';
+	import MarkdownBody from '#lib/components/MarkdownBody.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
+	import { formatDateOnlyKST } from '#lib/utils/helpers.ts';
 	import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import type { PageData } from './$types';

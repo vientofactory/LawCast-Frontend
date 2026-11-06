@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { loadAdminNoticeList } from '$lib/server/announcements';
+import { loadAdminNoticeList } from '#lib/server/announcements.ts';
 import type { PageServerLoad } from './$types';
 
 /**

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
-	import { disclosureMotion } from '$lib/utils/disclosure-motion';
-	import { buildMarkdownHeadingLevels } from '$lib/utils/markdown-headings';
+	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '#lib/utils/disclosure-motion.ts';
+	import { buildMarkdownHeadingLevels } from '#lib/utils/markdown-headings.ts';
 	import type { Token, Tokens } from 'marked';
 	// Self-import for recursion (Svelte 5 replacement for <svelte:self>).
 	import MarkdownBody from './MarkdownBody.svelte';

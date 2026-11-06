@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onDestroy, type Snippet } from 'svelte';
 	import ModalCloseButton from './ModalCloseButton.svelte';
-	import { animateNativeModal } from '$lib/utils/modal-motion';
-	import { trapModalTab } from '$lib/utils/modal-focus';
+	import { animateNativeModal } from '#lib/utils/modal-motion.ts';
+	import { trapModalTab } from '#lib/utils/modal-focus.ts';
 
 	let {
 		isOpen = $bindable(false),

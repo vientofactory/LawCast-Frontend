@@ -1,25 +1,25 @@
 <script lang="ts">
-	import type { LoadErrorPayload } from '$lib/utils/request-failure';
-	import Alert from '$lib/components/Alert.svelte';
-	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
-	import { disclosureMotion, syncDisclosure } from '$lib/utils/disclosure-motion';
-	import Header from '$lib/components/Header.svelte';
-	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
-	import { openExternalLink } from '$lib/utils/helpers';
-	import { buildOpinionSubmissionUrlForContentId } from '$lib/utils/opinion-submission-url.util';
-	import { afterNavigate, goto, invalidateAll, replaceState } from '$app/navigation';
+	import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
+	import Alert from '#lib/components/Alert.svelte';
+	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion, syncDisclosure } from '#lib/utils/disclosure-motion.ts';
+	import Header from '#lib/components/Header.svelte';
+	import AIBriefingCard from '#lib/components/AIBriefingCard.svelte';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	import { openExternalLink } from '#lib/utils/helpers.ts';
+	import { buildOpinionSubmissionUrlForContentId } from '#lib/utils/opinion-submission-url.util.ts';
+	import { afterNavigate, goto, refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
-	import { apiClient } from '$lib/api/client';
+	import { apiClient } from '#lib/api/client.ts';
 	import {
 		mergeRevisionHistory,
 		revisionHistoryCursor,
 		validateOlderRevisionPage,
 		REVISION_HISTORY_PAGE_SIZE
-	} from '$lib/utils/revision-history';
-	import NoticeChangeTimeline from '$lib/components/NoticeChangeTimeline.svelte';
+	} from '#lib/utils/revision-history.ts';
+	import NoticeChangeTimeline from '#lib/components/NoticeChangeTimeline.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
@@ -45,18 +45,21 @@
 		NoticeDetail,
 		NoticeChangeTimelineResponse,
 		DiscussionThreadListResponse
-	} from '$lib/types/api';
-	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
+	} from '#lib/types/api.ts';
+	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
-	import { buildRevisionSnapshots, compareRevisionSnapshots } from '$lib/utils/revision-comparison';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import {
+		buildRevisionSnapshots,
+		compareRevisionSnapshots
+	} from '#lib/utils/revision-comparison.ts';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
 	import {
 		buildNoticeDeadline,
 		formatNoticeDeadlineSuffix,
 		type NoticeDeadline
-	} from '$lib/utils/notice-deadline.util';
-	import NoticeDiscussions from '$lib/components/discussions/NoticeDiscussions.svelte';
-	import NoticeScreenshotModal from '$lib/components/NoticeScreenshotModal.svelte';
+	} from '#lib/utils/notice-deadline.util.ts';
+	import NoticeDiscussions from '#lib/components/discussions/NoticeDiscussions.svelte';
+	import NoticeScreenshotModal from '#lib/components/NoticeScreenshotModal.svelte';
 
 	let {
 		data
@@ -189,7 +192,7 @@
 	let countdown = $state(0);
 	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
-		() => invalidateAll(),
+		() => refreshAll(),
 		(v) => {
 			countdown = v;
 		},
@@ -204,12 +207,15 @@
 	// Must be $state: every URL-derived value below (compare selection, timeline
 	// query flags, revision links, back link) recomputes only when this updates
 	// after client-side navigation. A plain let stays stale forever in runes mode.
-	let currentUrl = $state<URL>(page.url);
-	afterNavigate(() => {
-		currentUrl = page.url;
+	let currentUrl = $state<URL>(new URL(page.url.href));
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		currentUrl = new URL(page.url.href);
 		const token = ++timelineScrollToken;
 		// Comparison controls explicitly preserve the user's current reading position.
-		if (!comparisonPending) void scrollToRequestedHistory(page.url, token);
+		if (!comparisonPending) void scrollToRequestedHistory(new URL(page.url.href), token);
 	});
 
 	function buildExcerpt(content: string, maxLength = 180): string {
@@ -296,6 +302,7 @@
 		return suffix ? `${period} · ${suffix}` : period;
 	}
 	let pageTitle = $derived(`${displayContent.title} - 제안이유 및 주요내용 원문`);
+
 	let pageDescription = $derived(
 		buildExcerpt(
 			aiSummaryEnabled
@@ -338,7 +345,13 @@
 				{
 					'@type': 'BreadcrumbList',
 					itemListElement: [
-						{ '@type': 'ListItem', position: 1, name: '홈', item: `${currentUrl.origin}/` },
+						{
+							'@type': 'ListItem',
+							position: 1,
+							name: '홈',
+							item: `${currentUrl.origin}/`
+						},
+
 						{
 							'@type': 'ListItem',
 							position: 2,
@@ -365,7 +378,11 @@
 						: undefined,
 					publisher: { '@type': 'Organization', name: 'LawCast' },
 					inLanguage: 'ko',
-					isPartOf: { '@type': 'WebSite', name: 'LawCast', url: `${currentUrl.origin}/` }
+					isPartOf: {
+						'@type': 'WebSite',
+						name: 'LawCast',
+						url: `${currentUrl.origin}/`
+					}
 				}
 			]
 		})
@@ -455,6 +472,7 @@
 		const wantsComparison = ['cmpFrom', 'cmpTo', 'cmpShowAll'].some((key) =>
 			url.searchParams.has(key)
 		);
+
 		if (
 			(!wantsComparison && parseBooleanParam(url.searchParams.get('timeline')) !== true) ||
 			(url.hash && !['#change-tracking-timeline', '#revision-comparison'].includes(url.hash))
@@ -653,7 +671,7 @@
 		if (currentUrl.searchParams.has('screenshot')) {
 			const url = new URL(currentUrl);
 			url.searchParams.delete('screenshot');
-			replaceState(url, page.state);
+			goto(url, { shallow: true, replace: true, state: page.state });
 			currentUrl = url;
 		}
 	}
@@ -706,9 +724,8 @@
 		try {
 			const query = params.toString();
 			await goto(query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname, {
-				replaceState: true,
-				noScroll: true,
-				keepFocus: true
+				replace: true,
+				reset: false
 			});
 		} catch {
 			comparisonError = '비교할 기록을 선택하지 못했습니다. 잠시 후 다시 시도해주세요.';
@@ -722,7 +739,7 @@
 	}
 
 	function buildRevisionLink(rev: number | null): string {
-		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams.toString());
 
 		if (rev && rev > 0) {
 			params.set('rev', String(rev));
@@ -740,7 +757,7 @@
 
 	async function toggleCompareShowAll(): Promise<void> {
 		const next = !showAllCompareFields;
-		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams.toString());
 
 		if (next) {
 			params.set('cmpShowAll', '1');
@@ -752,7 +769,7 @@
 	}
 
 	async function updateCompareQuery(fromRev: number | null, toRev: number | null): Promise<void> {
-		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams.toString());
 
 		if (fromRev && fromRev > 0) {
 			params.set('cmpFrom', String(fromRev));
@@ -841,7 +858,7 @@
 			>
 				기록 #{activeRevision}에 보존된 내용을 열람 중입니다. 현재 정보와 다를 수 있습니다.
 				{#if headRevision !== null}
-					<a href={buildRevisionLink(null)} class="ml-2 font-semibold lc-link">
+					<a href={buildRevisionLink(null)} class="lc-link ml-2 font-semibold">
 						최신 기록 #{headRevision} 보기
 					</a>
 				{/if}
@@ -946,6 +963,7 @@
 							>
 								{displayContent.title}
 							</h1>
+
 							<div class="lc-text-secondary mt-3 flex flex-wrap gap-3 text-sm">
 								<span class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1">
 									<FontAwesomeIcon icon={faUser} class="mr-1.5 h-3.5 w-3.5" />
@@ -1156,7 +1174,7 @@
 				loadMoreError={historyPageError}
 				onLoadMore={loadOlderHistory}
 				historyError={data.changesLoadError}
-				onRetryHistory={invalidateAll}
+				onRetryHistory={refreshAll}
 				{activeRevisionForUi}
 				{buildRevisionLink}
 				{isCompareMode}
@@ -1243,7 +1261,7 @@
 								class="mb-3 flex items-start gap-2 rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-secondary)] px-3 py-2 text-xs"
 								data-testid="notice-detail-screenshot-pending"
 							>
-								<FontAwesomeIcon icon={faImage} class="mt-0.5 h-3.5 w-3.5 shrink-0 lc-text-muted" />
+								<FontAwesomeIcon icon={faImage} class="lc-text-muted mt-0.5 h-3.5 w-3.5 shrink-0" />
 								<span class="lc-text-secondary"> 스크린샷이 아직 캡처되지 않았습니다 </span>
 							</div>
 						{/if}

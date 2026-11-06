@@ -7,7 +7,7 @@ import type {
 	NoticeCard,
 	NoticeChangeCard,
 	RecentNoticeChangeItem
-} from '$lib/types/api';
+} from '#lib/types/api.ts';
 
 /**
  * Loader-side mappers for the SSR minimal-view contract: a route's load()

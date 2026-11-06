@@ -88,7 +88,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [notifications, screenshot-modal, theme-states]
+        suite: [notifications, screenshot-modal, theme-states, framework-cloudflare, analytics, pwa]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -106,6 +106,9 @@ jobs:
         with:
           browsers: chromium firefox webkit
       - name: Test shared UI across browser engines
+        env:
+          DIFFCHAIN_UI_MOCK: '1'
+          PWA_CLOUDFLARE: ${{ matrix.suite == 'pwa' && '1' || '0' }}
         run: npx --no-install playwright test --config playwright-configs/playwright.${{ matrix.suite }}.config.ts
       - name: Upload failure evidence
         if: failure()

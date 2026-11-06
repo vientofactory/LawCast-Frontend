@@ -1,9 +1,9 @@
-import { apiClient } from '$lib/api/client';
-import { isServerUnavailable } from '$lib/utils/request-failure';
-import { toLoadErrorPayload } from '$lib/server/load-error';
-import { loadTopAdminNotice } from '$lib/server/announcements';
-import { toDiscussionThreadCard, toNoticeCard } from '$lib/server/ssr-cards';
-import { DiscussionThreadStatus } from '$lib/types/api';
+import { apiClient } from '#lib/api/client.ts';
+import { isServerUnavailable } from '#lib/utils/request-failure.ts';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
+import { loadTopAdminNotice } from '#lib/server/announcements.ts';
+import { toDiscussionThreadCard, toNoticeCard } from '#lib/server/ssr-cards.ts';
+import { DiscussionThreadStatus } from '#lib/types/api.ts';
 import type { PageServerLoad } from './$types';
 import {
 	isDiffchainUiMockEnabled,
@@ -11,7 +11,7 @@ import {
 	getMockQuickKeywordSuggestions,
 	getMockSystemStats,
 	getMockAllDiscussionThreads
-} from '$lib/server/diffchain-ui-mock';
+} from '#lib/server/diffchain-ui-mock.ts';
 
 const DEFAULT_STATS = {
 	webhooks: { total: 0, active: 0, inactive: 0 },

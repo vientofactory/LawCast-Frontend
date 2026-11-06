@@ -1,15 +1,15 @@
-import { apiClient } from '$lib/api/client';
-import { DiscussionThreadStatus } from '$lib/types/api';
+import { apiClient } from '#lib/api/client.ts';
+import { DiscussionThreadStatus } from '#lib/types/api.ts';
 import {
 	isDiffchainUiMockEnabled,
 	getMockAllDiscussionThreads
-} from '$lib/server/diffchain-ui-mock';
-import { toLoadErrorPayload } from '$lib/server/load-error';
-import { toDiscussionThreadCard } from '$lib/server/ssr-cards';
+} from '#lib/server/diffchain-ui-mock.ts';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
+import { toDiscussionThreadCard } from '#lib/server/ssr-cards.ts';
 import type {
 	DiscussionThreadCardListResponse,
 	DiscussionThreadWithNoticeListResponse
-} from '$lib/types/api';
+} from '#lib/types/api.ts';
 import type { PageServerLoad } from './$types';
 
 const DEFAULT_PAGE_SIZE = 20;

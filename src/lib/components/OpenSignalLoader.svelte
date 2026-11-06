@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BRAND_ARC, BRAND_LETTER, BRAND_DOT } from '$lib/brand-symbol';
+	import { BRAND_ARC, BRAND_LETTER, BRAND_DOT } from '#lib/brand-symbol.js';
 </script>
 
 <div class="lc-signal-loader" data-testid="open-signal-loader" aria-hidden="true">

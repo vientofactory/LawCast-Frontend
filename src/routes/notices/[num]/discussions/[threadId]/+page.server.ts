@@ -1,12 +1,12 @@
-import { toLoadErrorPayload } from '$lib/server/load-error';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
 import { error } from '@sveltejs/kit';
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import type { PageServerLoad } from './$types';
 import {
 	isDiffchainUiMockEnabled,
 	getMockNoticeDetail,
 	getMockDiscussionThread
-} from '$lib/server/diffchain-ui-mock';
+} from '#lib/server/diffchain-ui-mock.ts';
 
 function getHttpStatus(value: unknown): number | null {
 	const status = (value as { status?: unknown } | undefined)?.status;

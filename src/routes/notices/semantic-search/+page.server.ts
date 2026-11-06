@@ -1,16 +1,16 @@
-import { env } from '$env/dynamic/public';
+import * as env from '$app/env/public';
 import { redirect } from '@sveltejs/kit';
-import { semanticSearch } from '$lib/api/client';
-import { toLoadErrorPayload } from '$lib/server/load-error';
-import { PER_REQUEST_HTML_CACHE_CONTROL } from '$lib/server/ssr-cache-policy';
+import { semanticSearch } from '#lib/api/client.ts';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
+import { PER_REQUEST_HTML_CACHE_CONTROL } from '#lib/server/ssr-cache-policy.ts';
 import {
 	SEMANTIC_SEARCH_QUERY_PARAM,
 	isSemanticSearchEnabled,
 	parseSemanticSearchQuery,
 	pickExampleQueries
-} from '$lib/utils/semantic-search';
-import type { SemanticSearchResponse } from '$lib/types/api';
-import type { LoadErrorPayload } from '$lib/server/load-error';
+} from '#lib/utils/semantic-search.ts';
+import type { SemanticSearchResponse } from '#lib/types/api.ts';
+import type { LoadErrorPayload } from '#lib/server/load-error.ts';
 import type { PageServerLoad } from './$types';
 
 const DEFAULT_K = 10;

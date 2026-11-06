@@ -1,19 +1,19 @@
 <script lang="ts">
-	import type { LoadErrorPayload } from '$lib/utils/request-failure';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
-	import { getFailureKind, getFailureStatus } from '$lib/utils/request-failure';
-	import Alert from '$lib/components/Alert.svelte';
+	import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	import { getFailureKind, getFailureStatus } from '#lib/utils/request-failure.ts';
+	import Alert from '#lib/components/Alert.svelte';
 	import { onMount, tick, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faComments, faRotateRight } from '@fortawesome/free-solid-svg-icons';
-	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '$lib/api/client';
-	import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
+	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '#lib/api/client.ts';
+	import { toUserFacingErrorMessage } from '#lib/utils/error-message.util.ts';
 	import type {
 		DiscussionThread,
 		DiscussionThreadListResponse,
 		CreateThreadPayload
-	} from '$lib/types/api';
+	} from '#lib/types/api.ts';
 	import ThreadListView from './ThreadListView.svelte';
 	import type { Component, ComponentProps } from 'svelte';
 	import type NewThreadModal from './NewThreadModal.svelte';

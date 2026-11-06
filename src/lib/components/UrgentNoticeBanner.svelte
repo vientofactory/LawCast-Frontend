@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faChevronRight, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
-	import type { AdminNoticeCard } from '$lib/types/api';
+	import type { AdminNoticeCard } from '#lib/types/api.ts';
 
 	// Receives the cap-1 card view (id + title) from the layout loader.
 	let { notice }: { notice: AdminNoticeCard } = $props();

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
-	import BrandLogo from '$lib/components/BrandLogo.svelte';
+	import * as env from '$app/env/public';
+	import BrandLogo from '#lib/components/BrandLogo.svelte';
 	import { faGithub } from '@fortawesome/free-brands-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 

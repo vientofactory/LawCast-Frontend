@@ -1,5 +1,5 @@
 <script lang="ts">
-	import FormFeedback from '$lib/components/FormFeedback.svelte';
+	import FormFeedback from '#lib/components/FormFeedback.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faKey,
@@ -13,8 +13,8 @@
 		DiscussionThreadStatus,
 		type DiscussionComment,
 		type DiscussionThread
-	} from '$lib/types/api';
-	import ModalShell from '$lib/components/ModalShell.svelte';
+	} from '#lib/types/api.ts';
+	import ModalShell from '#lib/components/ModalShell.svelte';
 
 	let {
 		isOpen = $bindable(false),

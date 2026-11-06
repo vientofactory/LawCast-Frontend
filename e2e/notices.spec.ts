@@ -656,9 +656,8 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			await page.goto('/notices?limit=10&sortOrder=asc');
 			// Click page 2 link
 			const page2Link = page
-				.locator('nav[aria-label="페이지 내비게이션"] a')
-				.filter({ hasText: /^2$/ })
-				.first();
+				.getByTestId('notices-pagination')
+				.getByRole('link', { name: '2페이지로 이동', exact: true });
 			await page2Link.click();
 			await page.waitForURL(/page=2/, { timeout: 10_000 });
 			const nums = await getVisibleNoticeNums(page);

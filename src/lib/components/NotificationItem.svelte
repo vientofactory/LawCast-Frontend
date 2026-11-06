@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { reducedModalMotion } from '$lib/utils/modal-motion';
+	import { reducedModalMotion } from '#lib/utils/modal-motion.ts';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faCircleCheck,
@@ -9,7 +9,7 @@
 		faTriangleExclamation,
 		faXmark
 	} from '@fortawesome/free-solid-svg-icons';
-	import { NOTIFICATION_DURATION, type NotificationEntry } from '$lib/utils/notifications';
+	import { NOTIFICATION_DURATION, type NotificationEntry } from '#lib/utils/notifications.ts';
 	let { entry, onDismiss }: { entry: NotificationEntry; onDismiss: () => void } = $props();
 	let card = $state<HTMLElement>();
 	let hovered = $state(false);

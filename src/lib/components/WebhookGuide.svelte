@@ -1,6 +1,6 @@
 <script lang="ts">
-	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
-	import { disclosureMotion } from '$lib/utils/disclosure-motion';
+	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '#lib/utils/disclosure-motion.ts';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 

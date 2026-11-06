@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import Header from '$lib/components/Header.svelte';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
-	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
+	import Header from '#lib/components/Header.svelte';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faDatabase,
@@ -14,11 +14,11 @@
 		faRobot
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
-	import type { CrawlingTransparencyData } from '$lib/types/api';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
-	import { invalidateAll } from '$app/navigation';
+	import type { CrawlingTransparencyData } from '#lib/types/api.ts';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
+	import { refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -33,7 +33,7 @@
 	let countdown = $state(0);
 	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
-		() => invalidateAll(),
+		() => refreshAll(),
 		(v) => {
 			countdown = v;
 		},
@@ -117,14 +117,14 @@
 
 		<!-- ── Data collection sources ────────────────────────────────────────── -->
 		<section class="lc-section">
-			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
+			<h2 class="lc-text-primary lc-section-heading mb-4 flex items-center font-bold">
 				<FontAwesomeIcon icon={faGlobe} class="lc-text-accent mr-2 h-4 w-4" />
 				데이터 수집 소스
 			</h2>
 			<div class="grid gap-4 sm:grid-cols-2">
 				{#each transparency.noticeSources as source (source.id)}
 					<div class="lc-data-row">
-						<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">{source.name}</h3>
+						<h3 class="lc-text-primary lc-subsection-heading mb-2 font-bold">{source.name}</h3>
 						<a
 							href={source.url}
 							target="_blank"
@@ -157,7 +157,7 @@
 
 		<!-- ── Collected data status ─────────────────────────────────────────── -->
 		<section class="lc-section">
-			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
+			<h2 class="lc-text-primary lc-section-heading mb-4 flex items-center font-bold">
 				<FontAwesomeIcon icon={faDatabase} class="lc-text-success mr-2 h-4 w-4" />
 				수집 데이터 현황
 			</h2>
@@ -172,7 +172,7 @@
 			<div class="grid gap-4 sm:grid-cols-2">
 				<!-- By bill status -->
 				<div class="lc-data-row">
-					<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">의안 상태</h3>
+					<h3 class="lc-text-primary lc-subsection-heading mb-2 font-bold">의안 상태</h3>
 					<div class="lc-text-secondary space-y-1.5 text-xs">
 						{#each Object.entries(transparency.collection.byLifecycle) as [status, count] (status)}
 							<div class="flex items-center justify-between">
@@ -188,7 +188,7 @@
 
 				<!-- By collection path -->
 				<div class="lc-data-row">
-					<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">수집 경로별 이벤트</h3>
+					<h3 class="lc-text-primary lc-subsection-heading mb-2 font-bold">수집 경로별 이벤트</h3>
 					<div class="lc-text-secondary space-y-1.5 text-xs">
 						{#each Object.entries(transparency.collection.bySource) as [source, count] (source)}
 							<div class="flex items-center justify-between">
@@ -206,7 +206,7 @@
 
 		<!-- ── Change tracking status ──────────────────────────────────────────── -->
 		<section class="lc-section">
-			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
+			<h2 class="lc-text-primary lc-section-heading mb-4 flex items-center font-bold">
 				<FontAwesomeIcon icon={faCodeCompare} class="lc-text-info mr-2 h-4 w-4" />
 				변경 추적 현황
 			</h2>
@@ -217,7 +217,7 @@
 				</p>
 			</div>
 			<div class="lc-data-row">
-				<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">변경 유형별</h3>
+				<h3 class="lc-text-primary lc-subsection-heading mb-2 font-bold">변경 유형별</h3>
 				<div class="lc-text-secondary space-y-1.5 text-xs">
 					{#each Object.entries(transparency.changeTracking.byType) as [type, count] (type)}
 						<div class="flex items-center justify-between">
@@ -231,7 +231,7 @@
 
 		<!-- ── Collection schedule ───────────────────────────────────────────── -->
 		<section class="lc-section">
-			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
+			<h2 class="lc-text-primary lc-section-heading mb-4 flex items-center font-bold">
 				<FontAwesomeIcon icon={faCalendarCheck} class="lc-text-accent mr-2 h-4 w-4" />
 				자동 수집 스케줄
 			</h2>
@@ -253,7 +253,7 @@
 
 		<!-- ── Bill hand-off flow ────────────────────────────────────────────── -->
 		<section class="lc-section">
-			<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
+			<h2 class="lc-text-primary lc-section-heading mb-4 flex items-center font-bold">
 				<FontAwesomeIcon icon={faArrowRight} class="lc-text-info mr-2 h-4 w-4" />
 				의안 이관 흐름
 			</h2>
@@ -298,7 +298,7 @@
 		<!-- ── AI summary ──────────────────────────────────────────────────── -->
 		{#if aiSummary}
 			<section data-testid="ai-summary" class="lc-section">
-				<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
+				<h2 class="lc-text-primary lc-section-heading mb-4 flex items-center font-bold">
 					<FontAwesomeIcon icon={faRobot} class="lc-text-info mr-2 h-4 w-4" />
 					AI 요약
 				</h2>
@@ -321,12 +321,12 @@
 					</div>
 				</div>
 				<div class="mt-3 rounded-xl border border-(--lc-border-soft) p-4">
-					<h3 class="lc-text-primary mb-2 lc-subsection-heading font-bold">
+					<h3 class="lc-text-primary lc-subsection-heading mb-2 font-bold">
 						실제 요약 프롬프트 전문
 					</h3>
 					<pre
 						data-testid="ai-summary-prompt"
-						class="lc-text-secondary overflow-x-auto font-mono text-xs leading-relaxed whitespace-pre-wrap break-words">{aiSummary.prompt}</pre>
+						class="lc-text-secondary overflow-x-auto font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">{aiSummary.prompt}</pre>
 				</div>
 				<p class="lc-text-muted mt-3 text-[11px]">
 					AI 요약은 참고용이며, 판단의 기준은 제안이유 및 주요내용 원문입니다.

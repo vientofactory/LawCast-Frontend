@@ -1,10 +1,10 @@
-import { apiClient } from '$lib/api/client';
-import type { ProposalStatisticsData, ProposalStatisticsGranularity } from '$lib/types/api';
+import { apiClient } from '#lib/api/client.ts';
+import type { ProposalStatisticsData, ProposalStatisticsGranularity } from '#lib/types/api.ts';
 import {
 	isDiffchainUiMockEnabled,
 	getMockProposalStatisticsData
-} from '$lib/server/diffchain-ui-mock';
-import { toLoadErrorPayload } from '$lib/server/load-error';
+} from '#lib/server/diffchain-ui-mock.ts';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
 import type { PageServerLoad } from './$types';
 
 const FALLBACK: ProposalStatisticsData = {

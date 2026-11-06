@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Alert from '$lib/components/Alert.svelte';
-	import ModalShell from '$lib/components/ModalShell.svelte';
-	import NewThreadModal from '$lib/components/discussions/NewThreadModal.svelte';
-	import { useNotifications, type NotificationType } from '$lib/utils/notifications';
+	import Alert from '#lib/components/Alert.svelte';
+	import ModalShell from '#lib/components/ModalShell.svelte';
+	import NewThreadModal from '#lib/components/discussions/NewThreadModal.svelte';
+	import { useNotifications, type NotificationType } from '#lib/utils/notifications.ts';
 	const center = useNotifications();
 	let ready = $state(false);
 	let modal = $state(false);

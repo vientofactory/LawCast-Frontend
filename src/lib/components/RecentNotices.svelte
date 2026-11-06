@@ -1,6 +1,11 @@
 <script lang="ts">
-	import type { NoticeCard } from '$lib/types/api';
-	import { openExternalLink, downloadFile, isDownloadable, formatDate } from '$lib/utils/helpers';
+	import type { NoticeCard } from '#lib/types/api.ts';
+	import {
+		openExternalLink,
+		downloadFile,
+		isDownloadable,
+		formatDate
+	} from '#lib/utils/helpers.ts';
 	import {
 		faBell,
 		faExternalLink,
@@ -91,7 +96,7 @@
 						<a
 							id="recent-notice-{notice.num}"
 							href="/notices/{notice.num}"
-							class="lc-text-primary text-lg leading-relaxed font-semibold no-underline transition-colors duration-150 hover:text-blue-600 group-hover:text-blue-600"
+							class="lc-text-primary text-lg leading-relaxed font-semibold no-underline transition-colors duration-150 group-hover:text-blue-600 hover:text-blue-600"
 						>
 							{notice.subject}
 						</a>

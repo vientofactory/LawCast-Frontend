@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { env } from '$env/dynamic/public';
-import HashGuardPowWorker from '$lib/workers/hashguardPow.worker?worker';
+import { browser } from '$app/env';
+import * as env from '$app/env/public';
+import HashGuardPowWorker from '#lib/workers/hashguardPow.worker?worker';
 import type { Challenge } from 'hashguard-client';
 
 const HASHGUARD_URL = env.PUBLIC_HASHGUARD_URL || 'https://hashguard.viento.me';
@@ -145,7 +145,7 @@ function sendWorkerRequest(
 }
 
 async function warmupOnMainThread(): Promise<boolean> {
-	const { warmupHashGuardWasm } = await import('$lib/hashguard');
+	const { warmupHashGuardWasm } = await import('#lib/hashguard.ts');
 	return warmupHashGuardWasm();
 }
 
@@ -183,7 +183,7 @@ async function executeOnMainThread(
 	context: string,
 	onStatus?: (status: PowStatus) => void
 ): Promise<string> {
-	const { getHashGuardClient, warmupHashGuardWasm } = await import('$lib/hashguard');
+	const { getHashGuardClient, warmupHashGuardWasm } = await import('#lib/hashguard.ts');
 	notifyStatus(onStatus, 'warmup', 'WASM 가속 엔진을 준비하고 있어요...');
 	await warmupHashGuardWasm();
 	const client = getHashGuardClient();

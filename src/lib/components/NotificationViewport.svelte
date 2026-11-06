@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { useNotifications } from '$lib/utils/notifications';
+	import { useNotifications } from '#lib/utils/notifications.ts';
 	import NotificationItem from './NotificationItem.svelte';
 	let { scope = 'page' }: { scope?: string } = $props();
 	let keyboardInset = $state(0);
