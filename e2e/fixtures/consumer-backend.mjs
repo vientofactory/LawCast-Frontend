@@ -43,6 +43,24 @@ createServer((request, response) => {
 				cache: { size: 4, maxSize: 5000, isInitialized: true, lastUpdated: '2026-10-28T12:00:00Z' },
 				archive: { count: 123 }
 			};
+	} else if (url.pathname === '/api/notices/archive') {
+		data = {
+			page: Number(url.searchParams.get('page') || 1),
+			limit: 20,
+			total: 22180,
+			totalPages: 1109,
+			items: [
+				{
+					num: 2210001,
+					subject: '페이지 이동 테스트 법률안',
+					proposerCategory: '의원',
+					committee: '',
+					link: 'https://example.com/bill',
+					attachments: {},
+					isDone: false
+				}
+			]
+		};
 	} else if (url.pathname === '/api/notices/2210001/detail') {
 		data = {
 			notice: {
