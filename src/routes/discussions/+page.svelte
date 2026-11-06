@@ -132,22 +132,14 @@
 		</div>
 
 		<section class="lc-section" aria-label="토론 상태 필터">
-			<div
-				class="lc-chip-group inline-flex max-w-full items-center rounded-full border p-0.5 text-xs font-semibold"
-				role="tablist"
-				aria-label="토론 상태 필터"
-			>
+			<div class="lc-status-tabs" role="tablist" aria-label="토론 상태 필터">
 				{#each statusTabs as tab (tab.label)}
 					<a
 						href={buildLink({ page: 1, status: tab.value })}
 						role="tab"
 						aria-selected={activeStatus === tab.value}
 						data-testid={`discussions-filter-${tab.value ?? 'all'}`}
-						class={`inline-flex min-h-11 min-w-0 items-center justify-center rounded-full px-3 py-1 transition-colors ${
-							activeStatus === tab.value
-								? 'lc-button-primary border-transparent shadow-sm'
-								: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
-						}`}
+						class="lc-status-tab"
 					>
 						{tab.label}
 					</a>
@@ -170,25 +162,19 @@
 
 			<div class:opacity-60={Boolean(data.loadError)}>
 				{#if threads.length === 0}
-					<div
-						class="lc-panel-card rounded-xl border border-dashed border-[var(--lc-border-soft)] p-8 text-center shadow-sm"
-						data-testid="discussions-empty-state"
-					>
+					<div class="lc-open-empty-state" data-testid="discussions-empty-state">
 						<p class="lc-text-primary text-sm font-semibold">아직 조건에 맞는 토론이 없습니다.</p>
 						<p class="lc-text-muted mt-1 text-xs">
 							법률안 상세 페이지에서 첫 번째 토론을 시작해보세요.
 						</p>
 					</div>
 				{:else}
-					<div
-						class="lc-panel-card lc-content-card divide-y divide-[var(--lc-border-soft)] overflow-hidden rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] shadow-sm"
-						data-testid="discussions-list"
-					>
+					<div class="lc-flat-list lc-discussion-list" data-testid="discussions-list">
 						{#each threads as thread (thread.id)}
 							<a
 								href={`/notices/${thread.noticeNum}/discussions/${thread.id}`}
 								data-testid={`discussions-list-link-${thread.id}`}
-								class="lc-card-list-link group flex cursor-pointer flex-col justify-between gap-2 p-4 text-inherit no-underline transition-colors sm:flex-row sm:items-center"
+								class="lc-flat-list-row lc-card-list-link group flex cursor-pointer flex-col justify-between gap-3 text-inherit no-underline transition-colors sm:flex-row sm:items-center"
 							>
 								<div class="min-w-0 flex-1 space-y-1">
 									<div class="flex flex-wrap items-center gap-2">
