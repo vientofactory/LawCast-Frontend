@@ -24,7 +24,7 @@ export function buildCacheIdentity(env, version, installerHash) {
 	return {
 		browsers: engines.join(' '),
 		'apt-key': `apt-v2-${scope}-image-${env.ImageVersion}-${installerHash}`,
-		'browser-key': `browsers-v2-${scope}`
+		'browser-key': `browsers-v2-${scope}-complete`
 	};
 }
 

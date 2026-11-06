@@ -227,6 +227,9 @@ test('keys reuse equivalent engine sets and isolate partial engine caches', asyn
 	const single = buildCacheIdentity({ ...runner, BROWSER_SET: 'chromium' }, '1.62.1', digest);
 	assert.notEqual(single['apt-key'], full['apt-key']);
 	assert.notEqual(single['browser-key'], full['browser-key']);
+	// Cache actions also try primary-key prefix matches without explicit restore keys.
+	assert.equal(full['browser-key'].startsWith(single['browser-key']), false);
+	assert.equal(single['browser-key'].startsWith(full['browser-key']), false);
 });
 
 test('keys invalidate on platform and Playwright changes', async () => {
