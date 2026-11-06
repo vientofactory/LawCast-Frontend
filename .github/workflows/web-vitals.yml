@@ -16,7 +16,7 @@ concurrency:
 jobs:
   web-vitals:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -59,13 +59,6 @@ jobs:
       - name: Test SSR API consumers
         run: npx --no-install playwright test --config playwright-configs/playwright.consumers.config.ts
 
-      - name: Test framework migration on Cloudflare
-        run: npm run test:e2e:framework:cloudflare
-      - name: Test analytics and floating prompts
-        run: npx --no-install playwright test --config playwright-configs/playwright.analytics.config.ts
-      - name: Test PWA on Cloudflare
-        run: npm run test:e2e:pwa:cloudflare
-
   prepare-shared-browsers:
     name: Prepare shared browser caches
     runs-on: ubuntu-24.04
@@ -95,7 +88,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [notifications, screenshot-modal, theme-states]
+        suite: [notifications, screenshot-modal, theme-states, framework-cloudflare, analytics, pwa]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -113,6 +106,9 @@ jobs:
         with:
           browsers: chromium firefox webkit
       - name: Test shared UI across browser engines
+        env:
+          DIFFCHAIN_UI_MOCK: '1'
+          PWA_CLOUDFLARE: ${{ matrix.suite == 'pwa' && '1' || '0' }}
         run: npx --no-install playwright test --config playwright-configs/playwright.${{ matrix.suite }}.config.ts
       - name: Upload failure evidence
         if: failure()
