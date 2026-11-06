@@ -110,3 +110,59 @@ test('loads an older history page through the browser proxy with its exclusive c
 	);
 	await expect(page.getByTestId('compare-from-select').locator('option[value="1"]')).toHaveCount(1);
 });
+
+for (const width of [320, 360, 390, 430]) {
+	for (const theme of ['light', 'dark']) {
+		test(`mobile pagination has roomy targets at ${width}px in ${theme}`, async ({ page }) => {
+			await page.setViewportSize({ width, height: 900 });
+			await page.emulateMedia({ reducedMotion: 'reduce' });
+			await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
+			for (const currentPage of [1, 555, 1108, 1109]) {
+				await page.goto(`/notices?page=${currentPage}`);
+				const nav = page.getByTestId('notices-pagination');
+				await nav.scrollIntoViewIfNeeded();
+				await expect(nav.locator('[aria-current="page"]:visible')).toHaveText(String(currentPage));
+				expect((await nav.boundingBox())!.width).toBeGreaterThanOrEqual(width - 48);
+				for (const control of await nav.locator('a:visible').all()) {
+					const bounds = (await control.boundingBox())!;
+					expect(bounds.width).toBeGreaterThanOrEqual(48);
+					expect(bounds.height).toBeGreaterThanOrEqual(48);
+					const label = control.locator('.lc-pagination-number');
+					if (await label.count()) {
+						expect(bounds.width - (await label.boundingBox())!.width).toBeGreaterThanOrEqual(24);
+					}
+				}
+				expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+					true
+				);
+				if (currentPage === 1 || currentPage === 1108) {
+					await nav.screenshot({ path: test.info().outputPath(`pagination-${currentPage}.png`) });
+				}
+				const target = currentPage === 1109 ? 1108 : currentPage + 1;
+				const direction = nav.getByRole('link', {
+					name: currentPage === 1109 ? '이전 페이지로 이동' : '다음 페이지로 이동',
+					exact: true
+				});
+				if (test.info().project.name === 'mobile') await direction.tap();
+				else await direction.click();
+				await expect(nav.locator('[aria-current="page"]:visible')).toHaveText(String(target));
+			}
+		});
+	}
+}
+
+test('mobile pagination retains all jumps with enlarged text', async ({ page }) => {
+	await page.setViewportSize({ width: 320, height: 900 });
+	await page.goto('/notices?page=1108');
+	await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+	const nav = page.getByTestId('notices-pagination');
+	await nav.scrollIntoViewIfNeeded();
+	await expect(nav.getByRole('link', { name: '1페이지로 이동', exact: true })).toBeVisible();
+	await expect(nav.getByRole('link', { name: '1109페이지로 이동', exact: true })).toBeVisible();
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+	for (const control of await nav.locator('a:visible').all()) {
+		const bounds = (await control.boundingBox())!;
+		expect(bounds.x).toBeGreaterThanOrEqual(0);
+		expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+	}
+});

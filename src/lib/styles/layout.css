@@ -1212,11 +1212,43 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 	}
 }
 @media (max-width: 639px) {
+	.lc-main nav.lc-pagination {
+		display: grid;
+		grid-template-columns: 48px minmax(0, 1fr) 48px;
+		gap: 8px;
+		width: 100%;
+		max-width: 26rem;
+		margin-inline: auto;
+	}
+	.lc-main
+		nav.lc-pagination
+		:is(.lc-pagination-btn, .lc-pagination-active, .lc-pagination-disabled) {
+		min-width: 48px;
+		min-height: 48px;
+		padding: 10px 12px;
+	}
 	.lc-main nav.lc-pagination .lc-pagination-boundary,
 	.lc-pagination-pages-wide {
 		display: none;
 	}
 	.lc-pagination-pages-compact {
 		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 6px;
+	}
+	.lc-pagination-pages-compact .lc-pagination-ellipsis {
+		flex: 0 0 8px;
+		padding-inline: 0;
+		text-align: center;
+	}
+}
+@media (max-width: 359px) {
+	.lc-pagination-pages-compact {
+		gap: 4px;
+	}
+	/* Preserve all numbered jumps and tap areas before decorative gap markers. */
+	.lc-pagination-pages-compact .lc-pagination-ellipsis {
+		display: none;
 	}
 }
