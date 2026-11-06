@@ -1,4 +1,4 @@
-import type { BoardSearchMode } from '$lib/types/api';
+import type { BoardSearchMode } from '#lib/types/api.ts';
 
 const ENABLED_VALUES = new Set(['1', 'true', 'yes', 'on']);
 

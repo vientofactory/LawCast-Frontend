@@ -1,0 +1,14 @@
+{
+	"name": "@lawcast/harfbuzz-edge",
+	"version": "0.10.0-lawcast.1",
+	"private": true,
+	"type": "module",
+	"license": "MIT",
+	"exports": {
+		"workerd": "./workerd.js",
+		"default": "./node.cjs"
+	},
+	"dependencies": {
+		"harfbuzz-upstream": "npm:harfbuzzjs@0.10.0"
+	}
+}

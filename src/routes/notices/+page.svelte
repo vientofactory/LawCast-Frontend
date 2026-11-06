@@ -1,22 +1,22 @@
 <script lang="ts">
-	import type { LoadErrorPayload } from '$lib/utils/request-failure';
+	import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
 	import { onDestroy } from 'svelte';
-	import Header from '$lib/components/Header.svelte';
-	import FilterDialog from '$lib/components/FilterDialog.svelte';
-	import AIBriefingCard from '$lib/components/AIBriefingCard.svelte';
-	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
-	import PaginationNav from '$lib/components/PaginationNav.svelte';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
-	import SemanticEngineStatus from '$lib/components/SemanticEngineStatus.svelte';
-	import { openExternalLink, downloadFile, isDownloadable } from '$lib/utils/helpers';
-	import { extractProposerFromSubject } from '$lib/utils/proposer';
-	import { buildNoticeDeadline } from '$lib/utils/notice-deadline.util';
-	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
-	import { dismissTouchKeyboard } from '$lib/utils/keyboard';
-	import { apiClient } from '$lib/api/client';
+	import Header from '#lib/components/Header.svelte';
+	import FilterDialog from '#lib/components/FilterDialog.svelte';
+	import AIBriefingCard from '#lib/components/AIBriefingCard.svelte';
+	import LoadingOverlay from '#lib/components/LoadingOverlay.svelte';
+	import PaginationNav from '#lib/components/PaginationNav.svelte';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	import SemanticEngineStatus from '#lib/components/SemanticEngineStatus.svelte';
+	import { openExternalLink, downloadFile, isDownloadable } from '#lib/utils/helpers.ts';
+	import { extractProposerFromSubject } from '#lib/utils/proposer.ts';
+	import { buildNoticeDeadline } from '#lib/utils/notice-deadline.util.ts';
+	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
+	import { dismissTouchKeyboard } from '#lib/utils/keyboard.ts';
+	import { apiClient } from '#lib/api/client.ts';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
-	import { env } from '$env/dynamic/public';
+	import SeoHead from '#lib/components/SeoHead.svelte';
+	import * as env from '$app/env/public';
 	import {
 		BOARD_RELEVANCE_HINTS,
 		BOARD_SEARCH_MODE_HINTS,
@@ -30,8 +30,8 @@
 		isSemanticSearchEnabled,
 		normalizeBoardSearchMode,
 		WEAK_RESULT_PAGE_SIZE
-	} from '$lib/utils/semantic-search';
-	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
+	} from '#lib/utils/semantic-search.ts';
+	import { afterNavigate, beforeNavigate, goto, refreshAll } from '$app/navigation';
 	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -50,8 +50,8 @@
 		faWandMagicSparkles,
 		faXmark
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { ArchiveNoticeCardListResponse, BoardSearchMode } from '$lib/types/api';
-	import { KST_TIMEZONE } from '$lib/utils/helpers';
+	import type { ArchiveNoticeCardListResponse, BoardSearchMode } from '#lib/types/api.ts';
+	import { KST_TIMEZONE } from '#lib/utils/helpers.ts';
 
 	let {
 		data
@@ -79,7 +79,7 @@
 	let countdown = $state(0);
 	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
-		() => invalidateAll(),
+		() => refreshAll(),
 		(v) => {
 			countdown = v;
 		},
@@ -102,7 +102,7 @@
 	});
 
 	afterNavigate(() => {
-		currentUrl = page.url;
+		currentUrl = new URL(page.url.href);
 		filtersOpen = false;
 		isServerLoading = false;
 		isSemanticLoading = false;
@@ -368,7 +368,7 @@
 		const id = 'isDone' in overrides ? overrides.isDone : isDoneFilter;
 		const sm = overrides.searchMode !== undefined ? overrides.searchMode : searchMode;
 
-		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams.toString());
 		params.set('page', String(pg));
 		params.set('limit', String(lim));
 		if (q) params.set('search', q);
@@ -625,7 +625,7 @@
 									type="submit"
 									disabled={isServerLoading}
 									data-testid="notices-search-submit"
-									class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+									class="lc-button-primary inline-flex cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 								>
 									{#if isServerLoading}
 										<FontAwesomeIcon icon={faSpinner} class="mr-2 h-4 w-4 animate-spin" />
@@ -1115,7 +1115,7 @@
 									</h3>
 									{#if result.excerpt}
 										<p
-											class="lc-text-secondary mt-2 whitespace-pre-line text-sm"
+											class="lc-text-secondary mt-2 text-sm whitespace-pre-line"
 											title={BOARD_RELEVANCE_HINTS.excerpt}
 										>
 											{result.excerpt}
@@ -1328,7 +1328,7 @@
 
 											{#if notice.relevance?.excerpt}
 												<p
-													class="lc-text-secondary mb-3 whitespace-pre-line text-sm"
+													class="lc-text-secondary mb-3 text-sm whitespace-pre-line"
 													title={BOARD_RELEVANCE_HINTS.excerpt}
 													data-testid={`notice-relevance-excerpt-${notice.num}`}
 												>

@@ -1,14 +1,14 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
-	import { disclosureMotion } from '$lib/utils/disclosure-motion';
+	import Alert from '#lib/components/Alert.svelte';
+	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '#lib/utils/disclosure-motion.ts';
 	import { onMount, onDestroy } from 'svelte';
-	import { goto, invalidateAll } from '$app/navigation';
-	import { browser } from '$app/environment';
-	import Header from '$lib/components/Header.svelte';
-	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
-	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
+	import { goto, refreshAll } from '$app/navigation';
+	import { browser } from '$app/env';
+	import Header from '#lib/components/Header.svelte';
+	import LoadingOverlay from '#lib/components/LoadingOverlay.svelte';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faCalendarDays,
@@ -25,11 +25,11 @@
 		faFileExcel
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
-	import type { ProposalStatisticsData, ProposalStatisticsGranularity } from '$lib/types/api';
-	import { formatDateTimeKST, downloadBlob } from '$lib/utils/helpers';
+	import type { ProposalStatisticsData, ProposalStatisticsGranularity } from '#lib/types/api.ts';
+	import { formatDateTimeKST, downloadBlob } from '#lib/utils/helpers.ts';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -54,7 +54,7 @@
 	let countdown = $state(0);
 	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
-		() => invalidateAll(),
+		() => refreshAll(),
 		(v) => {
 			countdown = v;
 		},
@@ -182,7 +182,7 @@
 	async function loadStatistics() {
 		isLoading = true;
 		try {
-			await goto(buildUrl(), { replaceState: true, noScroll: true });
+			await goto(buildUrl(), { replace: true, reset: false });
 		} finally {
 			isLoading = false;
 		}
@@ -215,7 +215,7 @@
 		isExporting = true;
 		exportError = null;
 		try {
-			const { utils, writeFileXLSX } = await import('$lib/utils/xlsx-writer');
+			const { utils, writeFileXLSX } = await import('#lib/utils/xlsx-writer.ts');
 			const rows = statistics.buckets.map((bucket) => ({
 				기간: formatPeriodLabel(bucket.period, statistics.granularity),
 				발의건수: bucket.count,
@@ -469,7 +469,7 @@
 										type="button"
 										role="menuitem"
 										onclick={() => handleExportSelect(option.format)}
-										class="lc-text-secondary hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)] flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs font-semibold transition-colors"
+										class="lc-text-secondary flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs font-semibold transition-colors hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)]"
 									>
 										<FontAwesomeIcon icon={option.icon} class="h-3.5 w-3.5" />
 										{option.label}
@@ -607,7 +607,7 @@
 
 			<div class="mt-0 grid gap-4 md:grid-cols-2">
 				<section class="lc-panel-card lc-content-card rounded-2xl border p-4 shadow-sm">
-					<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
+					<h2 class="lc-text-primary lc-section-heading mb-3 flex items-center font-bold">
 						<FontAwesomeIcon icon={faDatabase} class="lc-text-success mr-2 h-4 w-4" />
 						전체 발의 건수
 					</h2>
@@ -630,7 +630,7 @@
 				</section>
 
 				<section class="lc-panel-card lc-content-card rounded-2xl border p-4 shadow-sm">
-					<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
+					<h2 class="lc-text-primary lc-section-heading mb-3 flex items-center font-bold">
 						<FontAwesomeIcon icon={faChartBar} class="lc-text-info mr-2 h-4 w-4" />
 						집계 구간 수
 					</h2>
@@ -649,7 +649,7 @@
 				<!-- ── Charts ────────────────────────────────────────────────── -->
 				{#if statistics.buckets.length > 0}
 					<section class="lc-chart-surface">
-						<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
+						<h2 class="lc-text-primary lc-section-heading mb-4 flex items-center font-bold">
 							<FontAwesomeIcon icon={faChartBar} class="lc-text-accent mr-2 h-4 w-4" />
 							발의 건수 그래프
 						</h2>
@@ -661,7 +661,7 @@
 
 					<!-- ── Data table ────────────────────────────────────── -->
 					<section class="lc-chart-surface">
-						<h2 class="lc-text-primary mb-4 flex items-center lc-section-heading font-bold">
+						<h2 class="lc-text-primary lc-section-heading mb-4 flex items-center font-bold">
 							<FontAwesomeIcon icon={faDatabase} class="lc-text-info mr-2 h-4 w-4" />
 							상세 데이터
 						</h2>
@@ -722,7 +722,7 @@
 		<!-- .relative mt-4 -->
 
 		<!-- ── Notes ──────────────────────────────────────────────────── -->
-		<div class="lc-banner-warning rounded-xl border p-4 mt-4">
+		<div class="lc-banner-warning mt-4 rounded-xl border p-4">
 			<div class="mb-2 flex items-center gap-2">
 				<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
 				<span class="text-sm font-bold">데이터 해석에 유의하세요</span>

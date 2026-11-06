@@ -20,6 +20,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY vendor ./vendor
 
 # Install production dependencies
 RUN npm ci --omit=dev && npm cache clean --force
@@ -30,6 +31,7 @@ WORKDIR /app
 
 # Copy package files for full installation
 COPY package*.json ./
+COPY vendor ./vendor
 
 # Install all dependencies including devDependencies
 RUN npm ci
@@ -80,6 +82,7 @@ COPY --from=builder /app/build ./build
 COPY --from=builder /app/.env ./.env
 COPY --from=builder /app/package*.json ./
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/vendor ./vendor
 
 # Change ownership of the app directory
 RUN chown -R sveltekit:nodejs /app

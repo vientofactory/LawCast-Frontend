@@ -1,4 +1,4 @@
-import type { NoticeChangeEventItem } from '$lib/types/api';
+import type { NoticeChangeEventItem } from '#lib/types/api.ts';
 
 export type RevisionSnapshot = Record<string, string | null>;
 export type RevisionDiffItem = {

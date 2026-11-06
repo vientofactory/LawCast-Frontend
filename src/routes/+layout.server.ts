@@ -1,6 +1,6 @@
 import type { LayoutServerLoad } from './$types';
-import { loadTopAdminNotice } from '$lib/server/announcements';
-import { APP_VERSION, BACKEND_VERSION_BUILD } from '$lib/version';
+import { loadTopAdminNotice } from '#lib/server/announcements.ts';
+import { APP_VERSION, BACKEND_VERSION_BUILD } from '#lib/version.ts';
 
 /**
  * Server-side layout loader that provides both frontend and backend versions.

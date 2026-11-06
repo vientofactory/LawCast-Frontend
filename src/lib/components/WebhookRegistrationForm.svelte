@@ -1,15 +1,15 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import { apiClient } from '$lib/api/client';
-	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
-	import { applyPowStatus, createPowDisplayState } from '$lib/utils/pow-status';
-	import { validateDiscordWebhookUrl, normalizeWebhookUrl } from '$lib/utils/helpers';
+	import Alert from '#lib/components/Alert.svelte';
+	import { apiClient } from '#lib/api/client.ts';
+	import { executePowInWorker, type PowStatus } from '#lib/hashguard-worker.ts';
+	import { applyPowStatus, createPowDisplayState } from '#lib/utils/pow-status.ts';
+	import { validateDiscordWebhookUrl, normalizeWebhookUrl } from '#lib/utils/helpers.ts';
 	import WebhookGuide from './WebhookGuide.svelte';
 	import PoWChallengeStatus from './PoWChallengeStatus.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faSpinner, faShieldHalved, faPlus } from '@fortawesome/free-solid-svg-icons';
 	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
-	import type { SystemStats } from '$lib/types/api';
+	import type { SystemStats } from '#lib/types/api.ts';
 
 	let {
 		isInitialLoading = false,

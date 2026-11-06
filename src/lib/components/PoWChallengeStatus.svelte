@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatPowHashRate, formatPowRemainingTime } from '$lib/utils/pow-status';
+	import { formatPowHashRate, formatPowRemainingTime } from '#lib/utils/pow-status.ts';
 
 	let {
 		message = '',

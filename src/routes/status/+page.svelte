@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { browser } from '$app/environment';
-	import Header from '$lib/components/Header.svelte';
-	import Alert from '$lib/components/Alert.svelte';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
-	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
+	import { browser } from '$app/env';
+	import Header from '#lib/components/Header.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
 	import { invalidate } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -21,14 +21,14 @@
 		faGlobe
 	} from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
-	import type { OllamaHealthStatus, IsDoneSyncStatus, CrawlerStatus } from '$lib/types/api';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import type { OllamaHealthStatus, IsDoneSyncStatus, CrawlerStatus } from '#lib/types/api.ts';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 
 	let { data }: { data: PageData } = $props();
 
-	let stats = $derived(data.stats as import('$lib/types/api').SystemStats);
+	let stats = $derived(data.stats as import('#lib/types/api.ts').SystemStats);
 	let fetchedAt = $derived(data.fetchedAt);
 	let loadError = $derived(data.loadError);
 	// Canonical stays on the clean route: filter params are not indexed separately.
@@ -75,6 +75,7 @@
 			? calcRemaining(crawlers.palCrawler.lastRunAt, crawlers.palCrawler.cron.intervalMs, nowMs)
 			: -1
 	);
+
 	let nsmRemaining = $derived(
 		crawlers
 			? calcRemaining(
@@ -121,6 +122,7 @@
 		'opinion.lawmaking.go.kr': '국민참여입법센터',
 		'likms.assembly.go.kr': '국회 의안정보시스템'
 	};
+
 	let palShortName = $derived(
 		CRAWLER_SHORT_LABELS[crawlers?.palCrawler.source ?? ''] ?? '국회 입법예고'
 	);
@@ -137,6 +139,7 @@
 	let palCountdown = $derived(
 		crawlers ? countdownLabel(palRemaining, crawlers.palCrawler.status, palEnabled) : '-'
 	);
+
 	let nsmCountdown = $derived(
 		crawlers ? countdownLabel(nsmRemaining, crawlers.nsmPendingCrawler.status, nsmEnabled) : '-'
 	);
@@ -246,6 +249,7 @@
 	let palBadge = $derived(
 		crawlers ? crawlerStatusBadge(crawlers.palCrawler.status, palEnabled) : null
 	);
+
 	let nsmBadge = $derived(
 		crawlers ? crawlerStatusBadge(crawlers.nsmPendingCrawler.status, nsmEnabled) : null
 	);
@@ -494,7 +498,7 @@
 
 		{#if hasCacheIssue || hasOllamaIssue || hasDisabledCrawler}
 			<section class="lc-banner-warning lc-defer-render-sm mt-4 mb-4 rounded-2xl border p-4">
-				<h2 class="mb-2 flex items-center lc-section-heading font-bold">
+				<h2 class="lc-section-heading mb-2 flex items-center font-bold">
 					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-4 w-4" />
 					안내
 				</h2>
@@ -526,7 +530,7 @@
 				<!-- PAL Crawler -->
 				<section data-testid="crawler-pal" class="lc-section">
 					<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-						<h2 class="lc-text-primary flex items-center lc-section-heading font-bold">
+						<h2 class="lc-text-primary lc-section-heading flex items-center font-bold">
 							<FontAwesomeIcon icon={faGlobe} class="lc-text-accent mr-2 h-4 w-4" />
 							{palCrawlerName}
 						</h2>
@@ -571,7 +575,7 @@
 				<!-- NSM Crawler -->
 				<section data-testid="crawler-nsm" class="lc-section">
 					<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-						<h2 class="lc-text-primary flex items-center lc-section-heading font-bold">
+						<h2 class="lc-text-primary lc-section-heading flex items-center font-bold">
 							<FontAwesomeIcon icon={faGlobe} class="lc-text-purple mr-2 h-4 w-4" />
 							{nsmCrawlerName}
 						</h2>
@@ -634,7 +638,7 @@
 			<!-- ── Cron Job Status ──────────────────────────────────────── -->
 			<section class="lc-section">
 				<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-					<h2 class="lc-text-primary flex items-center lc-section-heading font-bold">
+					<h2 class="lc-text-primary lc-section-heading flex items-center font-bold">
 						<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
 						크론 작업 현황
 					</h2>
@@ -642,8 +646,10 @@
 				<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 					{#each crawlers.cronJobs as job (job.name)}
 						{@const jobSource = cronJobSource(job.name)}
-						<div class="rounded-xl border border-(--lc-border-soft) px-3 py-2">
-							<div class="mb-1 flex items-center justify-between">
+						<div
+							class="min-w-0 rounded-xl border border-(--lc-border-soft) px-3 py-2 wrap-anywhere"
+						>
+							<div class="mb-1 flex flex-wrap items-center justify-between gap-2">
 								<span class="lc-text-primary text-xs font-semibold"
 									>{formatCronJobName(job.name)}</span
 								>
@@ -663,7 +669,7 @@
 									{jobSource.host}
 								</span>
 							{/if}
-							<div class="lc-text-dim text-[11px] font-mono">
+							<div class="lc-text-dim font-mono text-[11px]">
 								{job.cron.description}
 							</div>
 							<div class="lc-text-dim text-[11px]">
@@ -681,9 +687,9 @@
 		{/if}
 
 		<!-- ── Core Status Cards ───────────────────────────────────────── -->
-		<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mt-4">
+		<div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 			<section class="lc-section">
-				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
+				<h2 class="lc-text-primary lc-section-heading mb-3 flex items-center font-bold">
 					<FontAwesomeIcon icon={faLink} class="lc-text-success mr-2 h-4 w-4" />
 					웹훅 상태
 				</h2>
@@ -701,7 +707,7 @@
 			</section>
 
 			<section class="lc-section">
-				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
+				<h2 class="lc-text-primary lc-section-heading mb-3 flex items-center font-bold">
 					<FontAwesomeIcon icon={faDatabase} class="lc-text-accent mr-2 h-4 w-4" />
 					캐시 상태
 				</h2>
@@ -720,7 +726,7 @@
 			</section>
 
 			<section class="lc-section">
-				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
+				<h2 class="lc-text-primary lc-section-heading mb-3 flex items-center font-bold">
 					<FontAwesomeIcon icon={faCloud} class="lc-text-info mr-2 h-4 w-4" />
 					웹 푸시 상태
 				</h2>
@@ -749,7 +755,7 @@
 			</section>
 
 			<section class="lc-section">
-				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
+				<h2 class="lc-text-primary lc-section-heading mb-3 flex items-center font-bold">
 					<FontAwesomeIcon icon={faRobot} class="lc-text-info mr-2 h-4 w-4" />
 					AI 요약
 				</h2>
@@ -759,7 +765,12 @@
 							>{stats.ollama?.enabled ? '사용 중' : '꺼짐'}</span
 						>
 					</p>
-					<p>모델: <span class="font-semibold">{stats.ollama?.model || 'N/A'}</span></p>
+
+					<p>
+						모델:
+						<span class="font-semibold">{stats.ollama?.model || 'N/A'}</span>
+					</p>
+
 					<p>
 						연결 상태:
 						<span
@@ -777,7 +788,7 @@
 			</section>
 
 			<section class="lc-section">
-				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
+				<h2 class="lc-text-primary lc-section-heading mb-3 flex items-center font-bold">
 					<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
 					종료 마커 동기화
 				</h2>

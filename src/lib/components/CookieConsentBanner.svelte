@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { tick, onDestroy } from 'svelte';
-	import { floatingPrompt } from '$lib/utils/floating-prompt-motion';
+	import { floatingPrompt } from '#lib/utils/floating-prompt-motion.ts';
 	import {
 		getCookieConsent,
 		setCookieConsent,
 		initConsentMode,
 		pushConsentUpdate,
 		type CookieConsentStatus
-	} from '$lib/utils/consent';
-	import { GTM_CONTAINER_ID, pushGtmPageView } from '$lib/utils/gtm';
+	} from '#lib/utils/consent.ts';
+	import { GTM_CONTAINER_ID, pushGtmPageView } from '#lib/utils/gtm.ts';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faCookieBite } from '@fortawesome/free-solid-svg-icons';
 

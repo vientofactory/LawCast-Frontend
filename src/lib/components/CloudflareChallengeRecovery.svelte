@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { CF_CHALLENGE_MARK_KEY, CF_RELOAD_GUARD_KEY } from '$lib/utils/cloudflare-challenge';
+	import { CF_CHALLENGE_MARK_KEY, CF_RELOAD_GUARD_KEY } from '#lib/utils/cloudflare-challenge.ts';
 	import { onMount } from 'svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faArrowLeft, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
@@ -79,7 +79,7 @@
 			<button
 				type="button"
 				onclick={handleManualRefresh}
-				class="lc-button-primary cursor-pointer inline-flex items-center rounded-lg px-4 py-2.5 text-sm font-semibold"
+				class="lc-button-primary inline-flex cursor-pointer items-center rounded-lg px-4 py-2.5 text-sm font-semibold"
 			>
 				지금 새로고침
 			</button>

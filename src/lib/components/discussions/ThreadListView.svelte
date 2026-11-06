@@ -8,9 +8,9 @@
 		faClock,
 		faChevronRight
 	} from '@fortawesome/free-solid-svg-icons';
-	import { DiscussionThreadStatus, type DiscussionThread } from '$lib/types/api';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import { DiscussionThreadStatus, type DiscussionThread } from '#lib/types/api.ts';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
+	import RateLimitOverlay from '#lib/components/RateLimitOverlay.svelte';
 
 	let {
 		threads = [],

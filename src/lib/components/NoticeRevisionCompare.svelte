@@ -1,9 +1,9 @@
 <script lang="ts">
-	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
-	import { disclosureMotion } from '$lib/utils/disclosure-motion';
-	import RevisionTextDiff from '$lib/components/RevisionTextDiff.svelte';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
-	import { formatRevisionValue, type RevisionDiffItem } from '$lib/utils/revision-comparison';
+	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '#lib/utils/disclosure-motion.ts';
+	import RevisionTextDiff from '#lib/components/RevisionTextDiff.svelte';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
+	import { formatRevisionValue, type RevisionDiffItem } from '#lib/utils/revision-comparison.ts';
 
 	let {
 		isCompareMode,

@@ -121,9 +121,13 @@ test('calls the native prompt once and recovers from a native error', async ({ p
 	await offer(page, true);
 	await page.getByTestId('pwa-install-button').click();
 	await expect(page.locator('html')).toHaveAttribute('data-install-calls', '1');
-	await expect(page.getByTestId('pwa-install-prompt').getByRole('status')).toContainText(
-		'설치 창을 열지 못했습니다'
-	);
+	await expect(page.getByTestId('pwa-install-error')).toContainText('설치 창을 열지 못했습니다');
+	await expect(page.getByTestId('pwa-install-prompt')).toHaveCount(0);
+	await page.getByTestId('pwa-install-error').getByRole('button', { name: '알림 닫기' }).click();
+	await expect(page.getByTestId('pwa-install-error')).toHaveCount(0);
+	await offer(page);
+	await expect(page.getByTestId('pwa-install-prompt')).toBeVisible();
+	await expect(page.locator('html')).toHaveAttribute('data-install-calls', '1');
 	await page.getByTestId('pwa-install-dismiss').click();
 	await expect(page.getByTestId('pwa-install-prompt')).toHaveCount(0);
 });

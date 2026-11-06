@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { LoadErrorPayload } from '$lib/utils/request-failure';
+	import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
 	import { onDestroy } from 'svelte';
-	import Header from '$lib/components/Header.svelte';
-	import PaginationNav from '$lib/components/PaginationNav.svelte';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
-	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
-	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
+	import Header from '#lib/components/Header.svelte';
+	import PaginationNav from '#lib/components/PaginationNav.svelte';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
+	import { afterNavigate, goto, refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -18,8 +18,8 @@
 		faChevronRight,
 		faCircleExclamation
 	} from '@fortawesome/free-solid-svg-icons';
-	import { DiscussionThreadStatus, type DiscussionThreadCardListResponse } from '$lib/types/api';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import { DiscussionThreadStatus, type DiscussionThreadCardListResponse } from '#lib/types/api.ts';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
 
 	let {
 		data
@@ -36,7 +36,7 @@
 	let countdown = $state(0);
 	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
-		() => invalidateAll(),
+		() => refreshAll(),
 		(v) => {
 			countdown = v;
 		},
@@ -48,8 +48,10 @@
 
 	$effect(() => retry.sync(data.loadError));
 
-	afterNavigate(() => {
-		currentUrl = page.url;
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		currentUrl = new URL(page.url.href);
 		pendingPage = null;
 	});
 
@@ -67,7 +69,7 @@
 	];
 
 	function buildLink(overrides: { page?: number; status?: DiscussionThreadStatus | undefined }) {
-		const params = new SvelteURLSearchParams(currentUrl.searchParams);
+		const params = new SvelteURLSearchParams(currentUrl.searchParams.toString());
 		const targetPage = overrides.page ?? currentPage;
 		const targetStatus = 'status' in overrides ? overrides.status : activeStatus;
 

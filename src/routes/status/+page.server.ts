@@ -1,8 +1,8 @@
-import { apiClient } from '$lib/api/client';
-import type { SystemStats } from '$lib/types/api';
+import { apiClient } from '#lib/api/client.ts';
+import type { SystemStats } from '#lib/types/api.ts';
 import type { PageServerLoad } from './$types';
-import { isDiffchainUiMockEnabled, getMockSystemStats } from '$lib/server/diffchain-ui-mock';
-import { toLoadErrorPayload } from '$lib/server/load-error';
+import { isDiffchainUiMockEnabled, getMockSystemStats } from '#lib/server/diffchain-ui-mock.ts';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
 
 /**
  * /status renders webhooks, webPush, cache, archive, crawlers and ollama —

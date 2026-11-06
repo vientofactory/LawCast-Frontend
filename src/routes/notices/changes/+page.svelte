@@ -1,14 +1,14 @@
 <script lang="ts">
-	import type { LoadErrorPayload } from '$lib/utils/request-failure';
-	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
-	import { disclosureMotion } from '$lib/utils/disclosure-motion';
+	import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
+	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '#lib/utils/disclosure-motion.ts';
 	import { onDestroy } from 'svelte';
-	import Header from '$lib/components/Header.svelte';
-	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
-	import PaginationNav from '$lib/components/PaginationNav.svelte';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
-	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
-	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
+	import Header from '#lib/components/Header.svelte';
+	import LoadingOverlay from '#lib/components/LoadingOverlay.svelte';
+	import PaginationNav from '#lib/components/PaginationNav.svelte';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
+	import { afterNavigate, beforeNavigate, goto, refreshAll } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
@@ -26,11 +26,11 @@
 		ChangeEventType,
 		ComparableChangeSummary,
 		NoticeChangeCardListResponse
-	} from '$lib/types/api';
-	import { NoticeChangeSource } from '$lib/types/change-source';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
+	} from '#lib/types/api.ts';
+	import { NoticeChangeSource } from '#lib/types/change-source.ts';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 
 	let {
 		data
@@ -89,7 +89,7 @@
 	let isRetrying = $state(false);
 	const retry = new RetryCountdown(
 		async () => {
-			await invalidateAll();
+			await refreshAll();
 		},
 		(v) => {
 			countdown = v;
@@ -108,11 +108,15 @@
 
 	let isServerLoading = $state(false);
 
-	beforeNavigate(({ to }) => {
+	beforeNavigate(({ to, shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
 		isServerLoading = !!to?.url && to.url.pathname.replace(/\/+$/, '') === '/notices/changes';
 	});
 
-	afterNavigate(() => {
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
 		isServerLoading = false;
 	});
 
@@ -427,7 +431,7 @@
 						<button
 							type="submit"
 							disabled={isServerLoading}
-							class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+							class="lc-button-primary inline-flex cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							검색
 						</button>

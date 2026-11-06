@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Header from '$lib/components/Header.svelte';
+	import Header from '#lib/components/Header.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faScaleBalanced, faServer, faDesktop } from '@fortawesome/free-solid-svg-icons';
 	import type { PageData } from './$types';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -50,7 +50,7 @@
 
 		<!-- LawCast project license -->
 		<section class="lc-section">
-			<h2 class="lc-text-primary mb-3 lc-section-heading font-bold">LawCast 프로젝트 라이선스</h2>
+			<h2 class="lc-text-primary lc-section-heading mb-3 font-bold">LawCast 프로젝트 라이선스</h2>
 			<p class="lc-text-secondary mb-3 text-sm">
 				LawCast는 <span class="lc-text-purple font-semibold">MIT License</span> 하에 배포됩니다.
 			</p>
@@ -80,7 +80,7 @@ SOFTWARE.</pre>
 
 		<!-- Open-source license notices -->
 		<section class="lc-section">
-			<h2 class="lc-text-primary mb-1 lc-section-heading font-bold">오픈소스 라이선스 고지</h2>
+			<h2 class="lc-text-primary lc-section-heading mb-1 font-bold">오픈소스 라이선스 고지</h2>
 			<p class="lc-text-muted mb-5 text-sm">
 				이 소프트웨어는 아래 오픈소스 패키지를 사용합니다. 각 패키지의 라이선스 조건을 준수합니다.
 			</p>
@@ -184,7 +184,7 @@ SOFTWARE.</pre>
 
 		<!-- License legend -->
 		<section class="lc-section">
-			<h2 class="lc-text-primary mb-3 lc-section-heading font-bold">라이선스 유형 안내</h2>
+			<h2 class="lc-text-primary lc-section-heading mb-3 font-bold">라이선스 유형 안내</h2>
 			<div class="flex flex-wrap gap-3 text-xs">
 				<div class="flex items-center gap-2">
 					<span class="lc-chip-success rounded-full border px-2 py-0.5 font-medium">MIT</span>

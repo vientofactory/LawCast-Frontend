@@ -1,4 +1,4 @@
-import type { NoticeChangeEventItem, NoticeChangeTimelineResponse } from '$lib/types/api';
+import type { NoticeChangeEventItem, NoticeChangeTimelineResponse } from '#lib/types/api.ts';
 
 export const REVISION_HISTORY_PAGE_SIZE = 20;
 

@@ -9,14 +9,14 @@ import { getFailureRetryAfter, type LoadErrorPayload } from './request-failure';
  *
  * Usage in a legacy Svelte page:
  * ```ts
- * import { RetryCountdown } from '$lib/utils/retry-countdown.util';
+ * import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
  * import { onDestroy } from 'svelte';
  *
  * let countdown = 0;
  * let isRetrying = false;
  *
  * const retry = new RetryCountdown(
- *   () => invalidateAll(),
+ *   () => refreshAll(),
  *   (v) => { countdown = v; },
  *   (v) => { isRetrying = v; },
  * );

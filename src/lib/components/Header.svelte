@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	import { onMount } from 'svelte';
-	import { modalFocus } from '$lib/utils/modal-focus';
-	import { reducedModalMotion } from '$lib/utils/modal-motion';
+	import { modalFocus } from '#lib/utils/modal-focus.ts';
+	import { reducedModalMotion } from '#lib/utils/modal-motion.ts';
 	import { page } from '$app/state';
-	import { theme } from '$lib/theme';
-	import UrgentNoticeBanner from '$lib/components/UrgentNoticeBanner.svelte';
-	import BrandLogo from '$lib/components/BrandLogo.svelte';
-	import ModalCloseButton from '$lib/components/ModalCloseButton.svelte';
-	import type { AdminNoticeCard } from '$lib/types/api';
+	import { theme } from '#lib/theme.ts';
+	import UrgentNoticeBanner from '#lib/components/UrgentNoticeBanner.svelte';
+	import BrandLogo from '#lib/components/BrandLogo.svelte';
+	import ModalCloseButton from '#lib/components/ModalCloseButton.svelte';
+	import type { AdminNoticeCard } from '#lib/types/api.ts';
 	import {
 		faFileLines,
 		faHouse,

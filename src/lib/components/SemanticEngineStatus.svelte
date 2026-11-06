@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
+	import { toUserFacingErrorMessage } from '#lib/utils/error-message.util.ts';
 	import { onMount } from 'svelte';
-	import { modalPanel } from '$lib/utils/modal-motion';
+	import { modalPanel } from '#lib/utils/modal-motion.ts';
 	import ModalCloseButton from './ModalCloseButton.svelte';
-	import { semanticEngineHealth } from '$lib/api/client';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
-	import type { SemanticEngineHealthResponse } from '$lib/types/api';
+	import { semanticEngineHealth } from '#lib/api/client.ts';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
+	import type { SemanticEngineHealthResponse } from '#lib/types/api.ts';
 
 	/**
 	 * Fixed corner control reporting the semantic engine's health (chunk index
@@ -145,7 +145,7 @@
 	{/if}
 	<button
 		type="button"
-		class="lc-panel-card flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 min-h-9 text-xs shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:opacity-100"
+		class="lc-panel-card flex min-h-9 cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:opacity-100"
 		aria-expanded={open}
 		aria-controls={open ? panelId : undefined}
 		data-testid={`${testIdPrefix}-trigger`}

@@ -1,9 +1,9 @@
-import { env } from '$env/dynamic/private';
+import * as env from '$app/env/private';
 import {
 	DiscussionMessageType,
 	DiscussionThreadStatus,
 	type NoticeLifecycleStatus
-} from '$lib/types/api';
+} from '#lib/types/api.ts';
 import type {
 	AdminNoticeListResponse,
 	ArchiveNoticeListResponse,
@@ -22,8 +22,8 @@ import type {
 	CrawlingTransparencyData,
 	ProposalStatisticsData,
 	ProposalStatisticsGranularity
-} from '$lib/types/api';
-import { NoticeChangeSource } from '$lib/types/change-source';
+} from '#lib/types/api.ts';
+import { NoticeChangeSource } from '#lib/types/change-source.ts';
 import { REVISION_DIFF_MOCK } from './revision-diff-mock';
 
 const ENABLED_VALUES = new Set(['1', 'true', 'yes', 'on']);

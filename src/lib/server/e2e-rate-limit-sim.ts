@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/private';
+import * as env from '$app/env/private';
 
 /**
  * Test-only hook: when `E2E_FORCE_429_PATHS` is set, requests whose path

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import FormFeedback from '$lib/components/FormFeedback.svelte';
+	import FormFeedback from '#lib/components/FormFeedback.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { onMount } from 'svelte';
 	import {
@@ -18,8 +18,8 @@
 		type DiscussionComment,
 		type DiscussionThread,
 		type CreateCommentPayload
-	} from '$lib/types/api';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	} from '#lib/types/api.ts';
+	import RateLimitOverlay from '#lib/components/RateLimitOverlay.svelte';
 	import CommentItem from './CommentItem.svelte';
 
 	let {
@@ -331,7 +331,7 @@
 							disabled={isSubmittingComment || isRateLimited}
 							maxlength="30"
 							placeholder="익명"
-							class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] min-h-11 px-3 py-2.5 text-base text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
+							class="min-h-11 w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2.5 text-base text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
 						/>
 					</div>
 					<div>
@@ -355,7 +355,7 @@
 							minlength="4"
 							maxlength="64"
 							placeholder="4자 이상"
-							class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] min-h-11 px-3 py-2.5 text-base text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
+							class="min-h-11 w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2.5 text-base text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
 						/>
 					</div>
 				</div>

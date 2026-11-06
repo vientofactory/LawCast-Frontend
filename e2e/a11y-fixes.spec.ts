@@ -105,7 +105,9 @@ test('exposes native guide expansion and repairs public landmark references', as
 	await page.keyboard.press('Enter');
 	await expect(guide).toHaveAttribute('open', '');
 	await expect(
-		page.getByRole('heading', { name: '디스코드 웹훅 생성 단계별 가이드' })
+		page
+			.getByTestId('webhook-guide-content')
+			.getByRole('heading', { name: '알림을 받을 채널 선택' })
 	).toBeVisible();
 	await page.goto('/a11y-fix-not-found');
 	await expect(page.locator('main#main-content')).toHaveCount(1);
@@ -130,9 +132,10 @@ test('repairs archive semantics, comparison names and announcement hierarchy', a
 		.analyze();
 	expect(axe.violations).toEqual([]);
 	await page.goto('/notices/2210004?timeline=1&cmpFrom=1&cmpTo=2');
+	await expect(page.getByTestId('revision-comparison')).toBeVisible();
 	const labels = await page
 		.getByTestId('revision-comparison')
-		.locator('section[aria-label]')
+		.locator('[aria-label]')
 		.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label')));
 	expect(labels.length).toBeGreaterThan(1);
 	expect(new Set(labels).size).toBe(labels.length);
@@ -165,12 +168,14 @@ for (const theme of ['light', 'dark']) {
 			})
 		);
 		await page.goto('/webhook');
-		const alert = page.locator('main [role="alert"]');
+		const alert = page
+			.getByRole('alert')
+			.filter({ hasText: 'Error retrieving push subscription.' });
 		await expect(alert).toBeVisible();
 		await alert.scrollIntoViewIfNeeded();
-		await expect(alert).toHaveClass(/lc-banner-error-soft/);
+		await expect(alert).toHaveAttribute('data-notification-type', 'error');
 		const result = await new AxeBuilder({ page })
-			.include('main [role="alert"]')
+			.include('[data-notification-type="error"]')
 			.withRules(['color-contrast'])
 			.analyze();
 		expect(result.violations).toEqual([]);

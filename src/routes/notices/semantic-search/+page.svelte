@@ -1,24 +1,24 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, refreshAll } from '$app/navigation';
 	import { navigating, page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
-	import Header from '$lib/components/Header.svelte';
-	import Alert from '$lib/components/Alert.svelte';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
-	import SemanticSearchUnavailableOverlay from '$lib/components/SemanticSearchUnavailableOverlay.svelte';
-	import SemanticEngineStatus from '$lib/components/SemanticEngineStatus.svelte';
-	import OpenSignalLoader from '$lib/components/OpenSignalLoader.svelte';
+	import Header from '#lib/components/Header.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	import SemanticSearchUnavailableOverlay from '#lib/components/SemanticSearchUnavailableOverlay.svelte';
+	import SemanticEngineStatus from '#lib/components/SemanticEngineStatus.svelte';
+	import OpenSignalLoader from '#lib/components/OpenSignalLoader.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
 		faArrowLeft,
 		faMagnifyingGlass,
 		faWandMagicSparkles
 	} from '@fortawesome/free-solid-svg-icons';
-	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
-	import { dismissTouchKeyboard } from '$lib/utils/keyboard';
-	import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '$lib/types/api';
+	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
+	import { dismissTouchKeyboard } from '#lib/utils/keyboard.ts';
+	import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '#lib/types/api.ts';
 	import {
 		SEMANTIC_MAX_QUERY_LENGTH,
 		SEMANTIC_SEARCH_QUERY_PARAM,
@@ -27,7 +27,7 @@
 		formatSimilarityPercent,
 		parseSemanticSearchQuery,
 		WEAK_RESULT_PAGE_SIZE
-	} from '$lib/utils/semantic-search';
+	} from '#lib/utils/semantic-search.ts';
 	import type { PageData } from './$types';
 
 	// Maximum length of a query string.
@@ -92,10 +92,10 @@
 	let isRetrying = $state(false);
 
 	// Retrying a 429 means asking the server load to run again: the URL does
-	// not change, so invalidateAll() is what re-issues the search.
+	// not change, so refreshAll() is what re-issues the search.
 	const retry = new RetryCountdown(
 		async () => {
-			await invalidateAll();
+			await refreshAll();
 		},
 		(v) => {
 			rateLimitRetryAfter = v;
@@ -173,12 +173,11 @@
 	function syncUrlQuery(next: string) {
 		lastSyncedQuery = next;
 		if (next === urlQuery) return;
-		const params = new SvelteURLSearchParams(page.url.searchParams);
+		const params = new SvelteURLSearchParams(page.url.searchParams.toString());
 		params.set(SEMANTIC_SEARCH_QUERY_PARAM, next);
 		goto(`${page.url.pathname}?${params.toString()}`, {
-			replaceState: true,
-			noScroll: true,
-			keepFocus: true
+			replace: true,
+			reset: false
 		});
 	}
 
@@ -200,7 +199,7 @@
 		// be expressed as a URL change, so reload the data instead — a goto to
 		// the identical URL would not rerun the server load.
 		if (trimmed === urlQuery) {
-			void invalidateAll();
+			void refreshAll();
 			return;
 		}
 		syncUrlQuery(trimmed);
@@ -299,17 +298,17 @@
 									placeholder="예: 임대차 계약에서 세입자 보호"
 									data-testid="semantic-search-input"
 									disabled={isLoading}
-									class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+									class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
 								/>
 							</div>
 							<button
 								type="submit"
 								disabled={isLoading}
 								data-testid="semantic-search-submit"
-								class="lc-button-primary inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+								class="lc-button-primary inline-flex cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{#if isLoading}
-									<FontAwesomeIcon icon={faWandMagicSparkles} class="mr-2 h-4 w-4 lc-wand-glint" />
+									<FontAwesomeIcon icon={faWandMagicSparkles} class="lc-wand-glint mr-2 h-4 w-4" />
 									검색 중
 								{:else}
 									검색
@@ -385,7 +384,7 @@
 								</p>
 								<button
 									type="button"
-									class="lc-button-neutral rounded-lg border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+									class="lc-button-neutral cursor-pointer rounded-lg border px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
 									data-testid="semantic-search-show-weak"
 									onclick={revealWeakResults}
 								>
@@ -480,7 +479,7 @@
 										</a>
 									</h3>
 									{#if result.excerpt}
-										<p class="lc-text-secondary mt-2 whitespace-pre-line text-sm">
+										<p class="lc-text-secondary mt-2 text-sm whitespace-pre-line">
 											{result.excerpt}
 										</p>
 									{/if}
@@ -528,7 +527,7 @@
 								{#each data.exampleQueries as example (example)}
 									<button
 										type="button"
-										class="lc-button-neutral rounded-lg border px-3 py-2 text-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+										class="lc-button-neutral cursor-pointer rounded-lg border px-3 py-2 text-sm transition-all duration-200 hover:-translate-y-0.5"
 										onclick={() => handleExampleQuery(example)}
 										data-testid="semantic-search-example"
 									>

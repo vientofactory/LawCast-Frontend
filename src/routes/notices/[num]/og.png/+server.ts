@@ -1,9 +1,9 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { apiClient } from '$lib/api/client';
-import { getMockNoticeDetail, isDiffchainUiMockEnabled } from '$lib/server/diffchain-ui-mock';
-import { renderBillOgImage } from '$lib/server/og-image';
-import type { NoticeDetail } from '$lib/types/api';
+import { apiClient } from '#lib/api/client.ts';
+import { getMockNoticeDetail, isDiffchainUiMockEnabled } from '#lib/server/diffchain-ui-mock.ts';
+import { renderBillOgImage } from '#lib/server/og-image.ts';
+import type { NoticeDetail } from '#lib/types/api.ts';
 
 function getHttpStatus(value: unknown): number | null {
 	const status = (value as { status?: unknown } | undefined)?.status;

@@ -1,22 +1,22 @@
-import { env } from '$env/dynamic/public';
-import { apiClient } from '$lib/api/client';
+import * as env from '$app/env/public';
+import { apiClient } from '#lib/api/client.ts';
 import {
 	isDiffchainUiMockEnabled,
 	getMockArchiveNoticesResponse
-} from '$lib/server/diffchain-ui-mock';
-import { toLoadErrorPayload } from '$lib/server/load-error';
-import { PER_REQUEST_HTML_CACHE_CONTROL } from '$lib/server/ssr-cache-policy';
-import { toNoticeCard } from '$lib/server/ssr-cards';
+} from '#lib/server/diffchain-ui-mock.ts';
+import { toLoadErrorPayload } from '#lib/server/load-error.ts';
+import { PER_REQUEST_HTML_CACHE_CONTROL } from '#lib/server/ssr-cache-policy.ts';
+import { toNoticeCard } from '#lib/server/ssr-cards.ts';
 import {
 	isSemanticSearchEnabled,
 	normalizeBoardSearchMode,
 	pickExampleQueries
-} from '$lib/utils/semantic-search';
+} from '#lib/utils/semantic-search.ts';
 import type {
 	ArchiveNoticeCardListResponse,
 	ArchiveNoticeListResponse,
 	BoardSearchMode
-} from '$lib/types/api';
+} from '#lib/types/api.ts';
 import type { PageServerLoad } from '../$types';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;

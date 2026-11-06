@@ -8,7 +8,7 @@
 		isServerUnavailable,
 		FAILURE_PRESENTATION,
 		type LoadErrorPayload
-	} from '$lib/utils/request-failure';
+	} from '#lib/utils/request-failure.ts';
 	let {
 		error,
 		retryAfter = 0,

@@ -22,7 +22,10 @@ function normalizeLicense(raw: string | undefined): string {
 	return raw.replace(/^\(|\)$/g, '');
 }
 
-type LockfilePackages = Record<string, { version?: string; license?: string }>;
+type LockfilePackages = Record<
+	string,
+	{ version?: string; license?: string; [metadata: string]: unknown }
+>;
 
 function loadPackagesFromLockfile(
 	pkg: { dependencies?: Record<string, string> },

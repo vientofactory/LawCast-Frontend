@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { loadAdminNoticeList } from '$lib/server/announcements';
-import { lexNoticeBody } from '$lib/server/notice-body';
+import { loadAdminNoticeList } from '#lib/server/announcements.ts';
+import { lexNoticeBody } from '#lib/server/notice-body.ts';
 import type { PageServerLoad } from './$types';
 
 /**

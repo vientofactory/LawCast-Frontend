@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
-	import Header from '$lib/components/Header.svelte';
-	import RecentNotices from '$lib/components/RecentNotices.svelte';
-	import RecentDiscussions from '$lib/components/RecentDiscussions.svelte';
-	import SeoHead from '$lib/components/SeoHead.svelte';
-	import { formatDate } from '$lib/utils/helpers';
+	import * as env from '$app/env/public';
+	import Header from '#lib/components/Header.svelte';
+	import RecentNotices from '#lib/components/RecentNotices.svelte';
+	import RecentDiscussions from '#lib/components/RecentDiscussions.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
+	import { formatDate } from '#lib/utils/helpers.ts';
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { faDiscord } from '@fortawesome/free-brands-svg-icons';
@@ -33,7 +33,7 @@
 	});
 
 	afterNavigate(() => {
-		currentUrl = page.url;
+		currentUrl = new URL(page.url.href);
 		isQuickSearchLoading = false;
 	});
 
@@ -319,7 +319,7 @@
 									</p>
 									<p class="lc-home-signal-desc">처음 공개된 내용을 차곡차곡 보관</p>
 									<p
-										class="mt-1 text-xs font-semibold lc-text-accent inline-flex items-center gap-1"
+										class="lc-text-accent mt-1 inline-flex items-center gap-1 text-xs font-semibold"
 									>
 										입법예고 보기 <FontAwesomeIcon icon={faArrowRight} class="h-3 w-3" />
 									</p>
@@ -351,7 +351,7 @@
 									</p>
 									<p class="lc-home-signal-desc">비교 가능한 변경 추적 보기</p>
 									<p
-										class="mt-1 text-xs font-semibold lc-text-accent inline-flex items-center gap-1"
+										class="lc-text-accent mt-1 inline-flex items-center gap-1 text-xs font-semibold"
 									>
 										변경 내역 보기 <FontAwesomeIcon icon={faArrowRight} class="h-3 w-3" />
 									</p>

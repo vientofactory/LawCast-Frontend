@@ -54,7 +54,10 @@ test.describe('Client-side rate-limit handling', () => {
 
 		// The modal surfaces the Korean rate-limit message with the server-provided
 		// retry-after countdown (not the backend's English message).
-		await expect(page.getByText('요청이 너무 많습니다. 5초 후 다시 시도해주세요.')).toBeVisible();
+		await expect(page.locator('#thread-validation-error')).toHaveText(
+			'요청이 너무 많습니다. 5초 후 다시 시도해주세요.'
+		);
+		await expect(page.getByRole('button', { name: /토론 개설/ })).toBeDisabled();
 	});
 
 	test('thread detail reload shows the rate-limit countdown and disables refresh', async ({

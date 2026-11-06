@@ -1,12 +1,15 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
+	import * as env from '$app/env/public';
 	import { page } from '$app/state';
-	import { isChallengeStatus, isUnderAttackReloadEnabled } from '$lib/utils/cloudflare-challenge';
-	import CloudflareChallengeRecovery from '$lib/components/CloudflareChallengeRecovery.svelte';
-	import { getFailureKind, FAILURE_PRESENTATION } from '$lib/utils/request-failure';
-	import Header from '$lib/components/Header.svelte';
-	import ServerOfflineState from '$lib/components/ServerOfflineState.svelte';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import {
+		isChallengeStatus,
+		isUnderAttackReloadEnabled
+	} from '#lib/utils/cloudflare-challenge.ts';
+	import CloudflareChallengeRecovery from '#lib/components/CloudflareChallengeRecovery.svelte';
+	import { getFailureKind, FAILURE_PRESENTATION } from '#lib/utils/request-failure.ts';
+	import Header from '#lib/components/Header.svelte';
+	import ServerOfflineState from '#lib/components/ServerOfflineState.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faArrowLeft, faCompass, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 

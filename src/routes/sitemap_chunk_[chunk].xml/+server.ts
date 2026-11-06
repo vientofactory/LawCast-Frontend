@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { cachedSitemap, noticeSitemap } from '$lib/server/sitemap';
+import { cachedSitemap, noticeSitemap } from '#lib/server/sitemap.ts';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = ({ fetch, request, params, url }) =>

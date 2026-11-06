@@ -56,14 +56,14 @@
 	color: #a5f3fc;
 }
 
-:global(.svg-inline--fa) {
+.svg-inline--fa {
 	display: inline-block;
 	height: 1em;
 	overflow: visible;
 	vertical-align: -0.125em;
 }
 
-:global(.svg-inline--fa.fa-fw) {
+.svg-inline--fa.fa-fw {
 	width: 1.25em;
 }
 

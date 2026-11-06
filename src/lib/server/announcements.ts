@@ -1,7 +1,7 @@
-import { apiClient } from '$lib/api/client';
-import { isDiffchainUiMockEnabled, getMockAdminNotices } from '$lib/server/diffchain-ui-mock';
-import { toAdminNoticeCard } from '$lib/server/ssr-cards';
-import type { AdminNoticeListResponse, AdminNoticeTopResponse } from '$lib/types/api';
+import { apiClient } from '#lib/api/client.ts';
+import { isDiffchainUiMockEnabled, getMockAdminNotices } from '#lib/server/diffchain-ui-mock.ts';
+import { toAdminNoticeCard } from '#lib/server/ssr-cards.ts';
+import type { AdminNoticeListResponse, AdminNoticeTopResponse } from '#lib/types/api.ts';
 
 /**
  * Upper bound for how long SSR waits for the Notion-backed admin notice API.

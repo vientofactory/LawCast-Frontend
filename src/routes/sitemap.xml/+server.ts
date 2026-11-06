@@ -1,4 +1,4 @@
-import { cachedSitemap, fetchArchivePage, sitemapIndex } from '$lib/server/sitemap';
+import { cachedSitemap, fetchArchivePage, sitemapIndex } from '#lib/server/sitemap.ts';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = ({ fetch, request, url }) =>

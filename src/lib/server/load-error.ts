@@ -1,9 +1,9 @@
-import { isRateLimitError, getRateLimitRetryAfter } from '$lib/api/client';
-import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
+import { isRateLimitError, getRateLimitRetryAfter } from '#lib/api/client.ts';
+import { toUserFacingErrorMessage } from '#lib/utils/error-message.util.ts';
 
-export type { LoadErrorPayload } from '$lib/utils/request-failure';
-import type { LoadErrorPayload } from '$lib/utils/request-failure';
-import { getFailureKind, getFailureStatus } from '$lib/utils/request-failure';
+export type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
+import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
+import { getFailureKind, getFailureStatus } from '#lib/utils/request-failure.ts';
 
 /**
  * Convert an unknown load error into a user-facing payload.

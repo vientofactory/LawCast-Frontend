@@ -1,12 +1,12 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
-	import Header from '$lib/components/Header.svelte';
+	import Alert from '#lib/components/Alert.svelte';
+	import Header from '#lib/components/Header.svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import SeoHead from '$lib/components/SeoHead.svelte';
+	import SeoHead from '#lib/components/SeoHead.svelte';
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { DiscussionThreadStatus } from '$lib/types/api';
+	import { DiscussionThreadStatus } from '#lib/types/api.ts';
 	import { faArrowLeft, faScaleBalanced, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 	import type {
 		NoticeDetail,
@@ -14,20 +14,20 @@
 		DiscussionComment,
 		DiscussionThread,
 		CreateCommentPayload
-	} from '$lib/types/api';
-	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '$lib/api/client';
-	import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
-	import ThreadDetailView from '$lib/components/discussions/ThreadDetailView.svelte';
-	import ThreadDetailSkeleton from '$lib/components/discussions/ThreadDetailSkeleton.svelte';
-	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
+	} from '#lib/types/api.ts';
+	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '#lib/api/client.ts';
+	import { toUserFacingErrorMessage } from '#lib/utils/error-message.util.ts';
+	import ThreadDetailView from '#lib/components/discussions/ThreadDetailView.svelte';
+	import ThreadDetailSkeleton from '#lib/components/discussions/ThreadDetailSkeleton.svelte';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
 	import {
 		getFailureKind,
 		getFailureStatus,
 		type LoadErrorPayload
-	} from '$lib/utils/request-failure';
+	} from '#lib/utils/request-failure.ts';
 	import type { Component, ComponentProps } from 'svelte';
-	import type CommentActionModal from '$lib/components/discussions/CommentActionModal.svelte';
-	import type DiscussionPushConsentModal from '$lib/components/discussions/DiscussionPushConsentModal.svelte';
+	import type CommentActionModal from '#lib/components/discussions/CommentActionModal.svelte';
+	import type DiscussionPushConsentModal from '#lib/components/discussions/DiscussionPushConsentModal.svelte';
 
 	let {
 		data
@@ -60,8 +60,8 @@
 			updatedAt: new Date(0).toISOString()
 		}
 	);
-	let comments = $derived(discussionData?.comments ?? []);
 
+	let comments = $derived(discussionData?.comments ?? []);
 	let isSubmittingComment = $state(false);
 	let isActionModalOpen = $state(false);
 	let actionModalMode: 'edit-comment' | 'delete-comment' | 'toggle-thread-status' =
@@ -72,6 +72,7 @@
 	let actionErrorMessage = $state('');
 	let CommentActionModalComponent: Component<ComponentProps<typeof CommentActionModal>> | null =
 		$state(null);
+
 	let DiscussionPushConsentModalComponent: Component<
 		ComponentProps<typeof DiscussionPushConsentModal>
 	> | null = $state(null);
@@ -120,7 +121,7 @@
 		if (!isWebPushAvailableByServer) return;
 		if (DiscussionPushConsentModalComponent) return;
 
-		const mod = await import('$lib/components/discussions/DiscussionPushConsentModal.svelte');
+		const mod = await import('#lib/components/discussions/DiscussionPushConsentModal.svelte');
 		DiscussionPushConsentModalComponent = mod.default;
 		await tick();
 	}
@@ -289,7 +290,7 @@
 		setup();
 		actionErrorMessage = '';
 		if (!CommentActionModalComponent) {
-			const mod = await import('$lib/components/discussions/CommentActionModal.svelte');
+			const mod = await import('#lib/components/discussions/CommentActionModal.svelte');
 			CommentActionModalComponent = mod.default;
 			await tick();
 		}
@@ -426,8 +427,11 @@
 	}
 
 	let currentUrl = $state(page.url);
-	afterNavigate(() => {
-		currentUrl = page.url;
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		currentUrl = new URL(page.url.href);
 	});
 
 	let pageTitle = $derived(`${thread.title} - 의안 "${detail.notice.subject}" 토론`);
@@ -458,7 +462,7 @@
 		<nav class="mb-6 flex flex-wrap items-center gap-2 text-sm" aria-label="이동 경로">
 			<a
 				href={`/notices/${data.noticeNum}#notice-discussions`}
-				class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-1.5 transition-colors text-xs font-semibold"
+				class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
 			>
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-1.5 h-3.5 w-3.5" />
 				법률안 상세로 돌아가기
@@ -466,12 +470,12 @@
 			<span class="lc-text-dim" aria-hidden="true">/</span>
 			<a
 				href={`/notices/${data.noticeNum}`}
-				class="lc-text-secondary hover:lc-text-primary text-xs font-medium truncate max-w-xs sm:max-w-md"
+				class="lc-text-secondary hover:lc-text-primary max-w-xs truncate text-xs font-medium sm:max-w-md"
 			>
 				{detail.notice.subject}
 			</a>
 			<span class="lc-text-dim" aria-hidden="true">/</span>
-			<span class="lc-text-primary text-xs font-bold truncate max-w-[200px]">
+			<span class="lc-text-primary max-w-[200px] truncate text-xs font-bold">
 				토론 #{thread.id}
 			</span>
 		</nav>
@@ -480,7 +484,7 @@
 		<div class="lc-thread-context" data-testid="discussion-bill-context">
 			<p class="lc-text-muted mb-3 text-sm font-semibold">토론 대상 법률안</p>
 			<div class="flex flex-col items-start gap-3 lg:flex-row lg:items-center lg:justify-between">
-				<div class="min-w-0 w-full flex-1 space-y-1">
+				<div class="w-full min-w-0 flex-1 space-y-1">
 					<div class="flex flex-wrap items-center gap-2">
 						<span
 							class="lc-chip-blue inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
@@ -499,7 +503,7 @@
 					</div>
 					<h1
 						id="discussion-thread-title"
-						class="lc-text-primary text-lg leading-relaxed font-bold wrap-anywhere mt-3"
+						class="lc-text-primary mt-3 text-lg leading-relaxed font-bold wrap-anywhere"
 					>
 						{detail.notice.subject}
 					</h1>

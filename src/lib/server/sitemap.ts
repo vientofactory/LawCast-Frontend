@@ -1,7 +1,7 @@
-import { env } from '$env/dynamic/private';
+import * as env from '$app/env/private';
 import { error } from '@sveltejs/kit';
-import { buildBackendForwardHeaders } from '$lib/server/client-ip';
-import type { ArchiveNoticeListResponse, Notice } from '$lib/types/api';
+import { buildBackendForwardHeaders } from '#lib/server/client-ip.ts';
+import type { ArchiveNoticeListResponse, Notice } from '#lib/types/api.ts';
 
 export const SITEMAP_CHUNK_SIZE = 500;
 const BATCH_SIZE = 100;

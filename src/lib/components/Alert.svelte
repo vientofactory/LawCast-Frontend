@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
-	import { useNotifications, type NotificationType } from '$lib/utils/notifications';
+	import { useNotifications, type NotificationType } from '#lib/utils/notifications.ts';
 	let {
 		type = 'info',
 		message = '',

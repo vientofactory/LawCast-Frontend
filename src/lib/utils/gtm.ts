@@ -1,4 +1,4 @@
-import * as staticPublicEnv from '$env/static/public'; /**
+import * as staticPublicEnv from '$app/env/public'; /**
  * Google Tag Manager helpers.
  * The container ID is baked at build time from `PUBLIC_GTM_CONTAINER_ID`.
  * A namespace import is used (instead of a named import) so builds and

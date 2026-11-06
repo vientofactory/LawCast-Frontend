@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Alert from '$lib/components/Alert.svelte';
+	import Alert from '#lib/components/Alert.svelte';
 	import { onMount } from 'svelte';
-	import { floatingPrompt } from '$lib/utils/floating-prompt-motion';
+	import { floatingPrompt } from '#lib/utils/floating-prompt-motion.ts';
 
 	interface InstallPromptEvent extends Event {
 		prompt(): Promise<void>;

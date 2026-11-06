@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { DiscussionThreadStatus, type DiscussionThreadCard } from '$lib/types/api';
-	import { formatDateTimeKST } from '$lib/utils/helpers';
+	import { DiscussionThreadStatus, type DiscussionThreadCard } from '#lib/types/api.ts';
+	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
 	import {
 		faComments,
 		faExternalLink,
@@ -47,7 +47,7 @@
 						<a
 							id="recent-discussion-{thread.id}"
 							href="/notices/{thread.noticeNum}/discussions/{thread.id}"
-							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150 hover:text-blue-600 group-hover:text-blue-600"
+							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150 group-hover:text-blue-600 hover:text-blue-600"
 						>
 							{thread.title}
 						</a>

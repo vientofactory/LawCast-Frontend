@@ -4,9 +4,9 @@
 </script>
 
 <script lang="ts">
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { untrack } from 'svelte';
-	import { BRAND_ARC, BRAND_LETTER, BRAND_DOT } from '$lib/brand-symbol';
+	import { BRAND_ARC, BRAND_LETTER, BRAND_DOT } from '#lib/brand-symbol.js';
 
 	let { compact = false, animate = false }: { compact?: boolean; animate?: boolean } = $props();
 	// Route headers may remount during client navigation; play once per document load.
@@ -33,7 +33,7 @@
 			stroke="currentColor"
 			stroke-width="10"
 			stroke-linecap="round"
-		/>
+		></path>
 		<path
 			class="lc-brand-letter"
 			data-testid="brand-letter"
@@ -43,7 +43,7 @@
 			stroke-width="6"
 			stroke-linecap="round"
 			stroke-linejoin="round"
-		/>
+		></path>
 		<circle
 			class="lc-brand-echo"
 			cx={BRAND_DOT.cx}
@@ -52,7 +52,7 @@
 			fill="none"
 			stroke="currentColor"
 			stroke-width="1.5"
-		/>
+		></circle>
 		<circle
 			class="lc-brand-dot"
 			data-testid="brand-dot"
@@ -60,7 +60,7 @@
 			cy={BRAND_DOT.cy}
 			r={BRAND_DOT.r}
 			fill="currentColor"
-		/>
+		></circle>
 	</svg>
 	<span class="lc-brand-wordmark" data-testid="brand-wordmark" aria-hidden="true">
 		<img src="/brand/v2/wordmark-light.svg" alt="" width="179" height="64" class="lc-brand-light" />
