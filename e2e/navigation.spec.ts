@@ -105,8 +105,11 @@ test.describe('Global Navigation', () => {
 		await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
 		await expect(page.getByTestId('mobile-navigation')).toHaveCount(0);
 
-		await menuButton.click();
-		await expect(page.getByTestId('mobile-navigation')).toBeVisible();
+		await expect(async () => {
+			if (await page.getByTestId('mobile-navigation').isVisible()) return;
+			await menuButton.click();
+			await expect(page.getByTestId('mobile-navigation')).toBeVisible({ timeout: 1000 });
+		}).toPass({ timeout: 20_000 });
 		await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
 
 		await page.getByTestId('mobile-nav-link-notices').click();

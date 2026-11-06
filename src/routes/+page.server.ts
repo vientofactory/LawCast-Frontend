@@ -1,4 +1,6 @@
 import { apiClient } from '$lib/api/client';
+import { isServerUnavailable } from '$lib/utils/request-failure';
+import { toLoadErrorPayload } from '$lib/server/load-error';
 import { loadTopAdminNotice } from '$lib/server/announcements';
 import { toDiscussionThreadCard, toNoticeCard } from '$lib/server/ssr-cards';
 import { DiscussionThreadStatus } from '$lib/types/api';
@@ -60,6 +62,7 @@ function toHomeQuickKeywords(keywords: {
 export const load: PageServerLoad = async ({ fetch }) => {
 	if (isDiffchainUiMockEnabled()) {
 		return {
+			loadError: null,
 			recentNotices: getMockRecentNotices().map(toNoticeCard),
 			quickKeywords: toHomeQuickKeywords(getMockQuickKeywordSuggestions()),
 			stats: toHomeStats(getMockSystemStats()),
@@ -69,11 +72,16 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		};
 	}
 
+	let recentFailure: unknown;
+	let statsFailure: unknown;
 	const [recentNotices, quickKeywords, stats, recentDiscussions, pinnedNotice] = await Promise.all([
 		apiClient
 			.getRecentNotices(fetch)
 			.then((items) => items.map(toNoticeCard))
-			.catch(() => []),
+			.catch((error) => {
+				recentFailure = error;
+				return [];
+			}),
 		apiClient
 			.getQuickKeywordSuggestions({ limit: 8 }, fetch)
 			.then(toHomeQuickKeywords)
@@ -81,7 +89,10 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		apiClient
 			.getHomeStats(fetch)
 			.then(toHomeStats)
-			.catch(() => toHomeStats(DEFAULT_STATS)),
+			.catch((error) => {
+				statsFailure = error;
+				return toHomeStats(DEFAULT_STATS);
+			}),
 		apiClient
 			.getAllDiscussionThreads(
 				{ limit: RECENT_DISCUSSIONS_LIMIT, status: DiscussionThreadStatus.OPEN },
@@ -96,5 +107,15 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			.catch(() => null)
 	]);
 
-	return { recentNotices, quickKeywords, stats, recentDiscussions, pinnedNotice };
+	return {
+		recentNotices,
+		quickKeywords,
+		stats,
+		recentDiscussions,
+		pinnedNotice,
+		loadError:
+			isServerUnavailable(recentFailure) && isServerUnavailable(statsFailure)
+				? toLoadErrorPayload(recentFailure, '홈 데이터를 불러오지 못했습니다.')
+				: null
+	};
 };

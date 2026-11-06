@@ -249,8 +249,14 @@ test('keeps modal actions reachable while the consent banner is visible', async 
 	await page.getByTestId('discussion-new-thread-password').fill('1234');
 	await page.getByTestId('discussion-new-thread-content').fill('모달 접근성 검증 의견입니다.');
 	await page.getByTestId('discussion-new-thread-submit').click();
-	await expect(page.getByTestId('discussion-new-thread-error')).toHaveText(
-		'토론 주제를 2자 이상 입력해주세요.'
-	);
+	const modal = page.getByTestId('discussion-new-thread-modal');
+	const notification = modal.getByTestId('discussion-new-thread-error');
+	await expect(notification).toHaveRole('alert');
+	await expect(
+		notification.getByText('토론 주제를 2자 이상 입력해주세요.', { exact: true })
+	).toBeVisible();
+	await notification.getByRole('button', { name: '알림 닫기', exact: true }).click();
+	await expect(notification).toHaveCount(0);
+	await expect(modal).toBeVisible();
 	await expect(page.getByTestId('cookie-consent-banner')).toBeVisible();
 });

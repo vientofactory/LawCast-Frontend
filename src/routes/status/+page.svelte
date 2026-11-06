@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import Header from '$lib/components/Header.svelte';
 	import Alert from '$lib/components/Alert.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { invalidate } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -52,16 +52,7 @@
 		}
 	);
 
-	$effect(() => {
-		if (loadError !== retry.lastSeenError) {
-			retry.lastSeenError = loadError;
-			if (loadError?.retryAfter && loadError.retryAfter > 0) {
-				retry.start(loadError.retryAfter);
-			} else {
-				retry.stop();
-			}
-		}
-	});
+	$effect(() => retry.sync(loadError));
 
 	let crawlers = $derived(stats.crawlers);
 	let isDoneSync = $derived(stats.archive.isDoneSync as IsDoneSyncStatus | null | undefined);
@@ -458,8 +449,8 @@
 <div class="lc-page-shell">
 	<Header />
 
-	<main id="main-content" class="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-		<div class="lc-panel-hero mb-6 rounded-2xl border p-5">
+	<main id="main-content" class="lc-main">
+		<div class="lc-page-heading">
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
 					<p class="lc-text-info text-xs font-semibold tracking-wide">SYSTEM STATUS</p>
@@ -493,8 +484,8 @@
 		</div>
 
 		{#if loadError}
-			<RateLimitOverlay
-				visible={Boolean(loadError)}
+			<LoadFailureState
+				error={loadError}
 				retryAfter={countdown}
 				onRetry={() => retry.retry()}
 				{isRetrying}
@@ -503,7 +494,7 @@
 
 		{#if hasCacheIssue || hasOllamaIssue || hasDisabledCrawler}
 			<section class="lc-banner-warning lc-defer-render-sm mt-4 mb-4 rounded-2xl border p-4">
-				<h2 class="mb-2 flex items-center text-sm font-bold">
+				<h2 class="mb-2 flex items-center lc-section-heading font-bold">
 					<FontAwesomeIcon icon={faTriangleExclamation} class="mr-2 h-4 w-4" />
 					안내
 				</h2>
@@ -531,11 +522,11 @@
 
 		<!-- ── Crawler Status Cards ─────────────────────────────────────── -->
 		{#if crawlers}
-			<div class="grid gap-4 md:grid-cols-2">
+			<div class="lc-section-grid grid gap-4 md:grid-cols-2">
 				<!-- PAL Crawler -->
-				<section data-testid="crawler-pal" class="lc-panel-card rounded-2xl border p-4 shadow-sm">
-					<div class="mb-3 flex items-center justify-between">
-						<h2 class="lc-text-primary flex items-center text-sm font-bold">
+				<section data-testid="crawler-pal" class="lc-section">
+					<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+						<h2 class="lc-text-primary flex items-center lc-section-heading font-bold">
 							<FontAwesomeIcon icon={faGlobe} class="lc-text-accent mr-2 h-4 w-4" />
 							{palCrawlerName}
 						</h2>
@@ -578,9 +569,9 @@
 				</section>
 
 				<!-- NSM Crawler -->
-				<section data-testid="crawler-nsm" class="lc-panel-card rounded-2xl border p-4 shadow-sm">
-					<div class="mb-3 flex items-center justify-between">
-						<h2 class="lc-text-primary flex items-center text-sm font-bold">
+				<section data-testid="crawler-nsm" class="lc-section">
+					<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+						<h2 class="lc-text-primary flex items-center lc-section-heading font-bold">
 							<FontAwesomeIcon icon={faGlobe} class="lc-text-purple mr-2 h-4 w-4" />
 							{nsmCrawlerName}
 						</h2>
@@ -641,9 +632,9 @@
 			</div>
 
 			<!-- ── Cron Job Status ──────────────────────────────────────── -->
-			<section class="lc-panel-card lc-defer-render-sm mt-4 rounded-2xl border p-5 shadow-sm">
-				<div class="mb-3 flex items-center justify-between">
-					<h2 class="lc-text-primary flex items-center text-sm font-bold">
+			<section class="lc-section">
+				<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+					<h2 class="lc-text-primary flex items-center lc-section-heading font-bold">
 						<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
 						크론 작업 현황
 					</h2>
@@ -691,8 +682,8 @@
 
 		<!-- ── Core Status Cards ───────────────────────────────────────── -->
 		<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mt-4">
-			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
-				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
+			<section class="lc-section">
+				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
 					<FontAwesomeIcon icon={faLink} class="lc-text-success mr-2 h-4 w-4" />
 					웹훅 상태
 				</h2>
@@ -709,8 +700,8 @@
 				</div>
 			</section>
 
-			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
-				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
+			<section class="lc-section">
+				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
 					<FontAwesomeIcon icon={faDatabase} class="lc-text-accent mr-2 h-4 w-4" />
 					캐시 상태
 				</h2>
@@ -728,8 +719,8 @@
 				</div>
 			</section>
 
-			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
-				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
+			<section class="lc-section">
+				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
 					<FontAwesomeIcon icon={faCloud} class="lc-text-info mr-2 h-4 w-4" />
 					웹 푸시 상태
 				</h2>
@@ -757,8 +748,8 @@
 				</div>
 			</section>
 
-			<section class="lc-panel-card rounded-2xl border p-4 shadow-sm">
-				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
+			<section class="lc-section">
+				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
 					<FontAwesomeIcon icon={faRobot} class="lc-text-info mr-2 h-4 w-4" />
 					AI 요약
 				</h2>
@@ -785,8 +776,8 @@
 				</div>
 			</section>
 
-			<section class="lc-panel-card lc-defer-render-sm rounded-2xl border p-5 shadow-sm">
-				<h2 class="lc-text-primary mb-3 flex items-center text-sm font-bold">
+			<section class="lc-section">
+				<h2 class="lc-text-primary mb-3 flex items-center lc-section-heading font-bold">
 					<FontAwesomeIcon icon={faArrowsRotate} class="lc-text-info mr-2 h-4 w-4" />
 					종료 마커 동기화
 				</h2>

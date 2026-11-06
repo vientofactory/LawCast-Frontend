@@ -86,6 +86,27 @@ test('preserves long text when the bounded diff falls back', () => {
 });
 
 async function expectHistoryDestination(page: Page, testId: string) {
+	if (testId === 'revision-comparison') {
+		await expect
+			.poll(() =>
+				page.getByTestId(testId).evaluate((element) => {
+					const result = element.getBoundingClientRect();
+					const toolbar = document
+						.querySelector('[data-testid="revision-selection"]')!
+						.getBoundingClientRect();
+					const header = document.querySelector('.lc-header-shell')!.getBoundingClientRect();
+					return (
+						toolbar.top >= header.bottom - 1 &&
+						toolbar.bottom <= innerHeight &&
+						result.top >= toolbar.bottom - 1 &&
+						result.top < innerHeight - 100
+					);
+				})
+			)
+			.toBe(true);
+		await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+		return;
+	}
 	await expect
 		.poll(() =>
 			page
@@ -102,6 +123,38 @@ async function expectHistoryDestination(page: Page, testId: string) {
 }
 
 test.describe('Revision history (mock fixtures)', () => {
+	for (const width of [1280, 390]) {
+		test(`disables viewing the active revision and updates after navigation at ${width}px`, async ({
+			page
+		}) => {
+			await page.setViewportSize({ width, height: 844 });
+			await page.goto('/notices/2210001?timeline=true');
+			const latest = page.getByTestId('revision-view-3');
+			await expect(latest).toBeDisabled();
+			await expect(latest).toHaveText('열람 중');
+			await expect(latest).toHaveAttribute('aria-current', 'page');
+			await expect(latest).not.toHaveAttribute('href');
+			const latestUrl = page.url();
+			await latest.evaluate((element) => (element as HTMLButtonElement).click());
+			expect(page.url()).toBe(latestUrl);
+			await page.getByTestId('revision-view-1').click();
+			await expect(page).toHaveURL(/rev=1/);
+			await expect(page.getByTestId('revision-view-1')).toBeDisabled();
+			await expect(page.getByTestId('revision-view-1')).toHaveText('열람 중');
+			await expect(latest).toBeEnabled();
+			await expect(latest).toHaveAttribute('href', /rev=3/);
+			await page.getByTestId('revision-view-2').focus();
+			await page.keyboard.press('Enter');
+			await expect(page).toHaveURL(/rev=2/);
+			await expect(page.getByTestId('revision-view-2')).toBeDisabled();
+			await expect(page.getByTestId('revision-view-1')).toBeEnabled();
+			await page.getByTestId('historical-revision-banner').getByRole('link').click();
+			await expect(page).not.toHaveURL(/rev=/);
+			await expect(latest).toBeDisabled();
+			await expect(page.getByTestId('revision-view-2')).toBeEnabled();
+		});
+	}
+
 	for (const [query, target] of [
 		['timeline=true', 'notice-detail-timeline'],
 		['cmpFrom=1&cmpTo=2', 'revision-comparison'],
@@ -132,10 +185,12 @@ test.describe('Revision history (mock fixtures)', () => {
 			})
 		);
 		expect(
-			await page
-				.getByTestId('revision-comparison')
-				.evaluate((element) => element.getBoundingClientRect().top)
-		).toBeLessThan(100);
+			await page.getByTestId('compare-clear').evaluate((element) => {
+				const rect = element.getBoundingClientRect();
+				const header = document.querySelector('.lc-header-shell')!.getBoundingClientRect();
+				return rect.top >= header.bottom && rect.bottom <= innerHeight;
+			})
+		).toBe(true);
 		await page.getByTestId('revision-base-3').click();
 		await expect(page.getByTestId('compare-from-select')).toHaveValue('3');
 		await page.getByTestId('revision-history').evaluate(async (element) => {
@@ -150,10 +205,12 @@ test.describe('Revision history (mock fixtures)', () => {
 			);
 		});
 		expect(
-			await page
-				.getByTestId('revision-comparison')
-				.evaluate((element) => element.getBoundingClientRect().top)
-		).toBeLessThan(100);
+			await page.getByTestId('compare-clear').evaluate((element) => {
+				const rect = element.getBoundingClientRect();
+				const header = document.querySelector('.lc-header-shell')!.getBoundingClientRect();
+				return rect.top >= header.bottom && rect.bottom <= innerHeight;
+			})
+		).toBe(true);
 	});
 
 	test('opens the selected change directly from the changes list', async ({ page }) => {

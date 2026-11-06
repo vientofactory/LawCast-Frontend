@@ -10,6 +10,14 @@ function mockCommentId(sequence: number): number {
 	return threadId * 1000 + sequence;
 }
 
+// Settle automatic pagination before typing so appended comments cannot move the submit target.
+async function prepareReplyComposer(page: Page): Promise<void> {
+	await expect(async () => {
+		await page.getByTestId('discussion-reply-form').scrollIntoViewIfNeeded();
+		await expect(page.getByTestId('discussion-comment-54')).toBeAttached({ timeout: 1000 });
+	}).toPass({ timeout: 15_000 });
+}
+
 // Clicking before hydration completes silently does nothing, so retry until the
 // async-triggered modal is actually on screen.
 async function untilVisible(
@@ -147,6 +155,7 @@ test.describe('Discussion UI', () => {
 		);
 		await expect(page.getByTestId('discussion-reply-form')).toBeVisible();
 
+		await prepareReplyComposer(page);
 		await page.getByTestId('discussion-reply-nickname').fill('테스터');
 		await page.getByTestId('discussion-reply-password').fill('1234');
 		await page.getByTestId('discussion-reply-content').fill('새 테스트 의견입니다.');
@@ -200,16 +209,16 @@ test.describe('Discussion UI', () => {
 
 		// Empty title must fail client-side validation without any network call.
 		await page.getByTestId('discussion-new-thread-submit').click();
-		await expect(page.getByTestId('discussion-new-thread-error')).toHaveText(
-			'토론 주제를 2자 이상 입력해주세요.'
-		);
+		await expect(
+			page.locator('[data-testid="discussion-new-thread-error"]:not([inert])')
+		).toContainText('토론 주제를 2자 이상 입력해주세요.');
 
 		// Whitespace-only title must be rejected too (trim happens before the length check).
 		await page.getByTestId('discussion-new-thread-title').fill('   ');
 		await page.getByTestId('discussion-new-thread-submit').click();
-		await expect(page.getByTestId('discussion-new-thread-error')).toHaveText(
-			'토론 주제를 2자 이상 입력해주세요.'
-		);
+		await expect(
+			page.locator('[data-testid="discussion-new-thread-error"]:not([inert])')
+		).toContainText('토론 주제를 2자 이상 입력해주세요.');
 
 		expect(postCount).toBe(0);
 	});
@@ -266,6 +275,7 @@ test.describe('Discussion UI', () => {
 
 		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
 		await expect(page.getByTestId('discussion-reply-form')).toBeVisible();
+		await prepareReplyComposer(page);
 		await page.getByTestId('discussion-reply-nickname').fill('테스터');
 		await page.getByTestId('discussion-reply-password').fill('1234');
 		await page.getByTestId('discussion-reply-content').fill('재시도할 의견입니다.');
@@ -288,6 +298,7 @@ test.describe('Discussion UI', () => {
 
 		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
 		await expect(page.getByTestId('discussion-reply-form')).toBeVisible();
+		await prepareReplyComposer(page);
 		await page.getByTestId('discussion-reply-nickname').fill('테스터');
 		await page.getByTestId('discussion-reply-password').fill('1234');
 		await page.getByTestId('discussion-reply-content').fill('네트워크 오류 검증 의견입니다.');
@@ -628,4 +639,102 @@ test.describe('Global discussions list page', () => {
 			'true'
 		);
 	});
+});
+
+for (const width of [390, 1440]) {
+	test(`centers every discussion status label at ${width}px`, async ({ page }) => {
+		await page.setViewportSize({ width, height: 900 });
+		await page.goto('/discussions?status=open');
+		for (const status of ['open', 'closed', 'all']) {
+			const tab = page.getByTestId(`discussions-filter-${status}`);
+			await tab.focus();
+			await tab.press('Enter');
+			await expect(tab).toHaveAttribute('aria-selected', 'true');
+			const metrics = await tab.evaluate((node) => {
+				const bounds = node.getBoundingClientRect();
+				const range = document.createRange();
+				range.selectNodeContents(node);
+				const text = range.getBoundingClientRect();
+				return {
+					height: bounds.height,
+					offset: text.top + text.height / 2 - bounds.top - bounds.height / 2
+				};
+			});
+			expect(metrics.height).toBeGreaterThanOrEqual(44);
+			expect(Math.abs(metrics.offset)).toBeLessThanOrEqual(2);
+		}
+	});
+}
+
+test('preserves reply validation after dismissing its transient notification', async ({ page }) => {
+	test.skip(!mockEnabled, 'Discussion validation requires the mock thread.');
+	await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+	await prepareReplyComposer(page);
+	const composer = page.getByTestId('discussion-reply-form');
+	await composer
+		.locator('form')
+		.evaluate((form: HTMLFormElement) =>
+			form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+		);
+	const password = page.getByTestId('discussion-reply-password');
+	await expect(password).toHaveAttribute('aria-invalid', 'true');
+	await expect(password).toHaveAttribute('aria-describedby', 'reply-validation-error');
+	await page
+		.getByTestId('discussion-reply-error')
+		.getByRole('button', { name: '알림 닫기' })
+		.click();
+	await expect(composer.locator('#reply-validation-error')).toBeVisible();
+	await page.getByTestId('discussion-reply-nickname').fill('테스터');
+	await expect(password).toHaveAttribute('aria-invalid', 'true');
+	await password.fill('1234');
+	await expect(composer.locator('#reply-validation-error')).toHaveCount(0);
+	await expect(password).toHaveAttribute('aria-invalid', 'false');
+	await composer
+		.locator('form')
+		.evaluate((form: HTMLFormElement) =>
+			form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+		);
+	const content = page.getByTestId('discussion-reply-content');
+	await expect(content).toHaveAttribute('aria-invalid', 'true');
+	await expect(content).toHaveAttribute(
+		'aria-describedby',
+		'discussion-reply-guidance discussion-reply-privacy reply-validation-error'
+	);
+});
+
+test('keeps comment action errors available after toast dismissal', async ({ page }) => {
+	test.skip(!mockEnabled, 'Comment validation requires the mock thread.');
+	await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
+	await untilVisible(
+		page,
+		() => page.getByTestId('discussion-comment-1').getByTitle('의견 수정').click(),
+		() => expect(page.getByRole('dialog')).toBeVisible()
+	);
+	const dialog = page.getByRole('dialog');
+	const submit = () =>
+		dialog
+			.locator('form')
+			.evaluate((form: HTMLFormElement) =>
+				form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+			);
+	await submit();
+	const password = dialog.locator('#action-password-input');
+	await expect(password).toHaveAttribute('aria-invalid', 'true');
+	await expect(password).toHaveAttribute('aria-describedby', 'comment-action-validation-error');
+	await dialog
+		.getByTestId('discussion-action-error')
+		.getByRole('button', { name: '알림 닫기' })
+		.click();
+	await expect(dialog.locator('#comment-action-validation-error')).toBeVisible();
+	await password.fill('1234');
+	await expect(dialog.locator('#comment-action-validation-error')).toHaveCount(0);
+	await dialog.locator('#edit-comment-content').fill('');
+	await submit();
+	await expect(dialog.locator('#edit-comment-content')).toHaveAttribute('aria-invalid', 'true');
+	await expect(dialog.locator('#edit-comment-content')).toHaveAttribute(
+		'aria-describedby',
+		'comment-action-validation-error'
+	);
+	await page.keyboard.press('Escape');
+	await expect(dialog).toHaveCount(0);
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import FormFeedback from '$lib/components/FormFeedback.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { onMount } from 'svelte';
 	import {
@@ -61,6 +62,8 @@
 	let replyPassword = $state('');
 	let replyContent = $state('');
 	let replyErrorMessage = $state('');
+	let invalidField = $state<'password' | 'content' | null>(null);
+	let validationRevision = $state(0);
 	let commentsLoadSentinel: HTMLDivElement;
 
 	onMount(() => {
@@ -94,12 +97,16 @@
 	}
 
 	function handleCommentSubmit() {
+		validationRevision++;
+		invalidField = null;
 		replyErrorMessage = '';
 		if (!replyPassword || replyPassword.length < 4) {
+			invalidField = 'password';
 			replyErrorMessage = '비밀번호를 4자 이상 입력해주세요 (수정/삭제 시 필요).';
 			return;
 		}
 		if (!replyContent.trim() || replyContent.trim().length < 2) {
+			invalidField = 'content';
 			replyErrorMessage = '의견 본문을 2자 이상 입력해주세요.';
 			return;
 		}
@@ -127,7 +134,10 @@
 		isRetrying={isRetryingRateLimit}
 	/>
 	<!-- Top Navigation and Thread Header -->
-	<div class="flex items-center justify-between gap-3 border-b border-[var(--lc-border-soft)] pb-3">
+	<div
+		class="flex flex-wrap items-center justify-between gap-3"
+		data-testid="discussion-thread-actions"
+	>
 		<button
 			type="button"
 			onclick={handleBack}
@@ -136,7 +146,7 @@
 			<FontAwesomeIcon icon={faArrowLeft} class="h-3 w-3" />
 			목록으로
 		</button>
-		<div class="flex items-center gap-2">
+		<div class="flex flex-wrap items-center gap-2">
 			{#if showQuotePushControl && thread.status === DiscussionThreadStatus.OPEN}
 				<button
 					type="button"
@@ -175,10 +185,8 @@
 	</div>
 
 	<!-- Thread Info Box -->
-	<div
-		data-testid="discussion-thread-summary"
-		class="rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-4 shadow-sm"
-	>
+	<div data-testid="discussion-thread-summary" class="lc-thread-heading">
+		<p class="lc-text-accent mb-3 text-sm font-semibold">토론 주제</p>
 		<div class="flex flex-wrap items-center gap-2">
 			{#if thread.status === DiscussionThreadStatus.OPEN}
 				<span
@@ -210,10 +218,10 @@
 				의견 {thread.commentCount.toLocaleString('ko-KR')}개
 			</span>
 		</div>
-		<h2 class="lc-text-primary mt-2 text-lg font-bold">
+		<h2 class="lc-text-primary mt-3 text-2xl leading-snug font-bold wrap-anywhere sm:text-3xl">
 			{thread.title}
 		</h2>
-		<div class="lc-text-muted mt-1 flex flex-wrap items-center gap-2 text-xs">
+		<div class="lc-text-muted mt-3 flex flex-wrap items-center gap-2 text-sm">
 			<span
 				>작성자: <strong class="text-[var(--lc-text-primary)]">{thread.authorNickname}</strong
 				></span
@@ -244,7 +252,7 @@
 			>
 				{#each [0, 1, 2] as skeleton (skeleton)}
 					<div
-						class="rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4"
+						class="lc-content-card rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4"
 						aria-hidden="true"
 					>
 						<div
@@ -270,35 +278,49 @@
 
 	<!-- Reply Box -->
 	{#if thread.status === DiscussionThreadStatus.OPEN}
-		<div
+		<section
 			data-testid="discussion-reply-form"
-			class="mt-6 rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-4 shadow-sm"
+			class="lc-discussion-composer"
+			aria-labelledby="discussion-reply-heading"
 		>
-			<h3 class="lc-text-primary mb-3 text-xs font-bold">새 의견 작성</h3>
+			<header class="mb-5">
+				<h3 id="discussion-reply-heading" class="lc-text-primary text-xl font-bold">
+					새 의견 작성
+				</h3>
+				<p id="discussion-reply-guidance" class="lc-text-secondary mt-2 text-sm leading-relaxed">
+					토론에 의견을 남겨 주세요. 이전 의견의 ‘인용’ 버튼으로 대화를 이어갈 수 있습니다.
+				</p>
+			</header>
 
 			{#if replyErrorMessage}
-				<div
-					data-testid="discussion-reply-error"
-					class="lc-banner-danger mb-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-600 dark:text-red-400"
-				>
-					{replyErrorMessage}
-				</div>
+				<FormFeedback
+					message={replyErrorMessage}
+					id="reply-validation-error"
+					revision={validationRevision}
+					testId="discussion-reply-error"
+				/>
 			{/if}
 
 			<form
+				oninput={(event) => {
+					const fields = { password: 'reply-password-input', content: 'reply-content-input' };
+					if (invalidField && (event.target as HTMLElement).id !== fields[invalidField]) return;
+					replyErrorMessage = '';
+					invalidField = null;
+				}}
 				onsubmit={(e) => {
 					e.preventDefault();
 					handleCommentSubmit();
 				}}
-				class="space-y-3"
+				class="space-y-5"
 			>
-				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div>
 						<label
 							for="reply-nickname-input"
-							class="lc-text-primary mb-1 block text-xs font-semibold"
+							class="lc-text-primary mb-2 flex flex-wrap items-center gap-1.5 text-sm font-semibold"
 						>
-							<FontAwesomeIcon icon={faUser} class="mr-1 h-3 w-3" />
+							<FontAwesomeIcon icon={faUser} class="h-3.5 w-3.5 shrink-0" />
 							닉네임 (미입력 시 '익명')
 						</label>
 						<input
@@ -309,19 +331,23 @@
 							disabled={isSubmittingComment || isRateLimited}
 							maxlength="30"
 							placeholder="익명"
-							class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-1.5 text-sm text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
+							class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] min-h-11 px-3 py-2.5 text-base text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
 						/>
 					</div>
 					<div>
 						<label
 							for="reply-password-input"
-							class="lc-text-primary mb-1 block text-xs font-semibold"
+							class="lc-text-primary mb-2 flex flex-wrap items-center gap-1.5 text-sm font-semibold"
 						>
-							<FontAwesomeIcon icon={faKey} class="mr-1 h-3 w-3" />
+							<FontAwesomeIcon icon={faKey} class="h-3.5 w-3.5 shrink-0" />
 							비밀번호 (수정/삭제용) <span class="text-red-500">*</span>
 						</label>
 						<input
 							id="reply-password-input"
+							aria-invalid={Boolean(replyErrorMessage) && invalidField === 'password'}
+							aria-describedby={replyErrorMessage && invalidField === 'password'
+								? 'reply-validation-error'
+								: undefined}
 							data-testid="discussion-reply-password"
 							type="password"
 							bind:value={replyPassword}
@@ -329,28 +355,37 @@
 							minlength="4"
 							maxlength="64"
 							placeholder="4자 이상"
-							class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-1.5 text-sm text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
+							class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] min-h-11 px-3 py-2.5 text-base text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
 						/>
 					</div>
 				</div>
 
 				<div>
-					<label for="reply-content-input" class="lc-text-primary mb-1 block text-xs font-semibold">
+					<label
+						for="reply-content-input"
+						class="lc-text-primary mb-2 flex flex-wrap items-center gap-1.5 text-sm font-semibold"
+					>
 						의견 내용 <span class="text-red-500">*</span>
 					</label>
 					<textarea
 						id="reply-content-input"
+						aria-invalid={Boolean(replyErrorMessage) && invalidField === 'content'}
+						aria-describedby={`discussion-reply-guidance discussion-reply-privacy${replyErrorMessage && invalidField === 'content' ? ' reply-validation-error' : ''}`}
 						data-testid="discussion-reply-content"
 						bind:value={replyContent}
 						disabled={isSubmittingComment || isRateLimited}
-						rows="4"
+						rows="5"
 						maxlength="5000"
-						placeholder="이 토론에 대한 의견을 작성해주세요. (상단 의견의 '인용' 버튼으로 이전 의견을 인용할 수 있습니다.)"
-						class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-3 text-sm text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
+						placeholder="이 토론에 대한 의견을 작성해주세요."
+						class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-3 text-base text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
 					></textarea>
-					<div class="lc-text-dim mt-1 flex justify-between text-xs">
-						<span>* 작성자 식별을 위해 IP 주소 일부(예: 123.45.***.***)가 표시됩니다.</span>
-						<span>{replyContent.length}/5000</span>
+					<div
+						class="lc-text-muted mt-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-2 text-sm leading-relaxed"
+					>
+						<span id="discussion-reply-privacy"
+							>* 작성자 식별을 위해 IP 주소 일부(예: 123.45.***.***)가 표시됩니다.</span
+						>
+						<span class="ml-auto shrink-0 tabular-nums">{replyContent.length}/5000</span>
 					</div>
 				</div>
 
@@ -359,7 +394,7 @@
 						type="submit"
 						disabled={isSubmittingComment || isRateLimited}
 						data-testid="discussion-reply-submit"
-						class="lc-button-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
+						class="lc-button-primary inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-50 sm:w-auto"
 					>
 						{#if isSubmittingComment}
 							<FontAwesomeIcon icon={faSpinner} class="h-3 w-3 animate-spin" />
@@ -373,7 +408,7 @@
 					</button>
 				</div>
 			</form>
-		</div>
+		</section>
 	{:else}
 		<div
 			class="mt-4 rounded-xl border border-(--lc-border-soft) bg-(--lc-surface-muted) p-4 text-center text-xs text-(--lc-text-muted)"
@@ -389,3 +424,17 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.lc-discussion-composer {
+		margin-top: 2rem;
+		padding: clamp(1rem, 2.5vw, 1.5rem);
+		background: var(--lc-surface-muted);
+		border-top: 1px solid var(--lc-border-soft);
+	}
+
+	.lc-thread-heading {
+		padding-block: 0.75rem 1.5rem;
+		border-bottom: 1px solid var(--lc-border-soft);
+	}
+</style>

@@ -1,17 +1,35 @@
 <script lang="ts">
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
-	let { src, noticeNum }: { src: string; noticeNum: number } = $props();
+	let {
+		src,
+		noticeNum,
+		imageWidth,
+		frameless = false,
+		onLoad
+	}: {
+		src: string;
+		noticeNum: number;
+		imageWidth?: number;
+		frameless?: boolean;
+		onLoad?: (size: { width: number; height: number }) => void;
+	} = $props();
 	let status = $state<'loading' | 'loaded' | 'error'>('loading');
 	let attempt = $state(0);
 
+	// A fresh URL avoids reusing a cached failed image response in Firefox.
 	function retry() {
 		status = 'loading';
 		attempt += 1;
 	}
 </script>
 
-<div class="p-3" data-testid="notice-detail-screenshot-preview" aria-busy={status === 'loading'}>
+<div
+	class:p-3={!frameless}
+	style:width={imageWidth === undefined ? undefined : `${imageWidth + 2}px`}
+	data-testid="notice-detail-screenshot-preview"
+	aria-busy={status === 'loading'}
+>
 	{#if status === 'loading'}
 		<div role="status" data-testid="notice-detail-screenshot-loading">
 			<LoadingSpinner message="스크린샷을 불러오는 중입니다..." />
@@ -35,14 +53,32 @@
 	{/if}
 	{#key attempt}
 		<img
-			{src}
+			src={attempt === 0 ? src : `${src}${src.includes('?') ? '&' : '?'}retry=${attempt}`}
 			alt="의안번호 {noticeNum} 국회 입법예고 페이지 스크린샷"
 			data-testid="notice-detail-screenshot-image"
 			class="w-full rounded-lg border border-[var(--lc-border-soft)] shadow-sm"
 			class:hidden={status !== 'loaded'}
+			class:lc-screenshot-scaled={imageWidth !== undefined}
+			style:width={imageWidth === undefined ? undefined : `${imageWidth}px`}
+			draggable={frameless ? false : undefined}
 			loading="eager"
-			onload={() => (status = 'loaded')}
+			onload={(event) => {
+				status = 'loaded';
+				const image = event.currentTarget as HTMLImageElement;
+				onLoad?.({
+					width: image.naturalWidth,
+					height: image.naturalHeight
+				});
+			}}
 			onerror={() => (status = 'error')}
 		/>
 	{/key}
 </div>
+
+<style>
+	.lc-screenshot-scaled {
+		max-width: none;
+		height: auto;
+		box-sizing: content-box;
+	}
+</style>

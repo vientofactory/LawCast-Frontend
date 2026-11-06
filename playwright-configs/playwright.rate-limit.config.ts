@@ -51,6 +51,9 @@ export default defineConfig({
 		timeout: 120_000,
 		env: {
 			NODE_ENV: 'development',
+			DIFFCHAIN_UI_MOCK: '0',
+			API_BASE_URL: 'http://127.0.0.1:1/api',
+			PUBLIC_GTM_CONTAINER_ID: '',
 			E2E_FORCE_429_PATHS: FORCE_429_PATHS
 		}
 	}

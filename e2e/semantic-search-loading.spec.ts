@@ -1,3 +1,4 @@
+import { openNoticeFilters } from './helpers/filter-dialog';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
@@ -264,6 +265,7 @@ test.describe('Semantic Search loading animation', () => {
 					await route.fallback();
 				});
 				try {
+					await openNoticeFilters(page);
 					await page.getByTestId(`notices-search-mode-${mode}`).click();
 					const loader = page.getByTestId('open-signal-loader');
 					if (mode === 'keyword') {

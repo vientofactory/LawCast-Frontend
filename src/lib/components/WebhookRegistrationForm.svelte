@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
 	import { applyPowStatus, createPowDisplayState } from '$lib/utils/pow-status';
@@ -104,9 +105,7 @@
 	}
 </script>
 
-<div
-	class="lc-panel-card rounded-2xl border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
->
+<div class="lc-form-section">
 	<h2 class="lc-text-primary mb-6 flex items-center text-xl font-bold tracking-tight">
 		<div class="lc-icon-accent-primary mr-3 rounded-lg p-2">
 			<FontAwesomeIcon icon={faDiscord} class="lc-text-on-accent h-5 w-5" />
@@ -115,16 +114,7 @@
 	</h2>
 
 	{#if feedback}
-		<div
-			class={`mb-5 rounded-lg border p-3 text-sm ${
-				feedback.type === 'success'
-					? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-					: 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400'
-			}`}
-			role={feedback.type === 'error' ? 'alert' : 'status'}
-		>
-			{feedback.message}
-		</div>
+		<Alert type={feedback.type} message={feedback.message} onDismiss={() => (feedback = null)} />
 	{/if}
 
 	<ul class="lc-text-secondary mb-6 space-y-2 text-sm">
@@ -161,6 +151,10 @@
 			</label>
 			<input
 				id="webhook-url"
+				aria-invalid={Boolean(newWebhookUrl && !validateDiscordWebhookUrl(newWebhookUrl).isValid)}
+				aria-describedby={newWebhookUrl && !validateDiscordWebhookUrl(newWebhookUrl).isValid
+					? 'webhook-url-error'
+					: undefined}
 				type="url"
 				bind:value={newWebhookUrl}
 				placeholder="https://discord.com/api/webhooks/..."
@@ -171,7 +165,7 @@
 				required
 			/>
 			{#if newWebhookUrl && !validateDiscordWebhookUrl(newWebhookUrl).isValid}
-				<p class="lc-text-danger mt-1 text-sm">
+				<p id="webhook-url-error" class="lc-text-danger mt-1 text-sm">
 					{validateDiscordWebhookUrl(newWebhookUrl).message}
 				</p>
 			{/if}

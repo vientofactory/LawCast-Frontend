@@ -57,7 +57,7 @@
 							>
 						</p>
 					{/if}
-					<p class="lc-text-muted text-xs">
+					<p class="lc-text-muted text-sm">
 						v{frontendVersion} / API v{backendVersion}
 					</p>
 				</div>

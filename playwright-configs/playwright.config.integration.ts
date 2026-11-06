@@ -27,7 +27,15 @@ const reuseExistingServer = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 
 export default defineConfig({
 	testDir: '../e2e',
-	testIgnore: ['sitemap.spec.ts', 'pwa.spec.ts', 'web-vitals.spec.ts', 'api-consumers.spec.ts'],
+	testIgnore: [
+		'sitemap.spec.ts',
+		'pwa.spec.ts',
+		'web-vitals.spec.ts',
+		'api-consumers.spec.ts',
+		'open-layout.spec.ts',
+		'notifications.spec.ts',
+		'load-failures.spec.ts'
+	],
 	fullyParallel: false,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,
@@ -41,7 +49,13 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'chromium',
+			grepInvert: /touch screenshot viewport/,
 			use: { ...devices['Desktop Chrome'] }
+		},
+		{
+			name: 'chromium-touch',
+			grep: /touch screenshot viewport/,
+			use: { ...devices['Pixel 7'] }
 		}
 	],
 	webServer: {

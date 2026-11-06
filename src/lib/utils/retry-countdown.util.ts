@@ -1,3 +1,4 @@
+import { getFailureRetryAfter, type LoadErrorPayload } from './request-failure';
 /**
  * Reusable retry-countdown timer for rate-limit overlays.
  *
@@ -21,15 +22,8 @@
  * );
  * onDestroy(() => retry.destroy());
  *
- * // In a $: block reacting to loadError changes:
- * $: if (data.loadError !== retry.lastSeenError) {
- *   retry.lastSeenError = data.loadError;
- *   if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
- *     retry.start(data.loadError.retryAfter);
- *   } else {
- *     retry.stop();
- *   }
- * }
+ * // In a reactive block, only explicit HTTP 429 can start a cooldown.
+ * $: retry.sync(data.loadError);
  * ```
  */
 export class RetryCountdown {
@@ -38,13 +32,22 @@ export class RetryCountdown {
 	private _retryingValue = false;
 
 	/** Tracks the last-seen loadError identity for change detection in $: blocks. */
-	lastSeenError: { message: string; retryAfter?: number } | null | undefined = undefined;
+	lastSeenError: LoadErrorPayload | null | undefined = undefined;
 
 	constructor(
 		private readonly onRetryFn: () => void | Promise<void>,
 		private readonly setCountdown: (v: number) => void,
 		private readonly setIsRetrying: (v: boolean) => void
 	) {}
+
+	/** Only an explicit HTTP 429 may start or retain a cooldown. */
+	sync(error: LoadErrorPayload | null | undefined): void {
+		if (error === this.lastSeenError) return;
+		this.lastSeenError = error;
+		const seconds = getFailureRetryAfter(error);
+		if (seconds > 0) this.start(seconds);
+		else this.stop();
+	}
 
 	/** Start a countdown from `seconds`. Any existing timer is stopped first. */
 	start(seconds: number): void {

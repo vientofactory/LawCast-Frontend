@@ -1,10 +1,9 @@
 <script lang="ts">
+	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '$lib/utils/disclosure-motion';
+	import RevisionTextDiff from '$lib/components/RevisionTextDiff.svelte';
 	import { formatDateTimeKST } from '$lib/utils/helpers';
-	import {
-		buildInlineDiffSegments,
-		formatRevisionValue,
-		type RevisionDiffItem
-	} from '$lib/utils/revision-comparison';
+	import { formatRevisionValue, type RevisionDiffItem } from '$lib/utils/revision-comparison';
 
 	let {
 		isCompareMode,
@@ -28,6 +27,8 @@
 		toDate?: string;
 	} = $props();
 
+	let showContext = $state(false);
+
 	let changedItems = $derived(revisionDiffItems.filter((item) => item.changeType !== 'unchanged'));
 	let visibleItems = $derived(showAllCompareFields ? revisionDiffItems : changedItems);
 	let unchangedCount = $derived(revisionDiffItems.length - changedItems.length);
@@ -43,7 +44,8 @@
 {#if isCompareMode && selectedFromRev !== null && selectedToRev !== null}
 	<section
 		id="revision-comparison"
-		class="lc-panel-inset scroll-mt-40 space-y-4 rounded-xl border p-4"
+		tabindex="-1"
+		class="lc-comparison-workspace scroll-mt-40 space-y-4"
 		aria-labelledby="revision-comparison-heading"
 		data-testid="revision-comparison"
 	>
@@ -66,6 +68,13 @@
 				>{showAllCompareFields ? '변경 필드만 보기' : '전체 필드 보기'}</button
 			>
 		</div>
+		<label class="lc-text-secondary flex min-h-11 items-center gap-2 text-sm">
+			<input type="checkbox" bind:checked={showContext} data-testid="diff-show-context" />
+			주변 문맥 보기
+		</label>
+		<p class="lc-text-secondary text-xs">
+			바뀐 문장을 모아 표시합니다. 변경 없는 긴 구간은 펼쳐볼 수 있습니다.
+		</p>
 		<div class="grid gap-3 sm:grid-cols-2" data-testid="comparison-direction">
 			<div class="rounded-lg border border-(--lc-border-soft) bg-(--lc-surface-primary) p-3">
 				<p class="lc-text-primary text-sm font-semibold">기준 기록 #{selectedFromRev}</p>
@@ -105,50 +114,27 @@
 		{/if}
 		<div class="space-y-3">
 			{#each visibleItems as item (item.fieldPath)}
-				{@const diff = buildInlineDiffSegments(
-					formatRevisionValue(item.fieldPath, item.beforeValue),
-					formatRevisionValue(item.fieldPath, item.afterValue)
-				)}
 				<details
+					use:disclosureMotion
 					open={item.changeType !== 'unchanged'}
-					class="lc-panel-card rounded-lg border p-3"
+					class="lc-comparison-field"
 					data-testid={`revision-diff-${item.fieldPath}`}
 				>
-					<summary class="lc-text-primary cursor-pointer text-sm font-semibold">
-						{item.fieldLabel}
-						<span class="lc-chip-muted ml-2 rounded-full px-2 py-1 text-xs font-normal"
-							>{changeTypeLabel(item.changeType)}</span
-						>
-					</summary>
-					<div class="mt-3 grid gap-3 md:grid-cols-2">
-						<div class="min-w-0">
-							<p class="lc-text-secondary mb-1 text-xs font-semibold">
-								기준 기록 #{selectedFromRev}
-							</p>
-							<div
-								class="lc-text-primary rounded-lg border border-(--lc-border-soft) bg-(--lc-surface-primary) p-3 text-sm leading-7 wrap-anywhere whitespace-pre-wrap"
-								data-testid={`revision-before-${item.fieldPath}`}
+					<summary class="lc-disclosure-trigger lc-disclosure-trigger--compact"
+						><span class="lc-disclosure-label">
+							{item.fieldLabel}
+							<span class="lc-chip-muted ml-2 rounded-full px-2 py-1 text-xs font-normal"
+								>{changeTypeLabel(item.changeType)}</span
 							>
-								{#if diff.beforeSegments.length === 0}<span class="lc-text-muted">내용 없음</span>
-								{:else}{#each diff.beforeSegments as segment, index (index)}<span
-											class={segment.kind === 'removed' ? 'lc-diff-removed' : ''}
-											>{segment.text}</span
-										>{/each}{/if}
-							</div>
-						</div>
-						<div class="min-w-0">
-							<p class="lc-text-secondary mb-1 text-xs font-semibold">대상 기록 #{selectedToRev}</p>
-							<div
-								class="lc-text-primary rounded-lg border border-(--lc-border-soft) bg-(--lc-surface-primary) p-3 text-sm leading-7 wrap-anywhere whitespace-pre-wrap"
-								data-testid={`revision-after-${item.fieldPath}`}
-							>
-								{#if diff.afterSegments.length === 0}<span class="lc-text-muted">내용 없음</span>
-								{:else}{#each diff.afterSegments as segment, index (index)}<span
-											class={segment.kind === 'added' ? 'lc-diff-added' : ''}>{segment.text}</span
-										>{/each}{/if}
-							</div>
-						</div>
-					</div>
+						</span><DisclosureIndicator /></summary
+					>
+					<RevisionTextDiff
+						before={formatRevisionValue(item.fieldPath, item.beforeValue)}
+						after={formatRevisionValue(item.fieldPath, item.afterValue)}
+						fieldPath={item.fieldPath}
+						fieldLabel={item.fieldLabel}
+						{showContext}
+					/>
 				</details>
 			{/each}
 		</div>

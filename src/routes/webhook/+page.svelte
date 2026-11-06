@@ -33,7 +33,13 @@
 <div class="lc-page-shell">
 	<Header />
 
-	<main id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+	<main id="main-content" class="lc-main lc-main--form">
+		<div class="lc-page-heading">
+			<h1 class="lc-text-primary text-2xl font-bold">알림 설정</h1>
+			<p class="lc-text-secondary mt-2 text-sm">
+				새 입법예고와 변경 소식을 원하는 방식으로 받아보세요.
+			</p>
+		</div>
 		<WebhookRegistrationForm
 			isInitialLoading={false}
 			onWebhookRegistered={handleWebhookRegistered}

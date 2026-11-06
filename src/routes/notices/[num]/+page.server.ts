@@ -8,6 +8,7 @@ import {
 	getMockNoticeDetail,
 	getMockNoticeDiscussions
 } from '$lib/server/diffchain-ui-mock';
+import type { LoadErrorPayload } from '$lib/utils/request-failure';
 import { toLoadErrorPayload } from '$lib/server/load-error';
 
 type DiscussionLoadResult = {
@@ -15,11 +16,7 @@ type DiscussionLoadResult = {
 	total: number;
 	page: number;
 	limit: number;
-	discussionError?: {
-		status: number;
-		message: string;
-		retryAfter: number;
-	};
+	discussionError?: LoadErrorPayload;
 };
 
 function parseRevisionQuery(revRaw: string | null): number | undefined {
@@ -85,14 +82,7 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 					total: 0,
 					page: 1,
 					limit: 20,
-					discussionError:
-						getHttpStatus(err) === 429
-							? {
-									status: 429,
-									message: getErrorMessage(err) ?? '요청이 너무 많습니다.',
-									retryAfter: (err as { retryAfter?: number } | undefined)?.retryAfter ?? 60
-								}
-							: undefined
+					discussionError: toLoadErrorPayload(err, '토론 목록을 불러오지 못했습니다.')
 				};
 			});
 		const detail = await detailPromise;
@@ -189,6 +179,14 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 			throw error(status, getErrorMessage(err) ?? '요청을 처리할 수 없습니다.');
 		}
 
-		throw error(500, '법률안 정보를 불러오는 중 오류가 발생했습니다.');
+		const failure = toLoadErrorPayload(err, '법률안 정보를 불러오지 못했습니다.');
+		throw error(
+			failure.kind === 'timeout'
+				? 504
+				: failure.status && failure.status >= 500
+					? failure.status
+					: 503,
+			{ message: failure.message, kind: failure.kind }
+		);
 	}
 };

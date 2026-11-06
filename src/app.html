@@ -17,7 +17,7 @@
 		/>
 		<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="theme-color" content="#fafafb" />
+		<meta name="theme-color" content="#ffffff" />
 		<meta name="color-scheme" content="light dark" />
 		<script>
 			(() => {
@@ -40,11 +40,11 @@
 				root.style.colorScheme = preferredTheme;
 				const metaThemeColor = document.querySelector('meta[name="theme-color"]');
 				if (metaThemeColor) {
-					metaThemeColor.setAttribute('content', preferredTheme === 'dark' ? '#0b1117' : '#fafafb');
+					metaThemeColor.setAttribute('content', preferredTheme === 'dark' ? '#242526' : '#ffffff');
 				} else {
 					const meta = document.createElement('meta');
 					meta.name = 'theme-color';
-					meta.content = preferredTheme === 'dark' ? '#0b1117' : '#fafafb';
+					meta.content = preferredTheme === 'dark' ? '#242526' : '#ffffff';
 					document.head.appendChild(meta);
 				}
 			})();

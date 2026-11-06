@@ -2,6 +2,13 @@ import { browser } from '$app/environment';
 import { env } from '$env/dynamic/public';
 import NProgress from 'nprogress';
 import {
+	getFailureKind,
+	getFailureRetryAfter,
+	getFailureStatus,
+	parseRetryAfter,
+	PROXY_CONNECTION_FAILURE_HEADER
+} from '$lib/utils/request-failure';
+import {
 	isChallengeStatus,
 	isCloudflareChallengeHeader,
 	isJsonContentType,
@@ -95,84 +102,146 @@ async function request<T>(
 	};
 
 	startProgress();
+	const controller = new AbortController();
+	let timedOut = false;
+	const cancel = () => controller.abort(options.signal?.reason);
+	if (options.signal?.aborted) cancel();
+	else options.signal?.addEventListener('abort', cancel, { once: true });
+	let rejectDeadline: (reason: Error) => void;
+	const deadline = new Promise<never>((_resolve, reject) => {
+		rejectDeadline = reject;
+	});
+	const timeout = setTimeout(() => {
+		timedOut = true;
+		// An injected fetch may ignore abort; bound the complete response/body read independently.
+		rejectDeadline(new Error('API request deadline exceeded'));
+		controller.abort();
+	}, 30000);
 
 	try {
-		const response = await customFetch(url, {
-			...options,
-			headers: {
-				...defaultHeaders,
-				...options.headers
-			}
-		});
+		return await Promise.race([
+			(async () => {
+				const response = await customFetch(url, {
+					...options,
+					signal: controller.signal,
+					headers: {
+						...defaultHeaders,
+						...options.headers
+					}
+				});
 
-		// Dev-only response logging
-		if (import.meta.env.DEV) {
-			console.log(`API Response: ${response.status} ${url}`);
-		}
+				// Dev-only response logging
+				if (import.meta.env.DEV) {
+					console.log(`API Response: ${response.status} ${url}`);
+				}
 
-		const contentType = response.headers.get('content-type') || '';
-		const isJsonResponse = isJsonContentType(contentType);
+				const proxyFailureKind = response.headers.get(PROXY_CONNECTION_FAILURE_HEADER);
+				if (
+					response.status === 502 &&
+					(proxyFailureKind === 'network' || proxyFailureKind === 'timeout')
+				) {
+					throw { kind: proxyFailureKind, message: 'Backend transport failed' };
+				}
 
-		if (CF_CHALLENGE_FEATURE_ENABLED && isChallengeStatus(response.status)) {
-			if (isCloudflareChallengeHeader(response) || !isJsonResponse) {
-				throw {
-					status: response.status || 503,
-					message: CLOUDFLARE_CHALLENGE_ERROR_CODE
-				};
-			}
-		}
+				const contentType = response.headers.get('content-type') || '';
+				const isJsonResponse = isJsonContentType(contentType);
+				const retryAfter =
+					response.status === 429
+						? parseRetryAfter(response.headers.get('retry-after'))
+						: undefined;
 
-		if (!isJsonResponse) {
-			const textPayload = await response.text();
+				if (CF_CHALLENGE_FEATURE_ENABLED && isChallengeStatus(response.status)) {
+					if (isCloudflareChallengeHeader(response) || !isJsonResponse) {
+						throw {
+							status: response.status || 503,
+							message: CLOUDFLARE_CHALLENGE_ERROR_CODE
+						};
+					}
+				}
 
-			if (!response.ok) {
-				throw {
-					status: response.status,
-					message: textPayload?.slice(0, 300) || 'Unexpected non-JSON API response'
-				};
-			}
+				if (!isJsonResponse) {
+					const textPayload = await response.text();
 
-			throw {
-				status: response.status,
-				message: 'Unexpected non-JSON API response'
-			};
-		}
+					if (!response.ok) {
+						throw {
+							status: response.status,
+							retryAfter,
+							message: textPayload?.slice(0, 300) || 'Unexpected non-JSON API response'
+						};
+					}
 
-		const data = await response.json();
+					throw {
+						status: response.status,
+						message: 'Unexpected non-JSON API response'
+					};
+				}
 
-		if (!response.ok) {
-			// Build the error payload
-			const errorData = {
-				status: response.status,
-				// Rate limits use the standard Korean message instead of the server's English text.
-				message: response.status === 429 ? undefined : data?.message,
-				errors: data?.errors,
-				retryAfter:
-					parseRetryAfter(response.headers.get('retry-after')) ??
-					parseRetryAfterValue(data?.retryAfter)
-			};
-			throw errorData;
-		}
+				let data;
+				try {
+					data = await response.json();
+				} catch {
+					throw {
+						status: response.status,
+						retryAfter,
+						kind: 'invalid-response',
+						message: 'Unexpected invalid JSON API response'
+					};
+				}
 
-		const envelope = data as ApiResponse<T>;
-		if (envelope && typeof envelope === 'object' && 'success' in envelope) {
-			if (envelope.data !== undefined) {
-				return envelope.data;
-			}
+				if (!response.ok) {
+					// Build the error payload
+					const errorData = {
+						status: response.status,
+						// Rate limits use the standard Korean message instead of the server's English text.
+						message: response.status === 429 ? undefined : data?.message,
+						errors: data?.errors,
+						retryAfter:
+							response.status === 429
+								? (retryAfter ?? parseRetryAfterValue(data?.retryAfter))
+								: undefined
+					};
+					throw errorData;
+				}
 
-			return data as T;
-		}
+				const envelope = data as ApiResponse<T>;
+				if (envelope && typeof envelope === 'object' && 'success' in envelope) {
+					if (envelope.success === false)
+						throw {
+							status: response.status,
+							kind: 'invalid-response',
+							message: 'Unsuccessful API envelope'
+						};
+					if (envelope.data !== undefined) {
+						return envelope.data;
+					}
 
-		return data as T;
+					return data as T;
+				}
+
+				return data as T;
+			})(),
+			deadline
+		]);
 	} catch (error) {
-		throw normalizeError(error);
+		throw normalizeError(timedOut ? { name: 'TimeoutError', kind: 'timeout' } : error);
 	} finally {
+		clearTimeout(timeout);
+		options.signal?.removeEventListener('abort', cancel);
 		stopProgress();
 	}
 }
 
 function getErrorMessage(error: unknown): string {
 	const err = error as { message?: string; errors?: string[]; status?: number; name?: string };
+
+	if (err?.message === CLOUDFLARE_CHALLENGE_ERROR_CODE) return err.message;
+	const kind = getFailureKind(error);
+	if (kind === 'rate-limit') return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+	if (kind === 'timeout') return '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
+	if (kind === 'network') return '서버에 연결하지 못했습니다. 연결 상태를 확인해주세요.';
+	if (kind === 'server') return '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+	if (kind === 'invalid-response')
+		return '올바른 서버 응답을 받지 못했습니다. 잠시 후 다시 시도해주세요.';
 
 	if (err?.errors && Array.isArray(err.errors) && err.errors.length > 0)
 		return err.errors.join(' ');
@@ -214,21 +283,15 @@ function getErrorMessage(error: unknown): string {
 function normalizeError(error: unknown): ApiError {
 	const message = getErrorMessage(error);
 	const apiError: ApiError = new Error(message);
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	apiError.status = (error as any)?.status;
-	apiError.retryAfter = (error as { retryAfter?: number } | undefined)?.retryAfter;
+	apiError.kind = getFailureKind(error);
+	apiError.status = getFailureStatus(error);
+	apiError.retryAfter = apiError.status === 429 ? getFailureRetryAfter(error) : undefined;
 	// The original response/data can be attached here when needed
 	return apiError;
 }
 
-function parseRetryAfter(value: string | null): number | undefined {
-	if (!value) return undefined;
-	const seconds = Number.parseInt(value, 10);
-	return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
-}
-
 function parseRetryAfterValue(value: unknown): number | undefined {
-	return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
+	return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
 export function isRateLimitError(error: unknown): error is ApiError {
@@ -236,8 +299,7 @@ export function isRateLimitError(error: unknown): error is ApiError {
 }
 
 export function getRateLimitRetryAfter(error: unknown, fallbackSeconds = 60): number {
-	const retryAfter = (error as { retryAfter?: number } | undefined)?.retryAfter;
-	return typeof retryAfter === 'number' && retryAfter > 0 ? retryAfter : fallbackSeconds;
+	return getFailureRetryAfter(error, fallbackSeconds);
 }
 
 export function getRateLimitErrorMessage(retryAfter?: number): string {

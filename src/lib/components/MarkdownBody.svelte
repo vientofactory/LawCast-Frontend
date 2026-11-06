@@ -1,9 +1,14 @@
 <script lang="ts">
+	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '$lib/utils/disclosure-motion';
+	import { buildMarkdownHeadingLevels } from '$lib/utils/markdown-headings';
 	import type { Token, Tokens } from 'marked';
 	// Self-import for recursion (Svelte 5 replacement for <svelte:self>).
 	import MarkdownBody from './MarkdownBody.svelte';
 
-	let { tokens }: { tokens: Token[] } = $props();
+	let { tokens, headingLevels }: { tokens: Token[]; headingLevels?: Map<object, number> } =
+		$props();
+	const resolvedHeadingLevels = $derived(headingLevels ?? buildMarkdownHeadingLevels(tokens));
 
 	// marked's token tree is intentionally dynamic (Generic carries an index
 	// signature); casting once here keeps the template branches simple while
@@ -32,12 +37,6 @@
 		return null;
 	}
 
-	/** Body headings start at h2 — the notice title owns the page's h1. */
-	function headingTag(depth: unknown): string {
-		const level = typeof depth === 'number' && depth > 0 ? depth : 1;
-		return `h${Math.min(Math.max(level + 1, 2), 6)}`;
-	}
-
 	/** Renders a validated text-align declaration for table cells. */
 	function alignStyle(align: unknown): string | undefined {
 		if (align === 'center' || align === 'left' || align === 'right') {
@@ -58,9 +57,9 @@
 	{:else if token.type === 'def'}
 		<!-- Reference definitions are resolved by the parser, not rendered. -->
 	{:else if token.type === 'heading'}
-		<svelte:element this={headingTag(token.depth)} class="lc-md-heading">
+		<svelte:element this={`h${resolvedHeadingLevels.get(token) ?? 2}`} class="lc-md-heading">
 			{#if token.tokens?.length}
-				<MarkdownBody tokens={token.tokens} />
+				<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 			{:else}
 				{token.text ?? ''}
 			{/if}
@@ -68,21 +67,21 @@
 	{:else if token.type === 'paragraph'}
 		<p>
 			{#if token.tokens?.length}
-				<MarkdownBody tokens={token.tokens} />
+				<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 			{:else}
 				{token.text ?? ''}
 			{/if}
 		</p>
 	{:else if token.type === 'text'}
 		{#if token.tokens?.length}
-			<MarkdownBody tokens={token.tokens} />
+			<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 		{:else}
 			{token.text ?? ''}
 		{/if}
 	{:else if token.type === 'strong'}
 		<strong>
 			{#if token.tokens?.length}
-				<MarkdownBody tokens={token.tokens} />
+				<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 			{:else}
 				{token.text ?? ''}
 			{/if}
@@ -90,7 +89,7 @@
 	{:else if token.type === 'em'}
 		<em>
 			{#if token.tokens?.length}
-				<MarkdownBody tokens={token.tokens} />
+				<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 			{:else}
 				{token.text ?? ''}
 			{/if}
@@ -98,7 +97,7 @@
 	{:else if token.type === 'del'}
 		<del>
 			{#if token.tokens?.length}
-				<MarkdownBody tokens={token.tokens} />
+				<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 			{:else}
 				{token.text ?? ''}
 			{/if}
@@ -112,13 +111,13 @@
 		{#if safeHref(token.href)}
 			<a href={safeHref(token.href)}>
 				{#if token.tokens?.length}
-					<MarkdownBody tokens={token.tokens} />
+					<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 				{:else}
 					{token.text ?? ''}
 				{/if}
 			</a>
 		{:else if token.tokens?.length}
-			<MarkdownBody tokens={token.tokens} />
+			<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 		{:else}
 			{token.text ?? ''}
 		{/if}
@@ -139,7 +138,7 @@
 						<input type="checkbox" checked={item.checked} disabled aria-label="할 일" />
 					{/if}
 					{#if item.tokens?.length}
-						<MarkdownBody tokens={item.tokens} />
+						<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={item.tokens} />
 					{:else}
 						{item.text ?? ''}
 					{/if}
@@ -154,7 +153,7 @@
 						{#each token.header ?? [] as cell, cellIndex (cellIndex)}
 							<th style={alignStyle(cell.align ?? token.align?.[cellIndex])}>
 								{#if cell.tokens?.length}
-									<MarkdownBody tokens={cell.tokens} />
+									<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={cell.tokens} />
 								{:else}
 									{cell.text ?? ''}
 								{/if}
@@ -168,7 +167,7 @@
 							{#each row as cell, cellIndex (cellIndex)}
 								<td style={alignStyle(cell.align ?? token.align?.[cellIndex])}>
 									{#if cell.tokens?.length}
-										<MarkdownBody tokens={cell.tokens} />
+										<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={cell.tokens} />
 									{:else}
 										{cell.text ?? ''}
 									{/if}
@@ -182,7 +181,7 @@
 	{:else if token.type === 'blockquote'}
 		<blockquote>
 			{#if token.tokens?.length}
-				<MarkdownBody tokens={token.tokens} />
+				<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 			{:else}
 				{token.text ?? ''}
 			{/if}
@@ -193,17 +192,19 @@
 		<br />
 	{:else if token.type === 'notion-toggle'}
 		<!-- Notion toggle block (lexed server-side) — a native, clickable disclosure. -->
-		<details class="lc-md-toggle" data-testid="notice-toggle">
-			<summary class="lc-md-toggle-summary">
-				{#if token.summaryTokens?.length}
-					<MarkdownBody tokens={token.summaryTokens} />
-				{:else}
-					{token.summary ?? ''}
-				{/if}
-			</summary>
+		<details use:disclosureMotion class="lc-md-toggle" data-testid="notice-toggle">
+			<summary class="lc-md-toggle-summary lc-disclosure-trigger lc-disclosure-trigger--compact"
+				><span class="lc-disclosure-label">
+					{#if token.summaryTokens?.length}
+						<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.summaryTokens} />
+					{:else}
+						{token.summary ?? ''}
+					{/if}
+				</span><DisclosureIndicator /></summary
+			>
 			{#if token.tokens?.length}
 				<div class="lc-md-toggle-body">
-					<MarkdownBody tokens={token.tokens} />
+					<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 				</div>
 			{/if}
 		</details>
@@ -214,7 +215,7 @@
 		{token.text ?? ''}
 	{:else if token.tokens?.length}
 		<!-- Unknown block types with children still render their content. -->
-		<MarkdownBody tokens={token.tokens} />
+		<MarkdownBody headingLevels={resolvedHeadingLevels} tokens={token.tokens} />
 	{:else}
 		{token.text ?? token.raw ?? ''}
 	{/if}
@@ -376,22 +377,6 @@
 	/* Collapse the default marker so the caret below can replace it everywhere. */
 	.lc-md-toggle-summary::-webkit-details-marker {
 		display: none;
-	}
-
-	/* Rotating caret: closed points right, open points down. */
-	.lc-md-toggle-summary::before {
-		content: '';
-		border-left: 5px solid currentColor;
-		border-top: 4px solid transparent;
-		border-bottom: 4px solid transparent;
-		display: inline-block;
-		margin-right: 0.5em;
-		transition: transform 0.15s ease;
-		vertical-align: middle;
-	}
-
-	.lc-md-toggle[open] > .lc-md-toggle-summary::before {
-		transform: rotate(90deg);
 	}
 
 	.lc-md-toggle-summary:hover {

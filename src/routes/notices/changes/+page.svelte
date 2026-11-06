@@ -1,9 +1,12 @@
 <script lang="ts">
+	import type { LoadErrorPayload } from '$lib/utils/request-failure';
+	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion } from '$lib/utils/disclosure-motion';
 	import { onDestroy } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import PaginationNav from '$lib/components/PaginationNav.svelte';
-	import RateLimitOverlay from '$lib/components/RateLimitOverlay.svelte';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
 	import { RetryCountdown } from '$lib/utils/retry-countdown.util';
 	import { afterNavigate, beforeNavigate, goto, invalidateAll } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -49,10 +52,7 @@
 				fromDetectedAt: string | null;
 				toDetectedAt: string | null;
 			};
-			loadError?: {
-				message: string;
-				retryAfter?: number;
-			};
+			loadError?: LoadErrorPayload;
 		};
 	} = $props();
 	const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
@@ -100,19 +100,10 @@
 	);
 	onDestroy(() => retry.destroy());
 
-	$effect(() => {
-		if (data.loadError !== retry.lastSeenError) {
-			retry.lastSeenError = data.loadError;
-			if (data.loadError?.retryAfter && data.loadError.retryAfter > 0) {
-				retry.start(data.loadError.retryAfter);
-			} else {
-				retry.stop();
-			}
-		}
-	});
+	$effect(() => retry.sync(data.loadError));
 
 	function isRateLimitLoadError(): boolean {
-		return loadError?.retryAfter !== undefined;
+		return loadError?.status === 429;
 	}
 
 	let isServerLoading = $state(false);
@@ -351,8 +342,8 @@
 <div class="lc-page-shell">
 	<Header />
 
-	<main id="main-content" class="relative mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
-		<nav class="mt-6 mb-6 flex items-center gap-2 text-sm" aria-label="이동 경로">
+	<main id="main-content" class="lc-main">
+		<nav class="mb-4 flex items-center gap-2 text-sm" aria-label="이동 경로">
 			<a href="/" class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2">
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-3.5 w-3.5" />
 				홈으로
@@ -366,7 +357,7 @@
 			</a>
 		</nav>
 
-		<section class="lc-panel-card mb-6 rounded-2xl border p-6 shadow-sm">
+		<section class="lc-page-heading">
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<div>
 					<h1 class="lc-text-primary inline-flex items-center text-2xl font-bold tracking-tight">
@@ -395,8 +386,8 @@
 		</div>
 
 		{#if loadError}
-			<RateLimitOverlay
-				visible={Boolean(loadError)}
+			<LoadFailureState
+				error={loadError}
 				retryAfter={countdown}
 				onRetry={() => retry.retry()}
 				{isRetrying}
@@ -414,9 +405,9 @@
 		{/if}
 
 		{#if !isDigestContext}
-			<section class="lc-panel-card mb-5 rounded-xl border p-4 shadow-sm">
+			<section class="lc-search-section mb-5">
 				<form method="GET" action="/notices/changes" onsubmit={handleFilterSubmit}>
-					<div class="grid gap-2 md:grid-cols-[1.2fr_0.7fr_0.8fr_0.9fr_0.8fr_auto] md:items-center">
+					<div class="lc-search-row">
 						<div class="relative">
 							<label for="changes-search" class="sr-only">검색어</label>
 							<FontAwesomeIcon
@@ -433,62 +424,6 @@
 								onkeydown={handleSearchInputKeydown}
 							/>
 						</div>
-
-						<div>
-							<label for="changes-notice-num" class="sr-only">의안번호</label>
-							<input
-								id="changes-notice-num"
-								type="number"
-								name="noticeNum"
-								min="1"
-								value={noticeNumFilter ?? ''}
-								placeholder="의안번호"
-								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
-							/>
-						</div>
-
-						<div>
-							<label for="changes-event-type" class="sr-only">이벤트 유형</label>
-							<select
-								id="changes-event-type"
-								name="eventType"
-								value={selectedEventType ?? ''}
-								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
-							>
-								<option value="">전체 유형</option>
-								<option value="updated">내용 변경</option>
-								<option value="invalidated">무효화</option>
-							</select>
-						</div>
-
-						<div>
-							<label for="changes-sort-order" class="sr-only">정렬</label>
-							<select
-								id="changes-sort-order"
-								name="sortOrder"
-								value={sortOrder}
-								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
-							>
-								<option value="desc">최신순</option>
-								<option value="asc">오래된순</option>
-							</select>
-						</div>
-
-						<div>
-							<label for="changes-limit" class="sr-only">페이지당 개수</label>
-							<select
-								id="changes-limit"
-								name="limit"
-								value={String(limit)}
-								class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
-								title="페이지당 개수"
-							>
-								{#each PAGE_SIZE_OPTIONS as size (size)}
-									<option value={String(size)}>{size}개씩</option>
-								{/each}
-							</select>
-						</div>
-
 						<button
 							type="submit"
 							disabled={isServerLoading}
@@ -497,6 +432,72 @@
 							검색
 						</button>
 					</div>
+					<details
+						use:disclosureMotion
+						class="lc-settings-disclosure"
+						data-testid="changes-settings"
+					>
+						<summary class="lc-disclosure-trigger"
+							><span class="lc-disclosure-label">상세 조건 · 의안번호·변경 유형·정렬</span
+							><DisclosureIndicator /></summary
+						>
+						<div class="lc-changes-advanced">
+							<div>
+								<label for="changes-notice-num" class="sr-only">의안번호</label>
+								<input
+									id="changes-notice-num"
+									type="number"
+									name="noticeNum"
+									min="1"
+									value={noticeNumFilter ?? ''}
+									placeholder="의안번호"
+									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+								/>
+							</div>
+
+							<div>
+								<label for="changes-event-type" class="sr-only">이벤트 유형</label>
+								<select
+									id="changes-event-type"
+									name="eventType"
+									value={selectedEventType ?? ''}
+									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+								>
+									<option value="">전체 유형</option>
+									<option value="updated">내용 변경</option>
+									<option value="invalidated">무효화</option>
+								</select>
+							</div>
+
+							<div>
+								<label for="changes-sort-order" class="sr-only">정렬</label>
+								<select
+									id="changes-sort-order"
+									name="sortOrder"
+									value={sortOrder}
+									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+								>
+									<option value="desc">최신순</option>
+									<option value="asc">오래된순</option>
+								</select>
+							</div>
+
+							<div>
+								<label for="changes-limit" class="sr-only">페이지당 개수</label>
+								<select
+									id="changes-limit"
+									name="limit"
+									value={String(limit)}
+									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+									title="페이지당 개수"
+								>
+									{#each PAGE_SIZE_OPTIONS as size (size)}
+										<option value={String(size)}>{size}개씩</option>
+									{/each}
+								</select>
+							</div>
+						</div>
+					</details>
 
 					<div class="mt-2 flex flex-wrap items-center gap-2">
 						<label class="inline-flex cursor-pointer items-center gap-2 text-sm">
@@ -575,7 +576,7 @@
 				<section class="space-y-3" class:opacity-85={isServerLoading}>
 					{#each changes.items as item (item.id)}
 						<article
-							class={`lc-panel-card rounded-xl border p-4 shadow-sm ${isDigestMatchedItem(item) ? 'lc-banner-warning border-2' : ''}`}
+							class={`lc-panel-card lc-content-card rounded-xl border p-4 shadow-sm ${isDigestMatchedItem(item) ? 'lc-banner-warning border-2' : ''}`}
 						>
 							<div class="flex flex-wrap items-center justify-between gap-3">
 								<div class="min-w-0">

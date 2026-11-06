@@ -1,3 +1,4 @@
+import type { FailureKind } from '$lib/utils/request-failure';
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 declare global {
@@ -6,7 +7,10 @@ declare global {
 		dataLayer?: unknown[];
 	}
 	namespace App {
-		// interface Error {}
+		interface Error {
+			message: string;
+			kind?: FailureKind;
+		}
 		// interface Locals {}
 		// interface PageData {}
 		// interface PageState {}

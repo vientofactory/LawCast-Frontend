@@ -24,6 +24,7 @@ import type {
 	ProposalStatisticsGranularity
 } from '$lib/types/api';
 import { NoticeChangeSource } from '$lib/types/change-source';
+import { REVISION_DIFF_MOCK } from './revision-diff-mock';
 
 const ENABLED_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
@@ -190,8 +191,12 @@ function buildMockChangeTimeline(
 				buildDetail(
 					'proposalReason',
 					'modified',
-					'기존 제안 이유 초안',
-					'개정된 제안 이유(이해관계자 의견 반영)',
+					noticeNum === REVISION_DIFF_MOCK.noticeNum
+						? REVISION_DIFF_MOCK.before
+						: '기존 제안 이유 초안',
+					noticeNum === REVISION_DIFF_MOCK.noticeNum
+						? REVISION_DIFF_MOCK.after
+						: '개정된 제안 이유(이해관계자 의견 반영)',
 					noticeNum * 100 + 4
 				),
 				buildDetail('isDone', 'modified', 'false', 'true', noticeNum * 100 + 5)

@@ -68,11 +68,14 @@ test.describe('Progressive revision history (mock fixtures)', () => {
 		await expect(page.getByTestId('revision-history-skeleton')).toHaveCount(0);
 		await page.getByTestId('compare-from-select').selectOption('90');
 		await expect(page.getByTestId('revision-before-proposalReason')).toHaveText(
-			'기록 90의 제안이유\n줄바꿈을 보존합니다.'
+			'기록 90의 제안이유\n'
 		);
 		await expect(page.getByTestId('revision-after-proposalReason')).toHaveText(
-			'기록 120의 제안이유\n줄바꿈을 보존합니다.'
+			'기록 120의 제안이유\n'
 		);
+		await expect(
+			page.getByTestId('text-diff-proposalReason').getByTestId('diff-context')
+		).toContainText('줄바꿈을 보존합니다.');
 		await page.getByTestId('revision-view-90').click();
 		await expect(page.getByTestId('historical-revision-banner')).toBeVisible();
 		await expect(records).toHaveCount(40);
@@ -91,10 +94,10 @@ test.describe('Progressive revision history (mock fixtures)', () => {
 		await page.getByTestId('compare-from-select').selectOption('1');
 		await page.getByTestId('compare-to-select').selectOption('125');
 		await expect(page.getByTestId('revision-before-proposalReason')).toHaveText(
-			'기록 1의 제안이유\n줄바꿈을 보존합니다.'
+			'기록 1의 제안이유\n'
 		);
 		await expect(page.getByTestId('revision-after-proposalReason')).toHaveText(
-			'기록 125의 제안이유\n줄바꿈을 보존합니다.'
+			'기록 125의 제안이유\n'
 		);
 	});
 

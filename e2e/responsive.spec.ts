@@ -1,3 +1,4 @@
+import { openNoticeFilters, openStatisticsSettings } from './helpers/filter-dialog';
 import { expect, test } from '@playwright/test';
 import { noticeDetailRoute, routes, viewports } from './helpers/responsive-contracts';
 import { discoverFirstNotice } from './helpers/notice-list';
@@ -21,6 +22,8 @@ test.describe('Responsive layouts', () => {
 
 			for (const route of [...routes, noticeDetailRoute(notice.num)]) {
 				await page.goto(route.path);
+				if (route.path.startsWith('/notices?')) await openNoticeFilters(page);
+				if (route.path === '/proposals') await openStatisticsSettings(page);
 				for (const selector of route.visible) {
 					await expect(page.locator(selector), `${route.path}: ${selector}`).toBeVisible();
 				}
@@ -37,6 +40,7 @@ test.describe('Responsive layouts', () => {
 						).toBeLessThanOrEqual(maxLines);
 					}
 				}
+				if (route.path.startsWith('/notices?')) await page.keyboard.press('Escape');
 				await expectRouteWithinBounds(page, route.path);
 			}
 

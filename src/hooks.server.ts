@@ -1,4 +1,5 @@
 import type { HandleFetch } from '@sveltejs/kit';
+import { PROXY_CONNECTION_FAILURE_HEADER } from '$lib/utils/request-failure';
 import { env } from '$env/dynamic/private';
 import { matchForced429, buildForced429Response } from '$lib/server/e2e-rate-limit-sim';
 import { resolveClientIp, buildBackendForwardHeaders } from '$lib/server/client-ip';
@@ -56,11 +57,19 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	const body =
 		request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.arrayBuffer();
 
-	return fetch(
+	const response = await fetch(
 		new Request(targetUrl, {
 			method: request.method,
+			signal: request.signal,
 			headers,
 			body
 		})
 	);
+	const responseHeaders = new Headers(response.headers);
+	responseHeaders.delete(PROXY_CONNECTION_FAILURE_HEADER);
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers: responseHeaders
+	});
 };

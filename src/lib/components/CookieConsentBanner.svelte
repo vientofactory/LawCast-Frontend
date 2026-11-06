@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { tick, onDestroy } from 'svelte';
+	import { floatingPrompt } from '$lib/utils/floating-prompt-motion';
 	import {
 		getCookieConsent,
 		setCookieConsent,
@@ -21,6 +23,8 @@
 	// Null means undecided — the banner must be shown.
 	let consent = $state<CookieConsentStatus | null>(null);
 	let bannerVisible = $state(false);
+	let bannerRendered = $state(false);
+	let restoreSettingsFocus = false;
 	// Rendered height of the banner container (card plus its bottom padding),
 	// published as `--lc-consent-banner-height` for floating corner controls.
 	let bannerHeight = $state(0);
@@ -36,7 +40,9 @@
 
 	// The settings shortcut is only in the DOM once a decision exists and
 	// the banner is dismissed.
-	const isSettingsVisible = $derived(isAnalyticsEnabled && !bannerVisible && consent !== null);
+	const isSettingsVisible = $derived(
+		isAnalyticsEnabled && !bannerVisible && !bannerRendered && consent !== null
+	);
 
 	$effect(() => {
 		if (!isAnalyticsEnabled) return;
@@ -50,7 +56,7 @@
 	// height lets fixed corner controls (the semantic engine status pill) move
 	// above it instead of hiding behind a z-index they cannot win against.
 	$effect(() => {
-		const height = isAnalyticsEnabled && bannerVisible ? bannerHeight : 0;
+		const height = isAnalyticsEnabled && (bannerVisible || bannerRendered) ? bannerHeight : 0;
 		document.documentElement.style.setProperty('--lc-consent-banner-height', `${height}px`);
 	});
 
@@ -71,9 +77,13 @@
 	});
 
 	function choose(status: CookieConsentStatus): void {
+		if (!bannerVisible) return;
 		const previousConsent = getCookieConsent();
 		if (!setCookieConsent(status)) return;
 		consent = status;
+		restoreSettingsFocus =
+			document.activeElement instanceof HTMLElement &&
+			!!document.activeElement.closest('[data-testid="cookie-consent-banner"]');
 		bannerVisible = false;
 		pushConsentUpdate(status);
 		if (status === 'accepted' && previousConsent !== 'accepted') {
@@ -81,6 +91,27 @@
 			pushGtmPageView(window.location.pathname + window.location.search);
 		}
 	}
+
+	function retainBanner(_node: HTMLElement) {
+		bannerRendered = true;
+		return {
+			destroy() {
+				bannerRendered = false;
+				void tick().then(() => {
+					if (restoreSettingsFocus && document.activeElement === document.body) {
+						document
+							.querySelector<HTMLElement>('[data-testid="cookie-settings-button"]')
+							?.focus({ preventScroll: true });
+					}
+					restoreSettingsFocus = false;
+				});
+			}
+		};
+	}
+	onDestroy(() => {
+		if (typeof document !== 'undefined')
+			document.documentElement.style.removeProperty('--lc-consent-banner-height');
+	});
 
 	function reopen(): void {
 		bannerVisible = true;
@@ -91,6 +122,8 @@
 	}
 
 	function unpeekSettingsLabel(): void {
+		const button = document.querySelector('[data-testid="cookie-settings-button"]');
+		if (button === document.activeElement || button?.matches(':hover')) return;
 		settingsExpanded = false;
 	}
 </script>
@@ -98,6 +131,9 @@
 {#if isAnalyticsEnabled && bannerVisible}
 	<div
 		bind:clientHeight={bannerHeight}
+		use:retainBanner
+		transition:floatingPrompt
+		inert={!bannerVisible}
 		data-testid="cookie-consent-banner"
 		role="dialog"
 		aria-live="polite"
@@ -124,6 +160,7 @@
 				<button
 					type="button"
 					data-testid="cookie-consent-decline"
+					disabled={!bannerVisible}
 					class="min-h-[44px] flex-1 cursor-pointer rounded-lg border border-[var(--lc-border-soft)] px-4 py-2 text-sm font-semibold text-[var(--lc-text-secondary)] transition-all duration-200 hover:bg-[var(--lc-surface-hover)] sm:flex-none sm:px-5"
 					onclick={() => choose('declined')}
 				>
@@ -132,6 +169,7 @@
 				<button
 					type="button"
 					data-testid="cookie-consent-accept"
+					disabled={!bannerVisible}
 					class="min-h-[44px] flex-1 cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 sm:flex-none sm:px-5"
 					onclick={() => choose('accepted')}
 				>
@@ -145,6 +183,7 @@
 	<button
 		type="button"
 		data-testid="cookie-settings-button"
+		transition:floatingPrompt={{ distance: 4, duration: 140 }}
 		data-expanded={settingsExpanded ? 'true' : 'false'}
 		aria-label="쿠키 설정 열기"
 		title="쿠키 설정"
@@ -166,21 +205,6 @@
 {/if}
 
 <style>
-	.lc-cookie-consent {
-		animation: lc-consent-slide-up 240ms ease-out;
-	}
-
-	@keyframes lc-consent-slide-up {
-		from {
-			opacity: 0;
-			transform: translateY(12px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
 	/* Settings shortcut morph: only the label track animates (grid 0fr
 	 * to 1fr), while the button keeps constant padding. Collapsed width
 	 * is icon (1rem) plus horizontal padding (2 x 0.75rem) = 2.5rem,
@@ -211,10 +235,6 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.lc-cookie-consent {
-			animation: none;
-		}
-
 		.lc-cookie-settings-label {
 			transition: none;
 		}

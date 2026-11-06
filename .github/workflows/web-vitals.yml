@@ -15,8 +15,95 @@ concurrency:
 
 jobs:
   web-vitals:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.22.1'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Set up npm
+        run: npm install --global npm@11.13.0
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+      - name: Lint
+        run: npm run lint && git diff --exit-code
+      - name: Type check
+        run: npm run check
+      - name: Test Lighthouse summaries
+        run: node --test scripts/lighthouse-summary.test.mjs
+      - name: Test request failure classification
+        run: node --test scripts/request-failure.test.mjs
+      - name: Test CI installation guards
+        run: node --test scripts/ci-install.test.mjs
+      - name: Resolve browser cache identity
+        id: browser-identity
+        run: |
+          echo "playwright=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright" >> "$GITHUB_ENV"
+          echo "image-os=$ImageOS" >> "$GITHUB_OUTPUT"
+          echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+      - name: Restore APT package archives
+        id: apt-cache
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: ${{ runner.temp }}/lawcast-apt-archives
+          key: apt-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.browser-identity.outputs.image }}-pw-${{ steps.browser-identity.outputs.playwright }}-${{ hashFiles('.github/scripts/install-chromium-deps.sh') }}
+      - name: Install Chromium system dependencies
+        run: bash .github/scripts/install-chromium-deps.sh
+      - name: Save APT package archives
+        if: steps.apt-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: ${{ runner.temp }}/lawcast-apt-archives
+          key: ${{ steps.apt-cache.outputs.cache-primary-key }}
+      - name: Restore Chromium binaries
+        id: browser-cache
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: chromium-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.browser-identity.outputs.image-os }}-pw-${{ steps.browser-identity.outputs.playwright }}
+      - name: Verify or install Chromium
+        run: npx --no-install playwright install chromium
+      - name: Save Chromium binaries
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: ${{ steps.browser-cache.outputs.cache-primary-key }}
+      - name: Summarize dependency caches
+        run: |
+          echo "npm package cache enabled; npm ci always runs with --prefer-offline." >> "$GITHUB_STEP_SUMMARY"
+          echo "APT package archive cache hit: ${{ steps.apt-cache.outputs.cache-hit == 'true' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Chromium binary cache hit: ${{ steps.browser-cache.outputs.cache-hit == 'true' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "System dependency installation and browser validation always run, including on cache hits." >> "$GITHUB_STEP_SUMMARY"
+      - name: Test revision history and scroll navigation
+        env:
+          DIFFCHAIN_UI_MOCK: '1'
+        run: npx --no-install playwright test --config playwright-configs/playwright.config.ts e2e/revision-history.spec.ts e2e/revision-text-diff.spec.ts e2e/revision-history-pagination.spec.ts e2e/navigation-scroll.spec.ts
+      - name: Test production build
+        run: npm run test:e2e:web-vitals
+      - name: Test request failure recovery
+        run: |
+          echo "::notice title=Intentional HTTP failures::This suite injects HTTP 429 and other failures through a local fixture. Application error logs are expected; every Playwright assertion must still pass."
+          npx --no-install playwright test --config playwright-configs/playwright.load-failures.config.ts
+      - name: Test open layout and accessibility
+        run: npx --no-install playwright test --config playwright-configs/playwright.open-layout.config.ts
+      - name: Test SSR API consumers
+        run: npx --no-install playwright test --config playwright-configs/playwright.consumers.config.ts
+
+  shared-ui:
+    name: Shared UI (${{ matrix.suite }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [notifications, screenshot-modal, theme-states]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -28,20 +115,15 @@ jobs:
       - name: Set up npm
         run: npm install --global npm@11.13.0
       - name: Install dependencies
-        run: npm ci
-      - name: Lint
-        run: npm run lint && git diff --exit-code
-      - name: Type check
-        run: npm run check
-      - name: Test Lighthouse summaries
-        run: node --test scripts/lighthouse-summary.test.mjs
-      - name: Install Chromium
-        run: npx --no-install playwright install --with-deps chromium
-      - name: Test revision history and scroll navigation
-        env:
-          DIFFCHAIN_UI_MOCK: '1'
-        run: npx --no-install playwright test --config playwright-configs/playwright.config.ts e2e/revision-history.spec.ts e2e/revision-history-pagination.spec.ts e2e/navigation-scroll.spec.ts
-      - name: Test production build
-        run: npm run test:e2e:web-vitals
-      - name: Test SSR API consumers
-        run: npx --no-install playwright test --config playwright-configs/playwright.consumers.config.ts
+        run: npm ci --prefer-offline
+      - name: Install browser engines and system dependencies
+        run: npx --no-install playwright install --with-deps chromium firefox webkit
+      - name: Test shared UI across browser engines
+        run: npx --no-install playwright test --config playwright-configs/playwright.${{ matrix.suite }}.config.ts
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: shared-ui-${{ matrix.suite }}
+          path: test-results/
+          retention-days: 7

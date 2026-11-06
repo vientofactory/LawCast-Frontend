@@ -1,13 +1,12 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import type { LoadErrorPayload } from '$lib/utils/request-failure';
+	import LoadFailureState from '$lib/components/LoadFailureState.svelte';
+	import { getFailureKind, getFailureStatus } from '$lib/utils/request-failure';
+	import Alert from '$lib/components/Alert.svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import {
-		faComments,
-		faCircleExclamation,
-		faCircleCheck,
-		faRotateRight
-	} from '@fortawesome/free-solid-svg-icons';
+	import { faComments, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '$lib/api/client';
 	import { toUserFacingErrorMessage } from '$lib/utils/error-message.util';
 	import type {
@@ -26,7 +25,7 @@
 	}: {
 		noticeNum: number;
 		initialDiscussions?: DiscussionThreadListResponse;
-		initialDiscussionError?: { status: number; message: string; retryAfter?: number };
+		initialDiscussionError?: LoadErrorPayload;
 	} = $props();
 
 	let threads: DiscussionThread[] = $state([]);
@@ -40,8 +39,8 @@
 		$state(null);
 
 	let errorMessage = $state('');
+	let listFailure = $state<LoadErrorPayload | null>(null);
 	let successMessage = $state('');
-	let successTimer: ReturnType<typeof setTimeout> | null = $state(null);
 	let rateLimitRemaining = $state(0);
 	let rateLimitTimer: ReturnType<typeof setInterval> | null = $state(null);
 
@@ -49,19 +48,25 @@
 		threads = initialDiscussions?.items ?? [];
 		totalThreads = initialDiscussions?.total ?? 0;
 		errorMessage = initialDiscussionError?.message ?? '';
-		rateLimitRemaining = initialDiscussionError?.retryAfter ?? 0;
+		listFailure = initialDiscussionError ?? null;
+		const initialFailure = initialDiscussionError;
+		untrack(() => {
+			if (initialFailure?.status === 429) startRateLimitCooldown(initialFailure.retryAfter ?? 60);
+			else {
+				if (rateLimitTimer) clearInterval(rateLimitTimer);
+				rateLimitRemaining = 0;
+			}
+		});
 	});
 
 	function showSuccess(msg: string) {
 		successMessage = msg;
-		if (successTimer) clearTimeout(successTimer);
-		successTimer = setTimeout(() => {
-			successMessage = '';
-		}, 3500);
 	}
 
 	function discussionErrorMessage(error: unknown, fallback: string): string {
 		if (!isRateLimitError(error)) {
+			if (rateLimitTimer) clearInterval(rateLimitTimer);
+			rateLimitRemaining = 0;
 			// Raw error text is logged by callers; the banner gets Korean guidance only.
 			return toUserFacingErrorMessage(error, fallback);
 		}
@@ -91,9 +96,17 @@
 			const res = await apiClient.getNoticeDiscussions(noticeNum);
 			threads = res.items;
 			totalThreads = res.total;
+			listFailure = null;
+			if (rateLimitTimer) clearInterval(rateLimitTimer);
+			rateLimitRemaining = 0;
 		} catch (err) {
 			console.error('Failed to load discussions:', err);
 			errorMessage = discussionErrorMessage(err, '토론 목록을 불러오지 못했습니다.');
+			listFailure = {
+				status: getFailureStatus(err),
+				kind: getFailureKind(err),
+				message: errorMessage
+			};
 		} finally {
 			isLoadingThreads = false;
 		}
@@ -135,20 +148,13 @@
 	}
 
 	onMount(() => {
-		if (initialDiscussionError) {
-			startRateLimitCooldown(initialDiscussionError.retryAfter ?? 60);
-		}
 		if (!initialDiscussions) {
 			loadThreads();
 		}
 	});
 </script>
 
-<section
-	id="notice-discussions"
-	data-testid="notice-discussions"
-	class="lc-panel-card mt-6 mb-6 rounded-2xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-elevated)] p-6 shadow-sm"
->
+<section id="notice-discussions" data-testid="notice-discussions" class="lc-section relative">
 	<div class="mb-4 flex items-center justify-between border-b border-[var(--lc-border-soft)] pb-4">
 		<div class="flex items-center gap-2.5">
 			<div class="lc-chip-blue rounded-xl p-2.5">
@@ -175,27 +181,26 @@
 	</div>
 
 	{#if successMessage}
-		<div
-			class="lc-banner-success mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold"
-		>
-			<FontAwesomeIcon
-				icon={faCircleCheck}
-				class="h-4 w-4 text-emerald-600 dark:text-emerald-400"
-			/>
-			<span>{successMessage}</span>
-		</div>
+		<Alert type="success" message={successMessage} onDismiss={() => (successMessage = '')} />
 	{/if}
 
-	{#if errorMessage}
-		<div
-			data-testid="discussion-error-banner"
-			class="lc-banner-danger mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400"
-		>
-			<FontAwesomeIcon icon={faCircleExclamation} class="h-4 w-4" />
-			<span>{errorMessage}</span>
-		</div>
+	{#if errorMessage && !listFailure}
+		<Alert
+			type="error"
+			message={errorMessage}
+			onDismiss={() => (errorMessage = '')}
+			testId="discussion-error-banner"
+		/>
 	{/if}
 
+	<LoadFailureState
+		error={listFailure && (listFailure.status !== 429 || rateLimitRemaining === 0)
+			? listFailure
+			: null}
+		retryAfter={rateLimitRemaining}
+		onRetry={loadThreads}
+		isRetrying={isLoadingThreads}
+	/>
 	<ThreadListView
 		{threads}
 		total={totalThreads}

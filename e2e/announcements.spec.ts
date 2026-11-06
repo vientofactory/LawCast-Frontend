@@ -60,11 +60,11 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 
 		const body = page.getByTestId('admin-notice-body');
 		await expect(body).toBeVisible();
-		// Heading (## -> h3; the notice title owns h1), bold text, unordered
+		// Heading (## -> h2; the notice title owns h1), bold text, unordered
 		// list, table and blockquote from the Notion block tree must survive
 		// the round trip. The body also contains a toggle block, so scope the
 		// bold assertion to the intro paragraph (strict mode: 2 <strong>s).
-		await expect(body.locator('h3')).toContainText('개인정보 처리 방침 개정 안내');
+		await expect(body.locator('h2')).toContainText('개인정보 처리 방침 개정 안내');
 		await expect(body.locator('p strong').first()).toContainText('개인정보 처리 방침');
 		await expect(body.locator('ul li')).toHaveCount(2);
 		await expect(body.locator('table')).toBeVisible();

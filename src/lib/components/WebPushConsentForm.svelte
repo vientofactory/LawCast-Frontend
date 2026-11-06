@@ -1,7 +1,9 @@
 <script lang="ts">
+	import Alert from '$lib/components/Alert.svelte';
+	import DisclosureIndicator from '$lib/components/DisclosureIndicator.svelte';
 	import { onMount, tick } from 'svelte';
 	import type { Component, ComponentProps } from 'svelte';
-	import { fade, slide } from 'svelte/transition';
+	import { disclosureSlide, disclosureFade } from '$lib/utils/disclosure-motion';
 	import { dev } from '$app/environment';
 	import { apiClient } from '$lib/api/client';
 	import { executePowInWorker, type PowStatus } from '$lib/hashguard-worker';
@@ -12,7 +14,6 @@
 	import {
 		faBell,
 		faBellSlash,
-		faChevronDown,
 		faSpinner,
 		faTriangleExclamation,
 		faCloud,
@@ -360,9 +361,7 @@
      until then would leave a blank gap with no title or spinner. -->
 <div
 	class:hidden={!isPushEnabledByServer && !isLoading}
-	class={compact
-		? 'space-y-4'
-		: 'lc-panel-card mt-6 rounded-2xl border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-xl'}
+	class={compact ? 'space-y-4' : 'lc-form-section'}
 >
 	{#if !compact}
 		<h2 class="lc-text-primary mb-6 flex items-center text-xl font-bold tracking-tight">
@@ -384,16 +383,7 @@
 	{/if}
 
 	{#if showInlineFeedback && feedback}
-		<div
-			class={`mb-4 rounded-lg border p-3 text-sm ${
-				feedback.type === 'success'
-					? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-					: 'border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400'
-			}`}
-			role={feedback.type === 'error' ? 'alert' : 'status'}
-		>
-			{feedback.message}
-		</div>
+		<Alert type={feedback.type} message={feedback.message} onDismiss={() => (feedback = null)} />
 	{/if}
 
 	{#if isLoading}
@@ -465,22 +455,19 @@
 				<div class="mt-4 rounded-xl border border-(--lc-border-soft) px-4 py-3">
 					<button
 						type="button"
-						class="lc-text-secondary flex w-full cursor-pointer items-center justify-between text-left text-xs font-semibold"
+						class="lc-disclosure-trigger lc-disclosure-trigger--compact text-sm font-semibold"
 						aria-expanded={isFullUnsubscribeOpen}
 						onclick={() => (isFullUnsubscribeOpen = !isFullUnsubscribeOpen)}
 					>
 						<span>고급 설정: 브라우저 구독 전체 해지</span>
-						<FontAwesomeIcon
-							icon={faChevronDown}
-							class={`h-3 w-3 transition-transform duration-200 ${isFullUnsubscribeOpen ? 'rotate-180' : ''}`}
-						/>
+						<DisclosureIndicator />
 					</button>
 
 					{#if isFullUnsubscribeOpen}
-						<div transition:slide={{ duration: 180 }}>
+						<div in:disclosureSlide out:disclosureSlide={{ closing: true }}>
 							<p
 								class="lc-text-muted mt-2 text-xs leading-relaxed"
-								transition:fade={{ duration: 140 }}
+								transition:disclosureFade={{ duration: 140 }}
 							>
 								입법예고 알림과 모든 토론 인용 알림을 이 브라우저에서 함께 해지합니다.
 							</p>

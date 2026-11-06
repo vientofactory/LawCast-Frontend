@@ -87,10 +87,11 @@ test.describe('Auto Dark Mode + color-scheme conflict prevention', () => {
 		expect(dataTheme).toBe('light');
 
 		const bodyBg = await getCssVariable(page, '--lc-body-bg');
-		expect(bodyBg).toBe('#fafafb');
+		// Development and minified production CSS serialize white differently.
+		expect(bodyBg).toMatch(/^#(?:fff|ffffff)$/i);
 
 		const textPrimary = await getCssVariable(page, '--lc-text-primary');
-		expect(textPrimary).toBe('#0f172a');
+		expect(textPrimary).toBe('#242624');
 	});
 
 	test('CSS variables are correctly applied in dark theme', async ({ page }) => {
@@ -100,10 +101,10 @@ test.describe('Auto Dark Mode + color-scheme conflict prevention', () => {
 		expect(dataTheme).toBe('dark');
 
 		const bodyBg = await getCssVariable(page, '--lc-body-bg');
-		expect(bodyBg).toBe('#0b1117');
+		expect(bodyBg).toBe('#242526');
 
 		const textPrimary = await getCssVariable(page, '--lc-text-primary');
-		expect(textPrimary).toBe('#e5e7eb');
+		expect(textPrimary).toBe('#f1f2ee');
 	});
 
 	test('color-scheme updates immediately on theme switch', async ({ page }) => {
@@ -152,8 +153,8 @@ test.describe('Auto Dark Mode + color-scheme conflict prevention', () => {
 		expect(lightVariables.bodyBg).not.toBe(darkVariables.bodyBg);
 		expect(lightVariables.textPrimary).not.toBe(darkVariables.textPrimary);
 
-		expect(darkVariables.bodyBg).toBe('#0b1117');
-		expect(darkVariables.textPrimary).toBe('#e5e7eb');
+		expect(darkVariables.bodyBg).toBe('#242526');
+		expect(darkVariables.textPrimary).toBe('#f1f2ee');
 	});
 
 	test('theme works without JavaScript errors', async ({ page }) => {
@@ -220,6 +221,6 @@ test.describe('Auto Dark Mode + color-scheme conflict prevention', () => {
 		}).toPass({ timeout: 2000 });
 
 		const bodyBg = await getCssVariable(page, '--lc-body-bg');
-		expect(bodyBg).toBe('#0b1117');
+		expect(bodyBg).toBe('#242526');
 	});
 });

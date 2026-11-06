@@ -535,6 +535,7 @@ export interface WebhookValidationResult {
 }
 
 export interface ApiError extends Error {
+	kind?: import('../utils/request-failure').FailureKind;
 	status?: number;
 	retryAfter?: number;
 	response?: {
