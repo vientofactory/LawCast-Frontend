@@ -1,0 +1,64 @@
+name: Cached Playwright dependencies
+description: Cache verified package downloads and browser binaries without skipping installation
+inputs:
+  browsers:
+    description: Space-separated supported browser names
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Resolve cache compatibility
+      id: identity
+      shell: bash
+      env:
+        BROWSER_SET: ${{ inputs.browsers }}
+      run: node "$GITHUB_ACTION_PATH/../../scripts/playwright-cache-key.mjs"
+    - name: Restore APT package archives
+      id: apt-cache
+      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
+      with:
+        path: ${{ runner.temp }}/lawcast-apt-archives
+        key: ${{ steps.identity.outputs.apt-key }}
+    - name: Install system dependencies
+      shell: bash
+      env:
+        BROWSER_SET: ${{ steps.identity.outputs.browsers }}
+      run: |
+        read -r -a browsers <<< "$BROWSER_SET"
+        bash "$GITHUB_ACTION_PATH/../../scripts/install-browser-deps.sh" "${browsers[@]}"
+    - name: Save APT package archives
+      if: steps.apt-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
+      with:
+        path: ${{ runner.temp }}/lawcast-apt-archives
+        key: ${{ steps.apt-cache.outputs.cache-primary-key }}
+    - name: Restore browser binaries
+      id: browser-cache
+      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
+      with:
+        path: ${{ runner.temp }}/ms-playwright
+        key: ${{ steps.identity.outputs.browser-key }}
+    - name: Verify or install browsers
+      shell: bash
+      env:
+        BROWSER_SET: ${{ steps.identity.outputs.browsers }}
+      run: |
+        read -r -a browsers <<< "$BROWSER_SET"
+        npx --no-install playwright install "${browsers[@]}"
+    - name: Save browser binaries
+      if: steps.browser-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
+      with:
+        path: ${{ runner.temp }}/ms-playwright
+        key: ${{ steps.browser-cache.outputs.cache-primary-key }}
+    - name: Summarize dependency caches
+      shell: bash
+      env:
+        BROWSER_SET: ${{ steps.identity.outputs.browsers }}
+        APT_CACHE_HIT: ${{ steps.apt-cache.outputs.cache-hit }}
+        BROWSER_CACHE_HIT: ${{ steps.browser-cache.outputs.cache-hit }}
+      run: |
+        echo "### Playwright dependencies: $BROWSER_SET" >> "$GITHUB_STEP_SUMMARY"
+        echo "APT package archive cache hit: $APT_CACHE_HIT" >> "$GITHUB_STEP_SUMMARY"
+        echo "Browser binary cache hit: $BROWSER_CACHE_HIT" >> "$GITHUB_STEP_SUMMARY"
+        echo "npm ci, system dependency installation, browser validation and all tests always run." >> "$GITHUB_STEP_SUMMARY"
