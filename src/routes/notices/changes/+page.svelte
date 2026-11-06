@@ -565,7 +565,7 @@
 
 		<section class="relative" data-testid="changes-results-region">
 			{#if changes.items.length === 0}
-				<section class="lc-panel-card rounded-2xl border p-8 text-center shadow-sm">
+				<section class="lc-open-empty-state">
 					<FontAwesomeIcon
 						icon={faFileCircleXmark}
 						class="lc-text-muted mx-auto mb-4 h-10 w-10 text-4xl"
@@ -573,31 +573,29 @@
 					<p class="lc-text-secondary text-sm">보여드릴 변경 내역이 없습니다.</p>
 				</section>
 			{:else}
-				<section class="space-y-3" class:opacity-85={isServerLoading}>
+				<section class="lc-flat-list" class:opacity-85={isServerLoading}>
 					{#each changes.items as item (item.id)}
 						<article
-							class={`lc-panel-card lc-content-card rounded-xl border p-4 shadow-sm ${isDigestMatchedItem(item) ? 'lc-banner-warning border-2' : ''}`}
+							class="lc-flat-list-row"
+							class:lc-flat-list-row-highlight={isDigestMatchedItem(item)}
+							data-testid={`change-row-${item.id}`}
 						>
 							<div class="flex flex-wrap items-center justify-between gap-3">
-								<div class="min-w-0">
-									<p class="lc-text-primary mb-2 truncate text-sm font-semibold sm:text-base">
+								<div class="min-w-0 flex-1 basis-full sm:basis-80">
+									<p class="lc-text-primary lc-list-title mb-2">
 										{item.subject?.trim() || '(법률안 제목 정보 없음)'}
 									</p>
 									<div class="mb-2 flex flex-wrap items-center gap-2">
-										<span
-											class="lc-chip-blue inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-										>
+										<span class="lc-text-secondary inline-flex items-center text-xs">
 											<FontAwesomeIcon icon={faRotate} class="mr-1 h-3 w-3" />
 											의안번호 {item.noticeNum}
 										</span>
 										<span
-											class={`${eventTypeChipClass(item.eventType, item.source)} inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold`}
+											class={`${eventTypeChipClass(item.eventType, item.source)} lc-flat-status inline-flex items-center text-xs font-semibold`}
 										>
 											{eventTypeLabel(item.eventType, item.source)}
 										</span>
-										<span
-											class="lc-chip-muted inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-										>
+										<span class="lc-text-secondary inline-flex items-center text-xs">
 											변경 횟수 {item.eventHeight - 1}회
 										</span>
 									</div>
@@ -608,7 +606,7 @@
 								<div class="flex flex-wrap gap-2">
 									<a
 										href={buildNoticeTimelineHref(item.noticeNum)}
-										class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 text-xs font-semibold"
+										class="lc-result-action-secondary"
 									>
 										<FontAwesomeIcon icon={faCodeCompare} class="mr-1.5 h-3.5 w-3.5" />
 										변경 내역 보기
@@ -616,7 +614,7 @@
 									{#if item.eventHeight > 1}
 										<a
 											href={`/notices/${item.noticeNum}?timeline=true&cmpFrom=${item.eventHeight - 1}&cmpTo=${item.eventHeight}`}
-											class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2 text-xs font-semibold"
+											class="lc-result-action-secondary"
 											data-testid={`change-compare-${item.id}`}>이 변경 비교</a
 										>
 									{/if}

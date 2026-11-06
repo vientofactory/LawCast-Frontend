@@ -1056,3 +1056,167 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 	font-size: 0.875rem;
 	line-height: 1.6;
 }
+
+/* Empty states and repeated lists share the page's open reading surface. */
+.lc-main .lc-open-empty-state {
+	padding: clamp(2.5rem, 6vw, 4rem) 0;
+	text-align: center;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
+.lc-open-empty-icon {
+	display: inline-flex;
+	margin-bottom: 1.25rem;
+	color: var(--lc-text-muted);
+}
+.lc-main .lc-open-empty-state h3 {
+	font-size: 1.25rem;
+	line-height: 1.5;
+}
+.lc-flat-list {
+	min-width: 0;
+}
+.lc-main .lc-flat-list-row {
+	display: block;
+	min-width: 0;
+	padding: 1.5rem 0;
+	border: 0;
+	border-bottom: 1px solid var(--lc-border-soft);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+.lc-main .lc-discussion-list > .lc-flat-list-row {
+	display: flex;
+}
+.lc-main .lc-flat-list-row:last-child {
+	border-bottom: 0;
+}
+/* Digest matches retain a non-color cue without reintroducing a full card. */
+.lc-main .lc-flat-list-row-highlight {
+	border-inline-start: 3px solid var(--lc-status-warning);
+	padding-inline-start: 1rem;
+}
+.lc-main .lc-flat-list .lc-flat-status,
+.lc-main .lc-discussion-list :is(.lc-chip-success, .lc-chip-muted, .lc-chip-blue) {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+}
+.lc-main .lc-status-tabs {
+	display: flex;
+	gap: 1.5rem;
+	max-width: 100%;
+}
+.lc-main .lc-status-tab {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 2.75rem;
+	padding: 0.5rem 0;
+	border-bottom: 2px solid transparent;
+	color: var(--lc-text-secondary);
+	font-size: 0.875rem;
+	font-weight: 600;
+	text-decoration: none;
+}
+.lc-main .lc-status-tab[aria-selected='true'] {
+	border-bottom-color: var(--lc-text-accent);
+	color: var(--lc-text-accent);
+}
+.lc-main .lc-status-tab:hover {
+	color: var(--lc-text-accent);
+}
+/* Plain status text also needs AA contrast over the full-row hover surface. */
+.lc-main .lc-flat-list .lc-chip-success {
+	color: color-mix(in srgb, var(--lc-status-success) 80%, var(--lc-text-primary));
+}
+
+/* Pagination follows the same open, underlined treatment as status navigation. */
+.lc-main nav.lc-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.125rem;
+	min-width: 0;
+	margin-top: 2.5rem;
+	font-variant-numeric: tabular-nums;
+}
+.lc-pagination-pages {
+	display: flex;
+	align-items: center;
+	gap: 0.125rem;
+	min-width: 0;
+}
+.lc-pagination-pages-compact {
+	display: none;
+}
+.lc-main nav.lc-pagination :is(.lc-pagination-btn, .lc-pagination-active, .lc-pagination-disabled) {
+	position: relative;
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.75rem;
+	min-height: 2.75rem;
+	padding: 0.5rem;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	border-radius: 0;
+	background: transparent;
+	color: var(--lc-text-secondary);
+	font-size: 0.875rem;
+	font-weight: 500;
+	line-height: 1.5;
+	text-decoration: none;
+	box-shadow: none;
+	transform: none;
+}
+.lc-main nav.lc-pagination .lc-pagination-active {
+	border-bottom-color: var(--lc-text-accent);
+	color: var(--lc-text-accent);
+	font-weight: 700;
+}
+.lc-main nav.lc-pagination .lc-pagination-disabled {
+	color: var(--lc-text-muted);
+	opacity: 0.45;
+}
+.lc-pagination-ellipsis {
+	padding-inline: 0.125rem;
+	color: var(--lc-text-muted);
+}
+.lc-pagination-spinner {
+	position: absolute;
+}
+.lc-main .lc-pagination-summary {
+	margin-top: 0.875rem;
+	text-align: center;
+}
+.lc-main .lc-pagination-summary .lc-page-count {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--lc-text-secondary);
+	font-size: 0.875rem;
+	font-weight: 400;
+	font-variant-numeric: tabular-nums;
+}
+@media (hover: hover) and (pointer: fine) {
+	.lc-main nav.lc-pagination .lc-pagination-btn:hover {
+		border-bottom-color: transparent;
+		background: var(--lc-surface-hover);
+		color: var(--lc-text-primary);
+	}
+}
+@media (max-width: 639px) {
+	.lc-main nav.lc-pagination .lc-pagination-boundary,
+	.lc-pagination-pages-wide {
+		display: none;
+	}
+	.lc-pagination-pages-compact {
+		display: flex;
+	}
+}

@@ -1162,17 +1162,29 @@ for (const width of [390, 1440]) {
 				await expect(card).toBeVisible();
 				await expect(card).toHaveCSS(
 					'background-color',
-					theme === 'light' ? 'rgb(243, 243, 241)' : 'rgb(45, 46, 47)'
+					name === 'changes' || name === 'discussions'
+						? 'rgba(0, 0, 0, 0)'
+						: theme === 'light'
+							? 'rgb(243, 243, 241)'
+							: 'rgb(45, 46, 47)'
 				);
-				await expect(card).toHaveCSS(
-					'border-color',
-					theme === 'light' ? 'rgb(215, 216, 212)' : 'rgb(80, 82, 83)'
-				);
+				if (name === 'changes' || name === 'discussions') {
+					await expect(card).toHaveCSS('border-left-width', '0px');
+				} else {
+					await expect(card).toHaveCSS(
+						'border-color',
+						theme === 'light' ? 'rgb(215, 216, 212)' : 'rgb(80, 82, 83)'
+					);
+				}
 				const chips = card.locator('.lc-chip-blue, .lc-chip-muted, .lc-chip-purple');
 				if (await chips.count())
 					await expect(chips.first()).toHaveCSS(
 						'background-color',
-						theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(51, 52, 53)'
+						name === 'changes' || name === 'discussions'
+							? 'rgba(0, 0, 0, 0)'
+							: theme === 'light'
+								? 'rgb(255, 255, 255)'
+								: 'rgb(51, 52, 53)'
 					);
 				expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
 					true
@@ -1243,9 +1255,9 @@ for (const initialTheme of ['light', 'dark'] as const) {
 					'/discussions',
 					'[data-testid^="discussions-list-link-"]',
 					[
-						'.lc-content-card .lc-list-title',
-						'.lc-content-card .lc-chip-success',
-						'.lc-content-card .lc-chip-blue'
+						'.lc-discussion-list .lc-list-title',
+						'.lc-discussion-list .lc-chip-success',
+						'.lc-discussion-list .lc-chip-blue'
 					]
 				],
 				[
@@ -1480,3 +1492,151 @@ for (const initialTheme of ['light', 'dark'] as const) {
 		});
 	}
 }
+
+for (const width of [320, 390, 820, 1440]) {
+	for (const theme of ['light', 'dark']) {
+		test(`remaining flat surfaces at ${width}px in ${theme}`, async ({ page }) => {
+			test.setTimeout(120_000);
+			await page.setViewportSize({ width, height: 1000 });
+			await page.emulateMedia({ reducedMotion: 'reduce' });
+			await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
+			const cases = [
+				['empty', '/notices?search=약한&searchMode=semantic', 'notices-empty-state'],
+				['semantic-empty', '/notices/semantic-search?search=약한', 'semantic-search-empty-state'],
+				['changes', '/notices/changes', 'changes-results-region'],
+				['discussions', '/discussions?status=closed', 'discussions-list']
+			] as const;
+			for (const [name, path, id] of cases) {
+				await page.goto(path);
+				const region = page.getByTestId(id);
+				await expect(region).toBeVisible();
+				await region.scrollIntoViewIfNeeded();
+				await page.evaluate(() => document.fonts.ready);
+				if (screenshotDir) {
+					await mkdir(screenshotDir, { recursive: true });
+					await page.screenshot({
+						path: join(screenshotDir, `flat-${name}-${width}-${theme}.png`)
+					});
+				}
+				const surface = name === 'changes' ? region.locator('article').first() : region;
+				await expect(surface).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+				await expect(surface).toHaveCSS('border-left-width', '0px');
+				await expect(surface).toHaveCSS('border-radius', '0px');
+				expect(
+					await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)
+				).toBe(true);
+				const audit = await new AxeBuilder({ page })
+					.include(`[data-testid="${id}"]`)
+					.withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+					.analyze();
+				expect(audit.violations).toEqual([]);
+				if (name === 'empty' || name === 'semantic-empty') {
+					await page
+						.getByTestId(
+							name === 'empty' ? 'notices-semantic-show-weak' : 'semantic-search-show-weak'
+						)
+						.click();
+					await expect(region).toHaveCount(0);
+				} else if (name === 'changes') {
+					await expect(region.getByRole('link', { name: '이 변경 비교' }).first()).toHaveAttribute(
+						'href',
+						/cmpFrom=\d+&cmpTo=\d+/
+					);
+				} else {
+					const selected = page.getByTestId('discussions-filter-closed');
+					await expect(selected).toHaveAttribute('aria-selected', 'true');
+					await expect(selected).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+					await page.getByTestId('discussions-filter-all').click();
+					await expect(page.getByTestId('discussions-filter-all')).toHaveAttribute(
+						'aria-selected',
+						'true'
+					);
+					const link = page.locator('[data-testid^="discussions-list-link-"]').first();
+					await link.focus();
+					await expect(link).toBeFocused();
+					await link.press('Enter');
+					await expect(page).toHaveURL(/\/notices\/\d+\/discussions\/\d+/);
+				}
+			}
+		});
+	}
+}
+
+for (const width of [320, 390, 820, 1440]) {
+	for (const theme of ['light', 'dark']) {
+		test(`flat pagination at ${width}px in ${theme}`, async ({ page }) => {
+			await page.setViewportSize({ width, height: 1000 });
+			await page.emulateMedia({ reducedMotion: 'reduce' });
+			await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
+			await page.goto('/notices?limit=10&page=1');
+			const nav = page.getByTestId('notices-pagination');
+			await expect(nav).toBeVisible();
+			await nav.scrollIntoViewIfNeeded();
+			const current = nav.locator('.lc-pagination-active:visible');
+			await expect(current).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+			await expect(current).toHaveCSS('border-left-width', '0px');
+			await expect(current).toHaveAttribute('aria-current', 'page');
+			await expect(current).toHaveCSS('border-bottom-width', '2px');
+			for (const control of await nav.locator('a:visible').all()) {
+				const bounds = await control.boundingBox();
+				expect(bounds!.height).toBeGreaterThanOrEqual(44);
+				expect(bounds!.width).toBeGreaterThanOrEqual(44);
+			}
+			expect(
+				await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)
+			).toBe(true);
+			const audit = await new AxeBuilder({ page })
+				.include('[data-testid="notices-pagination"]')
+				.withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+				.analyze();
+			expect(audit.violations).toEqual([]);
+			if (screenshotDir) {
+				await mkdir(screenshotDir, { recursive: true });
+				await page.screenshot({ path: join(screenshotDir, `pagination-${width}-${theme}.png`) });
+			}
+			const next = nav.getByRole('link', { name: '다음 페이지로 이동', exact: true });
+			await next.focus();
+			await expect(next).toBeFocused();
+			await next.press('Enter');
+			await expect(page).toHaveURL(/page=2/);
+			await expect(nav.locator('[aria-current="page"]:visible')).toHaveText('2');
+			await nav.getByRole('link', { name: '1페이지로 이동', exact: true }).click();
+			await expect(page).toHaveURL(/page=1/);
+			await expect(nav.getByRole('link', { name: '이전 페이지로 이동', exact: true })).toHaveCount(
+				0
+			);
+			await nav.getByRole('link', { name: '2페이지로 이동', exact: true }).click();
+			await expect(page).toHaveURL(/page=2/);
+			await expect(nav.getByRole('link', { name: '다음 페이지로 이동', exact: true })).toHaveCount(
+				0
+			);
+		});
+	}
+}
+
+test('flat pagination preserves pending feedback and number width', async ({ page }) => {
+	await page.goto('/notices?limit=10&page=1');
+	const nav = page.getByTestId('notices-pagination');
+	await nav.scrollIntoViewIfNeeded();
+	const target = nav.getByRole('link', { name: '2페이지로 이동', exact: true });
+	const before = await target.boundingBox();
+	let release!: () => void;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await page.route(/\/notices\/__data\.json/, async (route) => {
+		await gate;
+		await route.continue();
+	});
+	try {
+		await nav.getByRole('link', { name: '다음 페이지로 이동', exact: true }).click();
+		await expect(nav).toHaveAttribute('aria-busy', 'true');
+		await expect(target.locator('.lc-pagination-spinner')).toBeVisible();
+		expect((await target.boundingBox())!.width).toBe(before!.width);
+	} finally {
+		release();
+	}
+	await expect(page).toHaveURL(/page=2/);
+	await expect(nav).toHaveAttribute('aria-busy', 'false');
+	await expect(nav.locator('[aria-current="page"]:visible')).toHaveText('2');
+});

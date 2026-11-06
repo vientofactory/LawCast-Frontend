@@ -1137,12 +1137,9 @@
 							{/if}
 						</div>
 					{:else if notices.length === 0}
-						<div
-							class="lc-empty-state rounded-2xl border p-16 text-center shadow-xl"
-							data-testid="notices-empty-state"
-						>
-							<div class="lc-empty-state-icon mb-6 inline-block rounded-full p-6">
-								<FontAwesomeIcon icon={faBell} class="lc-text-dim h-16 w-16" />
+						<div class="lc-open-empty-state" data-testid="notices-empty-state">
+							<div class="lc-open-empty-icon">
+								<FontAwesomeIcon icon={faMagnifyingGlass} class="h-8 w-8" />
 							</div>
 							{#if weakResults.length > 0}
 								<h3 class="lc-text-primary mb-3 text-2xl font-bold">명확한 검색 결과가 없습니다</h3>

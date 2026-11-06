@@ -65,10 +65,7 @@
 			토론 목록을 불러오는 중...
 		</div>
 	{:else if threads.length === 0}
-		<div
-			data-testid="discussion-empty-state"
-			class="rounded-xl border border-dashed border-[var(--lc-border-soft)] p-8 text-center"
-		>
+		<div data-testid="discussion-empty-state" class="lc-open-empty-state">
 			<p class="lc-text-primary text-sm font-semibold">아직 등록된 토론이 없습니다.</p>
 			<p class="lc-text-muted mt-1 text-xs">이 법률안에 대한 첫 번째 토론을 시작해보세요.</p>
 			<button
@@ -82,12 +79,12 @@
 			</button>
 		</div>
 	{:else}
-		<div class="divide-y divide-[var(--lc-border-soft)]" class:opacity-40={isRateLimitError}>
+		<div class="lc-flat-list lc-discussion-list" class:opacity-40={isRateLimitError}>
 			{#each threads as thread (thread.id)}
 				<a
 					href={`/notices/${thread.noticeNum}/discussions/${thread.id}`}
 					data-testid={`discussion-thread-link-${thread.id}`}
-					class="group flex cursor-pointer flex-col justify-between gap-2 py-4 transition-colors hover:bg-[var(--lc-surface-hover)] sm:flex-row sm:items-center no-underline text-inherit"
+					class="lc-flat-list-row lc-card-list-link group flex cursor-pointer flex-col justify-between gap-3 text-inherit no-underline transition-colors sm:flex-row sm:items-center"
 					onclick={(e) => {
 						if (onSelectThread) {
 							e.preventDefault();
@@ -148,7 +145,7 @@
 						</span>
 						<FontAwesomeIcon
 							icon={faChevronRight}
-							class="lc-text-dim hidden h-3 w-3 sm:inline-block transition-transform group-hover:translate-x-0.5"
+							class="lc-text-dim hidden h-3 w-3 transition-transform group-hover:translate-x-0.5 sm:inline-block"
 						/>
 					</div>
 				</a>

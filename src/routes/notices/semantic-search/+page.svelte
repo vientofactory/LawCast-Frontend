@@ -372,9 +372,9 @@
 							<p class="lc-text-secondary text-sm">의미가 가까운 법률안을 찾고 있습니다</p>
 						</div>
 					{:else if hasQuery && !isLoading && response && response.results.length === 0 && !showingWeak}
-						<div class="lc-semantic-introduction" data-testid="semantic-search-empty-state">
-							<div class="lc-empty-state-icon mb-6 inline-block rounded-full p-6">
-								<FontAwesomeIcon icon={faMagnifyingGlass} class="lc-text-dim h-16 w-16" />
+						<div class="lc-open-empty-state" data-testid="semantic-search-empty-state">
+							<div class="lc-open-empty-icon">
+								<FontAwesomeIcon icon={faMagnifyingGlass} class="h-8 w-8" />
 							</div>
 							{#if weakResults.length > 0}
 								<!-- Empty clear tier with a weak band behind it: the reveal
