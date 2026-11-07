@@ -790,7 +790,10 @@ export function getMockArchiveNoticesResponse(params: {
 		fallbackReason: null,
 		lastUpdateAt: MOCK_SEMANTIC_LAST_UPDATE,
 		candidateTotal: total,
-		weakResults: []
+		weakResults: [],
+		...(searchMode === 'auto' && search === '주택임대차보호볍'
+			? { suggestedQuery: '주택임대차보호법' }
+			: {})
 	};
 	return {
 		...baseResponse,

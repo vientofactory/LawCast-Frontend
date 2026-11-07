@@ -23,6 +23,7 @@ export interface BoardSearchSemanticMeta {
 	lastUpdateAt: string | null;
 	/** Engine-ranked notice count before archive filters were applied. */
 	candidateTotal: number;
+	suggestedQuery?: string;
 	weakResults: SemanticSearchResultItem[];
 }
 
