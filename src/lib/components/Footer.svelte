@@ -1,13 +1,54 @@
 <script lang="ts">
 	import * as env from '$app/env/public';
 	import BrandLogo from '#lib/components/BrandLogo.svelte';
-	import { faGithub } from '@fortawesome/free-brands-svg-icons';
-	import {
-		height as instagramHeight,
-		svgPathData as instagramPath,
-		width as instagramWidth
-	} from '@fortawesome/free-brands-svg-icons/faInstagram';
-	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+	import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+	import { faGithub, faInstagram, faXTwitter } from '@fortawesome/free-brands-svg-icons';
+
+	type LogoGradient = {
+		direction: { x1: string; y1: string; x2: string; y2: string };
+		stops: readonly { offset: string; color: string }[];
+	};
+
+	type SocialProfile = {
+		id: string;
+		href: string;
+		label: string;
+		icon: IconDefinition;
+		brandPaint?: string | LogoGradient;
+	};
+
+	const instagramLogoGradient: LogoGradient = {
+		direction: { x1: '12%', y1: '100%', x2: '86%', y2: '0%' },
+		stops: [
+			{ offset: '0%', color: '#feda75' },
+			{ offset: '30%', color: '#fa7e1e' },
+			{ offset: '55%', color: '#d62976' },
+			{ offset: '78%', color: '#962fbf' },
+			{ offset: '100%', color: '#4f5bd5' }
+		]
+	};
+
+	const socialProfiles: readonly SocialProfile[] = [
+		{
+			id: 'instagram',
+			href: 'https://www.instagram.com/lawcast.official',
+			label: 'LawCast 인스타그램 (새 탭에서 열기)',
+			icon: faInstagram,
+			brandPaint: instagramLogoGradient
+		},
+		{
+			id: 'x',
+			href: 'https://x.com/real_lawcast',
+			label: 'LawCast X (새 탭에서 열기)',
+			icon: faXTwitter
+		},
+		{
+			id: 'github',
+			href: 'https://github.com/vientofactory/lawcast',
+			label: 'GitHub 저장소 열기',
+			icon: faGithub
+		}
+	];
 
 	let {
 		frontendVersion = 'unknown',
@@ -15,7 +56,9 @@
 	}: { frontendVersion?: string; backendVersion?: string } = $props();
 
 	const profileLinkClass =
-		'inline-flex size-11 items-center justify-center rounded-lg text-(--lc-text-secondary) motion-safe:transition-colors hover:bg-(--lc-surface-hover) focus-visible:bg-(--lc-surface-hover) focus-visible:outline-2 focus-visible:outline-(--lc-text-accent)';
+		'group inline-flex size-11 items-center justify-center rounded-lg text-(--lc-text-secondary) motion-safe:transition-colors hover:bg-(--lc-surface-hover) focus-visible:bg-(--lc-surface-hover) focus-visible:outline-2 focus-visible:outline-(--lc-text-accent)';
+	const monochromeProfileClass =
+		'hover:text-black focus-visible:text-black dark:hover:text-white dark:focus-visible:text-white';
 </script>
 
 <footer
@@ -74,43 +117,44 @@
 			data-testid="footer-social-profiles"
 			class="mt-4 flex items-center justify-center gap-2 border-t border-[var(--lc-border-soft)] pt-3 sm:justify-start"
 		>
-			<a
-				href="https://www.instagram.com/lawcast.official"
-				target="_blank"
-				rel="noopener noreferrer"
-				aria-label="LawCast 인스타그램 (새 탭에서 열기)"
-				data-testid="footer-instagram"
-				class={[profileLinkClass, 'group']}
-			>
-				<svg aria-hidden="true" class="size-6" viewBox={`0 0 ${instagramWidth} ${instagramHeight}`}>
-					<defs>
-						<linearGradient id="footer-instagram-gradient" x1="12%" y1="100%" x2="86%" y2="0%">
-							<stop offset="0%" stop-color="#feda75" />
-							<stop offset="30%" stop-color="#fa7e1e" />
-							<stop offset="55%" stop-color="#d62976" />
-							<stop offset="78%" stop-color="#962fbf" />
-							<stop offset="100%" stop-color="#4f5bd5" />
-						</linearGradient>
-					</defs>
-					<path
-						d={instagramPath}
-						class="fill-current group-hover:fill-[url(#footer-instagram-gradient)] group-focus-visible:fill-[url(#footer-instagram-gradient)]"
-					/>
-				</svg>
-			</a>
-			<a
-				href="https://github.com/vientofactory/lawcast"
-				target="_blank"
-				rel="noopener noreferrer"
-				class={[
-					profileLinkClass,
-					'hover:text-black focus-visible:text-black dark:hover:text-white dark:focus-visible:text-white'
-				]}
-				aria-label="GitHub 저장소 열기"
-				data-testid="footer-github"
-			>
-				<FontAwesomeIcon icon={faGithub} class="w-6 text-2xl" />
-			</a>
+			{#each socialProfiles as profile (profile.id)}
+				{@const [width, height, , , paths] = profile.icon.icon}
+				{@const gradient = typeof profile.brandPaint === 'object' ? profile.brandPaint : undefined}
+				{@const gradientId = `footer-${profile.id}-gradient`}
+				{@const activeFill = gradient
+					? `url(#${gradientId})`
+					: typeof profile.brandPaint === 'string'
+						? profile.brandPaint
+						: 'currentColor'}
+				<a
+					href={profile.href}
+					target="_blank"
+					rel="noopener noreferrer"
+					aria-label={profile.label}
+					data-testid={`footer-${profile.id}`}
+					class={[profileLinkClass, !profile.brandPaint && monochromeProfileClass]}
+					style:--lc-footer-brand-fill={activeFill}
+				>
+					<svg
+						aria-hidden="true"
+						class="size-6 fill-current group-hover:fill-(--lc-footer-brand-fill) group-focus-visible:fill-(--lc-footer-brand-fill)"
+						viewBox={`0 0 ${width} ${height}`}
+					>
+						{#if gradient}
+							<defs>
+								<linearGradient id={gradientId} {...gradient.direction}>
+									{#each gradient.stops as stop (stop.offset)}
+										<stop offset={stop.offset} stop-color={stop.color} />
+									{/each}
+								</linearGradient>
+							</defs>
+						{/if}
+						{#each Array.isArray(paths) ? paths : [paths] as path, index (index)}
+							<path d={path} />
+						{/each}
+					</svg>
+				</a>
+			{/each}
 		</nav>
 	</div>
 </footer>

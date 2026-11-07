@@ -88,31 +88,37 @@ test.describe('Global Navigation', () => {
 		await expect(footer).toBeVisible();
 	});
 
-	test('footer groups the GitHub and Instagram icons without a visible heading', async ({
+	test('footer social links share accessible external link behavior and mobile sizing', async ({
 		page
 	}) => {
 		const footer = page.getByRole('contentinfo');
-		const socialProfiles = footer.getByTestId('footer-social-profiles');
-		const instagram = socialProfiles.getByRole('link', { name: /LawCast 인스타그램/ });
-		const github = socialProfiles.getByRole('link', { name: 'GitHub 저장소 열기' });
+		const socialProfiles = footer.getByRole('navigation', { name: 'SNS 프로필' });
+		const profiles = [
+			['LawCast 인스타그램 (새 탭에서 열기)', 'https://www.instagram.com/lawcast.official'],
+			['LawCast X (새 탭에서 열기)', 'https://x.com/real_lawcast'],
+			['GitHub 저장소 열기', 'https://github.com/vientofactory/lawcast']
+		] as const;
 
 		await expect(socialProfiles).toBeVisible();
 		await expect(socialProfiles.getByRole('heading')).toHaveCount(0);
-		await expect(instagram).toBeVisible();
-		await expect(instagram).toHaveAttribute('href', 'https://www.instagram.com/lawcast.official');
-		await expect(instagram).toHaveAttribute('target', '_blank');
-		await expect(instagram.locator('svg')).toBeVisible();
-		await expect(github).toHaveAttribute('href', 'https://github.com/vientofactory/lawcast');
-		await expect(github.locator('svg')).toBeVisible();
 
 		await page.setViewportSize({ width: 390, height: 844 });
-		await expect(instagram).toBeVisible();
-		await expect(github).toBeVisible();
-		const instagramBox = await instagram.boundingBox();
-		expect(await github.boundingBox()).toMatchObject({ y: instagramBox?.y });
+		const links = socialProfiles.getByRole('link');
+		await expect(links).toHaveCount(profiles.length);
+		const firstBox = await links.first().boundingBox();
+
+		for (const [index, [name, href]] of profiles.entries()) {
+			const link = links.nth(index);
+			await expect(link).toHaveAccessibleName(name);
+			await expect(link).toHaveAttribute('href', href);
+			await expect(link).toHaveAttribute('target', '_blank');
+			await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+			await expect(link.locator('svg')).toBeVisible();
+			expect(await link.boundingBox()).toMatchObject({ y: firstBox?.y, width: 44, height: 44 });
+		}
 	});
 
-	for (const [theme, githubColor] of [
+	for (const [theme, monochromeColor] of [
 		['light', 'rgb(0, 0, 0)'],
 		['dark', 'rgb(255, 255, 255)']
 	] as const) {
@@ -126,10 +132,11 @@ test.describe('Global Navigation', () => {
 
 			const instagram = page.getByTestId('footer-instagram');
 			const github = page.getByTestId('footer-github');
+			const x = page.getByTestId('footer-x');
 			const instagramPath = instagram.locator('path');
 			const gradient = /url\(.*#footer-instagram-gradient/;
 
-			for (const link of [instagram, github]) {
+			for (const link of [instagram, github, x]) {
 				await expect(link.locator('svg')).toHaveCSS('height', '24px');
 			}
 
@@ -138,17 +145,22 @@ test.describe('Global Navigation', () => {
 			await instagram.hover();
 			await expect(instagramPath).toHaveCSS('fill', gradient);
 			await github.hover();
-			await expect(github).toHaveCSS('color', githubColor);
+			await expect(github).toHaveCSS('color', monochromeColor);
 			await expect(instagramPath).toHaveCSS('fill', restingFill);
+			await x.hover();
+			await expect(x).toHaveCSS('color', monochromeColor);
 
 			await page.mouse.move(0, 0);
-			await github.focus();
+			await x.focus();
 			await page.keyboard.press('Shift+Tab');
 			await expect(instagram).toBeFocused();
 			await expect(instagramPath).toHaveCSS('fill', gradient);
 			await page.keyboard.press('Tab');
+			await expect(x).toBeFocused();
+			await expect(x).toHaveCSS('color', monochromeColor);
+			await page.keyboard.press('Tab');
 			await expect(github).toBeFocused();
-			await expect(github).toHaveCSS('color', githubColor);
+			await expect(github).toHaveCSS('color', monochromeColor);
 		});
 	}
 
