@@ -129,10 +129,11 @@
 	title={pageTitle}
 	description={pageDescription}
 	url={pageUrl}
-	keywords="LawCast, 입법예고, 국회 입법예고 알림, 국회 법률안, 법안 알림, 스냅샷 무결성 검증, 최초 상태 보존, 입법예고 아카이브, 법안 검색"
+	keywords="LawCast, 입법예고, 국회 입법예고 알림, 국회 법률안, 법안 알림, 스냅샷 무결성 검증, 최초 상태 보존, 입법예고 아카이브, 법안 검색, 국회 의안 검색, 법률안 원문, 입법예고 변경 이력"
 />
 
 <svelte:head>
+	<link rel="describedby" href="/llms.txt" />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 	{@html `<script type="application/ld+json">${websiteJsonLd}<` + `/script>`}
 </svelte:head>
