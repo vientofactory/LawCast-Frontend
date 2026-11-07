@@ -65,19 +65,6 @@
 		})()
 	);
 
-	// Narrow layouts retain direct first/current/last jumps and sequential arrows.
-	let compactPaginationItems = $derived.by(() => {
-		const pages = [...new Set([1, currentPage, totalPages])].sort((a, b) => a - b);
-		const items: Array<number | 'left-ellipsis' | 'right-ellipsis'> = [];
-		for (const [index, page] of pages.entries()) {
-			if (index > 0 && page - pages[index - 1] > 1) {
-				items.push(index === 1 ? 'left-ellipsis' : 'right-ellipsis');
-			}
-			items.push(page);
-		}
-		return items;
-	});
-
 	let paginationInfo = $derived(
 		(() => {
 			if (totalItems === 0) {
@@ -91,25 +78,19 @@
 	);
 </script>
 
-{#snippet pageNumbers(items: Array<number | 'left-ellipsis' | 'right-ellipsis'>)}
-	{#each items as item, idx (`${item}-${idx}`)}
-		{#if typeof item === 'number'}
-			<a
-				href={buildHref(item)}
-				onclick={(event) => onPageClick(event, item)}
-				aria-label={`${item}페이지로 이동`}
-				aria-current={currentPage === item ? 'page' : undefined}
-				class={currentPage === item ? 'lc-pagination-active' : 'lc-pagination-btn'}
-			>
-				<span class="lc-pagination-number" class:invisible={pendingPage === item}>{item}</span>
-				{#if pendingPage === item}
-					<FontAwesomeIcon icon={faSpinner} class="lc-pagination-spinner h-4 w-4 animate-spin" />
-				{/if}
-			</a>
-		{:else}
-			<span class="lc-pagination-ellipsis" aria-hidden="true">…</span>
+{#snippet pageNumber(item: number)}
+	<a
+		href={buildHref(item)}
+		onclick={(event) => onPageClick(event, item)}
+		aria-label={`${item}페이지로 이동`}
+		aria-current={currentPage === item ? 'page' : undefined}
+		class={currentPage === item ? 'lc-pagination-active' : 'lc-pagination-btn'}
+	>
+		<span class="lc-pagination-number" class:invisible={pendingPage === item}>{item}</span>
+		{#if pendingPage === item}
+			<FontAwesomeIcon icon={faSpinner} class="lc-pagination-spinner h-4 w-4 animate-spin" />
 		{/if}
-	{/each}
+	</a>
 {/snippet}
 
 {#if totalPages > 1 && totalItems > limit}
@@ -125,7 +106,7 @@
 				onclick={(event) => onPageClick(event, 1)}
 				aria-label="첫 페이지로 이동"
 				title="첫 페이지"
-				class="lc-pagination-btn lc-pagination-boundary"
+				class="lc-pagination-btn"
 			>
 				{#if pendingPage === 1}
 					<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -134,7 +115,7 @@
 				{/if}
 			</a>
 		{:else}
-			<span aria-hidden="true" class="lc-pagination-disabled lc-pagination-boundary">
+			<span aria-hidden="true" class="lc-pagination-disabled">
 				<FontAwesomeIcon icon={faAnglesLeft} class="h-4 w-4" />
 			</span>
 		{/if}
@@ -159,12 +140,18 @@
 			</span>
 		{/if}
 
-		<div class="lc-pagination-pages lc-pagination-pages-wide">
-			{@render pageNumbers(paginationItems)}
-		</div>
-		<div class="lc-pagination-pages lc-pagination-pages-compact">
-			{@render pageNumbers(compactPaginationItems)}
-		</div>
+		{#each paginationItems as item, idx (`${item}-${idx}`)}
+			{#if typeof item === 'number'}
+				{#if typeof paginationItems[idx - 1] === 'string'}
+					<span class="lc-pagination-gap-group">
+						<span class="lc-pagination-ellipsis" aria-hidden="true">…</span>
+						{@render pageNumber(item)}
+					</span>
+				{:else}
+					{@render pageNumber(item)}
+				{/if}
+			{/if}
+		{/each}
 
 		{#if currentPage < totalPages}
 			<a
@@ -192,7 +179,7 @@
 				onclick={(event) => onPageClick(event, totalPages)}
 				aria-label="마지막 페이지로 이동"
 				title="마지막 페이지"
-				class="lc-pagination-btn lc-pagination-boundary"
+				class="lc-pagination-btn"
 			>
 				{#if pendingPage === totalPages}
 					<FontAwesomeIcon icon={faSpinner} class="h-4 w-4 animate-spin" />
@@ -201,7 +188,7 @@
 				{/if}
 			</a>
 		{:else}
-			<span aria-hidden="true" class="lc-pagination-disabled lc-pagination-boundary">
+			<span aria-hidden="true" class="lc-pagination-disabled">
 				<FontAwesomeIcon icon={faAnglesRight} class="h-4 w-4" />
 			</span>
 		{/if}
