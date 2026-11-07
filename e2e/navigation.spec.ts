@@ -88,6 +88,70 @@ test.describe('Global Navigation', () => {
 		await expect(footer).toBeVisible();
 	});
 
+	test('footer groups the GitHub and Instagram icons without a visible heading', async ({
+		page
+	}) => {
+		const footer = page.getByRole('contentinfo');
+		const socialProfiles = footer.getByTestId('footer-social-profiles');
+		const instagram = socialProfiles.getByRole('link', { name: /LawCast 인스타그램/ });
+		const github = socialProfiles.getByRole('link', { name: 'GitHub 저장소 열기' });
+
+		await expect(socialProfiles).toBeVisible();
+		await expect(socialProfiles.getByRole('heading')).toHaveCount(0);
+		await expect(instagram).toBeVisible();
+		await expect(instagram).toHaveAttribute('href', 'https://www.instagram.com/lawcast.official');
+		await expect(instagram).toHaveAttribute('target', '_blank');
+		await expect(instagram.locator('svg')).toBeVisible();
+		await expect(github).toHaveAttribute('href', 'https://github.com/vientofactory/lawcast');
+		await expect(github.locator('svg')).toBeVisible();
+
+		await page.setViewportSize({ width: 390, height: 844 });
+		await expect(instagram).toBeVisible();
+		await expect(github).toBeVisible();
+		const instagramBox = await instagram.boundingBox();
+		expect(await github.boundingBox()).toMatchObject({ y: instagramBox?.y });
+	});
+
+	for (const [theme, githubColor] of [
+		['light', 'rgb(0, 0, 0)'],
+		['dark', 'rgb(255, 255, 255)']
+	] as const) {
+		test(`footer icon links show brand colors on hover and keyboard focus in ${theme} mode`, async ({
+			page
+		}) => {
+			await page.emulateMedia({ reducedMotion: 'reduce' });
+			await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
+			await page.goto('/license');
+			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+
+			const instagram = page.getByTestId('footer-instagram');
+			const github = page.getByTestId('footer-github');
+			const instagramPath = instagram.locator('path');
+			const gradient = /url\(.*#footer-instagram-gradient/;
+
+			for (const link of [instagram, github]) {
+				await expect(link.locator('svg')).toHaveCSS('height', '24px');
+			}
+
+			const restingFill = await instagramPath.evaluate((path) => getComputedStyle(path).fill);
+			expect(restingFill).not.toMatch(gradient);
+			await instagram.hover();
+			await expect(instagramPath).toHaveCSS('fill', gradient);
+			await github.hover();
+			await expect(github).toHaveCSS('color', githubColor);
+			await expect(instagramPath).toHaveCSS('fill', restingFill);
+
+			await page.mouse.move(0, 0);
+			await github.focus();
+			await page.keyboard.press('Shift+Tab');
+			await expect(instagram).toBeFocused();
+			await expect(instagramPath).toHaveCSS('fill', gradient);
+			await page.keyboard.press('Tab');
+			await expect(github).toBeFocused();
+			await expect(github).toHaveCSS('color', githubColor);
+		});
+	}
+
 	test('theme toggle exists', async ({ page }) => {
 		const themeSwitch = page.locator('button[role="switch"]');
 		await expect(themeSwitch.first()).toBeVisible();
