@@ -1020,6 +1020,17 @@
 					</div>
 				{/if}
 
+				{#if boardSemantic?.suggestedQuery}
+					<p class="lc-text-secondary lc-results-note" data-testid="notices-search-suggestion">
+						이 검색어를 찾으셨나요?
+						<a
+							class="lc-text-primary font-medium underline"
+							href={buildFilterLink({ search: boardSemantic.suggestedQuery })}
+							data-testid="notices-search-suggestion-link">{boardSemantic.suggestedQuery}</a
+						>
+					</p>
+				{/if}
+
 				<section
 					class="lc-results-summary"
 					role="status"

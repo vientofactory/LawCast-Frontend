@@ -51,6 +51,23 @@ test.describe('Notices board search modes (semantic enabled)', () => {
 		'board search-mode tests require E2E_SEMANTIC_SEARCH=1 (dedicated config).'
 	);
 
+	test('offers an explicit correction link without rewriting the original search', async ({
+		page
+	}) => {
+		const original = '주택임대차보호볍';
+		await gotoBoard(page, `search=${encodeURIComponent(original)}&searchMode=auto&page=2`);
+		expect(new URL(page.url()).searchParams.get('search')).toBe(original);
+		const suggestion = page.getByTestId('notices-search-suggestion-link');
+		await expect(suggestion).toHaveText('주택임대차보호법');
+		await suggestion.click();
+		await expect
+			.poll(() => new URL(page.url()).searchParams.get('search'))
+			.toBe('주택임대차보호법');
+		expect(new URL(page.url()).searchParams.get('searchMode')).toBe('auto');
+		expect(new URL(page.url()).searchParams.get('page')).toBe('1');
+		await expect(page.getByTestId('notices-search-suggestion')).toHaveCount(0);
+	});
+
 	test('cold start explains each mode and offers distinct example queries', async ({ page }) => {
 		await gotoBoard(page, '');
 		await expect(page.getByTestId('notices-example-queries')).toBeVisible();
