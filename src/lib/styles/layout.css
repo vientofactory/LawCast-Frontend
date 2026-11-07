@@ -1138,6 +1138,7 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 /* Pagination follows the same open, underlined treatment as status navigation. */
 .lc-main nav.lc-pagination {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	justify-content: center;
 	gap: 0.125rem;
@@ -1145,14 +1146,11 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 	margin-top: 2.5rem;
 	font-variant-numeric: tabular-nums;
 }
-.lc-pagination-pages {
-	display: flex;
+/* Keep a gap marker beside its next page when the controls wrap. */
+.lc-pagination-gap-group {
+	display: inline-flex;
 	align-items: center;
-	gap: 0.125rem;
-	min-width: 0;
-}
-.lc-pagination-pages-compact {
-	display: none;
+	gap: inherit;
 }
 .lc-main nav.lc-pagination :is(.lc-pagination-btn, .lc-pagination-active, .lc-pagination-disabled) {
 	position: relative;
@@ -1213,9 +1211,7 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 }
 @media (max-width: 639px) {
 	.lc-main nav.lc-pagination {
-		display: grid;
-		grid-template-columns: 48px minmax(0, 1fr) 48px;
-		gap: 8px;
+		gap: 8px 6px;
 		width: 100%;
 		max-width: 26rem;
 		margin-inline: auto;
@@ -1226,29 +1222,5 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 		min-width: 48px;
 		min-height: 48px;
 		padding: 10px 12px;
-	}
-	.lc-main nav.lc-pagination .lc-pagination-boundary,
-	.lc-pagination-pages-wide {
-		display: none;
-	}
-	.lc-pagination-pages-compact {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: 6px;
-	}
-	.lc-pagination-pages-compact .lc-pagination-ellipsis {
-		flex: 0 0 8px;
-		padding-inline: 0;
-		text-align: center;
-	}
-}
-@media (max-width: 359px) {
-	.lc-pagination-pages-compact {
-		gap: 4px;
-	}
-	/* Preserve all numbered jumps and tap areas before decorative gap markers. */
-	.lc-pagination-pages-compact .lc-pagination-ellipsis {
-		display: none;
 	}
 }

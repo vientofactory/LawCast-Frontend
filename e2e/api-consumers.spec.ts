@@ -117,11 +117,26 @@ for (const width of [320, 360, 390, 430]) {
 			await page.setViewportSize({ width, height: 900 });
 			await page.emulateMedia({ reducedMotion: 'reduce' });
 			await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
-			for (const currentPage of [1, 555, 1108, 1109]) {
+			const expectedWindows = [
+				[1, ['1', '2', '3', '4', '…', '1109']],
+				[555, ['1', '…', '554', '555', '556', '…', '1109']],
+				[1108, ['1', '…', '1106', '1107', '1108', '1109']],
+				[1109, ['1', '…', '1106', '1107', '1108', '1109']]
+			] as const;
+			for (const [currentPage, expectedWindow] of expectedWindows) {
 				await page.goto(`/notices?page=${currentPage}`);
 				const nav = page.getByTestId('notices-pagination');
 				await nav.scrollIntoViewIfNeeded();
 				await expect(nav.locator('[aria-current="page"]:visible')).toHaveText(String(currentPage));
+				await expect(
+					nav.locator(':is(.lc-pagination-number, .lc-pagination-ellipsis):visible')
+				).toHaveText([...expectedWindow], { timeout: 2000 });
+				await expect(nav.getByRole('link', { name: '첫 페이지로 이동', exact: true })).toHaveCount(
+					currentPage > 1 ? 1 : 0
+				);
+				await expect(
+					nav.getByRole('link', { name: '마지막 페이지로 이동', exact: true })
+				).toHaveCount(currentPage < 1109 ? 1 : 0);
 				expect((await nav.boundingBox())!.width).toBeGreaterThanOrEqual(width - 48);
 				for (const control of await nav.locator('a:visible').all()) {
 					const bounds = (await control.boundingBox())!;
