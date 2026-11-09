@@ -1,5 +1,5 @@
 import * as env from '$app/env/public';
-import { apiClient } from '#lib/api/client.ts';
+import { apiClient, type SearchTiming } from '#lib/api/client.ts';
 import {
 	isDiffchainUiMockEnabled,
 	getMockArchiveNoticesResponse
@@ -105,6 +105,7 @@ export const load: PageServerLoad = async ({ fetch, url, setHeaders }) => {
 		};
 	}
 
+	const diagnostics: { searchTiming?: SearchTiming } = {};
 	try {
 		const archive = await apiClient.getArchivedNotices(
 			{
@@ -119,11 +120,13 @@ export const load: PageServerLoad = async ({ fetch, url, setHeaders }) => {
 				noticeNums,
 				searchMode
 			},
-			fetch
+			fetch,
+			import.meta.env.DEV ? (timing) => (diagnostics.searchTiming = timing) : undefined
 		);
 
 		return {
 			archive: toCardList(archive),
+			...diagnostics,
 			exampleQueries,
 			digestContext: {
 				isDigestContext,
@@ -160,7 +163,8 @@ export const load: PageServerLoad = async ({ fetch, url, setHeaders }) => {
 				isDigestContext,
 				noticeNums
 			},
-			loadError
+			loadError,
+			...diagnostics
 		};
 	}
 };

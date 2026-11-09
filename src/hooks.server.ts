@@ -5,6 +5,7 @@ import { matchForced429, buildForced429Response } from '#lib/server/e2e-rate-lim
 import { resolveClientIp, buildBackendForwardHeaders } from '#lib/server/client-ip.ts';
 import { resolveE2eReadClientIp } from '#lib/server/e2e-client-ip.ts';
 import { getMockSemanticApiResponse } from '#lib/server/semantic-search-mock.ts';
+import { SEARCH_TIMING_HEADER, SEARCH_TRACE_HEADER } from '#lib/utils/search-timing.ts';
 
 const API_PATH_PREFIX = '/api/';
 const API_BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
@@ -35,8 +36,14 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	// spec can stand in for the backend. Engine status is fetched by the
 	// browser, so a spec can also stub it client-side; this mock keeps
 	// unstubbed runs on a deterministic ready engine.
-	const semanticMock = getMockSemanticApiResponse(requestUrl);
+	const semanticMock = getMockSemanticApiResponse(
+		requestUrl,
+		import.meta.env.DEV ? (request.headers.get(SEARCH_TRACE_HEADER) ?? undefined) : undefined
+	);
 	if (semanticMock) {
+		// Keep fixture processing durations inside the measured frontend window.
+		if (import.meta.env.DEV && semanticMock.headers.has(SEARCH_TIMING_HEADER))
+			await new Promise((resolve) => setTimeout(resolve, 35));
 		return semanticMock;
 	}
 

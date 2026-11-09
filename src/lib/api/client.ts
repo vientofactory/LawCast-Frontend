@@ -1,4 +1,10 @@
 import { browser } from '$app/env';
+import {
+	parseBackendTiming,
+	SEARCH_TIMING_HEADER,
+	SEARCH_TRACE_HEADER,
+	type SearchTiming
+} from '#lib/utils/search-timing.ts';
 import * as env from '$app/env/public';
 import NProgress from 'nprogress';
 import {
@@ -59,6 +65,10 @@ const BASE_URL = '/api';
 
 type Fetch = typeof fetch;
 
+export type { SearchTiming } from '#lib/utils/search-timing.ts';
+
+type RecordSearchTiming = (timing: SearchTiming) => void;
+
 let activeRequests = 0;
 
 const CLOUDFLARE_CHALLENGE_ERROR_CODE = 'LC_CF_CHALLENGE_DETECTED';
@@ -85,12 +95,36 @@ function stopProgress() {
 	}
 }
 
+function isSemanticSearchRequest(path: string): boolean {
+	const [route, query] = path.split('?', 2);
+	if (route === '/notices/semantic-search') return true;
+	if (route !== '/notices/archive') return false;
+	const params = new URLSearchParams(query);
+	const mode = params.get('searchMode');
+	return (
+		(mode === 'auto' || mode === 'semantic') &&
+		!!params.get('search')?.trim() &&
+		!params.has('noticeNums')
+	);
+}
+
 async function request<T>(
 	path: string,
 	options: RequestInit = {},
-	customFetch: Fetch = fetch
+	customFetch: Fetch = fetch,
+	recordSearchTiming?: RecordSearchTiming
 ): Promise<T> {
 	const url = `${BASE_URL}${path}`;
+	const traceId =
+		import.meta.env.DEV && !browser && isSemanticSearchRequest(path)
+			? crypto.randomUUID()
+			: undefined;
+	const traceStarted = traceId ? performance.now() : 0;
+	let traceStatus: number | undefined;
+	let fetchStartedMs: number | undefined;
+	let headersReceivedMs: number | undefined;
+	let backendTiming: SearchTiming['backend'];
+	let traceSucceeded = false;
 
 	// Dev-only request logging
 	if (import.meta.env.DEV) {
@@ -119,16 +153,23 @@ async function request<T>(
 	}, 30000);
 
 	try {
-		return await Promise.race([
+		const result = await Promise.race([
 			(async () => {
+				if (traceId) fetchStartedMs = performance.now() - traceStarted;
 				const response = await customFetch(url, {
 					...options,
 					signal: controller.signal,
 					headers: {
 						...defaultHeaders,
-						...options.headers
+						...options.headers,
+						...(traceId ? { [SEARCH_TRACE_HEADER]: traceId } : {})
 					}
 				});
+				if (traceId) {
+					headersReceivedMs = performance.now() - traceStarted;
+					traceStatus = response.status;
+					backendTiming = parseBackendTiming(response.headers.get(SEARCH_TIMING_HEADER), traceId);
+				}
 
 				// Dev-only response logging
 				if (import.meta.env.DEV) {
@@ -222,9 +263,30 @@ async function request<T>(
 			})(),
 			deadline
 		]);
+		traceSucceeded = true;
+		return result;
 	} catch (error) {
 		throw normalizeError(timedOut ? { name: 'TimeoutError', kind: 'timeout' } : error);
 	} finally {
+		if (traceId) {
+			const [route, queryParams] = path.split('?', 2);
+			const params = new URLSearchParams(queryParams);
+			const timing: SearchTiming = {
+				traceId,
+				path: route,
+				query: params.get('query') ?? params.get('search') ?? '',
+				recordedAt: Date.now(),
+				sveltekitMs: Number((performance.now() - traceStarted).toFixed(2)),
+				fetchStartedMs,
+				headersReceivedMs,
+				status: traceStatus,
+				backend: backendTiming,
+				outcome: timedOut ? 'timeout' : traceSucceeded ? 'success' : 'error'
+			};
+			const { query: _query, ...diagnostics } = timing;
+			console.log('[SemanticSearchTiming]', { ...diagnostics, timedOut });
+			recordSearchTiming?.(timing);
+		}
 		clearTimeout(timeout);
 		options.signal?.removeEventListener('abort', cancel);
 		stopProgress();
@@ -359,7 +421,8 @@ export async function getArchivedNotices(
 		/** Board search mode; omitted keeps the keyword path. */
 		searchMode?: BoardSearchMode;
 	} = {},
-	customFetch?: Fetch
+	customFetch?: Fetch,
+	recordSearchTiming?: RecordSearchTiming
 ): Promise<ArchiveNoticeListResponse> {
 	try {
 		const query = new URLSearchParams();
@@ -418,7 +481,8 @@ export async function getArchivedNotices(
 		return await request<ArchiveNoticeListResponse>(
 			`/notices/archive${suffix}`,
 			{ method: 'GET' },
-			customFetch
+			customFetch,
+			recordSearchTiming
 		);
 	} catch (error) {
 		console.error('Failed to load archived notices:', error);
@@ -461,7 +525,8 @@ export async function searchNotices(
  */
 export async function semanticSearch(
 	params: { query: string; k?: number },
-	customFetch?: Fetch
+	customFetch?: Fetch,
+	recordSearchTiming?: RecordSearchTiming
 ): Promise<SemanticSearchResponse> {
 	try {
 		const query = new URLSearchParams();
@@ -470,7 +535,8 @@ export async function semanticSearch(
 		return await request<SemanticSearchResponse>(
 			`/notices/semantic-search?${query.toString()}`,
 			{ method: 'GET' },
-			customFetch
+			customFetch,
+			recordSearchTiming
 		);
 	} catch (error) {
 		console.error('Failed to run semantic search:', error);

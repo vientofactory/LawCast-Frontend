@@ -139,6 +139,343 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('semantic-search-entry')).toBeVisible();
 	});
 
+	test('preserves and reopens timing history across searches, routes and reload', async ({
+		page
+	}) => {
+		await page.addInitScript(() => localStorage.setItem('lawcast-cookie-consent', 'accepted'));
+		await page.setViewportSize({ width: 1360, height: 800 });
+		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+		await search(page, '세입자 보호');
+
+		const timing = page.getByTestId('search-timing');
+		const traceId = page.getByTestId('search-timing-id');
+		const history = page.getByTestId('search-timing-history');
+		await expect(timing).toBeVisible();
+		const main = (await page.getByTestId('semantic-search-main').boundingBox())!;
+		const dock = (await page.getByTestId('search-timing-dock').boundingBox())!;
+		expect(main.x + main.width).toBeLessThanOrEqual(dock.x);
+		await expect(page.getByTestId('search-timing-duration')).toHaveText(/^\d+\.\d{2} ms$/);
+		await expect(page.getByTestId('search-timing-status')).toContainText('HTTP 200');
+		await expect(page.getByTestId('search-timing-backend')).toHaveText('측정값 없음');
+		await expect(traceId).toHaveText(/^[a-f0-9-]{36}$/);
+		const firstTrace = await traceId.innerText();
+
+		await page.getByTestId('semantic-search-input').fill('오류');
+		await page.getByTestId('semantic-search-submit').click();
+		await expect(page.getByTestId('search-timing-status')).toHaveText('실패 (HTTP 500)');
+		await expect(traceId).not.toHaveText(firstTrace);
+		await expect(traceId).toHaveText(/^[a-f0-9-]{36}$/);
+		const latest = await traceId.innerText();
+		await history.selectOption(firstTrace);
+		await expect(traceId).toHaveText(firstTrace);
+
+		await page.goto('/notices/semantic-search');
+		await expect(traceId).toHaveText(latest);
+		await history.selectOption(firstTrace);
+		await expect(traceId).toHaveText(firstTrace);
+		await page.getByTestId('search-timing-toggle').click();
+		await expect(timing).toHaveCount(0);
+		await page.getByTestId('search-timing-toggle').click();
+		await expect(traceId).toHaveText(firstTrace);
+		await page.goto('/notices');
+		await expect(history.locator('option')).toHaveCount(3);
+		await page.getByTestId('search-timing-clear').click();
+		await expect(page.getByTestId('search-timing-dock')).toHaveCount(0);
+		await page.reload();
+		await expect(page.getByTestId('search-timing-dock')).toHaveCount(0);
+	});
+
+	test('shows correlated timings for sidecar attempts, backend and SvelteKit', async ({ page }) => {
+		await page.goto('/notices/semantic-search?search=검색+타이밍+검증');
+		await expect(page.getByTestId('search-timing-backend')).toHaveText('25.50 ms');
+		await expect(page.getByTestId('search-timing-duration')).toHaveText(/^\d+\.\d{2} ms$/);
+		const calls = page.getByTestId('search-timing-call');
+		await expect(calls).toHaveCount(3);
+		await expect(calls.nth(0)).toContainText('/health');
+		await expect(calls.nth(1)).toContainText('실패 (HTTP 422)');
+		await expect(calls.nth(1)).toContainText('사이드카 단계별 측정값 없음');
+		await expect(calls.nth(2)).toContainText('/search · k=10');
+		await expect(calls.nth(2)).toContainText('14.00 ms');
+		await expect(calls.nth(2)).toContainText('8.00 ms');
+		await expect(calls.nth(2)).toContainText('2.00 ms');
+		await expect(calls.nth(2)).toContainText('10.00 ms');
+		await expect(page.getByTestId('search-timing-longest')).toBeVisible();
+		const start = async (id: string) =>
+			Number(await page.getByTestId(`search-span-${id}`).getAttribute('data-start-ms'));
+		const backendStart = await start('backend');
+		const callStart = await start('call-2');
+		const denseStart = await start('call-2-dense');
+		const annotateStart = await start('call-2-annotate');
+		expect((await start('call-2-dense-embedding')) - denseStart).toBeCloseTo(0.5);
+		expect((await start('call-2-dense-faiss')) - denseStart).toBeCloseTo(5);
+		expect((await start('call-2-dense-classification')) - denseStart).toBeCloseTo(6.5);
+		await expect(page.getByTestId('search-span-call-2-dense-embedding')).toContainText('4.00 ms');
+		await expect(page.getByTestId('search-span-call-2-dense-faiss')).toContainText('1.50 ms');
+		await expect(page.getByTestId('search-span-call-2-dense-classification')).toContainText(
+			'1.00 ms'
+		);
+		expect(callStart - backendStart).toBeCloseTo(7);
+		expect(denseStart - callStart).toBeCloseTo(2);
+		expect(annotateStart - denseStart).toBeCloseTo(8);
+		expect(await start('call-1')).toBeLessThan(callStart);
+		expect(await start('body')).toBeGreaterThan(annotateStart);
+	});
+
+	test('resizes the timing dock and restores width and collapse after reload', async ({ page }) => {
+		await page.addInitScript(() => localStorage.setItem('lawcast-cookie-consent', 'accepted'));
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+		await page.goto('/notices/semantic-search?search=세입자+보호');
+
+		const dock = page.getByTestId('search-timing-dock');
+		const handle = page.getByRole('separator', { name: 'Search Timing 패널 너비' });
+		const toggle = page.getByTestId('search-timing-toggle');
+		await expect(handle).toHaveAttribute('aria-valuenow', '432');
+		await expect(page.getByTestId('app-route-container')).toHaveAttribute('style', /432px/);
+		const before = (await dock.boundingBox())!;
+		const edge = (await handle.boundingBox())!;
+		const x = edge.x + edge.width / 2;
+		const y = edge.y + edge.height / 2;
+		await page.mouse.move(x, y);
+		await page.mouse.down();
+		await page.mouse.move(x - 180, y, { steps: 8 });
+		await page.mouse.up();
+		await expect(handle).toHaveAttribute('aria-valuenow', '612');
+		expect(
+			await page.evaluate(
+				() => JSON.parse(localStorage.getItem('lawcast-dev-search-timing-layout-v1')!).width
+			)
+		).toBe(612);
+		const widened = (await dock.boundingBox())!;
+		expect(widened.width).toBe(612);
+		expect(widened.x + widened.width).toBe(before.x + before.width);
+		const main = (await page.getByTestId('semantic-search-main').boundingBox())!;
+		expect(main.x + main.width).toBeLessThanOrEqual(widened.x);
+
+		await handle.press('ArrowLeft');
+		await expect(handle).toHaveAttribute('aria-valuenow', '628');
+		await handle.press('Home');
+		await expect(handle).toHaveAttribute('aria-valuenow', '320');
+		await handle.press('End');
+		await expect(handle).toHaveAttribute('aria-valuenow', '800');
+		await handle.press('ArrowRight');
+		await expect(handle).toHaveAttribute('aria-valuenow', '784');
+
+		await handle.press('Enter');
+		await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+		await expect(toggle).toBeFocused();
+		await page.reload();
+		await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+		await expect(handle).toHaveCount(0);
+		await toggle.click();
+		await expect(handle).toHaveAttribute('aria-valuenow', '784');
+
+		await page.setViewportSize({ width: 390, height: 844 });
+		await expect(handle).toBeHidden();
+		expect((await dock.boundingBox())!.width).toBeLessThan(390);
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await expect(handle).toHaveAttribute('aria-valuenow', '784');
+		await page.reload();
+		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+		await expect(handle).toHaveAttribute('aria-valuenow', '784');
+	});
+
+	test('compares a pinned previous request with the latest on a shared axis', async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.addInitScript(() => {
+			localStorage.setItem('lawcast-cookie-consent', 'accepted');
+			const common = {
+				path: '/notices/semantic-search',
+				status: 200,
+				outcome: 'success',
+				fetchStartedMs: 0
+			};
+			const call = (startMs: number, denseMs: number, annotateMs: number) => ({
+				path: '/search',
+				startMs,
+				roundTripMs: 15,
+				status: 200,
+				outcome: 'ok',
+				chunkK: 10,
+				timings: {
+					denseMs,
+					annotateMs,
+					totalMs: denseMs + annotateMs,
+					denseStages: {
+						embedding: { startMs: 0, durationMs: denseMs - 4 },
+						embeddingStages: {
+							tokenization: { startMs: 0.25, durationMs: 0.5 },
+							model: { startMs: 0.75, durationMs: denseMs - 5 },
+							cpuConversion: { startMs: denseMs - 4.25, durationMs: 0.25 }
+						},
+						faiss: { startMs: denseMs - 4, durationMs: 2 },
+						classification: { startMs: denseMs - 2, durationMs: 2 }
+					}
+				}
+			});
+			sessionStorage.setItem(
+				'lawcast-dev-search-timing-v1',
+				JSON.stringify({
+					records: [
+						{
+							...common,
+							query: '새 기록',
+							traceId: 'latest',
+							recordedAt: 2,
+							sveltekitMs: 40,
+							headersReceivedMs: 35,
+							backend: { backendMs: 20, omittedCalls: 0, sidecarCalls: [call(1, 10, 2)] }
+						},
+						{
+							...common,
+							query: '이전 기록',
+							traceId: 'baseline',
+							recordedAt: 1,
+							sveltekitMs: 50,
+							headersReceivedMs: 45,
+							backend: {
+								backendMs: 30,
+								omittedCalls: 0,
+								sidecarCalls: [
+									{ path: '/health', startMs: 1, roundTripMs: 3, status: 200, outcome: 'ok' },
+									call(6, 8, 4)
+								]
+							}
+						}
+					]
+				})
+			);
+		});
+		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+		await page.goto('/notices/semantic-search');
+		await page.getByTestId('search-timing-history').selectOption('baseline');
+		await page.getByTestId('search-timing-compare-toggle').click();
+		const compare = page.getByTestId('search-timing-comparison');
+		await expect(compare).toBeVisible();
+		await expect(compare.getByTestId('search-timing-compare-toggle')).toBeFocused();
+		const axis = page.getByTestId('search-comparison-axis');
+		await expect(axis.locator(':scope > div').getByText('50.00 ms', { exact: true })).toHaveCount(
+			2
+		);
+		await expect(axis).toHaveAttribute('data-axis-ms', '50');
+		const row = (label: string) =>
+			compare.getByTestId('search-comparison-row').filter({ hasText: label });
+		const total = row('SvelteKit 전체');
+		await expect(total.getByTestId('search-comparison-delta')).toHaveText('−10.00 ms 빨라짐');
+		await expect(
+			total.getByTestId('search-comparison-previous').getByTestId('search-comparison-bar')
+		).toHaveAttribute('style', /width:\s*100%/);
+		await expect(
+			total.getByTestId('search-comparison-latest').getByTestId('search-comparison-bar')
+		).toHaveAttribute('style', /width:\s*80%/);
+		await expect(row('Dense').getByTestId('search-comparison-delta')).toHaveText('+2.00 ms 느려짐');
+		await expect(row('질의 임베딩').getByTestId('search-comparison-delta')).toHaveText(
+			'+2.00 ms 느려짐'
+		);
+		await expect(row('토큰화').getByTestId('search-comparison-delta')).toHaveText('차이 없음');
+		await expect(row('모델 실행').getByTestId('search-comparison-delta')).toHaveText(
+			'+2.00 ms 느려짐'
+		);
+		await expect(row('CPU 벡터 변환').getByTestId('search-comparison-delta')).toHaveText(
+			'차이 없음'
+		);
+		await expect(row('FAISS 조회·정렬').getByTestId('search-comparison-delta')).toHaveText(
+			'차이 없음'
+		);
+		await expect(row('관련도 분류').getByTestId('search-comparison-delta')).toHaveText('차이 없음');
+		await expect(row('Annotate').getByTestId('search-comparison-delta')).toHaveText(
+			'−2.00 ms 빨라짐'
+		);
+		await expect(row('Sidecar 전체').getByTestId('search-comparison-delta')).toHaveText(
+			'차이 없음'
+		);
+		await expect(row('/health').getByTestId('search-comparison-delta')).toHaveText(
+			'비교할 값 없음'
+		);
+		await expect(row('/health').getByTestId('search-comparison-latest')).toContainText('기록 없음');
+
+		await page.getByTestId('search-timing-toggle').click();
+		await page.getByTestId('semantic-search-input').fill('세입자 보호');
+		await page.getByTestId('semantic-search-input').press('Enter');
+		await expect(page.getByTestId('search-timing-toggle')).toContainText('3건');
+		await page.getByTestId('search-timing-toggle').click();
+		await expect(compare.getByText('세입자 보호', { exact: true })).toBeVisible();
+		await expect(compare.getByText('이전 기록', { exact: true })).toBeVisible();
+		await expect(row('질의 임베딩').getByTestId('search-comparison-delta')).toHaveText(
+			'비교할 값 없음'
+		);
+		await page.getByTestId('search-timing-compare-toggle').click();
+		await expect(page.getByTestId('search-timing-id')).toHaveText('baseline');
+		const waterfall = page.getByTestId('search-timing-waterfall');
+		await expect(
+			waterfall.getByTestId('search-span-call-1-dense-embedding-tokenization')
+		).toHaveAttribute('data-start-ms', '15.25');
+		await expect(waterfall.getByTestId('search-span-call-1-dense-embedding-model')).toHaveAttribute(
+			'data-start-ms',
+			'15.75'
+		);
+		await expect(
+			waterfall.getByTestId('search-span-call-1-dense-embedding-cpuConversion')
+		).toHaveAttribute('data-start-ms', '18.75');
+	});
+
+	test('uses the web push debug panel styling at a narrow viewport', async ({ page }) => {
+		await page.setViewportSize({ width: 320, height: 720 });
+		await page.emulateMedia({ colorScheme: 'light' });
+		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
+		await page.route('**/api/push/public-key', (route) =>
+			route.fulfill({ json: { success: true, data: { enabled: true, publicKey: 'test-key' } } })
+		);
+
+		const panelStyle = (panel: ReturnType<Page['locator']>) =>
+			panel.evaluate((node) => {
+				const box = getComputedStyle(node);
+				const title = getComputedStyle(node.querySelector('header p')!);
+				const badge = getComputedStyle(node.querySelector('abbr')!);
+				const list = getComputedStyle(node.querySelector('dl')!);
+				const label = getComputedStyle(node.querySelector('dt')!);
+				return {
+					background: box.backgroundColor,
+					foreground: box.color,
+					border: box.border,
+					radius: box.borderRadius,
+					padding: box.padding,
+					fontSize: box.fontSize,
+					title: [title.color, title.fontWeight, title.marginBottom],
+					badge: [badge.color, badge.backgroundColor],
+					list: [list.display, list.rowGap],
+					label: [label.display, label.fontWeight]
+				};
+			});
+
+		await page.goto('/webhook');
+		const push = page.getByRole('complementary', { name: 'Web Push Notification Debug' });
+		await expect(push).toBeVisible();
+		await expect(push.getByText('DEV', { exact: true })).toBeVisible();
+		const expected = await panelStyle(push);
+
+		await page.goto('/notices/semantic-search?search=세입자+보호');
+		const timing = page.getByTestId('search-timing');
+		await expect(timing).toBeVisible();
+		expect(await panelStyle(timing)).toEqual(expected);
+		await expect(timing).toHaveCSS('border-top-style', 'solid');
+		await expect(timing).toHaveCSS('border-inline-start-width', '2px');
+		await expect(timing.getByText('DEV', { exact: true })).toBeVisible();
+		await expect(timing.locator('header svg')).toBeVisible();
+		await expect(timing.locator(':scope > div > dl > div')).toHaveCount(4);
+		await expect(timing.getByTestId('search-timing-history')).toBeVisible();
+		await expect(timing.locator('header').locator('..')).toHaveCSS('position', 'sticky');
+		await expect(page.getByTestId('search-timing-id')).toHaveCSS('word-break', 'break-all');
+		expect(await timing.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+
+		await page.emulateMedia({ colorScheme: 'dark' });
+		await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+		const dark = await panelStyle(timing);
+		expect(dark.background).not.toBe(expected.background);
+		expect(dark.foreground).not.toBe(expected.foreground);
+		expect(dark.badge).not.toEqual(expected.badge);
+	});
+
 	test('the notices board exposes the same engine status widget', async ({ page }) => {
 		// The consent banner shares the bottom-right corner on a first visit, so
 		// pre-accept it and let the corner widget receive the clicks below.

@@ -741,7 +741,7 @@
 	.lc-history-pane-switch [aria-pressed='true'] {
 		background: var(--lc-surface-muted);
 		color: var(--lc-text-primary);
-		box-shadow: inset 0 -2px var(--lc-text-accent);
+		font-weight: 600;
 	}
 	.lc-history-panes,
 	.lc-history-records-pane,

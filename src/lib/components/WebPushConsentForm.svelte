@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Alert from '#lib/components/Alert.svelte';
+	import DevDebugPanel from '#lib/components/DevDebugPanel.svelte';
 	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
 	import { onMount, tick } from 'svelte';
 	import type { Component, ComponentProps } from 'svelte';
@@ -540,43 +541,20 @@
 		{/if}
 
 		{#if dev}
-			<div class="mt-4 rounded-xl border border-slate-300/70 bg-slate-50/70 p-3 text-xs">
-				<p class="mb-2 font-semibold text-slate-700">Web Push Notification Debug</p>
-				<dl class="grid grid-cols-1 gap-1 text-slate-700">
-					<div>
-						<dt class="inline font-medium">supported:</dt>
-						<dd class="ml-1 inline">{isSupported ? 'true' : 'false'}</dd>
-					</div>
-					<div>
-						<dt class="inline font-medium">permission:</dt>
-						<dd class="ml-1 inline">{isSupported ? Notification.permission : 'n/a'}</dd>
-					</div>
-					<div>
-						<dt class="inline font-medium">serverEnabled:</dt>
-						<dd class="ml-1 inline">{isPushEnabledByServer ? 'true' : 'false'}</dd>
-					</div>
-					<div>
-						<dt class="inline font-medium">vapidLoaded:</dt>
-						<dd class="ml-1 inline">{vapidPublicKey ? 'true' : 'false'}</dd>
-					</div>
-					<div>
-						<dt class="inline font-medium">swScope:</dt>
-						<dd class="ml-1 inline break-all">{swScope ?? '(not registered)'}</dd>
-					</div>
-					<div>
-						<dt class="inline font-medium">swState:</dt>
-						<dd class="ml-1 inline">{swActiveState ?? '(unknown)'}</dd>
-					</div>
-					<div>
-						<dt class="inline font-medium">subscription:</dt>
-						<dd class="ml-1 inline break-all">{subscriptionEndpointPreview ?? '(none)'}</dd>
-					</div>
-					<div>
-						<dt class="inline font-medium">updatedAt:</dt>
-						<dd class="ml-1 inline">{lastDebugUpdatedAt ?? '(n/a)'}</dd>
-					</div>
-				</dl>
-			</div>
+			<DevDebugPanel
+				title="Web Push Notification Debug"
+				class="mt-4"
+				entries={[
+					{ label: 'supported', value: String(isSupported) },
+					{ label: 'permission', value: isSupported ? Notification.permission : 'n/a' },
+					{ label: 'serverEnabled', value: String(isPushEnabledByServer) },
+					{ label: 'vapidLoaded', value: String(Boolean(vapidPublicKey)) },
+					{ label: 'swScope', value: swScope ?? '(not registered)', wrap: true },
+					{ label: 'swState', value: swActiveState ?? '(unknown)' },
+					{ label: 'subscription', value: subscriptionEndpointPreview ?? '(none)', wrap: true },
+					{ label: 'updatedAt', value: lastDebugUpdatedAt ?? '(n/a)' }
+				]}
+			/>
 		{/if}
 	{/if}
 </div>

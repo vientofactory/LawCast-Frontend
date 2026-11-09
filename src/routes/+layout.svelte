@@ -11,6 +11,8 @@
 	import CloudflareChallengeReload from '#lib/components/CloudflareChallengeReload.svelte';
 	import CookieConsentBanner from '#lib/components/CookieConsentBanner.svelte';
 	import Footer from '#lib/components/Footer.svelte';
+	import SearchTimingDock from '#lib/components/SearchTimingDock.svelte';
+	import type { SearchTiming } from '#lib/utils/search-timing.ts';
 	import NProgress from 'nprogress';
 	import { page } from '$app/state';
 	import { navigating } from '$app/state';
@@ -75,6 +77,7 @@
 		Boolean(serverFailure) || (page.status >= 400 && page.error?.kind === 'network')
 	);
 	let retryingServer = $state(false);
+	let searchTimingWidth = $state<number>();
 	async function retryServer() {
 		if (retryingServer) return;
 		retryingServer = true;
@@ -114,7 +117,14 @@
 	>메인 콘텐츠로 건너뛰기</a
 >
 
-<div data-route-path={routePath} data-route-id={routeId} data-testid="app-route-container">
+<div
+	data-route-path={routePath}
+	data-route-id={routeId}
+	data-testid="app-route-container"
+	style:--lc-search-timing-width={import.meta.env.DEV && searchTimingWidth !== undefined
+		? `${searchTimingWidth}px`
+		: undefined}
+>
 	{#if serverFailure}
 		<main
 			id="main-content"
@@ -142,3 +152,11 @@
 <PwaInstallPrompt />
 
 <NotificationViewport />
+
+{#if import.meta.env.DEV}
+	<SearchTimingDock
+		bind:width={searchTimingWidth}
+		timing={page.data.searchTiming as SearchTiming | undefined}
+		visible={/^\/notices(?:\/semantic-search)?\/?$/.test(routePath)}
+	/>
+{/if}
