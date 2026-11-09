@@ -1,5 +1,6 @@
 import { isDiffchainUiMockEnabled } from './diffchain-ui-mock';
 import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '#lib/types/api.ts';
+import { SEARCH_TIMING_HEADER } from '#lib/utils/search-timing.ts';
 
 /**
  * Test-only canned responses for the semantic search API.
@@ -80,7 +81,7 @@ function buildManyWeakResults(): SemanticSearchResponse['weakResults'] {
 
 const FALLBACK_REASON = '의미 검색 엔진을 사용할 수 없어 키워드 검색 결과를 반환합니다.';
 
-export function getMockSemanticApiResponse(url: URL): Response | null {
+export function getMockSemanticApiResponse(url: URL, traceId?: string): Response | null {
 	if (!isDiffchainUiMockEnabled()) return null;
 	if (url.pathname === HEALTH_PATH) {
 		return Response.json({ success: true, data: ENGINE_HEALTH });
@@ -133,5 +134,45 @@ export function getMockSemanticApiResponse(url: URL): Response | null {
 		weakResults: fallback ? [] : weakOnly ? weakBand : []
 	};
 
-	return Response.json({ success: true, data: payload });
+	const response = Response.json({ success: true, data: payload });
+	if (traceId && query === '검색 타이밍 검증') {
+		response.headers.set(
+			SEARCH_TIMING_HEADER,
+			JSON.stringify({
+				traceId,
+				backendMs: 25.5,
+				omittedCalls: 0,
+				sidecarCalls: [
+					{ path: '/health', status: 200, outcome: 'ok', startMs: 1, roundTripMs: 1 },
+					{
+						path: '/search',
+						chunkK: 30,
+						status: 422,
+						outcome: 'error',
+						startMs: 3,
+						roundTripMs: 2
+					},
+					{
+						path: '/search',
+						chunkK: 10,
+						status: 200,
+						outcome: 'ok',
+						startMs: 7,
+						roundTripMs: 14,
+						timings: {
+							denseMs: 8,
+							annotateMs: 2,
+							totalMs: 10,
+							denseStages: {
+								embedding: { startMs: 0.5, durationMs: 4 },
+								faiss: { startMs: 5, durationMs: 1.5 },
+								classification: { startMs: 6.5, durationMs: 1 }
+							}
+						}
+					}
+				]
+			})
+		);
+	}
+	return response;
 }

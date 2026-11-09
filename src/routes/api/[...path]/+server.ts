@@ -11,6 +11,7 @@ import {
 import { getMockSemanticApiResponse } from '#lib/server/semantic-search-mock.ts';
 import { matchForced429, buildForced429Response } from '#lib/server/e2e-rate-limit-sim.ts';
 import { resolveClientIp, buildBackendForwardHeaders } from '#lib/server/client-ip.ts';
+import { SEARCH_TIMING_HEADER, SEARCH_TRACE_HEADER } from '#lib/utils/search-timing.ts';
 
 const BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 
@@ -112,6 +113,7 @@ async function forwardRequest(
 		// Forward the original visitor's IP so the backend rate-limits per user
 		// instead of per edge/proxy address (see lib/server/client-ip.ts).
 		const headers = buildBackendForwardHeaders(request, resolveClientIp(request));
+		headers.delete(SEARCH_TRACE_HEADER);
 
 		// Body stream forwarding
 		const body = method === 'GET' || method === 'HEAD' ? undefined : await request.blob();
@@ -125,6 +127,7 @@ async function forwardRequest(
 
 		const responseHeaders = new Headers(response.headers);
 		responseHeaders.delete(PROXY_CONNECTION_FAILURE_HEADER);
+		responseHeaders.delete(SEARCH_TIMING_HEADER);
 		return new Response(response.body, {
 			status: response.status,
 			statusText: response.statusText,

@@ -1,6 +1,6 @@
 {
 	"name": "lawcast-frontend",
-	"version": "2.3.1",
+	"version": "2.4.0",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,
@@ -59,12 +59,12 @@
 		"chart.js": "^4.6.1",
 		"chartjs-adapter-date-fns": "^3.0.0",
 		"date-fns": "^4.4.0",
+		"harfbuzz-upstream": "npm:harfbuzzjs@0.10.0",
+		"harfbuzzjs": "file:./vendor/harfbuzz-edge",
 		"hashguard-client": "^1.5.2",
 		"marked": "^18.1.3",
 		"nprogress": "^0.2.0",
-		"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-		"harfbuzz-upstream": "npm:harfbuzzjs@0.10.0",
-		"harfbuzzjs": "file:./vendor/harfbuzz-edge"
+		"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.14.0",
@@ -80,6 +80,7 @@
 		"@types/node": "^26.6.6",
 		"@types/react": "^19.3.0",
 		"chrome-launcher": "^1.2.3",
+		"deepmerge": "file:./vendor/deepmerge",
 		"eslint": "^10.14.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.24.0",
@@ -93,10 +94,9 @@
 		"tailwindcss": "^4.3.5",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.72.1",
-		"vite": "^8.3.6",
-		"wrangler": "^4.158.0",
 		"typescript-native": "npm:typescript@^7.0.2",
-		"deepmerge": "file:./vendor/deepmerge"
+		"vite": "^8.3.6",
+		"wrangler": "^4.158.0"
 	},
 	"overrides": {
 		"glob": "^14.0.4",

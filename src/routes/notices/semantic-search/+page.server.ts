@@ -1,6 +1,6 @@
 import * as env from '$app/env/public';
 import { redirect } from '@sveltejs/kit';
-import { semanticSearch } from '#lib/api/client.ts';
+import { semanticSearch, type SearchTiming } from '#lib/api/client.ts';
 import { toLoadErrorPayload } from '#lib/server/load-error.ts';
 import { PER_REQUEST_HTML_CACHE_CONTROL } from '#lib/server/ssr-cache-policy.ts';
 import {
@@ -39,12 +39,17 @@ export const load: PageServerLoad = async ({ url, fetch, setHeaders }) => {
 	// reload, and SPA navigations to a new ?search= re-run this loader instead
 	// of letting the browser call the search API. Failures (429 included) are
 	// returned as data so a backend hiccup never breaks the whole page.
+	const diagnostics: { searchTiming?: SearchTiming } = {};
 	try {
-		const search: SemanticSearchResponse = await semanticSearch({ query, k: DEFAULT_K }, fetch);
-		return { query, exampleQueries, search, loadError: null };
+		const search: SemanticSearchResponse = await semanticSearch(
+			{ query, k: DEFAULT_K },
+			fetch,
+			import.meta.env.DEV ? (timing) => (diagnostics.searchTiming = timing) : undefined
+		);
+		return { query, exampleQueries, search, loadError: null, ...diagnostics };
 	} catch (err) {
 		console.error('Failed to run semantic search:', err);
 		const loadError: LoadErrorPayload = toLoadErrorPayload(err, SEARCH_FAILED_MESSAGE);
-		return { query, exampleQueries, search: null, loadError };
+		return { query, exampleQueries, search: null, loadError, ...diagnostics };
 	}
 };

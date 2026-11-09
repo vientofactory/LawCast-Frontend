@@ -475,6 +475,11 @@
 	border-top: 1px solid var(--lc-border-soft);
 	background: transparent;
 }
+@media (min-width: 1024px) {
+	.lc-main .lc-comparison-workspace {
+		border-top: 2px solid var(--lc-border-strong);
+	}
+}
 .lc-comparison-field {
 	padding: 1rem 0;
 	border-top: 1px solid var(--lc-border-soft);
@@ -762,9 +767,6 @@ summary:focus-visible {
 .lc-main .lc-reading-content {
 	border-top: 2px solid var(--lc-border-strong);
 	padding-top: 1.25rem;
-}
-.lc-main .lc-comparison-workspace {
-	border-top: 2px solid var(--lc-border-strong);
 }
 .lc-comparison-field > h3,
 .lc-diff-hunk-heading {
