@@ -1,4 +1,5 @@
 import { browser } from '$app/env';
+import { isSemanticSearchKValid, SEMANTIC_SEARCH_K_ERROR } from '#lib/utils/semantic-search.ts';
 import {
 	parseBackendTiming,
 	SEARCH_TIMING_HEADER,
@@ -531,7 +532,11 @@ export async function semanticSearch(
 	try {
 		const query = new URLSearchParams();
 		query.set('query', params.query.trim());
-		if (params.k && params.k > 0) query.set('k', String(params.k));
+		if (params.k !== undefined) {
+			const k = String(params.k);
+			if (!isSemanticSearchKValid(k)) throw new Error(SEMANTIC_SEARCH_K_ERROR);
+			query.set('k', k);
+		}
 		return await request<SemanticSearchResponse>(
 			`/notices/semantic-search?${query.toString()}`,
 			{ method: 'GET' },

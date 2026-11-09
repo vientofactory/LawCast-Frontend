@@ -1,5 +1,13 @@
 import type { BoardSearchMode } from '#lib/types/api.ts';
 
+export const SEMANTIC_SEARCH_MAX_K = 20;
+export const SEMANTIC_SEARCH_K_ERROR = `k는 1에서 ${SEMANTIC_SEARCH_MAX_K} 사이의 정수여야 합니다.`;
+
+export function isSemanticSearchKValid(raw: string): boolean {
+	const k = raw.trim();
+	return !k || (/^[0-9]+$/.test(k) && Number(k) >= 1 && Number(k) <= SEMANTIC_SEARCH_MAX_K);
+}
+
 const ENABLED_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
 /** Board search-mode options, in display order. */
