@@ -23,6 +23,16 @@ const semanticEnabled = ['1', 'true', 'yes', 'on'].includes(
 	(process.env.E2E_SEMANTIC_SEARCH ?? '').trim().toLowerCase()
 );
 
+test('enforces the semantic API top-k ceiling at the frontend boundary', async ({ request }) => {
+	test.skip(!semanticEnabled, 'Requires the semantic search fixture');
+	const path = '/api/notices/semantic-search?query=test';
+	const atLimit = await request.get(`${path}&k=20`);
+	expect(atLimit.status()).toBe(200);
+	const aboveLimit = await request.get(`${path}&k=21`);
+	expect(aboveLimit.status()).toBe(400);
+	expect(await aboveLimit.json()).toMatchObject({ success: false });
+});
+
 const HEALTH_API = '**/api/notices/semantic-search/health';
 
 const STAMP = '2026-10-02T12:00:00+00:00';

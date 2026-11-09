@@ -13,6 +13,8 @@ import { matchForced429, buildForced429Response } from '#lib/server/e2e-rate-lim
 import { resolveClientIp, buildBackendForwardHeaders } from '#lib/server/client-ip.ts';
 import { SEARCH_TIMING_HEADER, SEARCH_TRACE_HEADER } from '#lib/utils/search-timing.ts';
 
+import { isSemanticSearchKValid, SEMANTIC_SEARCH_K_ERROR } from '#lib/utils/semantic-search.ts';
+
 const BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 
 function parseNonNegativeInteger(value: string | null, fallback: number): number {
@@ -90,6 +92,15 @@ async function forwardRequest(
 	url: URL
 ) {
 	if (method === 'GET') {
+		if (path === 'notices/semantic-search' || path === 'notices/semantic-search/') {
+			const values = url.searchParams.getAll('k');
+			if (values.length > 1 || (values[0] !== undefined && !isSemanticSearchKValid(values[0]))) {
+				return Response.json(
+					{ success: false, message: SEMANTIC_SEARCH_K_ERROR },
+					{ status: 400, headers: { 'cache-control': 'no-store' } }
+				);
+			}
+		}
 		const mockResponse = await getMockResponse(path, url);
 		if (mockResponse) return mockResponse;
 		// This proxy is the seam for BROWSER-issued /api requests (handleFetch
