@@ -13,7 +13,7 @@
 	 * the way of casual readers while the details stay one click away.
 	 *
 	 * The widget owns the single health request. `health`, `loading` and `error`
-	 * are bindable so a page that also gates its own UI on engine readiness (the
+	 * are bindable so a page that also displays a readiness notice (the
 	 * semantic search page) can read this fetch instead of issuing a second one;
 	 * `testIdPrefix` keeps each page's instance addressable from e2e specs.
 	 */

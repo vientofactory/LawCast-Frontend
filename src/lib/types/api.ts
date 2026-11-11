@@ -270,7 +270,7 @@ export type SemanticEngineStatus = 'loading' | 'ready' | 'failed';
 /**
  * Semantic engine health (fields passed through from the sidecar `/health` by
  * the backend `/api/notices/semantic-search/health`).
- * `status` gates the search UI overlay, `indexedChunks` is the FAISS chunk
+ * `status` drives a nonblocking availability notice, `indexedChunks` is the FAISS chunk
  * count, `lastUpdateAt` the last index write time of the serving generation,
  * `lastUpdateTriggeredAt` the run time of the most recent refresh tick
  * (null when never triggered).

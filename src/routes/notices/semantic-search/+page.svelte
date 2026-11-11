@@ -8,7 +8,7 @@
 	import Header from '#lib/components/Header.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
-	import SemanticSearchUnavailableOverlay from '#lib/components/SemanticSearchUnavailableOverlay.svelte';
+	import SemanticSearchUnavailableNotice from '#lib/components/SemanticSearchUnavailableNotice.svelte';
 	import SemanticEngineStatus from '#lib/components/SemanticEngineStatus.svelte';
 	import OpenSignalLoader from '#lib/components/OpenSignalLoader.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
@@ -72,21 +72,18 @@
 	let displayError = $derived(error);
 
 	// The corner widget owns the health request and binds the result back here,
-	// because engine readiness also gates the search UI below.
+	// so readiness diagnostics do not issue a second request.
 	let engineHealth = $state<SemanticEngineHealthResponse | null>(null);
 	let engineHealthLoading = $state(true);
 	let engineHealthError = $state<string | null>(null);
-	// Readiness gate for the search UI: once the engine health fetch settles,
-	// anything other than 'ready' — or a failed fetch — covers the form and the
-	// results with an overlay so the user is told search is unavailable instead
-	// of submitting into a degraded state. The in-flight window stays uncovered:
-	// readiness is simply not known yet, and a flash on every mount would be noise.
-	let searchUnavailable = $derived(
+	// A health probe can fail independently of search. Keep fallback rows and
+	// result disclosures usable; the search response owns degradation policy.
+	let engineUnavailable = $derived(
 		!loadError &&
 			!engineHealthLoading &&
 			(engineHealthError !== null || engineHealth?.status !== 'ready')
 	);
-	let searchUnavailableReason = $derived(
+	let engineUnavailableReason = $derived(
 		engineHealthError !== null
 			? engineHealthError
 			: engineHealth?.status === 'loading'
@@ -323,12 +320,12 @@
 			<span class="lc-text-secondary font-semibold">의미 검색</span>
 		</nav>
 
-		<!-- Readiness gate wrapper: the unavailable overlay covers exactly the
-		     search form + results (never the navigation above), and `inert` keeps
-		     keyboard focus out of the covered controls. The overlay is a sibling
-		     of the inert div so only the content beneath it is taken out of play. -->
 		<div class="relative">
-			<div inert={searchUnavailable}>
+			<SemanticSearchUnavailableNotice
+				visible={engineUnavailable}
+				reason={engineUnavailableReason}
+			/>
+			<div>
 				<section class="lc-search-section mb-6">
 					<div class="flex items-start gap-3">
 						<div class="lc-chip-purple mt-0.5 rounded-full p-1.5">
@@ -557,10 +554,6 @@
 					{/if}
 				</section>
 			</div>
-			<SemanticSearchUnavailableOverlay
-				visible={searchUnavailable}
-				reason={searchUnavailableReason}
-			/>
 		</div>
 	</main>
 
