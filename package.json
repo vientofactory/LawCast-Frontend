@@ -59,7 +59,7 @@
 		"chart.js": "^4.6.1",
 		"chartjs-adapter-date-fns": "^3.0.0",
 		"date-fns": "^4.4.0",
-		"harfbuzz-upstream": "npm:harfbuzzjs@0.10.0",
+		"harfbuzz-upstream": "npm:harfbuzzjs@0.10.3",
 		"harfbuzzjs": "file:./vendor/harfbuzz-edge",
 		"hashguard-client": "^1.5.2",
 		"marked": "^18.1.3",
