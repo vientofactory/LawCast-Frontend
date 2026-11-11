@@ -499,6 +499,11 @@
 	padding: 0.75rem;
 	min-width: 0;
 }
+@media (max-width: 639px) {
+	.lc-diff-hunk {
+		margin-inline: -0.25rem;
+	}
+}
 .lc-history-record {
 	padding-block: 1rem;
 	border-bottom: 1px solid var(--lc-border-soft);
