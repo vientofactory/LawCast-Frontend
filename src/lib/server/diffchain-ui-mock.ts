@@ -619,6 +619,7 @@ export function getMockArchiveNoticesResponse(params: {
 }): ArchiveNoticeListResponse {
 	const allNotices = buildMockArchiveNotices();
 	const search = (params.search || '').trim().toLowerCase();
+	const mixedTiers = params.searchMode !== 'keyword' && search.includes('혼합 결과');
 	const proposerFilter = (params.proposer || '').trim().toLowerCase();
 
 	// Build a map of num → proposalReason: `제안이유` is part of every keyword search
@@ -632,7 +633,7 @@ export function getMockArchiveNoticesResponse(params: {
 
 	let filtered = [...allNotices];
 
-	if (search) {
+	if (search && !mixedTiers) {
 		filtered = filtered.filter((notice) => {
 			const baseHaystack = [
 				notice.subject,
@@ -790,7 +791,16 @@ export function getMockArchiveNoticesResponse(params: {
 		fallbackReason: null,
 		lastUpdateAt: MOCK_SEMANTIC_LAST_UPDATE,
 		candidateTotal: total,
-		weakResults: [],
+		weakResults: mixedTiers
+			? filtered.slice(0, 12).map((notice, index) => ({
+					noticeNum: notice.num + 100_000,
+					subject: `관련 법률안: ${notice.subject}`,
+					committee: notice.committee,
+					section: 'body',
+					score: Math.max(0.26, 0.31 - index * 0.004),
+					excerpt: null
+				}))
+			: [],
 		...(searchMode === 'auto' && search === '주택임대차보호볍'
 			? { suggestedQuery: '주택임대차보호법' }
 			: {})

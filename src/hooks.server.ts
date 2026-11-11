@@ -53,6 +53,7 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	// lib/server/e2e-client-ip.ts) so one machine is not one rate-limit bucket.
 	const clientIp = resolveE2eReadClientIp(request) ?? resolveClientIp(event.request);
 	const headers = buildBackendForwardHeaders(request, clientIp);
+	if (!import.meta.env.DEV) headers.delete(SEARCH_TRACE_HEADER);
 
 	const targetUrl = `${API_BASE_URL.replace(/\/$/, '')}${requestUrl.pathname.slice('/api'.length)}${requestUrl.search}`;
 
@@ -74,6 +75,7 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	);
 	const responseHeaders = new Headers(response.headers);
 	responseHeaders.delete(PROXY_CONNECTION_FAILURE_HEADER);
+	if (!import.meta.env.DEV) responseHeaders.delete(SEARCH_TIMING_HEADER);
 	return new Response(response.body, {
 		status: response.status,
 		statusText: response.statusText,

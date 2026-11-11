@@ -1,4 +1,5 @@
 <script lang="ts">
+	import WeakSearchResultsTail from '#lib/components/WeakSearchResultsTail.svelte';
 	import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
 	import { onDestroy } from 'svelte';
 	import Header from '#lib/components/Header.svelte';
@@ -50,7 +51,11 @@
 		faWandMagicSparkles,
 		faXmark
 	} from '@fortawesome/free-solid-svg-icons';
-	import type { ArchiveNoticeCardListResponse, BoardSearchMode } from '#lib/types/api.ts';
+	import type {
+		ArchiveNoticeCardListResponse,
+		BoardSearchMode,
+		SemanticSearchResultItem
+	} from '#lib/types/api.ts';
 	import { KST_TIMEZONE } from '#lib/utils/helpers.ts';
 
 	let {
@@ -524,6 +529,55 @@
 	}
 </script>
 
+{#snippet weakResultCard(result: SemanticSearchResultItem)}
+	<article
+		class="lc-notice-card lc-content-card lc-notice-border-active rounded-lg border-l-4 p-4 shadow sm:p-6"
+		data-testid={`notices-weak-result-${result.noticeNum}`}
+	>
+		<div class="flex flex-wrap items-center gap-2">
+			<span
+				class="lc-chip-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+			>
+				의안번호 {result.noticeNum}
+			</span>
+			{#if result.score !== null}
+				<span
+					class="lc-chip-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+					title={BOARD_RELEVANCE_HINTS.score}
+				>
+					유사도 {formatSimilarityPercent(result.score)}
+				</span>
+			{/if}
+			{#if result.section}
+				<span
+					class="lc-chip-purple inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+					title={BOARD_RELEVANCE_HINTS.section}
+				>
+					{formatSectionLabel(result.section)}
+				</span>
+			{/if}
+			{#if result.committee}
+				<span
+					class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+				>
+					{result.committee}
+				</span>
+			{/if}
+		</div>
+		<h3 class="lc-text-primary mt-2 text-lg font-bold">
+			<a href={`/notices/${result.noticeNum}`} class="lc-link">{result.subject}</a>
+		</h3>
+		{#if result.excerpt}
+			<p
+				class="lc-text-secondary mt-2 text-sm whitespace-pre-line"
+				title={BOARD_RELEVANCE_HINTS.excerpt}
+			>
+				{result.excerpt}
+			</p>
+		{/if}
+	</article>
+{/snippet}
+
 <SeoHead
 	title={pageTitle}
 	description={pageDescription}
@@ -545,7 +599,7 @@
 		</div>
 
 		{#if archive?.appliedMode === 'semantic' && searchQuery.trim() && notices.length > 0}
-			<p class="lc-text-dim -mt-4 mb-6 text-xs" data-testid="notices-semantic-scope-note">
+			<p class="lc-text-dim mb-6 text-xs" data-testid="notices-semantic-scope-note">
 				관련도순 상위 결과를 보여드려요. 전체 결과는 <a
 					href={buildFilterLink({ searchMode: 'keyword' })}
 					class="lc-link"
@@ -1087,52 +1141,7 @@
 						</div>
 						<div class="space-y-4" data-testid="notices-semantic-weak-list">
 							{#each weakVisibleResults as result (result.noticeNum)}
-								<article
-									class="lc-notice-card lc-content-card lc-notice-border-active rounded-lg border-l-4 p-4 shadow sm:p-6"
-									data-testid={`notices-weak-result-${result.noticeNum}`}
-								>
-									<div class="flex flex-wrap items-center gap-2">
-										<span
-											class="lc-chip-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-										>
-											의안번호 {result.noticeNum}
-										</span>
-										{#if result.score !== null}
-											<span
-												class="lc-chip-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-												title={BOARD_RELEVANCE_HINTS.score}
-											>
-												유사도 {formatSimilarityPercent(result.score)}
-											</span>
-										{/if}
-										{#if result.section}
-											<span
-												class="lc-chip-purple inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-												title={BOARD_RELEVANCE_HINTS.section}
-											>
-												{formatSectionLabel(result.section)}
-											</span>
-										{/if}
-										{#if result.committee}
-											<span
-												class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-											>
-												{result.committee}
-											</span>
-										{/if}
-									</div>
-									<h3 class="lc-text-primary mt-2 text-lg font-bold">
-										<a href={`/notices/${result.noticeNum}`} class="lc-link">{result.subject}</a>
-									</h3>
-									{#if result.excerpt}
-										<p
-											class="lc-text-secondary mt-2 text-sm whitespace-pre-line"
-											title={BOARD_RELEVANCE_HINTS.excerpt}
-										>
-											{result.excerpt}
-										</p>
-									{/if}
-								</article>
+								{@render weakResultCard(result)}
 							{/each}
 							{#if hasMoreWeak}
 								<div class="pt-1 text-center">
@@ -1434,6 +1443,15 @@
 							ariaLabel="페이지 내비게이션"
 							testId="notices-pagination"
 						/>
+						{#if boardSemantic?.mode === 'semantic' && weakResults.length > 0 && currentPage === totalPages}
+							{#key archive}
+								<WeakSearchResultsTail
+									results={weakResults}
+									renderResult={weakResultCard}
+									testId="notices-semantic-weak-tail"
+								/>
+							{/key}
+						{/if}
 					{/if}
 
 					{#if SEMANTIC_SEARCH_ENABLED}

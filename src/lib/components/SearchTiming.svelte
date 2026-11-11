@@ -3,7 +3,12 @@
 	import type { SearchTiming } from '#lib/api/client.ts';
 	import type { Snippet } from 'svelte';
 	import { buildSearchWaterfall } from '#lib/utils/search-waterfall.ts';
-	import { readDenseStages } from '#lib/utils/search-timing.ts';
+	import {
+		readDenseStages,
+		readWorkerWaits,
+		sidecarOperation,
+		sidecarStatus
+	} from '#lib/utils/search-timing.ts';
 
 	let { timing, toolbar }: { timing: SearchTiming; toolbar?: Snippet } = $props();
 
@@ -44,7 +49,7 @@
 		},
 		{ label: 'traceId', value: timing.traceId, wrap: true, testId: 'search-timing-id' }
 	]}
-	description="SvelteKit 전체 시간은 응답 본문 처리까지입니다. 각 구간은 서로 포함되므로 합산하지 않습니다."
+	description="SvelteKit ↔ Backend는 HTTP입니다. 내부 Sidecar 연결은 호출별로 표시합니다. 각 구간은 서로 포함되므로 합산하지 않습니다."
 >
 	<div class="mt-2 border-t border-(--lc-border-soft) pt-2" data-testid="search-timing-waterfall">
 		<p class="font-semibold">요청 워터폴</p>
@@ -112,12 +117,10 @@
 						<p class="flex flex-wrap items-baseline gap-x-2">
 							<span class="font-mono font-semibold">
 								#{index + 1}
-								{call.path}{call.chunkK === undefined ? '' : ` · k=${call.chunkK}`}
+								{sidecarOperation(call)}{call.chunkK === undefined ? '' : ` · k=${call.chunkK}`}
 							</span>
 							<span>
-								{callOutcomes[call.outcome]}{call.status === undefined
-									? ''
-									: ` (HTTP ${call.status})`}
+								{callOutcomes[call.outcome]}{sidecarStatus(call) ? ` (${sidecarStatus(call)})` : ''}
 							</span>
 						</p>
 						<dl class="mt-1 flex flex-wrap gap-x-3 gap-y-1">
@@ -130,6 +133,12 @@
 									<dt class="inline">Dense:</dt>
 									<dd class="inline font-mono tabular-nums">{duration(call.timings.denseMs)}</dd>
 								</div>
+								{#each readWorkerWaits(call.timings) as wait (wait.key)}
+									<div data-testid={`search-timing-${wait.key}`}>
+										<dt class="inline">{wait.label}:</dt>
+										<dd class="inline font-mono tabular-nums">{duration(wait.durationMs)}</dd>
+									</div>
+								{/each}
 								{#each readDenseStages(call.timings) ?? [] as stage (stage.key)}
 									<div>
 										<dt class="inline">{stage.label}:</dt>

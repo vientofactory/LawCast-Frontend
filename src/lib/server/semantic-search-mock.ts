@@ -21,6 +21,7 @@ import { SEARCH_TIMING_HEADER } from '#lib/utils/search-timing.ts';
  * - `않는`       -> empty result list (empty state)
  * - `약한`       -> empty clear tier + one weak hit (reveal-button state)
  * - `약한 여러`  -> empty clear tier + a weak band longer than one page (paging state)
+ * - `혼합 결과` -> one clear hit plus a paged weak band
  * - `키워드`     -> `keyword_fallback` response (fallback banner)
  * - anything else -> one sample result
  *
@@ -31,6 +32,7 @@ const ERROR_MARKER = '오류';
 const EMPTY_MARKER = '않는';
 const WEAK_MARKER = '약한';
 const MANY_WEAK_MARKER = '여러';
+const MIXED_TIERS_MARKER = '혼합 결과';
 const FALLBACK_MARKER = '키워드';
 
 const HEALTH_PATH = '/api/notices/semantic-search/health';
@@ -121,7 +123,9 @@ export function getMockSemanticApiResponse(url: URL, traceId?: string): Response
 	const fallback = query.includes(FALLBACK_MARKER);
 	const empty = query.includes(EMPTY_MARKER);
 	const weakOnly = query.includes(WEAK_MARKER);
-	const weakBand = query.includes(MANY_WEAK_MARKER) ? buildManyWeakResults() : [WEAK_RESULT];
+	const mixedTiers = query.includes(MIXED_TIERS_MARKER);
+	const weakBand =
+		mixedTiers || query.includes(MANY_WEAK_MARKER) ? buildManyWeakResults() : [WEAK_RESULT];
 	const results = empty || weakOnly ? [] : [SAMPLE_RESULT];
 	const payload: SemanticSearchResponse = {
 		query,
@@ -131,11 +135,15 @@ export function getMockSemanticApiResponse(url: URL, traceId?: string): Response
 		results: fallback
 			? results.map((result) => ({ ...result, score: null, section: null, excerpt: null }))
 			: results,
-		weakResults: fallback ? [] : weakOnly ? weakBand : []
+		weakResults: !fallback && (weakOnly || mixedTiers) ? weakBand : []
 	};
 
 	const response = Response.json({ success: true, data: payload });
-	if (traceId && query === '검색 타이밍 검증') {
+	if (traceId && (query === '검색 타이밍 검증' || query === 'gRPC 타이밍 검증')) {
+		const status = (httpCode: number, grpcCode: number) =>
+			query === 'gRPC 타이밍 검증'
+				? { transport: 'grpc', grpcCode }
+				: { transport: 'http', status: httpCode };
 		response.headers.set(
 			SEARCH_TIMING_HEADER,
 			JSON.stringify({
@@ -143,11 +151,11 @@ export function getMockSemanticApiResponse(url: URL, traceId?: string): Response
 				backendMs: 25.5,
 				omittedCalls: 0,
 				sidecarCalls: [
-					{ path: '/health', status: 200, outcome: 'ok', startMs: 1, roundTripMs: 1 },
+					{ path: '/health', ...status(200, 0), outcome: 'ok', startMs: 1, roundTripMs: 1 },
 					{
 						path: '/search',
 						chunkK: 30,
-						status: 422,
+						...status(422, 11),
 						outcome: 'error',
 						startMs: 3,
 						roundTripMs: 2
@@ -155,12 +163,14 @@ export function getMockSemanticApiResponse(url: URL, traceId?: string): Response
 					{
 						path: '/search',
 						chunkK: 10,
-						status: 200,
+						...status(200, 0),
 						outcome: 'ok',
 						startMs: 7,
 						roundTripMs: 14,
 						timings: {
 							denseMs: 8,
+							admissionMs: 0.25,
+							rankWaitMs: 0,
 							annotateMs: 2,
 							totalMs: 10,
 							denseStages: {

@@ -17,10 +17,14 @@ interface SearchPhases {
 	denseMs: number;
 	annotateMs: number;
 	totalMs: number;
+	admissionMs?: number;
+	rankWaitMs?: number;
 	denseStages?: unknown;
 }
 
 interface SidecarTiming {
+	transport?: 'http' | 'grpc';
+	grpcCode?: number;
 	path: '/health' | '/search';
 	chunkK?: number;
 	startMs?: number;
@@ -28,6 +32,39 @@ interface SidecarTiming {
 	status?: number;
 	outcome: 'pending' | 'ok' | 'error';
 	timings?: SearchPhases;
+}
+
+const GRPC_CODES = [
+	'OK',
+	'CANCELLED',
+	'UNKNOWN',
+	'INVALID_ARGUMENT',
+	'DEADLINE_EXCEEDED',
+	'NOT_FOUND',
+	'ALREADY_EXISTS',
+	'PERMISSION_DENIED',
+	'RESOURCE_EXHAUSTED',
+	'FAILED_PRECONDITION',
+	'ABORTED',
+	'OUT_OF_RANGE',
+	'UNIMPLEMENTED',
+	'INTERNAL',
+	'UNAVAILABLE',
+	'DATA_LOSS',
+	'UNAUTHENTICATED'
+] as const;
+
+export function sidecarOperation(call: SidecarTiming) {
+	if (call.transport === 'grpc') return `gRPC ${call.path === '/health' ? 'GetHealth' : 'Search'}`;
+	if (call.transport === 'http') return `HTTP ${call.path}`;
+	return call.path;
+}
+
+export function sidecarStatus(call: SidecarTiming) {
+	if (call.transport === 'grpc' && call.grpcCode !== undefined)
+		return `gRPC ${GRPC_CODES[call.grpcCode]} (${call.grpcCode})`;
+	if (call.status !== undefined)
+		return call.transport === 'http' ? `HTTP ${call.status}` : `상태 ${call.status} · 전송 미기록`;
 }
 
 interface BackendTiming {
@@ -90,11 +127,29 @@ export function readDenseStages(timings?: SearchPhases) {
 	}));
 }
 
+export function readWorkerWaits(timings?: SearchPhases) {
+	if (!timings) return [];
+	return [
+		{ key: 'admission', label: '임베딩 워커 대기', ms: timings.admissionMs },
+		{ key: 'rank-wait', label: '순위 워커 대기', ms: timings.rankWaitMs }
+	].flatMap(({ key, label, ms }) =>
+		isDuration(ms) && ms <= timings.denseMs ? [{ key, label, durationMs: ms }] : []
+	);
+}
+
 function isSidecarTiming(value: unknown): value is SidecarTiming {
 	if (!isRecord(value)) return false;
-	const { path, chunkK, startMs, status, outcome, roundTripMs, timings } = value;
+	const { path, transport, grpcCode, chunkK, startMs, status, outcome, roundTripMs, timings } =
+		value;
 	return (
 		(path === '/health' || path === '/search') &&
+		(transport === undefined || transport === 'http' || transport === 'grpc') &&
+		(grpcCode === undefined ||
+			(transport === 'grpc' &&
+				isInteger(grpcCode) &&
+				grpcCode >= 0 &&
+				grpcCode < GRPC_CODES.length)) &&
+		(transport !== 'grpc' || status === undefined) &&
 		(chunkK === undefined || (isInteger(chunkK) && chunkK > 0)) &&
 		(startMs === undefined || isDuration(startMs)) &&
 		(status === undefined || (isInteger(status) && status >= 100 && status <= 599)) &&

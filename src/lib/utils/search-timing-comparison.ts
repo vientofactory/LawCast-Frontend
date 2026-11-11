@@ -1,4 +1,10 @@
-import { readDenseStages, type SearchTiming } from './search-timing.ts';
+import {
+	readDenseStages,
+	readWorkerWaits,
+	sidecarOperation,
+	sidecarStatus,
+	type SearchTiming
+} from './search-timing.ts';
 import { buildSearchWaterfall } from './search-waterfall.ts';
 
 interface Metric {
@@ -23,14 +29,18 @@ function collectMetrics(timing: SearchTiming) {
 	const calls = (backend?.sidecarCalls ?? []).map((call) => {
 		// A cached health check or a retry can shift the absolute call index.
 		// Match only like-for-like attempts, in their occurrence order.
-		const identity = JSON.stringify([call.path, call.chunkK, call.status, call.outcome]);
+		const identity = JSON.stringify([
+			call.path,
+			call.chunkK,
+			call.outcome,
+			// Successful HTTP and gRPC attempts are the same logical operation.
+			call.outcome === 'error' ? [call.transport, call.status, call.grpcCode] : null
+		]);
 		const count = (occurrences.get(identity) ?? 0) + 1;
 		occurrences.set(identity, count);
 		const status =
-			call.status === undefined
-				? { ok: '완료', error: '실패', pending: '진행 중' }[call.outcome]
-				: `HTTP ${call.status}`;
-		const label = `${call.path}${call.chunkK === undefined ? '' : ` · k=${call.chunkK}`} · ${status}${count > 1 ? ` · ${count}번째` : ''}`;
+			sidecarStatus(call) ?? { ok: '완료', error: '실패', pending: '진행 중' }[call.outcome];
+		const label = `${sidecarOperation(call)}${call.chunkK === undefined ? '' : ` · k=${call.chunkK}`} · ${status}${count > 1 ? ` · ${count}번째` : ''}`;
 		return { key: `call:${identity}:${count}`, label, call };
 	});
 	const metrics = new Map<string, Metric>();
@@ -69,6 +79,9 @@ function collectMetrics(timing: SearchTiming) {
 	for (const { key, label, call } of calls) {
 		addUnplaced(key, `${label} · ${phases['']}`, call.roundTripMs, 3);
 		addUnplaced(key + '-total', `${label} · ${phases['-total']}`, call.timings?.totalMs, 4);
+		for (const wait of readWorkerWaits(call.timings)) {
+			addUnplaced(key + '-' + wait.key, `${label} · ${wait.label}`, wait.durationMs, 6);
+		}
 		addUnplaced(key + '-dense', `${label} · ${phases['-dense']}`, call.timings?.denseMs, 5);
 		for (const stage of readDenseStages(call.timings) ?? []) {
 			const stageKey = key + '-dense-' + stage.key;
@@ -106,7 +119,11 @@ export function compareSearchTimings(baseline: SearchTiming, latest: SearchTimin
 				previous && current
 					? Number((current.durationMs - previous.durationMs).toFixed(2))
 					: undefined;
-			return { key, label: (current ?? previous)!.label, previous, current, deltaMs };
+			const label =
+				previous && current && previous.label !== current.label
+					? `${previous.label} → ${current.label}`
+					: (current ?? previous)!.label;
+			return { key, label, previous, current, deltaMs };
 		})
 	};
 }

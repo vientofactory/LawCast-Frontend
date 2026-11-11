@@ -1,4 +1,5 @@
 <script lang="ts">
+	import WeakSearchResultsTail from '#lib/components/WeakSearchResultsTail.svelte';
 	import { onDestroy } from 'svelte';
 	import { goto, refreshAll } from '$app/navigation';
 	import { navigating, page } from '$app/state';
@@ -18,7 +19,11 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
 	import { dismissTouchKeyboard } from '#lib/utils/keyboard.ts';
-	import type { SemanticEngineHealthResponse, SemanticSearchResponse } from '#lib/types/api.ts';
+	import type {
+		SemanticEngineHealthResponse,
+		SemanticSearchResponse,
+		SemanticSearchResultItem
+	} from '#lib/types/api.ts';
 	import {
 		SEMANTIC_MAX_QUERY_LENGTH,
 		SEMANTIC_SEARCH_QUERY_PARAM,
@@ -235,6 +240,66 @@
 	}
 </script>
 
+{#snippet resultCard(result: SemanticSearchResultItem)}
+	<article
+		aria-labelledby="semantic-result-heading-{result.noticeNum}"
+		data-testid={`semantic-result-${result.noticeNum}`}
+		class="lc-notice-card lc-semantic-result lc-notice-border-active rounded-lg border-l-4 p-4 shadow transition-shadow hover:shadow-md sm:p-6"
+	>
+		<div class="flex flex-wrap items-center gap-2">
+			<span
+				class="lc-chip-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+			>
+				의안번호 {result.noticeNum}
+			</span>
+			{#if result.score !== null}
+				<span
+					class="lc-chip-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+				>
+					유사도 {formatSimilarityPercent(result.score)}
+				</span>
+			{/if}
+			{#if result.section}
+				<span
+					class="lc-chip-purple inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+				>
+					{sectionLabel(result.section)}
+				</span>
+			{/if}
+			{#if result.committee}
+				<span
+					class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+				>
+					{result.committee}
+				</span>
+			{/if}
+		</div>
+		<h3
+			id="semantic-result-heading-{result.noticeNum}"
+			class="lc-text-primary mt-2 text-lg font-bold"
+		>
+			<a href={`/notices/${result.noticeNum}`} class="lc-link">
+				{result.subject}
+			</a>
+		</h3>
+		{#if result.excerpt}
+			<p class="lc-text-secondary mt-2 text-sm whitespace-pre-line">
+				{result.excerpt}
+			</p>
+		{/if}
+		<div class="mt-3">
+			<a
+				href={`/notices/${result.noticeNum}`}
+				class="lc-link inline-flex items-center text-sm font-semibold"
+				data-testid={`semantic-result-link-${result.noticeNum}`}
+			>
+				법률안 상세 보기
+				<span aria-hidden="true">→</span>
+			</a>
+		</div>
+	</article>
+{/snippet}
+
 <SeoHead title={pageTitle} description={pageDescription} url={pageUrl} keywords={pageKeywords} />
 
 <div class="lc-page-shell">
@@ -437,63 +502,7 @@
 							data-testid="semantic-search-results-list"
 						>
 							{#each displayedResults as result (result.noticeNum)}
-								<article
-									aria-labelledby="semantic-result-heading-{result.noticeNum}"
-									data-testid={`semantic-result-${result.noticeNum}`}
-									class="lc-notice-card lc-semantic-result lc-notice-border-active rounded-lg border-l-4 p-4 shadow transition-shadow hover:shadow-md sm:p-6"
-								>
-									<div class="flex flex-wrap items-center gap-2">
-										<span
-											class="lc-chip-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-										>
-											의안번호 {result.noticeNum}
-										</span>
-										{#if result.score !== null}
-											<span
-												class="lc-chip-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-											>
-												유사도 {formatSimilarityPercent(result.score)}
-											</span>
-										{/if}
-										{#if result.section}
-											<span
-												class="lc-chip-purple inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-											>
-												{sectionLabel(result.section)}
-											</span>
-										{/if}
-										{#if result.committee}
-											<span
-												class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-											>
-												{result.committee}
-											</span>
-										{/if}
-									</div>
-									<h3
-										id="semantic-result-heading-{result.noticeNum}"
-										class="lc-text-primary mt-2 text-lg font-bold"
-									>
-										<a href={`/notices/${result.noticeNum}`} class="lc-link">
-											{result.subject}
-										</a>
-									</h3>
-									{#if result.excerpt}
-										<p class="lc-text-secondary mt-2 text-sm whitespace-pre-line">
-											{result.excerpt}
-										</p>
-									{/if}
-									<div class="mt-3">
-										<a
-											href={`/notices/${result.noticeNum}`}
-											class="lc-link inline-flex items-center text-sm font-semibold"
-											data-testid={`semantic-result-link-${result.noticeNum}`}
-										>
-											법률안 상세 보기
-											<span aria-hidden="true">→</span>
-										</a>
-									</div>
-								</article>
+								{@render resultCard(result)}
 							{/each}
 							{#if showingWeak && hasMoreWeak}
 								<div class="pt-1 text-center">
@@ -508,6 +517,15 @@
 								</div>
 							{/if}
 						</div>
+						{#if response.mode === 'semantic' && response.results.length > 0 && weakResults.length > 0}
+							{#key response}
+								<WeakSearchResultsTail
+									results={weakResults}
+									renderResult={resultCard}
+									testId="semantic-search-weak-tail"
+								/>
+							{/key}
+						{/if}
 						<div class="mt-6 flex justify-center">
 							<a
 								href={`/notices?search=${encodeURIComponent(response.query)}`}

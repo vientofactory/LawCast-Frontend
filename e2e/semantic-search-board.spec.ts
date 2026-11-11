@@ -205,6 +205,44 @@ test.describe('Notices board search modes (semantic enabled)', () => {
 		await expect(page.locator('[title*="얼마나 비슷한지"]')).toHaveCount(0);
 	});
 
+	test('offers additional weak hits only after the final page of primary results', async ({
+		page
+	}) => {
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		await gotoBoard(page, `search=${encodeURIComponent('혼합 결과')}&searchMode=auto&limit=10`);
+		const tail = page.getByTestId('notices-semantic-weak-tail');
+		const cards = page.locator('[data-testid^="notices-weak-result-"]');
+		const primary = page.getByTestId('notices-results-list').locator('article');
+		await expect(primary).toHaveCount(10);
+		await expect(tail).toHaveCount(0);
+
+		await page.getByRole('link', { name: '다음 페이지로 이동' }).click();
+		await expect(primary).toHaveCount(2);
+		await expect(tail).toBeVisible();
+		await expect(cards).toHaveCount(0);
+		const toggle = tail.locator('summary');
+		await expect(toggle).toContainText('12건');
+		expect(
+			await page.getByTestId('notices-results-list').evaluate((list) => {
+				const tail = document.querySelector('[data-testid="notices-semantic-weak-tail"]');
+				return !!tail && !!(list.compareDocumentPosition(tail) & Node.DOCUMENT_POSITION_FOLLOWING);
+			})
+		).toBe(true);
+
+		await toggle.press('Enter');
+		await expect(cards).toHaveCount(10);
+		await clickUntil(page, 'notices-semantic-weak-tail-more', async () => {
+			await expect(cards).toHaveCount(12, { timeout: 1000 });
+		});
+		await expect(primary).toHaveCount(2);
+		await expect(page.getByTestId('notices-results-summary')).toContainText('12건');
+		await expect(tail.getByRole('button')).toHaveCount(0);
+		await toggle.press('Enter');
+		await expect(cards).toHaveCount(0);
+		await toggle.press('Enter');
+		await expect(cards).toHaveCount(10);
+	});
+
 	test('a long weak band is offered, then paged instead of dumped', async ({ page }) => {
 		// The mock returns 12 weak hits — the live engine returns its whole
 		// below-threshold pool (up to 100), all in one score band.

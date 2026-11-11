@@ -1,4 +1,4 @@
-import { readDenseStages, type SearchTiming } from './search-timing.ts';
+import { readDenseStages, sidecarOperation, type SearchTiming } from './search-timing.ts';
 
 type SpanKind = 'frontend' | 'backend' | 'request' | 'sidecar' | 'phase';
 
@@ -109,7 +109,7 @@ export function buildSearchWaterfall(timing: SearchTiming) {
 					timings.denseMs + timings.annotateMs <= timings.totalMs + ROUNDING_MS;
 				spans.push({
 					id,
-					label: `${prefix} ${call.path} 왕복`,
+					label: `${prefix} ${sidecarOperation(call)} 왕복`,
 					startMs: start,
 					durationMs: roundTripMs,
 					depth: 3,
