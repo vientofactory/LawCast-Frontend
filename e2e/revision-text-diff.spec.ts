@@ -163,6 +163,29 @@ test.describe('Compact revision comparison (mock fixtures)', () => {
 					await expect(page.getByTestId('diff-layout-controls')).toHaveCount(0);
 				}
 			}
+			const spacing = await pair.evaluate((element) => {
+				const [before, after] = Array.from(element.children);
+				const beforePanel = before.getBoundingClientRect();
+				const afterPanel = after.getBoundingClientRect();
+				const beforeContent = before.querySelector('[data-testid^="revision-before-"]')!;
+				const afterContent = after.querySelector('[data-testid^="revision-after-"]')!;
+				const range = document.createRange();
+				range.selectNodeContents(beforeContent);
+				return {
+					beforeInset: beforeContent.getBoundingClientRect().left - beforePanel.left,
+					afterInset: afterContent.getBoundingClientRect().left - afterPanel.left,
+					spaceBeforeDivider: beforePanel.right - range.getBoundingClientRect().right,
+					panelGap: afterPanel.top - beforePanel.bottom
+				};
+			});
+			expect(spacing.beforeInset).toBeGreaterThanOrEqual(12);
+			if (width >= 1024) {
+				expect(spacing.afterInset - spacing.beforeInset).toBe(1);
+				expect(spacing.spaceBeforeDivider).toBeLessThan(24);
+			} else {
+				expect(spacing.afterInset).toBe(spacing.beforeInset);
+				expect(spacing.panelGap).toBe(0);
+			}
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
 				true
 			);

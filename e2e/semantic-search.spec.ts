@@ -94,6 +94,20 @@ function watchEngineHealth(page: Page) {
 	return page.waitForRequest(HEALTH_API, { timeout: 20000 }).catch(() => null);
 }
 
+// Vite serves the client module separately from the already-rendered document.
+async function holdThemeModule(page: Page) {
+	let requested!: () => void;
+	let release!: () => void;
+	const seen = new Promise<void>((resolve) => (requested = resolve));
+	const gate = new Promise<void>((resolve) => (release = resolve));
+	await page.route('**/src/lib/theme.ts*', async (route) => {
+		requested();
+		await gate;
+		await route.continue();
+	});
+	return { seen, release };
+}
+
 /**
  * Capture the example-chip labels the server rendered, read from the document
  * response of the load under test. A second request would draw a different
@@ -155,12 +169,19 @@ test.describe('Semantic Search UI', () => {
 		await page.addInitScript(() => localStorage.setItem('lawcast-cookie-consent', 'accepted'));
 		await page.setViewportSize({ width: 1360, height: 800 });
 		await page.route(HEALTH_API, (route) => route.fulfill({ json: healthEnvelope() }));
-		await search(page, '세입자 보호');
-
+		const themeModule = await holdThemeModule(page);
 		const timing = page.getByTestId('search-timing');
 		const traceId = page.getByTestId('search-timing-id');
 		const history = page.getByTestId('search-timing-history');
-		await expect(timing).toBeVisible();
+		try {
+			await page.goto('/notices/semantic-search?search=세입자+보호', { waitUntil: 'commit' });
+			await themeModule.seen;
+			await expect(timing).toBeVisible();
+			await expect(history).toBeDisabled();
+		} finally {
+			themeModule.release();
+		}
+		await expect(history).toBeEnabled();
 		const main = (await page.getByTestId('semantic-search-main').boundingBox())!;
 		const dock = (await page.getByTestId('search-timing-dock').boundingBox())!;
 		expect(main.x + main.width).toBeLessThanOrEqual(dock.x);
@@ -169,6 +190,16 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('search-timing-backend')).toHaveText('측정값 없음');
 		await expect(traceId).toHaveText(/^[a-f0-9-]{36}$/);
 		const firstTrace = await traceId.innerText();
+		await expect
+			.poll(() =>
+				page.evaluate(() => {
+					const { records = [] } = JSON.parse(
+						sessionStorage.getItem('lawcast-dev-search-timing-v1') ?? '{}'
+					);
+					return records.map(({ traceId }: { traceId: string }) => traceId);
+				})
+			)
+			.toEqual([firstTrace]);
 
 		await page.getByTestId('semantic-search-input').fill('오류');
 		await page.getByTestId('semantic-search-submit').click();
@@ -176,6 +207,7 @@ test.describe('Semantic Search UI', () => {
 		await expect(traceId).not.toHaveText(firstTrace);
 		await expect(traceId).toHaveText(/^[a-f0-9-]{36}$/);
 		const latest = await traceId.innerText();
+		await expect(history.locator('option')).toHaveCount(3);
 		await history.selectOption(firstTrace);
 		await expect(traceId).toHaveText(firstTrace);
 
@@ -229,6 +261,21 @@ test.describe('Semantic Search UI', () => {
 		expect(annotateStart - denseStart).toBeCloseTo(8);
 		expect(await start('call-1')).toBeLessThan(callStart);
 		expect(await start('body')).toBeGreaterThan(annotateStart);
+	});
+
+	test('distinguishes HTTP from native gRPC statuses and displays worker waits', async ({
+		page
+	}) => {
+		await page.goto('/notices/semantic-search?search=gRPC+타이밍+검증');
+		await expect(page.getByTestId('search-timing-status')).toContainText('HTTP 200');
+		const calls = page.getByTestId('search-timing-call');
+		await expect(calls.nth(0)).toContainText('gRPC GetHealth');
+		await expect(calls.nth(1)).toContainText('gRPC OUT_OF_RANGE (11)');
+		await expect(calls.nth(1)).not.toContainText('HTTP 422');
+		await expect(calls.nth(2)).toContainText('gRPC OK (0)');
+		await expect(calls.nth(2).getByTestId('search-timing-admission')).toContainText('0.25 ms');
+		await expect(calls.nth(2).getByTestId('search-timing-rank-wait')).toContainText('0.00 ms');
+		await expect(page.getByTestId('search-span-call-2')).toContainText('gRPC Search');
 	});
 
 	test('resizes the timing dock and restores width and collapse after reload', async ({ page }) => {
@@ -334,7 +381,13 @@ test.describe('Semantic Search UI', () => {
 							recordedAt: 2,
 							sveltekitMs: 40,
 							headersReceivedMs: 35,
-							backend: { backendMs: 20, omittedCalls: 0, sidecarCalls: [call(1, 10, 2)] }
+							backend: {
+								backendMs: 20,
+								omittedCalls: 0,
+								sidecarCalls: [
+									{ ...call(1, 10, 2), transport: 'grpc', status: undefined, grpcCode: 0 }
+								]
+							}
 						},
 						{
 							...common,
@@ -348,7 +401,7 @@ test.describe('Semantic Search UI', () => {
 								omittedCalls: 0,
 								sidecarCalls: [
 									{ path: '/health', startMs: 1, roundTripMs: 3, status: 200, outcome: 'ok' },
-									call(6, 8, 4)
+									{ ...call(6, 8, 4), transport: 'http' }
 								]
 							}
 						}
@@ -378,6 +431,8 @@ test.describe('Semantic Search UI', () => {
 		await expect(
 			total.getByTestId('search-comparison-latest').getByTestId('search-comparison-bar')
 		).toHaveAttribute('style', /width:\s*80%/);
+		await expect(row('Dense')).toContainText('HTTP /search');
+		await expect(row('Dense')).toContainText('gRPC Search');
 		await expect(row('Dense').getByTestId('search-comparison-delta')).toHaveText('+2.00 ms 느려짐');
 		await expect(row('질의 임베딩').getByTestId('search-comparison-delta')).toHaveText(
 			'+2.00 ms 느려짐'
@@ -464,10 +519,22 @@ test.describe('Semantic Search UI', () => {
 		await expect(push.getByText('DEV', { exact: true })).toBeVisible();
 		const expected = await panelStyle(push);
 
-		await page.goto('/notices/semantic-search?search=세입자+보호');
+		const themeModule = await holdThemeModule(page);
 		const timing = page.getByTestId('search-timing');
-		await expect(timing).toBeVisible();
-		expect(await panelStyle(timing)).toEqual(expected);
+		const root = page.locator('html');
+		try {
+			await page.goto('/notices/semantic-search?search=세입자+보호', { waitUntil: 'commit' });
+			await themeModule.seen;
+			await expect(timing).toBeVisible();
+			await expect(root).toHaveAttribute('data-theme', 'light');
+			expect(await panelStyle(timing)).toEqual(expected);
+			await page.emulateMedia({ colorScheme: 'dark' });
+			// The inline script has run, but the client theme listener is still blocked.
+			await expect(root).toHaveAttribute('data-theme', 'light');
+		} finally {
+			themeModule.release();
+		}
+		await expect(root).toHaveAttribute('data-theme', 'dark');
 		await expect(timing).toHaveCSS('border-top-style', 'solid');
 		await expect(timing).toHaveCSS('border-inline-start-width', '2px');
 		await expect(timing.getByText('DEV', { exact: true })).toBeVisible();
@@ -478,12 +545,14 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('search-timing-id')).toHaveCSS('word-break', 'break-all');
 		expect(await timing.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
 
-		await page.emulateMedia({ colorScheme: 'dark' });
-		await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 		const dark = await panelStyle(timing);
 		expect(dark.background).not.toBe(expected.background);
 		expect(dark.foreground).not.toBe(expected.foreground);
 		expect(dark.badge).not.toEqual(expected.badge);
+
+		await expect(timing.getByTestId('search-timing-history')).toBeEnabled();
+		await page.emulateMedia({ colorScheme: 'light' });
+		await expect(root).toHaveAttribute('data-theme', 'light');
 	});
 
 	test('the notices board exposes the same engine status widget', async ({ page }) => {
@@ -696,6 +765,39 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByTestId('semantic-search-empty-state')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-show-weak')).toBeVisible();
 		await expect(page.getByTestId('semantic-search-results-list')).toHaveCount(0);
+	});
+
+	test('appends weak hits without replacing clear results or carrying the reveal to a new query', async ({
+		page
+	}) => {
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		const hydrated = watchEngineHealth(page);
+		await page.goto(`/notices/semantic-search?search=${encodeURIComponent('혼합 결과')}`);
+		await hydrated;
+
+		const tail = page.getByTestId('semantic-search-weak-tail');
+		const primary = page.getByTestId('semantic-result-2220607');
+		const weakCards = tail.locator('article');
+		await expect(primary).toBeVisible();
+		await expect(tail).toBeVisible();
+		await expect(weakCards).toHaveCount(0);
+
+		await tail.locator('summary').press('Enter');
+		await expect(weakCards).toHaveCount(10);
+		await tail.getByRole('button').click();
+		await expect(weakCards).toHaveCount(12);
+		await expect(weakCards.nth(10).getByRole('link').first()).toBeFocused();
+		await expect(primary).toBeVisible();
+		await expect(page.getByTestId('semantic-search-results-summary')).toContainText('1건');
+
+		const nextQuery = '혼합 결과 다시 찾기';
+		await page.getByTestId('semantic-search-input').fill(nextQuery);
+		await page.getByTestId('semantic-search-submit').click();
+		await expect(page.getByTestId('semantic-search-results-summary')).toContainText(nextQuery);
+		await expect(tail).toBeVisible();
+		await expect(weakCards).toHaveCount(0);
+		await tail.locator('summary').press('Enter');
+		await expect(weakCards).toHaveCount(10);
 	});
 
 	test('pages a weak band that is longer than one screen', async ({ page }) => {

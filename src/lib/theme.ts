@@ -1,5 +1,5 @@
 import { browser } from '$app/env';
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -37,11 +37,8 @@ function readInitialTheme(): ThemeMode {
 		return savedTheme;
 	}
 
-	const datasetTheme = document.documentElement.dataset.theme ?? null;
-	if (isThemeMode(datasetTheme)) {
-		return datasetTheme;
-	}
-
+	// The system preference can change after the inline paint script but
+	// before this module installs the media-query listener.
 	return getSystemTheme();
 }
 
@@ -106,7 +103,7 @@ export const theme = {
 		themeStore.set(nextTheme);
 	},
 	toggle() {
-		const nextTheme = readInitialTheme() === 'dark' ? 'light' : 'dark';
+		const nextTheme = get(themeStore) === 'dark' ? 'light' : 'dark';
 		this.set(nextTheme);
 	}
 };

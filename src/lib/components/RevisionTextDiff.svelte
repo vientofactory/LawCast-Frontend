@@ -148,8 +148,8 @@
 		border-top: 1px solid var(--lc-border-soft);
 	}
 	@media (min-width: 1024px) {
-		.lc-diff-pair {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+		.lc-diff-pair:has(> div + div) {
+			grid-template-columns: fit-content(50%) minmax(0, 1fr);
 		}
 		.lc-diff-pair > div + div {
 			border-top: 0;

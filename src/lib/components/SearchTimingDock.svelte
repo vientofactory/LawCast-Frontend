@@ -65,6 +65,8 @@
 			// Default layout still works if local storage is disabled.
 		}
 		updateWidthLimit();
+		// Commit the server-rendered record before enabling history actions.
+		remember(timing);
 		ready = true;
 	});
 
@@ -154,19 +156,21 @@
 		}
 	}
 
+	function remember(record?: Timing) {
+		if (
+			!record ||
+			record.recordedAt <= clearedAt ||
+			history.some(({ traceId }) => traceId === record.traceId)
+		)
+			return;
+		const next = [record, ...history].sort((a, b) => b.recordedAt - a.recordedAt).slice(0, limit);
+		if (selectedId && !next.some(({ traceId }) => traceId === selectedId)) selectedId = '';
+		save(next);
+	}
+
 	$effect(() => {
 		const record = timing;
-		if (!ready || !record) return;
-		untrack(() => {
-			if (
-				record.recordedAt <= clearedAt ||
-				history.some(({ traceId }) => traceId === record.traceId)
-			)
-				return;
-			const next = [record, ...history].sort((a, b) => b.recordedAt - a.recordedAt).slice(0, limit);
-			if (selectedId && !next.some(({ traceId }) => traceId === selectedId)) selectedId = '';
-			save(next);
-		});
+		if (ready) untrack(() => remember(record));
 	});
 
 	function clearHistory() {
@@ -206,6 +210,7 @@
 			aria-expanded={open}
 			aria-controls={open ? 'search-timing-dock-content' : undefined}
 			data-testid="search-timing-toggle"
+			disabled={!ready}
 			onclick={toggleOpen}
 		>
 			<span>Search Timing</span>
@@ -224,7 +229,7 @@
 				aria-valuemax={widthLimit}
 				aria-valuenow={effectiveWidth}
 				aria-valuetext={`${effectiveWidth} 픽셀`}
-				tabindex="0"
+				tabindex={ready ? 0 : -1}
 				class="lc-timing-resize absolute top-10 bottom-0 -left-2 z-20 hidden w-4 cursor-col-resize touch-none select-none focus-visible:outline-2 focus-visible:outline-(--lc-text-accent) sm:block"
 				class:is-dragging={Boolean(drag)}
 				data-testid="search-timing-resize"
@@ -249,6 +254,7 @@
 								bind:this={historySelect}
 								onchange={restoreHistoryFocus}
 								data-testid="search-timing-history"
+								disabled={!ready}
 								class="lc-text-primary min-h-9 w-full rounded-md border border-(--lc-control-border) bg-(--lc-surface-primary) px-2 py-1"
 							>
 								<option value="">최신 요청 자동 선택</option>
@@ -264,6 +270,7 @@
 								type="button"
 								class="lc-text-muted min-h-8 cursor-pointer px-2 underline-offset-2 hover:underline"
 								data-testid="search-timing-clear"
+								disabled={!ready}
 								onclick={clearHistory}>기록 지우기</button
 							>
 							{#if hasBaseline}
