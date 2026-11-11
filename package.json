@@ -101,7 +101,7 @@
 	"overrides": {
 		"glob": "^14.0.4",
 		"minimatch": "^11.0.5",
-		"satori": "^0.33.5",
+		"satori": "^0.63.0",
 		"deepmerge": "$deepmerge",
 		"harfbuzzjs": "$harfbuzzjs",
 		"fflate@<0.7.5": "^0.7.5"
