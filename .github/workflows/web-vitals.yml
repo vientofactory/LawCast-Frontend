@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   web-vitals:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -61,7 +61,7 @@ jobs:
 
   prepare-shared-browsers:
     name: Prepare shared browser caches
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -83,7 +83,7 @@ jobs:
   shared-ui:
     name: Shared UI (${{ matrix.suite }})
     needs: prepare-shared-browsers
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     strategy:
       fail-fast: false
