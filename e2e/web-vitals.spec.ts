@@ -135,9 +135,16 @@ test('loads the Discord widget only on request and reserves its layout space', a
 	await expect(page.getByTestId('discord-widget-load')).toBeVisible();
 	await expect(page.getByTestId('discord-widget')).toHaveCount(0);
 	expect(discordRequests).toEqual([]);
-	await page.evaluate(() => document.fonts.ready);
+	// Focus before measuring so activation cannot add Playwright's click-time scroll.
+	const loadButton = page.getByTestId('discord-widget-load');
+	await loadButton.focus();
+	await page.evaluate(async () => {
+		await document.fonts.ready;
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+	});
 	const before = (await region.boundingBox())!;
-	await page.getByTestId('discord-widget-load').click();
+	await page.keyboard.press('Enter');
 	await expect(page.getByTestId('discord-widget')).toBeVisible();
 	await expect.poll(() => discordRequests.length).toBe(1);
 	const after = (await region.boundingBox())!;
