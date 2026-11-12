@@ -28,7 +28,11 @@ for (const width of [320, 820, 1440])
 				theme === 'dark' ? 'rgb(252, 165, 165)' : 'rgb(185, 28, 28)'
 			);
 			await page.evaluate(async () => {
-				await Promise.all(document.getAnimations().map((animation) => animation.finished));
+				// Background CSR progress can finish independently; wait only for notification motion.
+				const host = document.querySelector('[data-notification-scope-host="page"]');
+				await Promise.all(
+					(host?.getAnimations({ subtree: true }) ?? []).map((animation) => animation.finished)
+				);
 			});
 			const host = page.getByTestId('notification-viewport').filter({ has: cards.first() });
 			await expect(host).toHaveCSS('position', 'fixed');
