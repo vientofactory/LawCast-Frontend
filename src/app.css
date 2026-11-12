@@ -400,9 +400,7 @@ html[data-theme='dark'] .lc-panel-hero {
 	background: var(--lc-home-signal-bg);
 	box-shadow: none;
 	backdrop-filter: none;
-	transition:
-		border-color 180ms ease,
-		background-color 180ms ease;
+	transition: translate 200ms ease;
 }
 
 .lc-home-signal-card::after {

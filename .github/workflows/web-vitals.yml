@@ -50,6 +50,8 @@ jobs:
         run: npx --no-install playwright test --config playwright-configs/playwright.config.ts e2e/revision-history.spec.ts e2e/revision-text-diff.spec.ts e2e/revision-history-pagination.spec.ts e2e/navigation-scroll.spec.ts
       - name: Test production build
         run: npm run test:e2e:web-vitals
+      - name: Test hard reload styles and preserved brand animation
+        run: npx --no-install playwright test --config playwright-configs/playwright.hard-reload.config.ts
       - name: Test request failure recovery
         run: |
           echo "::notice title=Intentional HTTP failures::This suite injects HTTP 429 and other failures through a local fixture. Application error logs are expected; every Playwright assertion must still pass."
