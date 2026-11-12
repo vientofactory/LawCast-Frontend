@@ -44,10 +44,10 @@ jobs:
         uses: ./.github/actions/setup-playwright
         with:
           browsers: chromium
-      - name: Test revision history and scroll navigation
+      - name: Test revision history, scroll navigation and share images
         env:
           DIFFCHAIN_UI_MOCK: '1'
-        run: npx --no-install playwright test --config playwright-configs/playwright.config.ts e2e/revision-history.spec.ts e2e/revision-text-diff.spec.ts e2e/revision-history-pagination.spec.ts e2e/navigation-scroll.spec.ts
+        run: npx --no-install playwright test --config playwright-configs/playwright.config.ts e2e/revision-history.spec.ts e2e/revision-text-diff.spec.ts e2e/revision-history-pagination.spec.ts e2e/navigation-scroll.spec.ts e2e/seo-images.spec.ts
       - name: Test production build
         run: npm run test:e2e:web-vitals
       - name: Test hard reload styles and preserved brand animation
