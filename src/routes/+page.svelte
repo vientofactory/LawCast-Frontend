@@ -295,12 +295,12 @@
 						<h2 id="home-status-heading" class="sr-only">플랫폼 핵심 상태</h2>
 						<ul class="lc-home-signal-grid" aria-label="플랫폼 핵심 상태">
 							<li
-								class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
+								class="lc-home-signal-card group relative overflow-hidden transition-transform duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
 								data-testid="home-status-card-archive"
 							>
 								<a
 									href="/notices"
-									class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
+									class="block rounded-xl transition-none focus-visible:outline-hidden"
 									data-testid="home-status-link-archive"
 								>
 									<div class="lc-home-signal-head">
@@ -327,12 +327,12 @@
 							</li>
 
 							<li
-								class="lc-home-signal-card group relative overflow-hidden transition-all duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
+								class="lc-home-signal-card group relative overflow-hidden transition-transform duration-200 focus-within:-translate-y-0.5 focus-within:shadow-lg focus-within:ring-2 focus-within:ring-sky-400/60 hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-sky-400/50"
 								data-testid="home-status-card-changes"
 							>
 								<a
 									href="/notices/changes"
-									class="block rounded-xl transition-all duration-200 focus-visible:outline-hidden"
+									class="block rounded-xl transition-none focus-visible:outline-hidden"
 									data-testid="home-status-link-changes"
 								>
 									<div class="lc-home-signal-head">

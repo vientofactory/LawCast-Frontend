@@ -128,7 +128,7 @@
 			<a
 				href="/"
 				data-testid="site-brand"
-				class="text-decoration-none group flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
+				class="text-decoration-none group flex items-center gap-4 transition-transform duration-300 hover:scale-[1.02]"
 			>
 				<div class="lc-brand-heading" data-testid="brand-heading">
 					<BrandLogo animate />
@@ -145,7 +145,7 @@
 				<button
 					type="button"
 					onclick={() => theme.toggle()}
-					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full transition-all duration-200"
+					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full transition-[background-color,color] duration-200"
 					role="switch"
 					aria-checked={isDarkTheme}
 					aria-label={isDarkTheme ? '라이트 테마로 전환' : '다크 테마로 전환'}
@@ -166,7 +166,7 @@
 			<!-- Hamburger/close button -->
 			<button
 				bind:this={menuButton}
-				class="lc-header-menu-toggle ml-auto inline-flex items-center justify-center rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-[var(--lc-text-secondary)] transition-all duration-200 hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)]"
+				class="lc-header-menu-toggle ml-auto inline-flex items-center justify-center rounded-md border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] px-3 py-2 text-[var(--lc-text-secondary)] transition-[background-color,color] duration-200 hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-primary)]"
 				aria-label={mobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
 				onclick={toggleMobileMenu}
 				aria-expanded={mobileMenuOpen}
@@ -191,7 +191,7 @@
 								data-nav-target={item.href}
 								title={item.label}
 								aria-label={item.label}
-								class={`lc-nav-link group/menu inline-flex items-center gap-2 rounded-md px-2.5 py-2.5 whitespace-nowrap transition-all duration-200 lg:px-3 lg:py-3 ${
+								class={`lc-nav-link group/menu inline-flex items-center gap-2 rounded-md px-2.5 py-2.5 whitespace-nowrap transition-[background-color,color] duration-200 lg:px-3 lg:py-3 ${
 									isActive(item.href)
 										? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)]'
 										: 'text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-accent)]'
@@ -242,7 +242,7 @@
 				<button
 					type="button"
 					onclick={() => theme.toggle()}
-					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full border p-1 transition-all duration-200"
+					class="lc-theme-switch inline-flex cursor-pointer items-center rounded-full border p-1 transition-[background-color,color] duration-200"
 					role="switch"
 					aria-checked={isDarkTheme}
 					aria-label={isDarkTheme ? '라이트 테마로 전환' : '다크 테마로 전환'}
@@ -266,7 +266,7 @@
 							aria-current={isActive(item.href) ? 'page' : undefined}
 							data-testid={`mobile-nav-link-${item.href === '/' ? 'home' : item.href.replace(/^\//, '').replace(/[/]+/g, '-')}`}
 							data-nav-target={item.href}
-							class={`lc-nav-link group/menu inline-flex items-center gap-2 rounded-xl px-3 py-3 transition-all duration-200 ${
+							class={`lc-nav-link group/menu inline-flex items-center gap-2 rounded-xl px-3 py-3 transition-[background-color,color] duration-200 ${
 								isActive(item.href)
 									? 'border border-[var(--lc-border-strong)] bg-[var(--lc-surface-accent)] text-[var(--lc-text-primary)] shadow-sm'
 									: 'text-[var(--lc-text-secondary)] hover:bg-[var(--lc-surface-hover)] hover:text-[var(--lc-text-accent)]'
