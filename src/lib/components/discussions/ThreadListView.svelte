@@ -15,6 +15,8 @@
 	let {
 		threads = [],
 		total = 0,
+		hasLoaded = true,
+		failed = false,
 		isLoading = false,
 		rateLimitRemaining = 0,
 		onOpenNewThreadModal,
@@ -22,6 +24,8 @@
 	}: {
 		threads?: DiscussionThread[];
 		total?: number;
+		hasLoaded?: boolean;
+		failed?: boolean;
 		isLoading?: boolean;
 		rateLimitRemaining?: number;
 		onOpenNewThreadModal?: () => void;
@@ -44,7 +48,7 @@
 		<div class="flex items-center gap-2">
 			<span class="lc-text-primary text-sm font-bold"> 토론 목록 </span>
 			<span class="lc-chip-blue rounded-full px-2 py-0.5 text-xs font-semibold">
-				{total}개
+				{hasLoaded ? `${total}개` : '확인 중'}
 			</span>
 		</div>
 		<button
@@ -60,10 +64,12 @@
 	</div>
 
 	<!-- Thread List -->
-	{#if isLoading}
+	{#if isLoading && !hasLoaded}
 		<div class="flex items-center justify-center p-8 text-xs text-[var(--lc-text-muted)]">
 			토론 목록을 불러오는 중...
 		</div>
+	{:else if failed && !hasLoaded}
+		<p class="lc-text-muted py-8 text-center">토론 목록을 확인하지 못했습니다.</p>
 	{:else if threads.length === 0}
 		<div data-testid="discussion-empty-state" class="lc-open-empty-state">
 			<p class="lc-text-primary text-sm font-semibold">아직 등록된 토론이 없습니다.</p>

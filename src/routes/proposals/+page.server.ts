@@ -1,3 +1,4 @@
+import { markResponseFailure } from '#lib/server/response-cache.ts';
 import { apiClient } from '#lib/api/client.ts';
 import type { ProposalStatisticsData, ProposalStatisticsGranularity } from '#lib/types/api.ts';
 import {
@@ -15,7 +16,7 @@ const FALLBACK: ProposalStatisticsData = {
 	buckets: []
 };
 
-export const load: PageServerLoad = async ({ fetch, url }) => {
+export const load: PageServerLoad = async ({ fetch, url, locals }) => {
 	const granularity =
 		(url.searchParams.get('granularity') as ProposalStatisticsGranularity) || 'daily';
 	const startDate = url.searchParams.get('startDate') || undefined;
@@ -38,6 +39,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			fetchedAt: new Date().toISOString()
 		};
 	} catch (err) {
+		markResponseFailure(locals, err);
 		console.error('Failed to load proposal statistics:', err);
 		const loadError = toLoadErrorPayload(err, '발의 통계를 불러오지 못했습니다.');
 		return {

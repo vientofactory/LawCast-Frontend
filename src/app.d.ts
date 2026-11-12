@@ -11,7 +11,9 @@ declare global {
 			message: string;
 			kind?: FailureKind;
 		}
-		// interface Locals {}
+		interface Locals {
+			responseFailureStatus?: number;
+		}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}

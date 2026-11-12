@@ -3,13 +3,13 @@
 	import { faChevronRight, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 	import type { AdminNoticeCard } from '#lib/types/api.ts';
 
-	// Receives the cap-1 card view (id + title) from the layout loader.
+	// Receives the cap-1 card view (id + title) from the client revalidation read.
 	let { notice }: { notice: AdminNoticeCard } = $props();
 </script>
 
 <!--
 	Site-wide urgent banner: shown under the top navigation on every page when a
-	Notion `긴급` notice exists — the layout loader passes the first urgent row in
+	Notion `긴급` notice exists — the client read selects the first urgent row in
 	display order as a single notice. The alert role makes screen readers
 	announce the urgent notice on arrival.
 -->

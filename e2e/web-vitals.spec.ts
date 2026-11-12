@@ -135,11 +135,17 @@ test('loads the Discord widget only on request and reserves its layout space', a
 	await expect(page.getByTestId('discord-widget-load')).toBeVisible();
 	await expect(page.getByTestId('discord-widget')).toHaveCount(0);
 	expect(discordRequests).toEqual([]);
-	const before = await region.boundingBox();
+	await page.evaluate(() => document.fonts.ready);
+	const before = (await region.boundingBox())!;
 	await page.getByTestId('discord-widget-load').click();
 	await expect(page.getByTestId('discord-widget')).toBeVisible();
 	await expect.poll(() => discordRequests.length).toBe(1);
-	expect(await region.boundingBox()).toEqual(before);
+	const after = (await region.boundingBox())!;
+	expect(after.width).toBe(before.width);
+	expect(after.height).toBe(before.height);
+	expect(after.x).toBe(before.x);
+	// Native anchoring absorbs deferred offscreen layout; allow only subpixel viewport rounding.
+	expect(Math.abs(after.y - before.y)).toBeLessThan(1);
 });
 
 test('keeps offscreen text legible immediately after changing theme', async ({ page }) => {

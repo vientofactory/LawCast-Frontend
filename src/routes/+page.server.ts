@@ -1,16 +1,15 @@
+import { markResponseFailure } from '#lib/server/response-cache.ts';
 import { apiClient } from '#lib/api/client.ts';
 import { isServerUnavailable } from '#lib/utils/request-failure.ts';
 import { toLoadErrorPayload } from '#lib/server/load-error.ts';
 import { loadTopAdminNotice } from '#lib/server/announcements.ts';
-import { toDiscussionThreadCard, toNoticeCard } from '#lib/server/ssr-cards.ts';
-import { DiscussionThreadStatus } from '#lib/types/api.ts';
+import { toNoticeCard } from '#lib/server/ssr-cards.ts';
 import type { PageServerLoad } from './$types';
 import {
 	isDiffchainUiMockEnabled,
 	getMockRecentNotices,
 	getMockQuickKeywordSuggestions,
-	getMockSystemStats,
-	getMockAllDiscussionThreads
+	getMockSystemStats
 } from '#lib/server/diffchain-ui-mock.ts';
 
 const DEFAULT_STATS = {
@@ -20,8 +19,6 @@ const DEFAULT_STATS = {
 	changeTracking: { comparableEventTotal: 0, comparableNoticeCount: 0 },
 	aiSummaryEnabled: false
 };
-
-const RECENT_DISCUSSIONS_LIMIT = 5;
 
 /**
  * The home hero renders only these four sections of SystemStats — webhooks,
@@ -59,50 +56,49 @@ function toHomeQuickKeywords(keywords: {
 	};
 }
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async ({ fetch, locals }) => {
 	if (isDiffchainUiMockEnabled()) {
 		return {
 			loadError: null,
 			recentNotices: getMockRecentNotices().map(toNoticeCard),
 			quickKeywords: toHomeQuickKeywords(getMockQuickKeywordSuggestions()),
 			stats: toHomeStats(getMockSystemStats()),
-			recentDiscussions: getMockAllDiscussionThreads().items.map(toDiscussionThreadCard),
 			// Pinned chip: ONE notice (top display order), never the full list.
-			pinnedNotice: (await loadTopAdminNotice({}, fetch)).item
+			pinnedNotice: (
+				await loadTopAdminNotice({}, fetch, (error) => markResponseFailure(locals, error))
+			).item
 		};
 	}
 
 	let recentFailure: unknown;
 	let statsFailure: unknown;
-	const [recentNotices, quickKeywords, stats, recentDiscussions, pinnedNotice] = await Promise.all([
+	const [recentNotices, quickKeywords, stats, pinnedNotice] = await Promise.all([
 		apiClient
 			.getRecentNotices(fetch)
 			.then((items) => items.map(toNoticeCard))
 			.catch((error) => {
+				markResponseFailure(locals, error);
 				recentFailure = error;
 				return [];
 			}),
 		apiClient
 			.getQuickKeywordSuggestions({ limit: 8 }, fetch)
 			.then(toHomeQuickKeywords)
-			.catch(() => ({ items: [], updatedAt: null, sourceNoticeCount: 0 })),
+			.catch((error) => {
+				markResponseFailure(locals, error);
+				return { items: [], updatedAt: null, sourceNoticeCount: 0 };
+			}),
 		apiClient
 			.getHomeStats(fetch)
 			.then(toHomeStats)
 			.catch((error) => {
+				markResponseFailure(locals, error);
 				statsFailure = error;
 				return toHomeStats(DEFAULT_STATS);
 			}),
-		apiClient
-			.getAllDiscussionThreads(
-				{ limit: RECENT_DISCUSSIONS_LIMIT, status: DiscussionThreadStatus.OPEN },
-				fetch
-			)
-			.then((res) => res.items.map(toDiscussionThreadCard))
-			.catch(() => []),
 		// Pinned chip: ONE notice (top display order) — a failure only hides
 		// the chip, so it never pulls the full list into global SSR data.
-		loadTopAdminNotice({}, fetch)
+		loadTopAdminNotice({}, fetch, (error) => markResponseFailure(locals, error))
 			.then(({ item }) => item)
 			.catch(() => null)
 	]);
@@ -111,7 +107,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		recentNotices,
 		quickKeywords,
 		stats,
-		recentDiscussions,
 		pinnedNotice,
 		loadError:
 			isServerUnavailable(recentFailure) && isServerUnavailable(statsFailure)

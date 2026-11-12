@@ -39,7 +39,6 @@
 
 	let recentNotices = $derived(data.recentNotices);
 	let stats = $derived(data.stats);
-	let recentDiscussions = $derived(data.recentDiscussions);
 	let quickKeywords = $derived(data.quickKeywords);
 	// Pinned notice chip: exactly one notice, served as a single item by the
 	// home page loader (GET /api/announcements/top) — the full list never
@@ -423,7 +422,7 @@
 				class="lc-defer-render"
 			>
 				<h2 id="recent-discussions-heading" class="sr-only">최근 토론</h2>
-				<RecentDiscussions threads={recentDiscussions} />
+				<RecentDiscussions />
 			</section>
 
 			{#if discordCommunityUrl}

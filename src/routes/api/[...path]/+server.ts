@@ -5,6 +5,9 @@ import {
 	getMockArchiveNoticesResponse,
 	getMockDiscussionThread,
 	getMockNoticeChanges,
+	getMockNoticeDiscussions,
+	getMockAllDiscussionThreads,
+	getMockAdminNotices,
 	PROGRESSIVE_HISTORY_MOCK,
 	isDiffchainUiMockEnabled
 } from '#lib/server/diffchain-ui-mock.ts';
@@ -25,6 +28,24 @@ function parseNonNegativeInteger(value: string | null, fallback: number): number
 
 async function getMockResponse(path: string, url: URL): Promise<Response | null> {
 	if (!isDiffchainUiMockEnabled()) return null;
+
+	if (path === 'announcements/top') {
+		const { items } = getMockAdminNotices();
+		const top =
+			url.searchParams.get('urgent') === 'true' ? items.find((item) => item.urgent) : items[0];
+		return Response.json({
+			success: true,
+			data: { item: top ? { id: top.id, title: top.title } : null }
+		});
+	}
+	if (path === 'discussions/threads')
+		return Response.json({ success: true, data: getMockAllDiscussionThreads() });
+	const noticeDiscussions = /^notices\/(\d+)\/discussions$/.exec(path);
+	if (noticeDiscussions)
+		return Response.json({
+			success: true,
+			data: getMockNoticeDiscussions(Number(noticeDiscussions[1]))
+		});
 
 	const historyMatch = path.match(/^notices\/(\d+)\/changes$/);
 	if (historyMatch) {

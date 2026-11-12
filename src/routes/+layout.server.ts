@@ -1,5 +1,4 @@
 import type { LayoutServerLoad } from './$types';
-import { loadTopAdminNotice } from '#lib/server/announcements.ts';
 import { APP_VERSION, BACKEND_VERSION_BUILD } from '#lib/version.ts';
 
 /**
@@ -58,22 +57,7 @@ async function resolveBackendVersion(): Promise<string> {
 	return 'unknown';
 }
 
-export const load: LayoutServerLoad = async ({ fetch }) => {
-	const [frontendVersion, backendVersion, urgentNotice] = await Promise.all([
-		Promise.resolve(APP_VERSION),
-		resolveBackendVersion(),
-		// Feeds the site-wide urgent banner in the header. Only ONE notice is
-		// loaded here (the first urgent one) — the full list stays on the
-		// announcements pages. A failure only hides the banner — page-level
-		// loaders keep their own error semantics.
-		loadTopAdminNotice({ urgent: true }, fetch)
-			.then(({ item }) => item)
-			.catch(() => null)
-	]);
-
-	return {
-		frontendVersion,
-		backendVersion,
-		urgentNotice
-	};
-};
+export const load: LayoutServerLoad = async () => ({
+	frontendVersion: APP_VERSION,
+	backendVersion: await resolveBackendVersion()
+});
