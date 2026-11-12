@@ -181,3 +181,217 @@ test('mobile pagination retains all jumps with enlarged text', async ({ page }) 
 		expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
 	}
 });
+
+for (const path of ['/', '/notices/2210001']) {
+	test(`keeps realtime reads out of SSR on ${path}`, async ({ request }) => {
+		await request.get(`${fixture}/control?discussionCount=7&urgent=1`);
+		const response = await request.get(path);
+		expect(response.status()).toBe(200);
+		const html = await response.text();
+		expect(html).not.toContain('Live thread 7');
+		expect(html).not.toContain('Live urgent notice');
+		const paths: string[] = await (await request.get(`${fixture}/requests`)).json();
+		expect(paths.filter((item) => item.includes('/discussions'))).toEqual([]);
+		expect(paths.filter((item) => item.includes('urgent=true'))).toEqual([]);
+	});
+}
+
+test('loads discussion counts and urgent notices after hydration', async ({ page, request }) => {
+	await request.get(`${fixture}/control?discussionCount=7&urgent=1&delayDiscussions=500`);
+	await page.goto('/notices/2210001');
+	await expect(page.getByTestId('urgent-notice-banner')).toContainText('Live urgent notice');
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).toContainText('7');
+	await expect(page.getByTestId('discussion-thread-list')).toContainText('Live thread 7');
+	expect(
+		(await (await request.get('/api/notices/2210001/discussions')).headers())['cache-control']
+	).toContain('no-store');
+});
+
+test('loads recent home discussions without embedding their counts in SSR', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?discussionCount=3&delayDiscussions=700`);
+	await page.goto('/');
+	await expect(page.getByTestId('home-discussions-loading')).toBeVisible();
+	await expect(page.getByTestId('home-recent-discussions')).toContainText('Live thread 3');
+});
+
+test('refreshes urgent notice removal and new discussion counts after focus', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?urgent=1&discussionCount=2`);
+	await page.goto('/notices/2210001');
+	await expect(page.getByTestId('urgent-notice-banner')).toBeVisible();
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).toContainText('2');
+	await request.get(`${fixture}/control?discussionCount=5`);
+	await page.clock.install();
+	await page.clock.fastForward(61000);
+	await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+	await expect(page.getByTestId('urgent-notice-banner')).toHaveCount(0);
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).toContainText('5');
+});
+
+test('does not replace a newer notice with a delayed previous discussion read', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?discussionCount=8&delayDiscussions=1500`);
+	await page.goto('/notices/2210001');
+	await expect
+		.poll(async () =>
+			(await (await request.get(`${fixture}/requests`)).json()).some((path: string) =>
+				path.includes('/2210001/discussions')
+			)
+		)
+		.toBe(true);
+	await request.get(`${fixture}/control?discussionCount=4`);
+	await page.evaluate(async () => {
+		const link = document.createElement('a');
+		link.href = '/notices/2210002';
+		link.textContent = 'next notice';
+		document.body.append(link);
+		link.click();
+	});
+	await expect(page).toHaveURL(/2210002/);
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).toContainText('4');
+	await page.waitForTimeout(1600);
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).not.toContainText('8');
+});
+
+test('reports discussion failures instead of a false empty list and recovers', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?failDiscussions=503`);
+	await page.goto('/notices/2210001');
+	const list = page.getByTestId('notice-discussions');
+	await expect(list.getByTestId('load-failure')).toBeVisible();
+	await expect(list.getByTestId('discussion-empty-state')).toHaveCount(0);
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).toHaveText('토론');
+	await request.get(`${fixture}/control?discussionCount=6`);
+	await list.getByRole('button', { name: '다시 시도', exact: true }).click();
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).toContainText('6');
+});
+
+test('retains genuine discussion cooldowns and recovers through a non-rate failure', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?failDiscussions=429`);
+	await page.goto('/notices/2210001');
+	const list = page.getByTestId('notice-discussions');
+	await expect(list.locator('.lc-rate-limit-overlay')).toBeVisible();
+	await request.get(`${fixture}/control?failDiscussions=503`);
+	const retry = list
+		.getByTestId('rate-limit-failure')
+		.getByRole('button', { name: '다시 시도', exact: true });
+	await expect(retry).toBeEnabled({ timeout: 5000 });
+	await retry.click();
+	await expect(list.getByTestId('load-failure')).toHaveAttribute('data-failure-kind', 'server');
+	await expect(list.locator('.lc-rate-limit-overlay')).toHaveCount(0);
+});
+
+for (const [path, mode, status] of [
+	['/', 'failHome=1', 503],
+	['/notices/2210001', 'failChanges=1', 503],
+	['/notices/2210001', 'failDetail=429', 429],
+	['/notices/2210001', 'failDetail=404', 404]
+] as const) {
+	test(`does not cache rendered recovery responses for ${mode}`, async ({ request }) => {
+		await request.get(`${fixture}/control?${mode}`);
+		const response = await request.get(path);
+		expect(response.status()).toBe(status);
+		expect(response.headers()['cache-control']).toContain('no-store');
+		expect(response.headers()['cloudflare-cdn-cache-control']).toBe('no-store');
+	});
+}
+
+test('keeps SvelteKit data recovery protocol successful but explicitly unstorable', async ({
+	request
+}) => {
+	await request.get(`${fixture}/control?failChanges=1`);
+	const response = await request.get('/notices/2210001/__data.json?x-sveltekit-invalidated=11');
+	expect(response.status()).toBe(200);
+	expect(response.headers()['cache-control']).toContain('no-store');
+	expect(await response.text()).toContain('changesLoadError');
+});
+
+test('marks realtime and personal proxy responses as private no-store', async ({ request }) => {
+	for (const path of [
+		'/api/announcements/top?urgent=true',
+		'/api/discussions/threads',
+		'/api/push/subscriptions/notice-status?endpoint=fixture'
+	]) {
+		const response = await request.get(path);
+		expect(response.headers()['cache-control']).toBe('private, no-store');
+	}
+});
+
+test('pauses background polling and coalesces focus with visibility refresh', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?discussionCount=2`);
+	await page.goto('/notices/2210001');
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).toContainText('2');
+	await request.get(`${fixture}/control?discussionCount=9`);
+	await page.clock.install();
+	await page.evaluate(() =>
+		Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+	);
+	await page.clock.fastForward(31000);
+	let paths: string[] = await (await request.get(`${fixture}/requests`)).json();
+	expect(paths.filter((item) => item.includes('/discussions'))).toEqual([]);
+	await page.evaluate(() => {
+		Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+		document.dispatchEvent(new Event('visibilitychange'));
+		window.dispatchEvent(new Event('focus'));
+	});
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).toContainText('9');
+	paths = await (await request.get(`${fixture}/requests`)).json();
+	expect(paths.filter((item) => item.endsWith('/discussions'))).toHaveLength(1);
+});
+
+test('keeps a failed urgent recheck from breaking public content', async ({ page, request }) => {
+	await request.get(`${fixture}/control?failUrgent=1&discussionCount=2`);
+	const response = await page.goto('/notices/2210001');
+	expect(response?.status()).toBe(200);
+	await expect(page.getByTestId('notice-detail-discussions-anchor')).toContainText('2');
+	await expect(page.getByTestId('urgent-notice-banner')).toHaveCount(0);
+	await request.get(`${fixture}/control?urgent=1`);
+	await page.clock.install();
+	await page.clock.fastForward(61000);
+	await expect(page.getByTestId('urgent-notice-banner')).toBeVisible();
+});
+
+test('keeps existing discussion links and focus during background revalidation', async ({
+	page,
+	request
+}) => {
+	await request.get(`${fixture}/control?discussionCount=2`);
+	await page.goto('/notices/2210001');
+	const link = page.getByTestId('discussion-thread-link-99');
+	await expect(link).toContainText('Live thread 2');
+	await link.focus();
+	let release!: () => void;
+	let started!: () => void;
+	const blocked = new Promise<void>((resolve) => (release = resolve));
+	const observed = new Promise<void>((resolve) => (started = resolve));
+	await page.route('**/api/notices/2210001/discussions', async (route) => {
+		started();
+		await blocked;
+		await route.continue();
+	});
+	await request.get(`${fixture}/control?discussionCount=3`);
+	await page.clock.install();
+	await page.clock.fastForward(31000);
+	await observed;
+	await expect(link).toBeVisible();
+	await expect(link).toContainText('Live thread 2');
+	await expect(link).toBeFocused();
+	release();
+	await expect(link).toContainText('Live thread 3');
+	await expect(link).toBeFocused();
+});

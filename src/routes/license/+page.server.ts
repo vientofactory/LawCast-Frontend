@@ -1,3 +1,4 @@
+import { markResponseFailure } from '#lib/server/response-cache.ts';
 import type { ServerLoad } from '@sveltejs/kit';
 // Statically imported so Vite inlines the data at build time; Cloudflare
 // Pages' Workers runtime has no filesystem access for readFileSync at request time.
@@ -48,7 +49,7 @@ function loadPackagesFromLockfile(
 
 const FRONTEND_PACKAGES: PackageEntry[] = loadPackagesFromLockfile(pkg, lock);
 
-export const load: ServerLoad = async ({ fetch }) => {
+export const load: ServerLoad = async ({ fetch, locals }) => {
 	let backendPackages: PackageEntry[] = [];
 
 	try {
@@ -57,14 +58,18 @@ export const load: ServerLoad = async ({ fetch }) => {
 			const json = (await res.json()) as {
 				data?: { name: string; version: string; license: string }[];
 			};
-			backendPackages = (json.data ?? []).map(({ name, version, license }) => ({
+			if (!Array.isArray(json.data)) throw new Error('Invalid package response');
+			backendPackages = json.data.map(({ name, version, license }) => ({
 				name,
 				version,
 				license,
 				...(NOTES[name] ? { note: NOTES[name] } : {})
 			}));
+		} else {
+			markResponseFailure(locals, { status: res.status });
 		}
 	} catch {
+		markResponseFailure(locals);
 		backendPackages = [];
 	}
 

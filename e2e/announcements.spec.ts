@@ -135,14 +135,15 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		await expect(page.getByTestId('admin-notice-title')).toHaveText(ORDER_ONE_TITLE);
 	});
 
-	test('embeds the full list only on announcements routes, one notice elsewhere', async ({
+	test('embeds the full list only on announcements routes and keeps urgent notices client-side', async ({
 		page
 	}) => {
 		test.skip(!MOCK_ENABLED, 'requires the mock fixture');
 
-		// Layout SSR data must expose only the single urgent notice, never the list.
+		// Layout SSR no longer waits for or embeds the urgent notice.
 		const statusHtml = await (await page.request.get('/status')).text();
-		expect(statusHtml).toContain('urgentNotice');
+		expect(statusHtml).not.toContain('data-testid="urgent-notice-banner"');
+		expect(statusHtml).not.toContain(ORDER_ONE_TITLE);
 		expect(statusHtml).not.toContain('adminNotices');
 		// Notice 2 is not urgent, so a non-announcement page must not ship it.
 		expect(statusHtml).not.toContain(ORDER_TWO_TITLE);

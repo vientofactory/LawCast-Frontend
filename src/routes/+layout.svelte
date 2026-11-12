@@ -5,7 +5,7 @@
 	import { refreshAll } from '$app/navigation';
 	import { provideNotifications } from '#lib/utils/notifications.ts';
 	import NotificationViewport from '#lib/components/NotificationViewport.svelte';
-	provideNotifications();
+	import { provideUrgentNotice } from '#lib/utils/urgent-notice.svelte.ts';
 	import '#lib/styles/layout.css';
 	import PwaInstallPrompt from '#lib/components/PwaInstallPrompt.svelte';
 	import CloudflareChallengeReload from '#lib/components/CloudflareChallengeReload.svelte';
@@ -20,6 +20,9 @@
 	import { GTM_CONTAINER_ID, pushGtmPageView } from '#lib/utils/gtm.ts';
 	import { buildGtmHeadHtml } from '#lib/utils/gtm-bootstrap.ts';
 	import { config } from '@fortawesome/fontawesome-svg-core';
+
+	provideNotifications();
+	provideUrgentNotice();
 
 	config.autoAddCss = false;
 
@@ -55,10 +58,7 @@
 		pushGtmPageView(path);
 	});
 
-	let {
-		children,
-		data = { frontendVersion: 'unknown', backendVersion: 'unknown', urgentNotice: null }
-	} = $props();
+	let { children, data = { frontendVersion: 'unknown', backendVersion: 'unknown' } } = $props();
 	const routePath = $derived(page.url.pathname);
 	const routeId = $derived(
 		routePath === '/' ? 'home' : routePath.replace(/^\//, '').replace(/[/]+/g, '-')

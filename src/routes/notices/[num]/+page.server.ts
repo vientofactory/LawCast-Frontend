@@ -1,23 +1,13 @@
+import { markResponseFailure } from '#lib/server/response-cache.ts';
 import { error } from '@sveltejs/kit';
 import { apiClient } from '#lib/api/client.ts';
 import type { PageServerLoad } from './$types';
-import type { DiscussionThread } from '#lib/types/api.ts';
 import {
 	isDiffchainUiMockEnabled,
 	getMockNoticeChanges,
-	getMockNoticeDetail,
-	getMockNoticeDiscussions
+	getMockNoticeDetail
 } from '#lib/server/diffchain-ui-mock.ts';
-import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
 import { toLoadErrorPayload } from '#lib/server/load-error.ts';
-
-type DiscussionLoadResult = {
-	items: DiscussionThread[];
-	total: number;
-	page: number;
-	limit: number;
-	discussionError?: LoadErrorPayload;
-};
 
 function parseRevisionQuery(revRaw: string | null): number | undefined {
 	if (revRaw === null || revRaw.trim() === '') {
@@ -42,7 +32,7 @@ function getErrorMessage(value: unknown): string | null {
 	return typeof message === 'string' && message.trim().length > 0 ? message : null;
 }
 
-export const load: PageServerLoad = async ({ params, url, fetch }) => {
+export const load: PageServerLoad = async ({ params, url, fetch, locals }) => {
 	const noticeNum = Number(params.num);
 
 	if (!Number.isInteger(noticeNum) || noticeNum <= 0) {
@@ -55,50 +45,35 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 		if (isDiffchainUiMockEnabled()) {
 			return {
 				detail: getMockNoticeDetail(noticeNum, resolvedRev),
-				changes: getMockNoticeChanges(noticeNum),
-				discussions: getMockNoticeDiscussions(noticeNum)
+				changes: getMockNoticeChanges(noticeNum)
 			};
 		}
 
-		// The three reads are independent, so they are issued together and the
+		// The two reads are independent, so they are issued together and the
 		// page waits for the slowest instead of the sum. Error semantics are
 		// unchanged: a detail failure still takes the catch path below (the
-		// tolerated changes/discussions fallbacks are simply ignored), while
-		// changes/discussions failures keep their own fallbacks.
+		// tolerated changes fallbacks are simply ignored), while
+		// changes failures keep their own fallbacks.
 		const detailPromise = apiClient.getNoticeDetail(noticeNum, { rev: resolvedRev }, fetch);
 		const changesPromise = apiClient
 			.getNoticeChanges(noticeNum, {}, fetch)
 			.then((changes) => ({ changes, changesLoadError: undefined as string | undefined }))
-			.catch(() => ({
-				changes: { noticeNum, items: [], count: 0 },
-				changesLoadError: '변경 기록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
-			}));
-		const discussionsPromise: Promise<DiscussionLoadResult> = apiClient
-			.getNoticeDiscussions(noticeNum, {}, fetch)
-			.catch((err): DiscussionLoadResult => {
-				console.warn(`Failed to load notice discussions (${noticeNum}):`, err);
+			.catch((err) => {
+				markResponseFailure(locals, err);
 				return {
-					items: [],
-					total: 0,
-					page: 1,
-					limit: 20,
-					discussionError: toLoadErrorPayload(err, '토론 목록을 불러오지 못했습니다.')
+					changes: { noticeNum, items: [], count: 0 },
+					changesLoadError: '변경 기록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
 				};
 			});
 		const detail = await detailPromise;
-		const [{ changes, changesLoadError }, discussions] = await Promise.all([
-			changesPromise,
-			discussionsPromise
-		]);
-		const { discussionError, ...discussionList } = discussions;
+		const { changes, changesLoadError } = await changesPromise;
 		return {
 			detail,
 			changes,
-			changesLoadError,
-			discussions: discussionList,
-			...(discussionError ? { discussionError } : {})
+			changesLoadError
 		};
 	} catch (err) {
+		markResponseFailure(locals, err);
 		console.error(`Failed to load notice detail (${noticeNum}):`, err);
 
 		const status = getHttpStatus(err);
@@ -164,12 +139,6 @@ export const load: PageServerLoad = async ({ params, url, fetch }) => {
 					noticeNum,
 					items: [],
 					count: 0
-				},
-				discussions: {
-					items: [],
-					total: 0,
-					page: 1,
-					limit: 20
 				},
 				loadError
 			};

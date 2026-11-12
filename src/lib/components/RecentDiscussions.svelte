@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { DiscussionThreadStatus, type DiscussionThreadCard } from '#lib/types/api.ts';
+	import {
+		DiscussionThreadStatus,
+		type DiscussionThreadCard,
+		type DiscussionThreadWithNoticeListResponse
+	} from '#lib/types/api.ts';
 	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
 	import {
 		faComments,
@@ -10,11 +14,26 @@
 	} from '@fortawesome/free-solid-svg-icons';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
-	// Card view: only the row fields rendered below reach SSR data.
-	let { threads = [] }: { threads?: DiscussionThreadCard[] } = $props();
+	import { apiClient } from '#lib/api/client.ts';
+	import {
+		RealtimeRead,
+		activateRealtimeRead,
+		freshFetch
+	} from '#lib/utils/realtime-read.svelte.ts';
+	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
+	const read = new RealtimeRead<DiscussionThreadWithNoticeListResponse>(
+		(signal) =>
+			apiClient.getAllDiscussionThreads(
+				{ limit: 5, status: DiscussionThreadStatus.OPEN },
+				freshFetch(signal)
+			),
+		'최근 토론을 불러오지 못했습니다.'
+	);
+	activateRealtimeRead(read);
+	let threads: DiscussionThreadCard[] = $derived(read.data?.items ?? []);
 </script>
 
-<div class="lc-section">
+<div class="lc-section" data-testid="home-recent-discussions">
 	<div class="mb-6 flex items-center justify-between">
 		<h2 class="lc-text-primary flex items-center text-xl font-bold tracking-tight">
 			<div class="lc-icon-accent-success mr-3 rounded-lg p-2">
@@ -28,7 +47,19 @@
 		</a>
 	</div>
 
-	{#if threads.length === 0}
+	<LoadFailureState
+		error={read.error}
+		retryAfter={read.retryAfter}
+		onRetry={read.refresh}
+		isRetrying={read.loading}
+	/>
+	{#if read.loading && !read.data}
+		<p class="lc-text-muted py-8 text-center" role="status" data-testid="home-discussions-loading">
+			최근 토론을 불러오는 중...
+		</p>
+	{:else if read.error && !read.data}
+		<p class="lc-text-muted py-8 text-center">최근 토론을 확인하지 못했습니다.</p>
+	{:else if threads.length === 0}
 		<div class="py-8 text-center">
 			<div class="lc-text-dim mb-2">
 				<FontAwesomeIcon icon={faComments} class="mx-auto h-8 w-8" />

@@ -58,7 +58,8 @@ export async function loadAdminNoticeList(
  */
 export async function loadTopAdminNotice(
 	options: { urgent?: boolean } = {},
-	fetch?: Parameters<typeof apiClient.getTopAdminNotice>[1]
+	fetch?: Parameters<typeof apiClient.getTopAdminNotice>[1],
+	onFailure?: (error: unknown) => void
 ): Promise<AdminNoticeTopResponse> {
 	if (isDiffchainUiMockEnabled()) {
 		const { items } = getMockAdminNotices();
@@ -68,10 +69,10 @@ export async function loadTopAdminNotice(
 	}
 	try {
 		return await raceWithTimeout(apiClient.getTopAdminNotice(options, fetch));
-	} catch {
-		// The chip and banner are decorative: any slow or failing Notion
-		// fetch hides them instead of delaying every page (the layout loader
-		// awaits this on all routes).
+	} catch (error) {
+		onFailure?.(error);
+		// The home chip is optional; report failure for cache protection while
+		// keeping its existing hidden-chip fallback. The urgent banner uses CSR.
 		return { item: null };
 	}
 }

@@ -41,11 +41,7 @@
 		faTriangleExclamation,
 		faUser
 	} from '@fortawesome/free-solid-svg-icons';
-	import type {
-		NoticeDetail,
-		NoticeChangeTimelineResponse,
-		DiscussionThreadListResponse
-	} from '#lib/types/api.ts';
+	import type { NoticeDetail, NoticeChangeTimelineResponse } from '#lib/types/api.ts';
 	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import {
@@ -68,13 +64,12 @@
 			detail: NoticeDetail;
 			changes: NoticeChangeTimelineResponse;
 			changesLoadError?: string;
-			discussions?: DiscussionThreadListResponse;
-			discussionError?: LoadErrorPayload;
 			loadError?: LoadErrorPayload;
 		};
 	} = $props();
 
 	let detail = $derived(data.detail);
+	let discussionTotal = $state<number | null>(null);
 	let historyOwner = $state<number | null>(null);
 	let historyItems = $state.raw<NoticeChangeTimelineResponse['items']>([]);
 	let historyHasMore = $state(false);
@@ -989,11 +984,11 @@
 							>
 								<FontAwesomeIcon icon={faComments} class="mr-2 h-4 w-4" />
 								<span>토론</span>
-								{#if data.discussions?.total && data.discussions.total > 0}
+								{#if discussionTotal !== null && discussionTotal > 0}
 									<span
 										class="lc-chip-blue ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-bold"
 									>
-										{data.discussions.total}
+										{discussionTotal}
 									</span>
 								{/if}
 							</a>
@@ -1144,8 +1139,7 @@
 
 		<NoticeDiscussions
 			noticeNum={detail.notice.num}
-			initialDiscussions={data.discussions}
-			initialDiscussionError={data.discussionError}
+			onTotalChange={(total) => (discussionTotal = total)}
 		/>
 
 		<section

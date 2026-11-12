@@ -1,36 +1,49 @@
 <script lang="ts">
-	import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
 	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
-	import { getFailureKind, getFailureStatus } from '#lib/utils/request-failure.ts';
 	import Alert from '#lib/components/Alert.svelte';
-	import { onMount, tick, untrack } from 'svelte';
+	import { tick, untrack, onDestroy } from 'svelte';
+	import {
+		RealtimeRead,
+		activateRealtimeRead,
+		freshFetch
+	} from '#lib/utils/realtime-read.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { faComments, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 	import { apiClient, getRateLimitRetryAfter, isRateLimitError } from '#lib/api/client.ts';
 	import { toUserFacingErrorMessage } from '#lib/utils/error-message.util.ts';
-	import type {
-		DiscussionThread,
-		DiscussionThreadListResponse,
-		CreateThreadPayload
-	} from '#lib/types/api.ts';
+	import type { DiscussionThreadListResponse, CreateThreadPayload } from '#lib/types/api.ts';
 	import ThreadListView from './ThreadListView.svelte';
 	import type { Component, ComponentProps } from 'svelte';
 	import type NewThreadModal from './NewThreadModal.svelte';
 
 	let {
 		noticeNum,
-		initialDiscussions = undefined,
-		initialDiscussionError = undefined
+		onTotalChange
 	}: {
 		noticeNum: number;
-		initialDiscussions?: DiscussionThreadListResponse;
-		initialDiscussionError?: LoadErrorPayload;
+		onTotalChange?: (total: number | null) => void;
 	} = $props();
-
-	let threads: DiscussionThread[] = $state([]);
-	let totalThreads = $state(0);
-	let isLoadingThreads = $state(false);
+	const read = new RealtimeRead<DiscussionThreadListResponse>(
+		(signal) => apiClient.getNoticeDiscussions(noticeNum, {}, freshFetch(signal)),
+		'토론 목록을 불러오지 못했습니다.'
+	);
+	activateRealtimeRead(read, 30000, false);
+	let threads = $derived(read.data?.items ?? []);
+	let totalThreads = $derived(read.data?.total ?? 0);
+	let isLoadingThreads = $derived(read.loading);
+	$effect(() => {
+		const owner = noticeNum;
+		untrack(() => {
+			read.reset();
+			onTotalChange?.(null);
+			if (owner > 0) void read.refresh();
+		});
+		return () => read.dispose();
+	});
+	$effect(() => {
+		onTotalChange?.(read.data?.total ?? null);
+	});
 
 	let isNewThreadModalOpen = $state(false);
 	let isSubmittingNewThread = $state(false);
@@ -38,25 +51,13 @@
 	let NewThreadModalComponent: Component<ComponentProps<typeof NewThreadModal>> | null =
 		$state(null);
 
-	let errorMessage = $state('');
-	let listFailure = $state<LoadErrorPayload | null>(null);
+	let errorMessage = $derived(read.error?.message ?? '');
+	let listFailure = $derived(read.error);
 	let successMessage = $state('');
 	let rateLimitRemaining = $state(0);
 	let rateLimitTimer: ReturnType<typeof setInterval> | null = $state(null);
-
-	$effect(() => {
-		threads = initialDiscussions?.items ?? [];
-		totalThreads = initialDiscussions?.total ?? 0;
-		errorMessage = initialDiscussionError?.message ?? '';
-		listFailure = initialDiscussionError ?? null;
-		const initialFailure = initialDiscussionError;
-		untrack(() => {
-			if (initialFailure?.status === 429) startRateLimitCooldown(initialFailure.retryAfter ?? 60);
-			else {
-				if (rateLimitTimer) clearInterval(rateLimitTimer);
-				rateLimitRemaining = 0;
-			}
-		});
+	onDestroy(() => {
+		if (rateLimitTimer) clearInterval(rateLimitTimer);
 	});
 
 	function showSuccess(msg: string) {
@@ -88,29 +89,8 @@
 		}, 1000);
 	}
 
-	async function loadThreads() {
-		if (!noticeNum || noticeNum <= 0) return;
-		isLoadingThreads = true;
-		errorMessage = '';
-		try {
-			const res = await apiClient.getNoticeDiscussions(noticeNum);
-			threads = res.items;
-			totalThreads = res.total;
-			listFailure = null;
-			if (rateLimitTimer) clearInterval(rateLimitTimer);
-			rateLimitRemaining = 0;
-		} catch (err) {
-			console.error('Failed to load discussions:', err);
-			errorMessage = discussionErrorMessage(err, '토론 목록을 불러오지 못했습니다.');
-			listFailure = {
-				status: getFailureStatus(err),
-				kind: getFailureKind(err),
-				message: errorMessage
-			};
-		} finally {
-			isLoadingThreads = false;
-		}
-	}
+	const loadThreads = () => read.refresh();
+	let hasLoaded = $derived(read.data !== undefined);
 
 	// Mount the modal with isOpen=false first so the intro transition still fires on first open.
 	async function openNewThreadModal() {
@@ -130,7 +110,6 @@
 	async function handleCreateThread(payload: CreateThreadPayload) {
 		isSubmittingNewThread = true;
 		newThreadErrorMessage = '';
-		errorMessage = '';
 		try {
 			const res = await apiClient.createNoticeDiscussion(noticeNum, payload);
 			isNewThreadModalOpen = false;
@@ -146,12 +125,6 @@
 			isSubmittingNewThread = false;
 		}
 	}
-
-	onMount(() => {
-		if (!initialDiscussions) {
-			loadThreads();
-		}
-	});
 </script>
 
 <section id="notice-discussions" data-testid="notice-discussions" class="lc-section relative">
@@ -168,7 +141,7 @@
 		<button
 			type="button"
 			onclick={loadThreads}
-			disabled={isLoadingThreads || rateLimitRemaining > 0}
+			disabled={isLoadingThreads || rateLimitRemaining > 0 || read.retryAfter > 0}
 			title="새로고침"
 			class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1.5 text-xs font-semibold"
 		>
@@ -194,18 +167,20 @@
 	{/if}
 
 	<LoadFailureState
-		error={listFailure && (listFailure.status !== 429 || rateLimitRemaining === 0)
+		error={listFailure && (listFailure.status !== 429 || read.retryAfter === 0)
 			? listFailure
 			: null}
-		retryAfter={rateLimitRemaining}
+		retryAfter={Math.max(rateLimitRemaining, read.retryAfter)}
 		onRetry={loadThreads}
 		isRetrying={isLoadingThreads}
 	/>
 	<ThreadListView
 		{threads}
 		total={totalThreads}
+		{hasLoaded}
+		failed={Boolean(read.error)}
 		isLoading={isLoadingThreads}
-		{rateLimitRemaining}
+		rateLimitRemaining={Math.max(rateLimitRemaining, read.retryAfter)}
 		onOpenNewThreadModal={openNewThreadModal}
 		onSelectThread={handleSelectThread}
 	/>

@@ -5,6 +5,13 @@ let failChanges = false;
 let historyCount = 0;
 let historyWindow = false;
 let noFields = false;
+let delayDiscussions = 0;
+let delayUrgent = 0;
+let discussionCount = 0;
+let urgent = false;
+let failDetail = 0;
+let failDiscussions = 0;
+let failUrgent = false;
 createServer((request, response) => {
 	const url = new URL(request.url, 'http://127.0.0.1:4327');
 	response.setHeader('content-type', 'application/json');
@@ -15,6 +22,13 @@ createServer((request, response) => {
 		historyCount = Number(url.searchParams.get('historyCount') || 0);
 		historyWindow = url.searchParams.get('historyWindow') === '1';
 		noFields = url.searchParams.get('noFields') === '1';
+		delayDiscussions = Number(url.searchParams.get('delayDiscussions') || 0);
+		delayUrgent = Number(url.searchParams.get('delayUrgent') || 0);
+		discussionCount = Number(url.searchParams.get('discussionCount') || 0);
+		urgent = url.searchParams.get('urgent') === '1';
+		failDetail = Number(url.searchParams.get('failDetail') || 0);
+		failDiscussions = Number(url.searchParams.get('failDiscussions') || 0);
+		failUrgent = url.searchParams.get('failUrgent') === '1';
 		response.end('{}');
 		return;
 	}
@@ -23,6 +37,43 @@ createServer((request, response) => {
 		return;
 	}
 	requests.push(url.pathname + url.search);
+	const isDiscussion =
+		/\/discussions$/.test(url.pathname) || url.pathname === '/api/discussions/threads';
+	const isUrgent =
+		url.pathname === '/api/announcements/top' && url.searchParams.get('urgent') === 'true';
+	const forcedStatus = isDiscussion
+		? failDiscussions
+		: isUrgent && failUrgent
+			? 503
+			: /\/detail$/.test(url.pathname)
+				? failDetail
+				: 0;
+	if (forcedStatus) {
+		response.statusCode = forcedStatus;
+		if (forcedStatus === 429) response.setHeader('retry-after', '1');
+		response.end(JSON.stringify({ success: false, message: 'fixture failure' }));
+		return;
+	}
+	const threadData = {
+		items: discussionCount
+			? [
+					{
+						id: 99,
+						noticeNum: 2210001,
+						title: `Live thread ${discussionCount}`,
+						status: 'open',
+						authorNickname: 'fixture',
+						authorIpMasked: '127.*',
+						commentCount: discussionCount,
+						createdAt: '2026-11-12T00:00:00Z',
+						updatedAt: '2026-11-12T00:00:00Z'
+					}
+				]
+			: [],
+		total: discussionCount,
+		page: 1,
+		limit: 20
+	};
 	let data;
 	if (url.pathname === '/api/stats') {
 		if (url.searchParams.get('view') === 'home') {
@@ -61,10 +112,10 @@ createServer((request, response) => {
 				}
 			]
 		};
-	} else if (url.pathname === '/api/notices/2210001/detail') {
+	} else if (/^\/api\/notices\/(2210001|2210002)\/detail$/.test(url.pathname)) {
 		data = {
 			notice: {
-				num: 2210001,
+				num: Number(url.pathname.split('/')[3]),
 				subject: '변경 기록 테스트 법률안',
 				proposerCategory: '의원',
 				committee: '',
@@ -92,7 +143,7 @@ createServer((request, response) => {
 				isHistorical: false
 			}
 		};
-	} else if (url.pathname === '/api/notices/2210001/changes') {
+	} else if (/^\/api\/notices\/(2210001|2210002)\/changes$/.test(url.pathname)) {
 		if (failChanges) {
 			response.statusCode = 503;
 			response.end(JSON.stringify({ success: false, message: '변경 기록 조회 실패' }));
@@ -139,18 +190,23 @@ createServer((request, response) => {
 			hasMore,
 			nextBeforeHeight: hasMore ? items.at(-1).eventHeight : null
 		};
-	} else if (url.pathname === '/api/notices/2210001/discussions') {
-		data = { items: [], total: 0, page: 1, limit: 20 };
-	} else if (url.pathname === '/api/announcements/top') data = { item: null };
+	} else if (/^\/api\/notices\/(2210001|2210002)\/discussions$/.test(url.pathname)) {
+		data = threadData;
+	} else if (url.pathname === '/api/announcements/top')
+		data = {
+			item: isUrgent && urgent ? { id: 'urgent-fixture', title: 'Live urgent notice' } : null
+		};
 	else if (url.pathname === '/api/notices/recent') data = [];
 	else if (url.pathname === '/api/notices/keywords')
 		data = { items: [], updatedAt: null, sourceNoticeCount: 0 };
-	else if (url.pathname === '/api/discussions/threads')
-		data = { items: [], total: 0, page: 1, limit: 5 };
+	else if (url.pathname === '/api/discussions/threads') data = threadData;
 	else if (url.pathname === '/api/version') data = { version: 'fixture' };
 	else {
 		response.statusCode = 404;
 		data = null;
 	}
-	response.end(JSON.stringify({ success: response.statusCode === 200, data }));
+	const payload = JSON.stringify({ success: response.statusCode === 200, data });
+	const delay = isDiscussion ? delayDiscussions : isUrgent ? delayUrgent : 0;
+	if (delay) setTimeout(() => response.end(payload), delay);
+	else response.end(payload);
 }).listen(4327, '127.0.0.1');

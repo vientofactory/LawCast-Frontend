@@ -22,7 +22,8 @@ export default defineConfig({
 		{
 			cwd,
 			command: 'npm run build:node && node build/index.js',
-			url: 'http://127.0.0.1:4195',
+			// The fixture intentionally starts with failing SSR; readiness must use a static asset.
+			url: 'http://127.0.0.1:4195/offline.html',
 			reuseExistingServer: false,
 			timeout: 180000,
 			env: {
