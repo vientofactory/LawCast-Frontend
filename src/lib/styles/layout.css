@@ -202,8 +202,16 @@
 	display: flex;
 	flex-direction: column;
 	gap: 1.75rem;
-	min-block-size: 0;
+	/* Keep the next section below the fold, but let short viewports grow with content. */
+	min-block-size: calc(100dvh - var(--lc-home-overview-offset, 8.5rem));
 	max-width: none;
+}
+.lc-home-hero-body {
+	display: flex;
+	flex-direction: column;
+	gap: inherit;
+	min-width: 0;
+	margin-block: auto;
 }
 .lc-home-introduction {
 	min-width: 0;
