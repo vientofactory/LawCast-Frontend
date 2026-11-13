@@ -128,7 +128,7 @@
 			<a
 				href="/"
 				data-testid="site-brand"
-				class="text-decoration-none group flex items-center gap-4 transition-transform duration-300 hover:scale-[1.02]"
+				class="text-decoration-none group flex items-center gap-4"
 			>
 				<div class="lc-brand-heading" data-testid="brand-heading">
 					<BrandLogo animate />
@@ -289,23 +289,6 @@
 {/if}
 
 <style>
-	@media (prefers-reduced-motion: no-preference) {
-		.lc-brand-heading:has(:global([data-intro='true'])) .lc-brand-tagline {
-			animation: lc-reveal-tagline 450ms cubic-bezier(0.22, 1, 0.36, 1) 1700ms both;
-		}
-	}
-
-	@keyframes lc-reveal-tagline {
-		from {
-			opacity: 0;
-			transform: translateY(5px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
 	a {
 		text-decoration: none;
 		color: inherit;

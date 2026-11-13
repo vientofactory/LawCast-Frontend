@@ -1,66 +1,154 @@
-<script module lang="ts">
-	// Claim the intro only in the browser; SSR must never share visitor state.
-	let introClaimed = false;
-</script>
-
 <script lang="ts">
-	import { browser } from '$app/env';
-	import { untrack } from 'svelte';
 	import { BRAND_ARC, BRAND_LETTER, BRAND_DOT } from '#lib/brand-symbol.js';
 
 	let { compact = false, animate = false }: { compact?: boolean; animate?: boolean } = $props();
-	// Route headers may remount during client navigation; play once per document load.
-	const playIntro = untrack(() => animate && (!browser || !introClaimed));
-	if (browser && playIntro) introClaimed = true;
+
+	// Expand the original radius-25 arc by its half-width (5), including round caps.
+	const arcCenterX = 48 - Math.sqrt(25 ** 2 - 19 ** 2);
+	const arcNormalX = (48 - arcCenterX) / 25;
+	const arcOuterX = 48 + 5 * arcNormalX;
+	const arcInnerX = 48 - 5 * arcNormalX;
+	const arcContour = `M${arcOuterX} 9.2 A30 30 0 1 0 ${arcOuterX} 54.8 A5 5 0 0 0 ${arcInnerX} 47.2 A20 20 0 1 1 ${arcInnerX} 16.8 A5 5 0 0 0 ${arcOuterX} 9.2 Z`;
+	// Expand the L's width-6 stroke; retain its round endpoints and outer corner.
+	const letterContour = 'M20 24 A3 3 0 0 1 26 24 V38 H36 A3 3 0 0 1 36 44 H23 A3 3 0 0 1 20 41 Z';
+	const dotContour = `M${BRAND_DOT.cx + BRAND_DOT.r} ${BRAND_DOT.cy} a${BRAND_DOT.r} ${BRAND_DOT.r} 0 1 1 ${-2 * BRAND_DOT.r} 0 a${BRAND_DOT.r} ${BRAND_DOT.r} 0 1 1 ${2 * BRAND_DOT.r} 0 Z`;
+
+	function traceSymbol(node: SVGSVGElement) {
+		const preference = matchMedia('(prefers-reduced-motion: reduce)');
+		const trigger = node.closest('a') ?? node;
+		let animations: Animation[] = [];
+		const cancel = () => animations.forEach((animation) => animation.cancel());
+		function play() {
+			// WebKit may update a fresh query before dispatching a retained query change.
+			if (
+				!animate ||
+				matchMedia(preference.media).matches ||
+				animations.some((a) => a.playState === 'running')
+			)
+				return;
+			cancel();
+			const options: KeyframeAnimationOptions = {
+				duration: 4000,
+				easing: 'linear',
+				fill: 'backwards'
+			};
+			// Give each contour a long, sine-like sweep instead of a short acceleration burst.
+			// Offset the turns so one contour redraws while the next is still retracting.
+			const easing = 'cubic-bezier(0.37, 0, 0.63, 1)';
+			animations = [
+				node.querySelector('[data-brand-fill]')!.animate(
+					[
+						{ opacity: 1, offset: 0, easing },
+						{ opacity: 0, offset: 0.1 },
+						{ opacity: 0, offset: 0.9, easing },
+						{ opacity: 1, offset: 1 }
+					],
+					options
+				),
+				// Hand the silhouette back to the fill before the effect is removed.
+				// An opaque boundary overlay would otherwise vanish abruptly at completion.
+				node.querySelector('[data-brand-outline]')!.animate(
+					[
+						{ visibility: 'visible', opacity: 0, offset: 0, easing },
+						{ visibility: 'visible', opacity: 1, offset: 0.1 },
+						{ visibility: 'visible', opacity: 1, offset: 0.9, easing },
+						{ visibility: 'visible', opacity: 0, offset: 1 }
+					],
+					options
+				),
+				...Array.from(node.querySelectorAll<SVGPathElement>('[data-brand-outline] path')).map(
+					(path, index) => {
+						// Retain an arc fragment so the symbol never disappears completely.
+						const retreat = [82, 94, 100][index];
+						return path.animate(
+							[
+								{ strokeDashoffset: 0, offset: 0 },
+								{ strokeDashoffset: 0, offset: 0.16 - index * 0.02, easing },
+								{ strokeDashoffset: retreat, offset: 0.46 + index * 0.04, easing },
+								{ strokeDashoffset: 0, offset: 0.84 + index * 0.02 },
+								{ strokeDashoffset: 0, offset: 1 }
+							],
+							options
+						);
+					}
+				)
+			];
+		}
+		function onPreference() {
+			if (matchMedia(preference.media).matches) cancel();
+		}
+		function onPointerEnter(event: Event) {
+			if (event instanceof PointerEvent && event.pointerType === 'mouse') play();
+		}
+		trigger.addEventListener('pointerenter', onPointerEnter);
+		preference.addEventListener('change', onPreference);
+		node.dataset.motionReady = 'true';
+		return {
+			destroy() {
+				cancel();
+				delete node.dataset.motionReady;
+				trigger.removeEventListener('pointerenter', onPointerEnter);
+				preference.removeEventListener('change', onPreference);
+			}
+		};
+	}
 </script>
 
-<span
-	class:compact
-	class:assembling={playIntro}
-	class="lc-brand-logo"
-	role="img"
-	aria-label="LawCast"
-	data-testid="brand-logo"
-	data-intro={playIntro}
->
-	<svg class="lc-brand-symbol" viewBox="0 0 64 64" aria-hidden="true">
-		<path
-			class="lc-brand-arc"
-			data-testid="brand-arc"
-			d={BRAND_ARC}
-			pathLength="100"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="10"
-			stroke-linecap="round"
-		></path>
-		<path
-			class="lc-brand-letter"
-			data-testid="brand-letter"
-			d={BRAND_LETTER}
-			fill="none"
-			stroke="currentColor"
-			stroke-width="6"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		></path>
-		<circle
-			class="lc-brand-echo"
-			cx={BRAND_DOT.cx}
-			cy={BRAND_DOT.cy}
-			r={BRAND_DOT.r}
+<span class:compact class="lc-brand-logo" role="img" aria-label="LawCast" data-testid="brand-logo">
+	<svg
+		use:traceSymbol
+		data-testid="brand-symbol"
+		class="lc-brand-symbol"
+		viewBox="0 0 64 64"
+		aria-hidden="true"
+	>
+		<g class:lc-brand-fill-motion={animate} data-brand-fill data-testid="brand-fill">
+			<path
+				class="lc-brand-arc"
+				data-testid="brand-arc"
+				d={BRAND_ARC}
+				pathLength="100"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="10"
+				stroke-linecap="round"
+			></path>
+			<path
+				class="lc-brand-letter"
+				data-testid="brand-letter"
+				d={BRAND_LETTER}
+				pathLength="100"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="6"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			></path>
+			<circle
+				class="lc-brand-dot"
+				data-testid="brand-dot"
+				cx={BRAND_DOT.cx}
+				cy={BRAND_DOT.cy}
+				r={BRAND_DOT.r}
+				fill="currentColor"
+				stroke="currentColor"
+				stroke-width="0"
+			></circle>
+		</g>
+		<g
+			data-brand-outline
+			data-testid="brand-outline"
+			class="lc-brand-outline"
 			fill="none"
 			stroke="currentColor"
 			stroke-width="1.5"
-		></circle>
-		<circle
-			class="lc-brand-dot"
-			data-testid="brand-dot"
-			cx={BRAND_DOT.cx}
-			cy={BRAND_DOT.cy}
-			r={BRAND_DOT.r}
-			fill="currentColor"
-		></circle>
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
+			{#each [arcContour, letterContour, dotContour] as contour, index (contour)}
+				<path d={contour} pathLength="100" data-testid={`brand-contour-${index}`} />
+			{/each}
+		</g>
 	</svg>
 	<span class="lc-brand-wordmark" data-testid="brand-wordmark" aria-hidden="true">
 		<img src="/brand/v2/wordmark-light.svg" alt="" width="179" height="64" class="lc-brand-light" />
@@ -121,106 +209,17 @@
 		display: block;
 	}
 
-	.lc-brand-arc,
-	.lc-brand-letter {
-		transform-origin: 32px 32px;
+	.lc-brand-fill-motion {
+		/* Keep the same compositing path before, during and after the opacity animation. */
+		will-change: opacity;
 	}
 
-	.lc-brand-dot,
-	.lc-brand-echo {
-		transform-box: fill-box;
-		transform-origin: center;
-	}
-
-	.lc-brand-echo {
+	.lc-brand-outline {
+		visibility: hidden;
 		opacity: 0;
 	}
 
-	@media (prefers-reduced-motion: no-preference) {
-		.assembling .lc-brand-arc {
-			stroke-dasharray: 100;
-			animation: lc-assemble-arc 720ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
-		}
-
-		.assembling .lc-brand-letter {
-			animation: lc-assemble-letter 560ms cubic-bezier(0.34, 1.56, 0.64, 1) 360ms both;
-		}
-
-		.assembling .lc-brand-dot {
-			animation: lc-assemble-dot 500ms cubic-bezier(0.34, 1.56, 0.64, 1) 760ms both;
-		}
-
-		.assembling .lc-brand-echo {
-			animation: lc-signal-echo 600ms ease-out 960ms both;
-		}
-
-		.assembling .lc-brand-wordmark {
-			animation: lc-reveal-wordmark 700ms cubic-bezier(0.22, 1, 0.36, 1) 1000ms both;
-		}
-	}
-
-	@keyframes lc-assemble-arc {
-		from {
-			stroke-dashoffset: 100;
-			transform: rotate(-55deg) scale(0.85);
-			opacity: 0;
-		}
-		30% {
-			opacity: 1;
-		}
-		to {
-			stroke-dashoffset: 0;
-			transform: rotate(0) scale(1);
-			opacity: 1;
-		}
-	}
-
-	@keyframes lc-assemble-letter {
-		from {
-			transform: translate(-5px, 13px) rotate(-12deg);
-			opacity: 0;
-		}
-		to {
-			transform: translate(0, 0) rotate(0);
-			opacity: 1;
-		}
-	}
-
-	@keyframes lc-assemble-dot {
-		from {
-			transform: translate(-9px, -12px) scale(0.1);
-			opacity: 0;
-		}
-		to {
-			transform: translate(0, 0) scale(1);
-			opacity: 1;
-		}
-	}
-
-	@keyframes lc-signal-echo {
-		from {
-			transform: scale(0.8);
-			opacity: 0;
-		}
-		20% {
-			opacity: 0.5;
-		}
-		to {
-			transform: scale(2.4);
-			opacity: 0;
-		}
-	}
-
-	@keyframes lc-reveal-wordmark {
-		from {
-			clip-path: inset(0 100% 0 0);
-			transform: translateX(-10px);
-			opacity: 0;
-		}
-		to {
-			clip-path: inset(0 0 0 0);
-			transform: translateX(0);
-			opacity: 1;
-		}
+	.lc-brand-outline path {
+		stroke-dasharray: 100 100;
 	}
 </style>
