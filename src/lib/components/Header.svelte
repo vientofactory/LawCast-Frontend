@@ -128,7 +128,7 @@
 			<a
 				href="/"
 				data-testid="site-brand"
-				class="text-decoration-none group flex items-center gap-4"
+				class="text-decoration-none group flex items-center gap-4 transition-none"
 			>
 				<div class="lc-brand-heading" data-testid="brand-heading">
 					<BrandLogo animate />
