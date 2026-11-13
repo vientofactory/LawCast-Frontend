@@ -168,7 +168,7 @@ async function solveChallengeOnMainThread(
 		progressInterval: 50000,
 		onEstimate: (estimate_1) => {
 			if (estimate_1.phase !== 'progress') return;
-			notifyStatus(onStatus, 'solve', '잠시만 기다려주세요, 작업증명 해시를 계산하는 중입니다...', {
+			notifyStatus(onStatus, 'solve', '잠시만 기다려주세요. 작업증명 해시를 계산하는 중입니다...', {
 				attempts: estimate_1.attempts,
 				difficultyBits: challenge.difficultyBits,
 				hashRate: estimate_1.hashRate,
@@ -191,7 +191,7 @@ async function executeOnMainThread(
 	notifyStatus(onStatus, 'issue', '서버에 보안 챌린지를 요청하고 있어요...');
 	const challenge = await client.issueChallenge(context);
 
-	notifyStatus(onStatus, 'solve', '잠시만 기다려주세요, 작업증명 해시를 계산하는 중입니다...', {
+	notifyStatus(onStatus, 'solve', '잠시만 기다려주세요. 작업증명 해시를 계산하는 중입니다...', {
 		difficultyBits: challenge.difficultyBits
 	});
 	const solveResult = await solveChallengeOnMainThread(challenge, onStatus);

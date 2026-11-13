@@ -432,7 +432,7 @@ test.describe('Discussion modal behavior', () => {
 		await dialog.getByRole('button', { name: '수정 완료' }).click();
 
 		await expect(dialog).toHaveCount(0);
-		await expect(page.getByText('의견이 성공적으로 수정되었습니다.')).toBeVisible();
+		await expect(page.getByText('의견이 수정되었습니다.')).toBeVisible();
 		await expect(page.getByTestId('discussion-comment-1')).toContainText('수정된 mock 의견입니다.');
 		expect(patchedPayload).toMatchObject({
 			password: '1234',
@@ -531,7 +531,7 @@ test.describe('Discussion modal behavior', () => {
 		await dialog.getByRole('button', { name: '확인' }).click();
 
 		await expect(dialog).toHaveCount(0);
-		await expect(page.getByText('토론이 성공적으로 닫혔습니다.')).toBeVisible();
+		await expect(page.getByText('토론이 닫혔습니다.')).toBeVisible();
 		expect(statusPayload).toMatchObject({ password: '1234', status: 'closed' });
 
 		// Closing the thread must flip the status control and hide comment actions.

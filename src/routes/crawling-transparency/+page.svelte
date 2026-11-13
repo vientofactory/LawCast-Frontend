@@ -95,7 +95,7 @@
 					<p class="lc-text-info text-xs font-semibold tracking-wide">TRANSPARENCY</p>
 					<h1 class="lc-text-primary mt-1 text-2xl font-bold">투명성 정보</h1>
 					<p class="lc-text-secondary mt-1 text-sm">
-						데이터가 어디서 오고, 어떤 과정을 거쳐 수집·관리되는지 투명하게 공개합니다.
+						데이터가 어디서 오고 어떤 과정을 거쳐 수집·관리되는지 투명하게 공개합니다.
 					</p>
 				</div>
 				<p class="lc-text-dim text-xs">
@@ -329,7 +329,7 @@
 						class="lc-text-secondary overflow-x-auto font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">{aiSummary.prompt}</pre>
 				</div>
 				<p class="lc-text-muted mt-3 text-[11px]">
-					AI 요약은 참고용이며, 판단의 기준은 제안이유 및 주요내용 원문입니다.
+					AI 요약은 참고용이며 판단의 기준은 제안이유 및 주요내용 원문입니다.
 				</p>
 			</section>
 		{/if}

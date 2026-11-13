@@ -369,7 +369,7 @@
 						변경 내역 모아보기
 					</h1>
 					<p class="lc-text-secondary mt-1 text-sm">
-						처음 등록된 기록을 빼고, 실제로 바뀐 내용만 모아 보여드립니다.
+						처음 등록된 기록을 빼고 실제로 바뀐 내용만 모아 보여드립니다.
 					</p>
 				</div>
 				<div class="flex flex-wrap gap-2 text-xs font-semibold">

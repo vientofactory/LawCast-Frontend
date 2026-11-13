@@ -268,10 +268,10 @@
 		<div>
 			<div class="mt-4 space-y-5">
 				<p class="lc-text-secondary text-sm leading-relaxed">
-					LawCast가 보존한 기록을 최신순으로 보여드립니다. 기록을 열어 당시 내용을 보거나, 두 기록
+					LawCast가 보존한 기록을 최신순으로 보여드립니다. 기록을 열어 당시 내용을 보거나 두 기록
 					사이에 바뀐 내용을 비교할 수 있습니다.
 					<span class="lc-text-muted mt-1 block"
-						>국회 정보의 수집·보완도 기록에 포함되며, 법률안 자체가 수정되었다는 의미는 아닙니다.</span
+						>국회 정보의 수집·보완도 기록에 포함되며 법률안 자체가 수정되었다는 의미는 아닙니다.</span
 					>
 				</p>
 

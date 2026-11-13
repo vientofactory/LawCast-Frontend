@@ -1081,20 +1081,15 @@ for (const width of [320, 390, 820, 1440]) {
 			);
 			const result = page.getByTestId('semantic-result-2220607');
 			await expect(result).toBeVisible();
-			await expect(result).toHaveCSS(
-				'background-color',
-				theme === 'light' ? 'rgb(243, 243, 241)' : 'rgb(45, 46, 47)'
-			);
-			await expect(result.locator('.lc-chip-blue')).toHaveCSS(
-				'background-color',
-				theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(51, 52, 53)'
-			);
-			await expect(result.locator('.lc-chip-purple')).toHaveCSS(
-				'background-color',
-				theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(51, 52, 53)'
-			);
-			await expect(result).toHaveCSS('border-left-width', '4px');
-			await expect(result).toHaveCSS('padding-left', width < 640 ? '16px' : '24px');
+			await expect(result).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+			await expect(result).toHaveCSS('border-left-width', '0px');
+			await expect(result).toHaveCSS('border-radius', '0px');
+			await expect(result).toHaveCSS('padding-left', '0px');
+			await expect(result.locator('.lc-flat-status')).toHaveCount(4);
+			for (const metadata of await result.locator('.lc-flat-status').all()) {
+				await expect(metadata).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+				await expect(metadata).toHaveCSS('font-size', '14px');
+			}
 			await expect(result.locator('h3 a')).toHaveAttribute('href', '/notices/2220607');
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
 				true
@@ -1131,21 +1126,20 @@ for (const theme of ['light', 'dark'] as const) {
 			if (variant === 'weak') await page.getByTestId('semantic-search-show-weak').click();
 			const result = page.locator('[data-testid="semantic-search-results-list"] article').first();
 			await expect(result).toBeVisible();
-			await expect(result).toHaveCSS(
-				'background-color',
-				theme === 'light' ? 'rgb(243, 243, 241)' : 'rgb(45, 46, 47)'
-			);
-			await expect(result.locator('.lc-chip-blue')).toHaveCSS(
-				'background-color',
-				theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(51, 52, 53)'
-			);
+			await expect(result).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+			await expect(result).toHaveCSS('border-left-width', '0px');
+			await expect(result).toHaveCSS('border-radius', '0px');
+			await expect(result).toHaveCSS('padding-left', '0px');
+			for (const metadata of await result.locator('.lc-flat-status').all()) {
+				await expect(metadata).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+			}
 		});
 	}
 }
 
 for (const width of [390, 1440]) {
 	for (const theme of ['light', 'dark'] as const) {
-		test(`cross-page content card hierarchy at ${width}px in ${theme}`, async ({ page }) => {
+		test(`cross-page content surface hierarchy at ${width}px in ${theme}`, async ({ page }) => {
 			test.setTimeout(120_000);
 			await page.setViewportSize({ width, height: 1000 });
 			await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
@@ -1159,32 +1153,29 @@ for (const width of [390, 1440]) {
 				await page.goto(path);
 				await page.mouse.move(0, 0);
 				const card = page.locator(selector).first();
+				const flat = name !== 'proposals';
 				await expect(card).toBeVisible();
 				await expect(card).toHaveCSS(
 					'background-color',
-					name === 'changes' || name === 'discussions'
-						? 'rgba(0, 0, 0, 0)'
-						: theme === 'light'
-							? 'rgb(243, 243, 241)'
-							: 'rgb(45, 46, 47)'
+					flat ? 'rgba(0, 0, 0, 0)' : theme === 'light' ? 'rgb(243, 243, 241)' : 'rgb(45, 46, 47)'
 				);
-				if (name === 'changes' || name === 'discussions') {
+				if (flat) {
 					await expect(card).toHaveCSS('border-left-width', '0px');
+					await expect(card).toHaveCSS('border-radius', '0px');
+					await expect(card).toHaveCSS('padding-left', '0px');
 				} else {
 					await expect(card).toHaveCSS(
 						'border-color',
 						theme === 'light' ? 'rgb(215, 216, 212)' : 'rgb(80, 82, 83)'
 					);
 				}
-				const chips = card.locator('.lc-chip-blue, .lc-chip-muted, .lc-chip-purple');
+				const chips = card.locator(
+					'.lc-chip-blue, .lc-chip-muted, .lc-chip-purple, .lc-flat-status'
+				);
 				if (await chips.count())
 					await expect(chips.first()).toHaveCSS(
 						'background-color',
-						name === 'changes' || name === 'discussions'
-							? 'rgba(0, 0, 0, 0)'
-							: theme === 'light'
-								? 'rgb(255, 255, 255)'
-								: 'rgb(51, 52, 53)'
+						flat ? 'rgba(0, 0, 0, 0)' : theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(51, 52, 53)'
 					);
 				expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
 					true
@@ -1213,10 +1204,9 @@ for (const width of [390, 1440]) {
 			await page.getByTestId('notices-semantic-show-weak').click();
 			const weak = page.locator('[data-testid^="notices-weak-result-"]').first();
 			await expect(weak).toBeVisible();
-			await expect(weak).toHaveCSS(
-				'background-color',
-				theme === 'light' ? 'rgb(243, 243, 241)' : 'rgb(45, 46, 47)'
-			);
+			await expect(weak).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+			await expect(weak).toHaveCSS('border-left-width', '0px');
+			await expect(weak).toHaveCSS('border-radius', '0px');
 			await page.goto('/notices');
 			await expect(page.locator('.lc-result-row').first()).toHaveCSS(
 				'background-color',
@@ -1248,7 +1238,7 @@ for (const initialTheme of ['light', 'dark'] as const) {
 					'announcement',
 					'/announcements',
 					'[data-testid^="admin-notices-list-link-"]',
-					['.lc-content-card .lc-list-title', '.lc-content-card .lc-chip-muted']
+					['.lc-announcement-list .lc-list-title', '.lc-announcement-list .lc-flat-status']
 				],
 				[
 					'discussion',
@@ -1266,8 +1256,7 @@ for (const initialTheme of ['light', 'dark'] as const) {
 					'[data-testid="semantic-search-keyword-link"]',
 					[
 						'.lc-semantic-result h3 a',
-						'.lc-semantic-result .lc-chip-blue',
-						'.lc-semantic-result .lc-chip-success',
+						'.lc-semantic-result .lc-flat-status',
 						'[data-testid="semantic-search-keyword-link"]'
 					]
 				],
@@ -1455,8 +1444,7 @@ for (const initialTheme of ['light', 'dark'] as const) {
 				await expect(control).toBeVisible();
 				await startPaletteSampling(page, [
 					'.lc-semantic-result h3 a',
-					'.lc-semantic-result .lc-chip-success',
-					'.lc-semantic-result .lc-chip-blue'
+					'.lc-semantic-result .lc-flat-status'
 				]);
 				await control.tap();
 				const frames = await readPaletteSamples(page);
@@ -1469,7 +1457,7 @@ for (const initialTheme of ['light', 'dark'] as const) {
 				await expect(page.getByTestId('mobile-navigation')).toHaveCount(0);
 				await expect(page.getByTestId('semantic-result-2220607')).toHaveCSS(
 					'background-color',
-					next === 'dark' ? 'rgb(45, 46, 47)' : 'rgb(243, 243, 241)'
+					'rgba(0, 0, 0, 0)'
 				);
 				if (screenshotDir) {
 					await mkdir(screenshotDir, { recursive: true });

@@ -54,7 +54,7 @@
 			<p class="lc-text-secondary text-sm" role="status">
 				{describeWeakProgress(visibleResults.length, results.length)}
 			</p>
-			<div class="space-y-4" bind:this={list}>
+			<div class="lc-flat-list" bind:this={list}>
 				{#each visibleResults as result (result.noticeNum)}
 					{@render renderResult(result)}
 				{/each}

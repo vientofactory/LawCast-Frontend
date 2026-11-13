@@ -1672,26 +1672,30 @@ html[data-theme='dark'] #nprogress {
 		animation: none;
 	}
 }
-@keyframes lc-comment-flash {
-	0% {
-		border-color: var(--lc-border-soft);
-	}
-	12% {
-		border-color: var(--lc-text-accent);
-	}
-	25% {
-		border-color: var(--lc-border-soft);
-	}
-	37% {
-		border-color: var(--lc-text-accent);
-	}
-	100% {
-		border-color: var(--lc-border-soft);
-	}
+/* A destination wash stays behind the text without changing row geometry. */
+.lc-comment-target {
+	isolation: isolate;
 }
-
-.lc-comment-highlight {
-	animation: lc-comment-flash 1.6s ease-out;
+.lc-comment-target::before {
+	position: absolute;
+	z-index: -1;
+	inset: 0 -0.75rem;
+	border-inline-start: 3px solid var(--lc-text-accent);
+	background: color-mix(in srgb, var(--lc-text-accent) 9%, transparent);
+	opacity: 0;
+	pointer-events: none;
+	content: '';
+	transition: opacity 600ms ease-out;
+}
+.lc-comment-target.lc-comment-highlight::before {
+	opacity: 1;
+	transition-duration: 180ms;
+}
+@media (prefers-reduced-motion: reduce) {
+	.lc-comment-target::before,
+	.lc-comment-target.lc-comment-highlight::before {
+		transition: none;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {

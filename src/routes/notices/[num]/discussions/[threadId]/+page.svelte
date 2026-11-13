@@ -343,7 +343,7 @@
 				comments: discussionData.comments.map((c) => (c.id === updated.id ? updated : c))
 			};
 			isActionModalOpen = false;
-			showSuccess('의견이 성공적으로 수정되었습니다.');
+			showSuccess('의견이 수정되었습니다.');
 		} catch (err: unknown) {
 			console.error('Failed to edit comment:', err);
 			actionErrorMessage = discussionErrorMessage(err, '의견 수정 중 오류가 발생했습니다.');
@@ -416,7 +416,7 @@
 			showSuccess(
 				updated.status === DiscussionThreadStatus.OPEN
 					? '토론이 다시 열렸습니다.'
-					: '토론이 성공적으로 닫혔습니다.'
+					: '토론이 닫혔습니다.'
 			);
 		} catch (err: unknown) {
 			console.error('Failed to update thread status:', err);

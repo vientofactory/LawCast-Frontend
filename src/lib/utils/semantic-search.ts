@@ -51,7 +51,7 @@ export function formatSectionLabel(section: string): string {
  * segmented control and as each option's tooltip.
  */
 export const BOARD_SEARCH_MODE_HINTS: Record<BoardSearchMode, string> = {
-	auto: '질문처럼 입력하면 뜻이 비슷한 법률안까지 찾고, 못 찾으면 키워드로 찾아요',
+	auto: '질문처럼 입력하면 뜻이 비슷한 법률안까지 찾고 못 찾으면 키워드로 찾아요',
 	keyword: '법률안명·소관위원회·제안자를 그대로 찾고 해당하는 결과를 빠짐없이 보여줘요',
 	semantic: '질문처럼 입력하면 뜻이 비슷한 법률안까지 관련도순으로 찾아요'
 };

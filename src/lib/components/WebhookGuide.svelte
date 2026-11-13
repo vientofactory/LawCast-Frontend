@@ -18,7 +18,7 @@
 		{ title: '웹훅 생성', description: '“웹훅 보기” 또는 “웹훅 만들기” 버튼을 클릭합니다.' },
 		{
 			title: '웹훅 URL 복사',
-			description: '생성된 웹훅의 “웹훅 URL 복사” 버튼을 클릭하여 URL을 복사합니다.'
+			description: '생성된 웹훅의 “웹훅 URL 복사” 버튼을 클릭해 URL을 복사합니다.'
 		},
 		{
 			title: 'LawCast에 등록',

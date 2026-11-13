@@ -2,9 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 import base from './playwright.open-layout.config';
 
 const desktopCases =
-	/theme palette frames and interactive contrast|loading palette stays synchronized|cross-page content card hierarchy/;
+	/theme palette frames and interactive contrast|loading palette stays synchronized|cross-page content surface hierarchy/;
 const mobileCases =
-	/(?:theme palette frames and interactive contrast|cross-page content card hierarchy).*390px|loading palette stays synchronized|mobile touch theme/;
+	/(?:theme palette frames and interactive contrast|cross-page content surface hierarchy).*390px|loading palette stays synchronized|mobile touch theme/;
 
 export default defineConfig({
 	...base,
