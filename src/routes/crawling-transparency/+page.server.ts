@@ -11,7 +11,7 @@ import type { PageServerLoad } from './$types';
 // `backend/src/modules/ollama/ai-summary-prompt.util.ts` for offline renders.
 const FALLBACK_AI_SUMMARY: NonNullable<CrawlingTransparencyData['aiSummary']> = {
 	policy:
-		'AI 요약은 제안이유 및 주요내용 원문에 근거해 핵심 정책 변화와 영향만을 한 문장으로 전달합니다. 찬반 평가나 가치 판단을 덧붙이지 않으며, 원문에 없는 사실이나 전망을 생성하지 않습니다.',
+		'AI 요약은 제안이유 및 주요내용 원문에 근거해 핵심 정책 변화와 영향만을 한 문장으로 전달합니다. 찬반 평가나 가치 판단을 덧붙이지 않으며 원문에 없는 사실이나 전망을 생성하지 않습니다.',
 	prompt: [
 		'당신은 국회 입법예고 요약 도우미입니다. 아래 규칙을 위반하지 마세요.',
 		'',

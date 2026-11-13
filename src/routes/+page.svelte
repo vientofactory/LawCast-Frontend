@@ -64,8 +64,8 @@
 	);
 	let pageDescription = $derived(
 		aiSummaryEnabled
-			? '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, AI 요약과 함께 빠르게 확인할 수 있습니다.'
-			: '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고, 원문 정보와 함께 빠르게 확인할 수 있습니다.'
+			? '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고 AI 요약과 함께 빠르게 확인할 수 있습니다.'
+			: '국회 입법예고의 최초 공개 상태를 스냅샷과 무결성 검증 기록으로 보존하고 원문 정보와 함께 빠르게 확인할 수 있습니다.'
 	);
 	let lastUpdatedLabel = $derived(
 		stats?.cache?.lastUpdated ? formatDate(stats.cache.lastUpdated) : '업데이트 대기 중'
@@ -175,7 +175,7 @@
 								<span class="lc-home-heading-accent">증거 수집 플랫폼</span>
 							</h1>
 							<p class="lc-text-secondary lc-home-description">
-								LawCast는 입법예고 원문을 처음 수집한 모습 그대로 저장하고, 나중에 내용이 바뀌거나
+								LawCast는 입법예고 원문을 처음 수집한 모습 그대로 저장합니다. 나중에 내용이 바뀌거나
 								사라져도 이전 기록과 비교해 확인할 수 있도록 남겨 둡니다.
 							</p>
 						</div>
@@ -445,8 +445,8 @@
 									LawCast 디스코드 커뮤니티에 참여해 보세요
 								</h2>
 								<p class="lc-text-secondary max-w-2xl text-sm leading-7 sm:text-base">
-									입법예고 변화 포인트를 함께 공유하고, 기능 제안이나 개선 아이디어를 실시간으로
-									남길 수 있습니다. 운영 공지와 서비스 업데이트도 가장 빠르게 받아보세요.
+									입법예고 변화 포인트를 함께 공유하고 기능 제안이나 개선 아이디어를 실시간으로 남길
+									수 있습니다. 운영 공지와 서비스 업데이트도 가장 빠르게 받아보세요.
 								</p>
 								{#if discordServerId}
 									<div

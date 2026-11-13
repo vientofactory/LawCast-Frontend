@@ -284,7 +284,7 @@
 		displayContent.isDone
 			? `${opinionGuidance}이 종료되어 더 이상 의견을 제출할 수 없습니다.`
 			: isPreTransfer
-				? `${opinionGuidance}이지만, 아직 국회 입법예고로 이관되기 전이라 의안정보시스템에는 시민 의견 수렴 페이지가 없어 의견을 제출할 수 없습니다. 입법예고로 이관되면 의견 제출이 가능합니다.`
+				? `${opinionGuidance}이지만 아직 국회 입법예고로 이관되기 전이라 의안정보시스템에는 시민 의견 수렴 페이지가 없어 의견을 제출할 수 없습니다. 입법예고로 이관되면 의견 제출이 가능합니다.`
 				: `${opinionGuidance}에는 누구나 국회 홈페이지에서 의견을 제출할 수 있습니다.`
 	);
 
@@ -891,7 +891,7 @@
 				<div>
 					<p class="lc-text-secondary text-sm font-semibold">의안번호 변경 이력</p>
 					<p class="lc-text-muted mt-0.5 text-sm">
-						기존 번호 기준 체인은 무효화(invalidated) 이벤트로 보존되며, 현재 번호에서 이력이
+						기존 번호 기준 체인은 무효화(invalidated) 이벤트로 보존되며 현재 번호에서 이력이
 						이어집니다.
 					</p>
 				</div>

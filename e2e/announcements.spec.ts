@@ -194,3 +194,58 @@ test.describe('Admin notices: hero chip, board list, detail', () => {
 		);
 	});
 });
+
+for (const width of [320, 390, 768, 1440]) {
+	for (const theme of ['light', 'dark']) {
+		test(`uses open announcement rows at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+			test.skip(!MOCK_ENABLED, 'requires the mock fixture');
+			await page.setViewportSize({ width, height: 1000 });
+			await page.addInitScript((theme) => localStorage.setItem('lawcast-theme', theme), theme);
+			await page.goto('/announcements');
+			const list = page.getByTestId('admin-notices-list');
+			const first = page.getByTestId('admin-notices-list-link-mock-announcement-1');
+			await expect(first).toBeVisible();
+			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+			await page.evaluate(
+				(theme) => document.documentElement.setAttribute('data-theme', theme),
+				theme
+			);
+			await expect(list).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+			await expect(list).toHaveCSS('border-width', '0px');
+			await expect(list).toHaveCSS('border-radius', '0px');
+			await expect(first).toHaveCSS('border-bottom-width', '1px');
+			await expect(first).toHaveCSS('border-inline-start-width', '0px');
+			await expect(first).toHaveCSS('padding-inline-start', '0px');
+			await expect(first).toHaveCSS('border-radius', '0px');
+			await expect(first.locator('h2')).toHaveCSS('font-size', '18px');
+			await expect(first.locator('time')).toHaveCSS('font-size', '14px');
+			await expect(first.locator('.lc-flat-status')).toHaveCSS(
+				'background-color',
+				'rgba(0, 0, 0, 0)'
+			);
+			await expect(first.locator('.lc-flat-status')).toHaveCSS('border-width', '0px');
+			await expect(list.locator('a').last()).toHaveCSS('border-bottom-width', '0px');
+			const metadata = await first.locator('time').boundingBox();
+			const heading = await first.locator('h2').boundingBox();
+			expect(metadata!.y + metadata!.height).toBeLessThanOrEqual(heading!.y);
+			await page.mouse.move(0, 0);
+			await page.screenshot({ path: testInfo.outputPath(`announcements-${width}-${theme}.png`) });
+			await page.keyboard.press('Tab');
+			await first.focus();
+			await expect(first).toHaveCSS('outline-style', 'solid');
+			if (width === 320) {
+				await first
+					.locator('h2')
+					.evaluate((node) => (node.textContent = '긴공지제목줄바꿈검증'.repeat(20)));
+				await page.evaluate(() => (document.documentElement.style.fontSize = '200%'));
+			}
+			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+				true
+			);
+			await first.click();
+			await expect(page.getByTestId('admin-notice-title')).toBeVisible();
+			await page.getByTestId('admin-notice-back-link').click();
+			await expect(page.getByTestId('admin-notices-list')).toBeVisible();
+		});
+	}
+}

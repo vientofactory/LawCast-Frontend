@@ -88,7 +88,7 @@
 			? engineHealthError
 			: engineHealth?.status === 'loading'
 				? '의미 검색 엔진을 준비 중입니다. 잠시 후 새로고침해 주세요.'
-				: '의미 검색 엔진이 현재 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+				: '의미 검색 엔진을 현재 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
 	);
 	let rateLimitRetryAfter = $state(0);
 	let isRetrying = $state(false);
@@ -241,46 +241,35 @@
 	<article
 		aria-labelledby="semantic-result-heading-{result.noticeNum}"
 		data-testid={`semantic-result-${result.noticeNum}`}
-		class="lc-notice-card lc-semantic-result lc-notice-border-active rounded-lg border-l-4 p-4 shadow transition-shadow hover:shadow-md sm:p-6"
+		class="lc-flat-list-row lc-semantic-result"
 	>
-		<div class="flex flex-wrap items-center gap-2">
-			<span
-				class="lc-chip-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-			>
+		<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm wrap-anywhere">
+			<span class="lc-flat-status lc-text-secondary font-medium">
 				의안번호 {result.noticeNum}
 			</span>
 			{#if result.score !== null}
-				<span
-					class="lc-chip-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-				>
+				<span class="lc-flat-status lc-text-secondary font-medium">
 					유사도 {formatSimilarityPercent(result.score)}
 				</span>
 			{/if}
 			{#if result.section}
-				<span
-					class="lc-chip-purple inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-				>
+				<span class="lc-flat-status lc-text-secondary font-medium">
 					{sectionLabel(result.section)}
 				</span>
 			{/if}
 			{#if result.committee}
-				<span
-					class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-				>
+				<span class="lc-flat-status lc-text-secondary font-medium">
 					{result.committee}
 				</span>
 			{/if}
 		</div>
-		<h3
-			id="semantic-result-heading-{result.noticeNum}"
-			class="lc-text-primary mt-2 text-lg font-bold"
-		>
+		<h3 id="semantic-result-heading-{result.noticeNum}" class="lc-text-primary lc-list-title mt-2">
 			<a href={`/notices/${result.noticeNum}`} class="lc-link">
 				{result.subject}
 			</a>
 		</h3>
 		{#if result.excerpt}
-			<p class="lc-text-secondary mt-2 text-sm whitespace-pre-line">
+			<p class="lc-text-secondary mt-2 text-sm leading-relaxed wrap-anywhere whitespace-pre-line">
 				{result.excerpt}
 			</p>
 		{/if}
@@ -328,7 +317,7 @@
 			<div>
 				<section class="lc-search-section mb-6">
 					<div class="flex items-start gap-3">
-						<div class="lc-chip-purple mt-0.5 rounded-full p-1.5">
+						<div class="lc-text-accent mt-1 shrink-0">
 							<FontAwesomeIcon icon={faWandMagicSparkles} class="h-4 w-4" />
 						</div>
 						<div>
@@ -397,11 +386,11 @@
 
 				{#if hasQuery && isFallbackMode && response}
 					<div
-						class="lc-banner-warning mb-6 rounded-xl border p-4 shadow-sm"
+						class="mb-6 border-l-2 border-[var(--lc-border-strong)] py-3 pl-3"
 						data-testid="semantic-search-fallback-banner"
 					>
 						<div class="flex items-start gap-3">
-							<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
+							<div class="lc-text-warning mt-1 shrink-0">
 								<FontAwesomeIcon icon={faWandMagicSparkles} class="h-4 w-4" />
 							</div>
 							<div>
@@ -459,10 +448,7 @@
 						</div>
 					{:else if hasQuery && response && displayedResults.length > 0}
 						{#if showingWeak}
-							<div
-								class="lc-banner-warning mb-3 rounded-xl border p-3 shadow-sm"
-								data-testid="semantic-search-weak-banner"
-							>
+							<div class="lc-results-note mb-3 py-3" data-testid="semantic-search-weak-banner">
 								<div class="flex flex-wrap items-center justify-between gap-2">
 									<p class="lc-text-secondary text-sm">
 										명확한 검색 결과가 없어 관련도가 낮은 결과를 표시하고 있습니다.
@@ -477,7 +463,7 @@
 									</p>
 									<button
 										type="button"
-										class="lc-button-neutral cursor-pointer rounded-lg border px-3 py-1.5 text-sm"
+										class="lc-result-action-secondary"
 										data-testid="semantic-search-hide-weak"
 										onclick={hideWeakResults}
 									>
@@ -494,7 +480,7 @@
 							>건
 						</p>
 						<div
-							class="space-y-4"
+							class="lc-flat-list border-t-2 border-[var(--lc-border-strong)]"
 							class:opacity-85={isLoading}
 							data-testid="semantic-search-results-list"
 						>

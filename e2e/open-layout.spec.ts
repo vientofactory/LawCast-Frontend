@@ -1248,7 +1248,7 @@ for (const initialTheme of ['light', 'dark'] as const) {
 					'announcement',
 					'/announcements',
 					'[data-testid^="admin-notices-list-link-"]',
-					['.lc-content-card .lc-list-title', '.lc-content-card .lc-chip-muted']
+					['.lc-announcement-list .lc-list-title', '.lc-announcement-list .lc-flat-status']
 				],
 				[
 					'discussion',
@@ -1266,8 +1266,7 @@ for (const initialTheme of ['light', 'dark'] as const) {
 					'[data-testid="semantic-search-keyword-link"]',
 					[
 						'.lc-semantic-result h3 a',
-						'.lc-semantic-result .lc-chip-blue',
-						'.lc-semantic-result .lc-chip-success',
+						'.lc-semantic-result .lc-flat-status',
 						'[data-testid="semantic-search-keyword-link"]'
 					]
 				],

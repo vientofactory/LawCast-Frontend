@@ -32,55 +32,50 @@
 		</header>
 
 		{#if notices.length === 0}
-			<div
-				class="rounded-xl border border-dashed border-[var(--lc-border-soft)] p-8 text-center"
-				data-testid="admin-notices-empty-state"
-			>
-				<p class="lc-text-primary text-sm font-semibold">등록된 공지가 없습니다.</p>
-				<p class="lc-text-muted mt-1 text-xs">새 공지가 올라오면 이곳에서 확인할 수 있습니다.</p>
+			<div class="lc-open-empty-state" data-testid="admin-notices-empty-state">
+				<p class="lc-text-primary text-base font-semibold">등록된 공지가 없습니다.</p>
+				<p class="lc-text-muted mt-2 text-sm">새 공지가 올라오면 이곳에서 확인할 수 있습니다.</p>
 			</div>
 		{:else}
-			<div
-				class="lc-content-card divide-y divide-[var(--lc-border-soft)] overflow-hidden rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)]"
-				data-testid="admin-notices-list"
-			>
+			<div class="lc-flat-list lc-announcement-list" data-testid="admin-notices-list">
 				{#each notices as notice (notice.id)}
 					<a
 						href={`/announcements/${encodeURIComponent(notice.id)}`}
 						data-testid={`admin-notices-list-link-${notice.id}`}
-						class="lc-card-list-link group flex cursor-pointer flex-col gap-2 p-4 text-inherit no-underline transition-colors sm:flex-row sm:items-center sm:justify-between"
+						class="lc-flat-list-row lc-card-list-link cursor-pointer text-inherit no-underline"
 					>
-						<div class="min-w-0 flex-1 space-y-1">
-							<div class="flex flex-wrap items-center gap-2">
-								{#if notice.status}
-									<span
-										class="lc-chip-muted inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
-									>
-										{notice.status}
-									</span>
-								{/if}
-								<h2 class="lc-text-primary lc-list-title">
+						<div class="flex items-start justify-between gap-4">
+							<div class="min-w-0 flex-1">
+								<div class="lc-text-muted mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+									{#if notice.status}
+										<span class="lc-flat-status lc-text-secondary font-semibold"
+											>{notice.status}</span
+										>
+									{/if}
+									{#if notice.createdAt}
+										<time
+											datetime={notice.createdAt}
+											data-testid={`admin-notices-list-date-${notice.id}`}
+											class="tabular-nums"
+										>
+											{formatDateOnlyKST(notice.createdAt)}
+										</time>
+									{/if}
+								</div>
+								<h2
+									class="lc-text-primary lc-list-title underline decoration-[var(--lc-border-strong)] underline-offset-4"
+								>
 									{notice.title}
 								</h2>
+								{#if notice.content}
+									<p
+										class="lc-text-secondary mt-2 line-clamp-2 text-sm leading-relaxed wrap-anywhere"
+									>
+										{notice.content}
+									</p>
+								{/if}
 							</div>
-							{#if notice.content}
-								<p class="lc-text-muted line-clamp-2 text-sm leading-relaxed">{notice.content}</p>
-							{/if}
-						</div>
-						<div class="flex shrink-0 items-center gap-3 self-start sm:self-center">
-							{#if notice.createdAt}
-								<time
-									class="lc-text-dim text-xs tabular-nums"
-									datetime={notice.createdAt}
-									data-testid={`admin-notices-list-date-${notice.id}`}
-								>
-									{formatDateOnlyKST(notice.createdAt)}
-								</time>
-							{/if}
-							<FontAwesomeIcon
-								icon={faChevronRight}
-								class="lc-text-dim hidden h-3 w-3 transition-transform group-hover:translate-x-0.5 sm:inline-block"
-							/>
+							<FontAwesomeIcon icon={faChevronRight} class="lc-text-muted mt-1 h-4 w-4 shrink-0" />
 						</div>
 					</a>
 				{/each}

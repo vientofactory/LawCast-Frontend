@@ -82,7 +82,7 @@
 			});
 
 			if (result.success) {
-				showFeedback('success', result.message || '웹훅이 성공적으로 등록되었습니다.');
+				showFeedback('success', result.message || '웹훅이 등록되었습니다.');
 				newWebhookUrl = '';
 				onWebhookRegistered(); // Notify the parent so its stats refresh.
 			} else {
@@ -124,11 +124,11 @@
 		</li>
 		<li class="flex items-start">
 			<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
-			새로운 입법예고 발견 시 디스코드 웹훅으로 알림을 전송합니다
+			새로운 입법예고를 발견하면 디스코드 웹훅으로 알림을 전송합니다
 		</li>
 		<li class="flex items-start">
 			<span class="lc-loading-fill mt-1.5 mr-2 h-1.5 w-1.5 shrink-0 rounded-full"></span>
-			로그인 없이 간단하게 디스코드 웹훅 URL만 등록하면 됩니다
+			로그인 없이 디스코드 웹훅 URL만 등록하면 됩니다
 		</li>
 		{#if stats}
 			<li class="lc-text-accent flex items-start font-medium">

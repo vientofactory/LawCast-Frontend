@@ -116,7 +116,7 @@
 			if (typeof sessionStorage !== 'undefined') {
 				sessionStorage.setItem(`lawcast-new-discussion:${res.thread.id}`, '1');
 			}
-			showSuccess('새 토론 주제가 성공적으로 개설되었습니다.');
+			showSuccess('새 토론 주제가 개설되었습니다.');
 			await goto(`/notices/${noticeNum}/discussions/${res.thread.id}`);
 		} catch (err: unknown) {
 			console.error('Failed to create thread:', err);

@@ -163,7 +163,7 @@
 				<span
 					class="lc-chip-muted inline-flex items-center gap-1 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1 text-xs font-semibold"
 					data-testid="discussion-thread-locked-indicator"
-					title="관리자에 의해 잠긴 토론은 발제자가 직접 상태를 변경할 수 없습니다."
+					title="관리자가 잠근 토론은 발제자가 직접 상태를 변경할 수 없습니다."
 				>
 					<FontAwesomeIcon icon={faLock} class="h-3 w-3" />
 					관리자에 의해 잠김
@@ -231,7 +231,7 @@
 	</div>
 
 	<!-- Comments List -->
-	<div class="space-y-3" data-testid="discussion-comment-list">
+	<div class="lc-flat-list" data-testid="discussion-comment-list">
 		{#each comments as comment (comment.id)}
 			<CommentItem
 				{comment}
@@ -243,33 +243,58 @@
 			/>
 		{/each}
 	</div>
-	<div bind:this={commentsLoadSentinel} class="min-h-8" aria-live="polite">
+	<div bind:this={commentsLoadSentinel} class="mt-0! min-h-8" aria-live="polite">
 		{#if isLoadingMoreComments}
 			<div
-				class="space-y-3 py-1"
+				class="lc-flat-list border-[var(--lc-border-soft)]"
+				class:border-t={comments.length > 0}
 				data-testid="discussion-comment-skeletons"
+				role="status"
 				aria-label="의견을 불러오는 중"
 			>
 				{#each [0, 1, 2] as skeleton (skeleton)}
 					<div
-						class="lc-content-card rounded-xl border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-4"
+						class="lc-flat-list-row"
 						aria-hidden="true"
+						data-testid="discussion-comment-skeleton"
 					>
-						<div
-							class="mb-2.5 flex items-center justify-between gap-3 border-b border-[var(--lc-border-soft)] pb-2.5"
-						>
-							<div class="flex items-center gap-2">
-								<div class="h-5 w-10 animate-pulse rounded-md bg-[var(--lc-surface-muted)]"></div>
-								<div class="h-3 w-20 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
-								<div class="h-3 w-24 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+						<div class="mb-3 space-y-1" data-testid="discussion-skeleton-header">
+							<div class="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1">
+								<div class="flex min-h-11 min-w-11 items-center justify-center">
+									<div class="h-3.5 w-6 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+								</div>
+								<div class="h-3.5 w-16 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+								<div class="h-3.5 w-24 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
 							</div>
-							<div class="h-3 w-16 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+							<div class="flex h-5 items-center" data-testid="discussion-skeleton-time">
+								<div
+									class="h-3.5 w-40 max-w-full animate-pulse rounded bg-[var(--lc-surface-muted)]"
+								></div>
+							</div>
 						</div>
-						<div class="space-y-2" style={`animation-delay: ${skeleton * 90}ms`}>
-							<div class="h-3 w-11/12 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
-							<div class="h-3 w-4/5 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
-							<div class="h-3 w-2/5 animate-pulse rounded bg-[var(--lc-surface-muted)]"></div>
+						<div data-testid="discussion-skeleton-body">
+							{#each ['w-11/12', 'w-4/5'] as width (width)}
+								<div class="flex h-[1.625rem] items-center">
+									<div
+										class={`h-4 animate-pulse rounded bg-[var(--lc-surface-muted)] ${width}`}
+									></div>
+								</div>
+							{/each}
 						</div>
+						{#if thread.status === DiscussionThreadStatus.OPEN}
+							<div
+								class="mt-3 flex flex-wrap items-center gap-1"
+								data-testid="discussion-skeleton-actions"
+							>
+								{#each [0, 1, 2] as action (action)}
+									<div class="flex min-h-11 items-center px-2">
+										<div
+											class="h-3.5 w-10 animate-pulse rounded bg-[var(--lc-surface-muted)]"
+										></div>
+									</div>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>
@@ -417,7 +442,7 @@
 				<FontAwesomeIcon icon={faLock} class="h-3.5 w-3.5 shrink-0" />
 				<span>
 					{thread.isLocked
-						? '이 토론은 관리자에 의해 잠겨 새 의견을 작성할 수 없습니다.'
+						? '관리자가 이 토론을 잠가 새 의견을 작성할 수 없습니다.'
 						: '이 토론은 닫혔으므로 새 의견을 작성할 수 없습니다.'}
 				</span>
 			</div>

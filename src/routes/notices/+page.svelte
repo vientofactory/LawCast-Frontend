@@ -263,8 +263,8 @@
 
 	let basePageDescription = $derived(
 		aiSummaryEnabled
-			? '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고, 원문과 AI 요약을 확인할 수 있습니다.'
-			: '입법예고 아카이브에서 키워드 검색과 법률안을 조회하고 원문을 확인할 수 있습니다.'
+			? '입법예고 아카이브에서 키워드 검색으로 법률안을 조회하고 원문과 AI 요약을 확인할 수 있습니다.'
+			: '입법예고 아카이브에서 키워드 검색으로 법률안을 조회하고 원문을 확인할 수 있습니다.'
 	);
 	let basePageKeywords = $derived(
 		aiSummaryEnabled
@@ -531,18 +531,16 @@
 
 {#snippet weakResultCard(result: SemanticSearchResultItem)}
 	<article
-		class="lc-notice-card lc-content-card lc-notice-border-active rounded-lg border-l-4 p-4 shadow sm:p-6"
+		class="lc-flat-list-row lc-semantic-result"
 		data-testid={`notices-weak-result-${result.noticeNum}`}
 	>
-		<div class="flex flex-wrap items-center gap-2">
-			<span
-				class="lc-chip-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-			>
+		<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm wrap-anywhere">
+			<span class="lc-flat-status lc-text-secondary font-medium">
 				의안번호 {result.noticeNum}
 			</span>
 			{#if result.score !== null}
 				<span
-					class="lc-chip-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+					class="lc-flat-status lc-text-secondary font-medium"
 					title={BOARD_RELEVANCE_HINTS.score}
 				>
 					유사도 {formatSimilarityPercent(result.score)}
@@ -550,26 +548,24 @@
 			{/if}
 			{#if result.section}
 				<span
-					class="lc-chip-purple inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
+					class="lc-flat-status lc-text-secondary font-medium"
 					title={BOARD_RELEVANCE_HINTS.section}
 				>
 					{formatSectionLabel(result.section)}
 				</span>
 			{/if}
 			{#if result.committee}
-				<span
-					class="lc-chip-muted inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold"
-				>
+				<span class="lc-flat-status lc-text-secondary font-medium">
 					{result.committee}
 				</span>
 			{/if}
 		</div>
-		<h3 class="lc-text-primary mt-2 text-lg font-bold">
+		<h3 class="lc-text-primary lc-list-title mt-2">
 			<a href={`/notices/${result.noticeNum}`} class="lc-link">{result.subject}</a>
 		</h3>
 		{#if result.excerpt}
 			<p
-				class="lc-text-secondary mt-2 text-sm whitespace-pre-line"
+				class="lc-text-secondary mt-2 text-sm leading-relaxed wrap-anywhere whitespace-pre-line"
 				title={BOARD_RELEVANCE_HINTS.excerpt}
 			>
 				{result.excerpt}
@@ -1116,10 +1112,7 @@
 				>
 					<h2 id="notices-results-heading" class="sr-only">입법예고 검색 결과</h2>
 					{#if showingWeak}
-						<div
-							class="lc-banner-warning mb-3 rounded-xl border p-3 shadow-sm"
-							data-testid="notices-semantic-weak-banner"
-						>
+						<div class="lc-results-note mb-3 py-3" data-testid="notices-semantic-weak-banner">
 							<div class="flex flex-wrap items-center justify-between gap-2">
 								<p class="lc-text-secondary text-sm">
 									명확한 검색 결과가 없어 관련도가 낮은 결과를 표시하고 있습니다.
@@ -1131,7 +1124,7 @@
 								{/if}
 								<button
 									type="button"
-									class="lc-button-neutral cursor-pointer rounded-lg border px-3 py-1.5 text-sm"
+									class="lc-result-action-secondary"
 									data-testid="notices-semantic-hide-weak"
 									onclick={hideWeakResults}
 								>
@@ -1139,7 +1132,10 @@
 								</button>
 							</div>
 						</div>
-						<div class="space-y-4" data-testid="notices-semantic-weak-list">
+						<div
+							class="lc-flat-list border-t-2 border-[var(--lc-border-strong)]"
+							data-testid="notices-semantic-weak-list"
+						>
 							{#each weakVisibleResults as result (result.noticeNum)}
 								{@render weakResultCard(result)}
 							{/each}

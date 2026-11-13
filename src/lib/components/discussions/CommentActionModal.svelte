@@ -161,7 +161,7 @@
 		</span>
 	{/snippet}
 	{#snippet subtitle()}
-		<span>작성 시 등록했던 비밀번호를 입력해주세요.</span>
+		<span>작성할 때 등록한 비밀번호를 입력해주세요.</span>
 	{/snippet}
 
 	{#if errorMessage}
@@ -224,7 +224,7 @@
 				<p class="mt-1">
 					{targetThread?.status === DiscussionThreadStatus.OPEN
 						? '토론을 닫으면 추가 의견 작성이 제한됩니다. 토론 개설 시 입력한 비밀번호가 필요합니다.'
-						: '닫힌 토론을 다시 열어 참여자가 추가 의견을 작성할 수 있도록 합니다.'}
+						: '닫힌 토론을 다시 열면 참여자가 추가 의견을 작성할 수 있습니다.'}
 				</p>
 			</div>
 		{/if}

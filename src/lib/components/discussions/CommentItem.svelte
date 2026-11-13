@@ -9,12 +9,12 @@
 		faUser,
 		faRobot,
 		faBullhorn,
-		faClock,
 		faBan
 	} from '@fortawesome/free-solid-svg-icons';
 	import { DiscussionMessageType, type DiscussionComment } from '#lib/types/api.ts';
 	import { formatDateTimeKST } from '#lib/utils/helpers.ts';
 	import { onMount } from 'svelte';
+	import { clearCommentHighlight, highlightComment } from '#lib/utils/comment-highlight.ts';
 
 	let {
 		comment,
@@ -52,24 +52,16 @@
 			event.preventDefault();
 		}
 		const targetEl = document.getElementById(`res-${sequence}`);
-		if (targetEl) {
-			targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-			playHighlight(targetEl);
-		}
-	}
-
-	function playHighlight(targetEl: HTMLElement): void {
-		targetEl.classList.remove('lc-comment-highlight');
-		void targetEl.offsetWidth;
-		targetEl.classList.add('lc-comment-highlight');
-		setTimeout(() => targetEl.classList.remove('lc-comment-highlight'), 1800);
+		if (targetEl) highlightComment(targetEl);
 	}
 
 	onMount(() => {
+		const targetEl = document.getElementById(`res-${comment.sequence}`);
+		if (!targetEl) return;
 		if (window.location.hash === `#res-${comment.sequence}`) {
-			const targetEl = document.getElementById(`res-${comment.sequence}`);
-			if (targetEl) playHighlight(targetEl);
+			highlightComment(targetEl, false);
 		}
+		return () => clearCommentHighlight(targetEl);
 	});
 
 	type ContentToken =
@@ -166,99 +158,55 @@
 	);
 </script>
 
-<div
+<article
 	id={`res-${comment.sequence}`}
 	data-testid={`discussion-comment-${comment.sequence}`}
-	class:lc-content-card={!comment.isDeleted}
-	class={`group relative scroll-mt-24 rounded-xl border transition-colors ${
-		comment.isDeleted
-			? 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-muted)]/50 opacity-70'
-			: comment.messageType === DiscussionMessageType.SYSTEM
-				? 'border-amber-400/70 bg-[var(--lc-surface-primary)] hover:border-amber-400'
-				: comment.messageType === DiscussionMessageType.ADMIN
-					? 'border-indigo-400/70 bg-[var(--lc-surface-primary)] hover:border-indigo-400'
-					: 'border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] hover:border-blue-500/40'
-	} p-4`}
+	aria-labelledby={`comment-author-${comment.sequence}`}
+	class="lc-flat-list-row lc-comment-target relative scroll-mt-24"
 >
-	<!-- Comment Topbar -->
-	<div
-		class="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--lc-border-soft)] pb-2.5"
-	>
-		<div class="flex flex-wrap items-center gap-2 text-xs">
+	<header class="mb-3 space-y-1">
+		<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
 			<button
 				type="button"
 				onclick={(e) => scrollToComment(comment.sequence, e)}
-				class="lc-chip-blue inline-flex cursor-pointer items-center rounded-md px-2 py-0.5 font-mono text-xs font-bold hover:opacity-80"
+				class="lc-text-accent inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center font-mono text-sm font-semibold underline underline-offset-4"
 				title="댓글 번호"
+				data-testid={`discussion-comment-number-${comment.sequence}`}
 			>
 				#{comment.sequence}
 			</button>
-			<span class="lc-text-primary inline-flex items-center gap-1 font-semibold">
+			<span
+				id={`comment-author-${comment.sequence}`}
+				class="lc-text-primary inline-flex min-w-0 items-baseline gap-1.5 font-semibold wrap-anywhere"
+			>
 				<FontAwesomeIcon
 					icon={comment.messageType === DiscussionMessageType.SYSTEM
 						? faRobot
 						: comment.messageType === DiscussionMessageType.ADMIN
 							? faBullhorn
 							: faUser}
-					class="lc-text-muted h-3 w-3"
+					class="lc-text-muted h-3 w-3 shrink-0"
 				/>
 				{comment.authorNickname}
 			</span>
-			{#if !isNonUserMessage}
-				<span
-					class="lc-chip-muted rounded-md px-1.5 py-0.5 font-mono text-[11px] text-[var(--lc-text-muted)]"
-				>
-					{comment.authorIpMasked}
-				</span>
-			{/if}
-			<span class="lc-text-muted inline-flex items-center gap-1 text-[11px]">
-				<FontAwesomeIcon icon={faClock} class="h-2.5 w-2.5" />
-				{formatDateTimeKST(comment.createdAt)}
-			</span>
-			{#if comment.isEdited && !comment.isDeleted}
-				<span class="lc-text-dim text-[11px] italic"> (수정됨) </span>
+			{#if comment.messageType === DiscussionMessageType.ADMIN}
+				<span class="lc-text-secondary text-sm font-medium">관리자</span>
+			{:else if !isNonUserMessage}
+				<span class="lc-text-muted font-mono text-sm wrap-anywhere">{comment.authorIpMasked}</span>
 			{/if}
 		</div>
-
-		<!-- Action Buttons -->
-		{#if !comment.isDeleted && !isNonUserMessage && !isThreadClosed}
-			<div class="flex flex-wrap items-center gap-1.5">
-				<button
-					type="button"
-					onclick={handleQuote}
-					title={`#${comment.sequence} 인용하여 답글`}
-					data-testid={`discussion-comment-quote-${comment.sequence}`}
-					class="lc-text-muted hover:lc-text-primary inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
-				>
-					<FontAwesomeIcon icon={faQuoteRight} class="h-3 w-3" />
-					<span>인용</span>
-				</button>
-				<button
-					type="button"
-					onclick={handleEdit}
-					title="의견 수정"
-					class="lc-text-muted hover:lc-text-primary inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-xs hover:bg-[var(--lc-surface-hover)]"
-				>
-					<FontAwesomeIcon icon={faPenToSquare} class="h-3 w-3" />
-					<span>수정</span>
-				</button>
-				<button
-					type="button"
-					onclick={handleDelete}
-					title="의견 삭제"
-					class="lc-text-muted inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded px-2 py-1 text-xs hover:bg-red-500/10 hover:text-red-500"
-				>
-					<FontAwesomeIcon icon={faTrash} class="h-3 w-3" />
-					<span>삭제</span>
-				</button>
-			</div>
-		{/if}
-	</div>
+		<div class="lc-text-muted flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+			<time datetime={comment.createdAt}>{formatDateTimeKST(comment.createdAt)}</time>
+			{#if comment.isEdited && !comment.isDeleted}
+				<span>(수정됨)</span>
+			{/if}
+		</div>
+	</header>
 
 	<!-- Comment Body -->
 	{#if comment.isDeleted}
-		<div class="flex items-center gap-2 py-2 text-xs text-[var(--lc-text-dim)] italic">
-			<FontAwesomeIcon icon={faBan} class="h-3.5 w-3.5 text-gray-400" />
+		<div class="lc-text-muted flex items-start gap-2 py-2 text-sm wrap-anywhere">
+			<FontAwesomeIcon icon={faBan} class="mt-1 h-3.5 w-3.5 shrink-0" />
 			<span>{comment.content}</span>
 		</div>
 	{:else}
@@ -269,28 +217,28 @@
 					<button
 						type="button"
 						onclick={(e) => scrollToComment(block.sequence, e)}
-						class="lc-text-accent my-1.5 flex w-full max-w-sm cursor-pointer items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-left text-xs font-medium transition-colors hover:bg-blue-500/20"
+						class="lc-comment-reference lc-text-secondary my-2 flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 border-l-2 border-[var(--lc-border-strong)] bg-[var(--lc-surface-muted)] px-3 py-2 text-left text-sm hover:text-[var(--lc-text-accent)]"
 					>
-						<span class="inline-flex items-center gap-1.5 font-semibold">
-							<FontAwesomeIcon icon={faQuoteLeft} class="h-3 w-3 opacity-80" />
+						<span class="inline-flex min-w-0 items-baseline gap-1.5 font-semibold wrap-anywhere">
+							<FontAwesomeIcon icon={faQuoteLeft} class="h-3 w-3 shrink-0" />
 							<span
 								>#{block.sequence}번 의견{#if quoted}
 									({quoted.isDeleted ? '삭제됨' : quoted.authorNickname}){/if} 인용</span
 							>
 						</span>
-						<span class="inline-flex items-center gap-1 text-[11px] font-normal">
+						<span class="inline-flex shrink-0 items-center gap-1 text-sm font-normal">
 							<span>이동</span>
 							<FontAwesomeIcon icon={faArrowRight} class="h-2.5 w-2.5" />
 						</span>
 					</button>
 				{:else if block.type === 'blockquote'}
 					<blockquote
-						class="my-1.5 rounded-r-lg border-l-2 border-blue-500/60 bg-[var(--lc-surface-muted)] px-3 py-1.5 text-xs text-[var(--lc-text-secondary)] italic"
+						class="my-2 border-l-2 border-[var(--lc-border-strong)] pl-3 text-sm leading-relaxed wrap-anywhere text-[var(--lc-text-secondary)]"
 					>
 						{block.text}
 					</blockquote>
 				{:else if block.type === 'paragraph'}
-					<div class="lc-text-primary text-sm leading-relaxed break-words whitespace-pre-wrap">
+					<div class="lc-text-primary text-base leading-relaxed wrap-anywhere whitespace-pre-wrap">
 						{#each block.tokens as token, tokenIndex (tokenIndex)}
 							{#if token.type === 'text'}
 								{token.text}
@@ -298,7 +246,7 @@
 								<button
 									type="button"
 									onclick={(e) => scrollToComment(token.sequence, e)}
-									class="lc-chip-blue mx-0.5 inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 align-baseline font-mono text-xs font-semibold transition-opacity hover:opacity-80"
+									class="lc-text-accent mx-0.5 inline-flex min-h-6 cursor-pointer items-center gap-1 align-baseline font-mono text-sm font-semibold underline underline-offset-4"
 									title={`#${token.sequence}번 의견으로 이동`}
 								>
 									<FontAwesomeIcon icon={faQuoteRight} class="h-2.5 w-2.5 opacity-70" />
@@ -311,4 +259,43 @@
 			{/each}
 		</div>
 	{/if}
-</div>
+
+	<!-- Comment actions follow the reading content. -->
+	{#if !comment.isDeleted && !isNonUserMessage && !isThreadClosed}
+		<div
+			class="mt-3 flex flex-wrap items-center gap-1"
+			data-testid={`discussion-comment-actions-${comment.sequence}`}
+		>
+			<button
+				type="button"
+				onclick={handleQuote}
+				title={`#${comment.sequence} 인용하여 답글`}
+				data-testid={`discussion-comment-quote-${comment.sequence}`}
+				class="lc-result-action-secondary"
+			>
+				<FontAwesomeIcon icon={faQuoteRight} class="h-3 w-3" />
+				<span>인용</span>
+			</button>
+			<button
+				type="button"
+				onclick={handleEdit}
+				title="의견 수정"
+				data-testid={`discussion-comment-edit-${comment.sequence}`}
+				class="lc-result-action-secondary"
+			>
+				<FontAwesomeIcon icon={faPenToSquare} class="h-3 w-3" />
+				<span>수정</span>
+			</button>
+			<button
+				type="button"
+				onclick={handleDelete}
+				title="의견 삭제"
+				data-testid={`discussion-comment-delete-${comment.sequence}`}
+				class="lc-result-action-secondary"
+			>
+				<FontAwesomeIcon icon={faTrash} class="h-3 w-3" />
+				<span>삭제</span>
+			</button>
+		</div>
+	{/if}
+</article>
