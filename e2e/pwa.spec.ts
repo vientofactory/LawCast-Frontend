@@ -138,80 +138,37 @@ test.describe('PWA', () => {
 		}).toPass();
 	});
 
-	test('assembles the symbol before revealing the wordmark without shifting layout', async ({
-		page
-	}, testInfo) => {
+	test('traces the symbol while keeping the wordmark and tagline static', async ({ page }) => {
 		await page.emulateMedia({ reducedMotion: 'no-preference' });
 		await openApp(page);
-		const brand = page.getByTestId('site-brand').getByTestId('brand-logo');
-		await expect(brand).toHaveAttribute('data-intro', 'true');
-		const bounds = await brand.boundingBox();
 		const heading = page.getByTestId('brand-heading');
-		const headingBounds = await heading.boundingBox();
-		const opacity = (part: string) =>
-			brand.getByTestId(part).evaluate((node) => Number(getComputedStyle(node).opacity));
-		for (const time of [0, 650, 1100, 1700, 1900, 2200]) {
-			await heading.evaluate((node, time) => {
-				for (const animation of node.getAnimations({ subtree: true })) {
-					animation.pause();
-					animation.currentTime = time;
-				}
-			}, time);
-			if (time === 0) {
-				expect(
-					await brand.locator('.lc-brand-echo').evaluate((node) => getComputedStyle(node).opacity)
-				).toBe('0');
-				for (const part of ['brand-arc', 'brand-letter', 'brand-dot', 'brand-wordmark'])
-					expect(await opacity(part)).toBe(0);
-			} else if (time === 650) {
-				expect(await opacity('brand-arc')).toBeGreaterThan(0.9);
-				expect(await opacity('brand-letter')).toBeGreaterThan(0.8);
-				expect(await opacity('brand-dot')).toBe(0);
-				expect(await opacity('brand-wordmark')).toBe(0);
-			} else if (time === 1100) {
-				expect(await opacity('brand-dot')).toBeGreaterThan(0.9);
-				expect(await opacity('brand-wordmark')).toBeGreaterThan(0);
-			} else {
-				for (const part of ['brand-arc', 'brand-letter', 'brand-dot', 'brand-wordmark'])
-					expect(await opacity(part)).toBe(1);
-			}
-			const taglineOpacity = await page
-				.getByTestId('brand-tagline')
-				.evaluate((node) => Number(getComputedStyle(node).opacity));
-			if (time <= 1700) expect(taglineOpacity).toBe(0);
-			else if (time === 1900) {
-				expect(taglineOpacity).toBeGreaterThan(0);
-				expect(taglineOpacity).toBeLessThan(1);
-			} else expect(taglineOpacity).toBe(1);
-			// Measure contrast once the intentionally delayed brand caption is fully visible.
-			if (time === 2200) {
-				const contrast = await measureContrast(page, { selector: '[data-testid="brand-tagline"]' });
-				expect(contrast.ratio).toBeGreaterThanOrEqual(4.5);
-			}
-			await page
-				.getByTestId('site-brand')
-				.screenshot({ path: testInfo.outputPath(`assembly-${time}.png`), animations: 'allow' });
+		const bounds = await heading.boundingBox();
+		for (const part of ['brand-wordmark', 'brand-tagline']) {
+			expect(
+				await heading.getByTestId(part).evaluate((node) => ({
+					opacity: getComputedStyle(node).opacity,
+					animations: node.getAnimations().length
+				}))
+			).toEqual({ opacity: '1', animations: 0 });
 		}
-		expect(await brand.boundingBox()).toEqual(bounds);
-		expect(await heading.boundingBox()).toEqual(headingBounds);
-		expect(
-			await page
-				.getByTestId('footer-brand')
-				.evaluate((node) => node.getAnimations({ subtree: true }).length)
-		).toBe(0);
+		expect(await heading.boundingBox()).toEqual(bounds);
+		const contrast = await measureContrast(page, { selector: '[data-testid="brand-tagline"]' });
+		expect(contrast.ratio).toBeGreaterThanOrEqual(4.5);
 	});
 
-	test('does not replay the intro on client navigation', async ({ page }) => {
+	test('keeps the symbol static on initial load and client navigation', async ({ page }) => {
 		await openApp(page);
 		await page.evaluate(() => {
 			document.documentElement.dataset.brandDocument = 'same';
 		});
+		expect(
+			await page
+				.getByTestId('brand-heading')
+				.evaluate((node) => node.getAnimations({ subtree: true }).length)
+		).toBe(0);
 		await page.getByTestId('nav-link-webhook').click();
 		await expect(page).toHaveURL(/\/webhook$/);
-		await expect(page.getByTestId('site-brand').getByTestId('brand-logo')).toHaveAttribute(
-			'data-intro',
-			'false'
-		);
+
 		expect(await page.evaluate(() => document.documentElement.dataset.brandDocument)).toBe('same');
 		expect(
 			await page
@@ -243,10 +200,15 @@ test.describe('PWA', () => {
 		}
 	});
 
-	test('stops an in-progress logo intro when reduced motion is enabled', async ({ page }) => {
+	test('stops hover playback when reduced motion is enabled', async ({ page }) => {
 		await page.emulateMedia({ reducedMotion: 'no-preference' });
 		await openApp(page);
 		const brand = page.getByTestId('site-brand').getByTestId('brand-logo');
+		await expect(brand.getByTestId('brand-symbol')).toHaveAttribute('data-motion-ready', 'true');
+		await page.getByTestId('site-brand').hover();
+		await expect
+			.poll(() => brand.evaluate((node) => node.getAnimations({ subtree: true }).length))
+			.toBe(5);
 		await page.getByTestId('brand-heading').evaluate((node) => {
 			for (const animation of node.getAnimations({ subtree: true })) {
 				animation.pause();
@@ -255,8 +217,11 @@ test.describe('PWA', () => {
 		});
 		expect(
 			await brand.getByTestId('brand-wordmark').evaluate((node) => getComputedStyle(node).opacity)
-		).toBe('0');
+		).toBe('1');
 		await page.emulateMedia({ reducedMotion: 'reduce' });
+		await expect
+			.poll(() => brand.evaluate((node) => node.getAnimations({ subtree: true }).length))
+			.toBe(0);
 		expect(
 			await page
 				.getByTestId('brand-heading')
@@ -274,9 +239,7 @@ test.describe('PWA', () => {
 				})
 			).toEqual({ opacity: '1', transform: 'none', clip: 'none' });
 		}
-		expect(
-			await brand.locator('.lc-brand-echo').evaluate((node) => getComputedStyle(node).opacity)
-		).toBe('0');
+		await expect(brand.locator('.lc-brand-echo')).toHaveCount(0);
 	});
 
 	test('renders brand assets in both themes and at mobile size', async ({ page }, testInfo) => {
