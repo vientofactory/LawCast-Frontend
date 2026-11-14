@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Alert from '#lib/components/Alert.svelte';
+	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
+	import { disclosureMotion, syncDisclosure } from '#lib/utils/disclosure-motion.ts';
 	import { onMount } from 'svelte';
 	import { floatingPrompt } from '#lib/utils/floating-prompt-motion.ts';
 
@@ -16,6 +18,8 @@
 	let installing = $state(false);
 	let samsungInternet = $state(false);
 	let manualOffer = $state(false);
+	let manualInstallRequested = $state(false);
+	let samsungGuide = $state.raw<HTMLDetailsElement | undefined>();
 	let snoozedInSession = false;
 	let installedInSession = false;
 	const showOffer = $derived(deferredPrompt !== null || manualOffer);
@@ -49,6 +53,7 @@
 	function snooze() {
 		deferredPrompt = null;
 		manualOffer = false;
+		manualInstallRequested = false;
 		snoozedInSession = true;
 		try {
 			localStorage.setItem(DISMISSED_KEY, String(Date.now()));
@@ -84,11 +89,13 @@
 			event.preventDefault();
 			if (installing || !canOffer()) return;
 			error = '';
+			manualInstallRequested = false;
 			deferredPrompt = event as InstallPromptEvent;
 			displayedPrompt = deferredPrompt;
 		};
 		const installed = () => {
 			installedInSession = true;
+			manualInstallRequested = false;
 			manualOffer = false;
 			deferredPrompt = null;
 			error = '';
@@ -114,7 +121,16 @@
 
 	async function install() {
 		const event = deferredPrompt;
-		if (!event || installing) return;
+		if (installing) return;
+		if (!event) {
+			// Keep the primary action available without fabricating a native install event.
+			if (samsungInternet && samsungGuide) {
+				manualInstallRequested = true;
+				syncDisclosure(samsungGuide, true);
+				samsungGuide.querySelector('summary')?.focus();
+			}
+			return;
+		}
 		installing = true;
 		manualOffer = false;
 		deferredPrompt = null;
@@ -149,30 +165,47 @@
 		<div class="flex items-center gap-3">
 			<img src="/brand/v2/icon-192.png" alt="" width="48" height="48" class="shrink-0 rounded-lg" />
 			<div class="min-w-0">
-				<p class="lc-text-primary font-semibold">
-					{samsungInternet && !deferredPrompt
-						? '삼성 인터넷에서 LawCast 설치하기'
-						: 'LawCast를 앱으로 설치할까요?'}
-				</p>
+				<p class="lc-text-primary font-semibold">LawCast를 앱으로 설치할까요?</p>
 				<p class="lc-text-secondary mt-1 text-sm">홈 화면에서 입법예고를 더 편하게 확인하세요.</p>
 			</div>
 		</div>
 		{#if samsungInternet}
-			<div data-testid="pwa-samsung-install-help" class="lc-text-secondary mt-3 space-y-2 text-sm">
-				<p>
-					삼성 인터넷의 주소창 설치 아이콘 또는 메뉴의 ‘현재 페이지 추가’ → ‘홈 화면’을 확인해
-					주세요. 버전에 따라 메뉴 이름이 다를 수 있습니다.
+			<details
+				bind:this={samsungGuide}
+				use:disclosureMotion
+				data-testid="pwa-samsung-install-help"
+				class="mt-3"
+			>
+				<summary
+					data-testid="pwa-samsung-install-toggle"
+					class="lc-disclosure-trigger lc-text-primary flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+				>
+					<span>삼성 인터넷 브라우저 지침</span>
+					<DisclosureIndicator />
+				</summary>
+				<div
+					data-testid="pwa-samsung-install-instructions"
+					class="lc-text-secondary mt-2 space-y-2 text-sm"
+				>
+					<p>
+						삼성 인터넷의 주소창 설치 아이콘 또는 메뉴의 ‘현재 페이지 추가’ → ‘홈 화면’을 확인해
+						주세요. 버전에 따라 메뉴 이름이 다를 수 있습니다.
+					</p>
+					<p>
+						‘앱으로 설치’와 ‘바로가기 추가’가 함께 표시되면 앱 설치를 선택하세요. 바로가기는
+						브라우저에서 열릴 수 있습니다.
+					</p>
+					<p>
+						설치가 완료되지 않거나 Android에서 차단되면 삼성 인터넷을 업데이트하거나, 같은 주소를
+						Chrome에서 열어 설치해 보세요. 설치 창을 확인해도 실제 설치가 끝나지 않을 수 있습니다.
+					</p>
+				</div>
+			</details>
+			{#if error || manualInstallRequested}
+				<p role="status" class="lc-text-primary mt-2 text-sm">
+					{error || '브라우저 설치 창이 준비되지 않아 삼성 인터넷 지침을 열었습니다.'}
 				</p>
-				<p>
-					‘앱으로 설치’와 ‘바로가기 추가’가 함께 표시되면 앱 설치를 선택하세요. 바로가기는
-					브라우저에서 열릴 수 있습니다.
-				</p>
-				<p>
-					설치가 완료되지 않거나 Android에서 차단되면 삼성 인터넷을 업데이트하거나, 같은 주소를
-					Chrome에서 열어 설치해 보세요. 설치 창을 확인해도 실제 설치가 끝나지 않을 수 있습니다.
-				</p>
-				{#if error}<p role="status" class="lc-text-primary">{error}</p>{/if}
-			</div>
+			{/if}
 		{/if}
 		<div class="mt-3 flex justify-end gap-2">
 			<button
@@ -185,12 +218,12 @@
 					snooze();
 				}}>나중에</button
 			>
-			{#if displayedPrompt && (!samsungInternet || deferredPrompt)}
+			{#if samsungInternet || displayedPrompt}
 				<button
 					type="button"
 					class="lc-button-primary min-h-[44px] cursor-pointer px-4 py-2 text-sm font-semibold"
 					data-testid="pwa-install-button"
-					disabled={!deferredPrompt}
+					disabled={installing || (!deferredPrompt && !samsungInternet)}
 					onclick={install}>앱 설치</button
 				>
 			{/if}
