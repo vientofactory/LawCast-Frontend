@@ -875,16 +875,22 @@ test.describe('PWA', () => {
 			});
 		});
 
-		test('shows manual guidance without an install event and fits a narrow screen', async ({
+		test('keeps Samsung instructions collapsed until requested and fits a narrow screen', async ({
 			page
 		}) => {
 			await page.setViewportSize({ width: 320, height: 640 });
 			await openApp(page);
 			const guide = page.getByTestId('pwa-samsung-install-help');
+			const toggle = page.getByTestId('pwa-samsung-install-toggle');
+			const instructions = page.getByTestId('pwa-samsung-install-instructions');
+			await expect(toggle).toBeVisible();
+			await expect(guide).not.toHaveAttribute('open', '');
+			await expect(instructions).toBeHidden();
 			await expect(guide).toContainText('삼성 인터넷');
 			await expect(guide).toContainText('홈 화면');
 			await expect(guide).toContainText('Chrome');
-			await expect(page.getByTestId('pwa-install-button')).toHaveCount(0);
+			await expect(page.getByTestId('pwa-install-button')).toBeVisible();
+			await expect(page.getByTestId('pwa-install-button')).toBeEnabled();
 			await expect(page.getByTestId('pwa-install-dismiss')).toBeInViewport();
 			expect(
 				await page
@@ -892,7 +898,31 @@ test.describe('PWA', () => {
 					.evaluate((node) => node.scrollWidth <= node.clientWidth)
 			).toBe(true);
 			expect(await page.locator('html').getAttribute('data-pwa-prompt-calls')).toBeNull();
-			await page.screenshot({ path: 'test-results/pwa-samsung-manual.png' });
+			await expect(page.getByTestId('pwa-install-prompt')).toHaveCSS('opacity', '1');
+			await page.screenshot({ path: 'test-results/pwa-samsung-collapsed-320.png' });
+			await toggle.click();
+			await expect(instructions).toBeVisible();
+			await expect(guide).not.toHaveAttribute('data-disclosure-state', 'opening');
+			await expect(page.getByTestId('pwa-install-dismiss')).toBeInViewport();
+			await page.screenshot({ path: 'test-results/pwa-samsung-expanded-320.png' });
+			await toggle.focus();
+			await page.keyboard.press('Enter');
+			await expect(instructions).toBeHidden();
+			await page.keyboard.press('Space');
+			await expect(instructions).toBeVisible();
+			await expect(guide).not.toHaveAttribute('data-disclosure-state', 'opening');
+			await toggle.click();
+			await expect(instructions).toBeHidden();
+			await page.reload();
+			await expect(instructions).toBeHidden();
+			await page.setViewportSize({ width: 390, height: 844 });
+			await expect(page.getByTestId('pwa-install-prompt')).toHaveCSS('opacity', '1');
+			await page.screenshot({ path: 'test-results/pwa-samsung-collapsed.png' });
+			await toggle.click();
+			await expect(instructions).toBeVisible();
+			await expect(guide).not.toHaveAttribute('data-disclosure-state', 'opening');
+			await expect(page.getByTestId('pwa-install-dismiss')).toBeInViewport();
+			await page.screenshot({ path: 'test-results/pwa-samsung-expanded.png' });
 		});
 
 		test('prefers an available native event and keeps guidance after a prompt failure', async ({
@@ -902,16 +932,48 @@ test.describe('PWA', () => {
 			await offerInstall(page, 'accepted', true);
 			await page.getByTestId('pwa-install-button').click();
 			await expect(page.getByTestId('pwa-samsung-install-help')).toBeVisible();
-			await expect(page.getByTestId('pwa-install-prompt')).toContainText(
-				'설치 창을 열지 못했습니다.'
-			);
-			await expect(page.getByTestId('pwa-install-button')).toHaveCount(0);
+			await expect(
+				page.getByRole('status').filter({ hasText: '설치 창을 열지 못했습니다.' })
+			).toBeVisible();
+			await expect(page.getByTestId('pwa-samsung-install-instructions')).toBeHidden();
+			await expect(page.getByTestId('pwa-install-button')).toBeVisible();
+			await expect(page.getByTestId('pwa-install-button')).toBeEnabled();
 			await expect(page.locator('html')).toHaveAttribute('data-pwa-prompt-calls', '1');
 			await offerInstall(page);
 			await page.getByTestId('pwa-install-button').click();
 			await expect(page.locator('html')).toHaveAttribute('data-pwa-prompt-calls', '2');
 			await expect(page.getByTestId('pwa-samsung-install-help')).toBeVisible();
-			await expect(page.getByTestId('pwa-install-button')).toHaveCount(0);
+			await expect(page.getByTestId('pwa-install-button')).toBeVisible();
+			await expect(page.getByTestId('pwa-install-button')).toBeEnabled();
+			await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
+			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+		});
+
+		test('keeps the primary install action alongside separate guidance and prefers late native events', async ({
+			page
+		}) => {
+			await openApp(page);
+			const button = page.getByTestId('pwa-install-button');
+			const instructions = page.getByTestId('pwa-samsung-install-instructions');
+			await expect(button).toBeVisible();
+			await expect(button).toBeEnabled();
+			await expect(instructions).toBeHidden();
+			await button.click();
+			await expect(instructions).toBeVisible();
+			await expect(
+				page.getByRole('status').filter({ hasText: '브라우저 설치 창이 준비되지 않아' })
+			).toBeVisible();
+			expect(await page.locator('html').getAttribute('data-pwa-prompt-calls')).toBeNull();
+			await offerInstall(page);
+			await expect(
+				page.getByRole('status').filter({ hasText: '브라우저 설치 창이 준비되지 않아' })
+			).toHaveCount(0);
+			await button.click();
+			await expect(page.locator('html')).toHaveAttribute('data-pwa-prompt-calls', '1');
+			await expect(button).toBeVisible();
+			await button.click();
+			await expect(instructions).toBeVisible();
+			await expect(page.locator('html')).toHaveAttribute('data-pwa-prompt-calls', '1');
 			await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
 			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
 		});
