@@ -25,7 +25,13 @@ function normalizeLicense(raw: string | undefined): string {
 
 type LockfilePackages = Record<
 	string,
-	{ version?: string; license?: string; [metadata: string]: unknown }
+	{
+		version?: string;
+		license?: string;
+		link?: boolean;
+		resolved?: string;
+		[metadata: string]: unknown;
+	}
 >;
 
 function loadPackagesFromLockfile(
@@ -35,7 +41,18 @@ function loadPackagesFromLockfile(
 	const lockPkgs = lock.packages ?? {};
 
 	return Object.keys(pkg.dependencies ?? {}).map((name) => {
-		const entry = lockPkgs[`node_modules/${name}`];
+		let entry: LockfilePackages[string] | undefined = lockPkgs[`node_modules/${name}`];
+		const visited = new Set<string>();
+		// Local npm dependencies store their metadata at the link target.
+		while (entry?.link) {
+			const target: string | undefined = entry.resolved;
+			if (!target || visited.has(target)) {
+				entry = undefined;
+				break;
+			}
+			visited.add(target);
+			entry = lockPkgs[target];
+		}
 		const license = normalizeLicense(entry?.license);
 		const note = NOTES[name];
 		return {
