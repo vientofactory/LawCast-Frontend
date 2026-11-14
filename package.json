@@ -1,6 +1,6 @@
 {
 	"name": "lawcast-frontend",
-	"version": "3.1.7",
+	"version": "3.1.8",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,
@@ -16,7 +16,7 @@
 		"start:node": "node --env-file-if-exists=.env build/index.js",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && npm run check:native && npm run test:vendor",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && npm run check:native && npm run test:vendor && npm run test:license",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --write . && eslint . --fix",
@@ -37,7 +37,8 @@
 		"test:e2e:report": "playwright show-report",
 		"check:native": "node node_modules/typescript-native/bin/tsc --noEmit",
 		"test:vendor": "node --test vendor/deepmerge/security.test.cjs",
-		"test:e2e:framework:cloudflare": "DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.framework-cloudflare.config.ts"
+		"test:e2e:framework:cloudflare": "DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.framework-cloudflare.config.ts",
+		"test:license": "node --test scripts/license-metadata.test.mjs"
 	},
 	"repository": {
 		"type": "git",

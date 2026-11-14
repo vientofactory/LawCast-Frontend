@@ -865,6 +865,149 @@ test.describe('PWA', () => {
 		).toBeTruthy();
 	});
 
+	test.describe('Samsung Internet installation', () => {
+		test.beforeEach(async ({ page }) => {
+			await page.addInitScript(() => {
+				Object.defineProperty(navigator, 'userAgent', {
+					value:
+						'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36 SamsungBrowser/28.0'
+				});
+			});
+		});
+
+		test('shows manual guidance without an install event and fits a narrow screen', async ({
+			page
+		}) => {
+			await page.setViewportSize({ width: 320, height: 640 });
+			await openApp(page);
+			const guide = page.getByTestId('pwa-samsung-install-help');
+			await expect(guide).toContainText('삼성 인터넷');
+			await expect(guide).toContainText('홈 화면');
+			await expect(guide).toContainText('Chrome');
+			await expect(page.getByTestId('pwa-install-button')).toHaveCount(0);
+			await expect(page.getByTestId('pwa-install-dismiss')).toBeInViewport();
+			expect(
+				await page
+					.getByTestId('pwa-install-prompt')
+					.evaluate((node) => node.scrollWidth <= node.clientWidth)
+			).toBe(true);
+			expect(await page.locator('html').getAttribute('data-pwa-prompt-calls')).toBeNull();
+			await page.screenshot({ path: 'test-results/pwa-samsung-manual.png' });
+		});
+
+		test('prefers an available native event and keeps guidance after a prompt failure', async ({
+			page
+		}) => {
+			await openApp(page);
+			await offerInstall(page, 'accepted', true);
+			await page.getByTestId('pwa-install-button').click();
+			await expect(page.getByTestId('pwa-samsung-install-help')).toBeVisible();
+			await expect(page.getByTestId('pwa-install-prompt')).toContainText(
+				'설치 창을 열지 못했습니다.'
+			);
+			await expect(page.getByTestId('pwa-install-button')).toHaveCount(0);
+			await expect(page.locator('html')).toHaveAttribute('data-pwa-prompt-calls', '1');
+			await offerInstall(page);
+			await page.getByTestId('pwa-install-button').click();
+			await expect(page.locator('html')).toHaveAttribute('data-pwa-prompt-calls', '2');
+			await expect(page.getByTestId('pwa-samsung-install-help')).toBeVisible();
+			await expect(page.getByTestId('pwa-install-button')).toHaveCount(0);
+			await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
+			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+		});
+
+		test('snoozes manual guidance across reloads and restores it after expiry', async ({
+			page
+		}) => {
+			await openApp(page);
+			await page.getByTestId('pwa-install-dismiss').click();
+			await offerInstall(page);
+			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+			await page.reload();
+			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+			await page.evaluate(() =>
+				localStorage.setItem('lawcast-pwa-dismissed-at', String(Date.now() - 8 * 86400000))
+			);
+			await page.reload();
+			await expect(page.getByTestId('pwa-samsung-install-help')).toBeVisible();
+		});
+
+		test('retains native dismissal cooldown for Samsung Internet', async ({ page }) => {
+			await openApp(page);
+			await offerInstall(page, 'dismissed');
+			await page.getByTestId('pwa-install-button').click();
+			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+			await page.reload();
+			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+		});
+
+		test('supports blocked storage and honors dismissal in the current session', async ({
+			page
+		}) => {
+			await page.addInitScript(() => {
+				Storage.prototype.getItem = Storage.prototype.setItem = () => {
+					throw new Error('Storage blocked');
+				};
+			});
+			await openApp(page);
+			await expect(page.getByTestId('pwa-samsung-install-help')).toBeVisible();
+			await page.getByTestId('pwa-install-dismiss').click();
+			await offerInstall(page);
+			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+		});
+
+		for (const mode of ['standalone', 'ios-standalone', 'insecure', 'no-worker']) {
+			test(`suppresses manual and native offers in ${mode} contexts`, async ({ page }) => {
+				await page.addInitScript((mode) => {
+					if (mode === 'standalone') {
+						const original = window.matchMedia.bind(window);
+						window.matchMedia = (query) => {
+							const result = original(query);
+							if (query === '(display-mode: standalone)')
+								Object.defineProperty(result, 'matches', { value: true });
+							return result;
+						};
+					} else if (mode === 'ios-standalone')
+						Object.defineProperty(navigator, 'standalone', { value: true });
+					else if (mode === 'insecure')
+						Object.defineProperty(window, 'isSecureContext', { value: false });
+					else delete (Navigator.prototype as unknown as { serviceWorker?: unknown }).serviceWorker;
+				}, mode);
+				await page.goto('/');
+				await page.getByRole('switch', { name: /테마로 전환/ }).waitFor();
+				await offerInstall(page);
+				await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+			});
+		}
+
+		test('clears manual guidance on installation without persisting an installed flag', async ({
+			page
+		}) => {
+			await openApp(page);
+			await expect(page.getByTestId('pwa-samsung-install-help')).toBeVisible();
+			await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
+			await offerInstall(page);
+			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+			await page.reload();
+			await expect(page.getByTestId('pwa-samsung-install-help')).toBeVisible();
+		});
+	});
+
+	for (const agent of [
+		'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36 SamsungBrowser/30.0',
+		'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36',
+		'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'
+	]) {
+		test(`does not show Samsung guidance for ${agent}`, async ({ page }) => {
+			await page.addInitScript(
+				(agent) => Object.defineProperty(navigator, 'userAgent', { value: agent }),
+				agent
+			);
+			await openApp(page);
+			await expect(page.getByTestId('pwa-install-prompt')).toBeHidden();
+		});
+	}
+
 	test('waits for browser eligibility and invokes the native prompt only on click', async ({
 		page
 	}) => {
