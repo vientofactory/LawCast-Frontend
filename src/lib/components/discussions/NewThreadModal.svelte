@@ -1,4 +1,6 @@
 <script lang="ts">
+	import PoWChallengeStatus from '#lib/components/PoWChallengeStatus.svelte';
+	import { createPowDisplayState, type PowDisplayState } from '#lib/utils/pow-status.ts';
 	import FormFeedback from '#lib/components/FormFeedback.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import {
@@ -14,6 +16,7 @@
 	let {
 		isOpen = false,
 		isSubmitting = false,
+		powState = createPowDisplayState(),
 		isRateLimited = false,
 		externalErrorMessage = '',
 		onSubmit,
@@ -21,9 +24,10 @@
 	}: {
 		isOpen?: boolean;
 		isSubmitting?: boolean;
+		powState?: PowDisplayState;
 		isRateLimited?: boolean;
 		externalErrorMessage?: string;
-		onSubmit?: (payload: CreateThreadPayload) => void;
+		onSubmit?: (payload: Omit<CreateThreadPayload, 'proof'>) => void;
 		onClose?: () => void;
 	} = $props();
 
@@ -63,6 +67,7 @@
 	}
 
 	function handleSubmit() {
+		if (isSubmitting || isRateLimited) return;
 		validationRevision++;
 		invalidField = null;
 		errorMessage = '';
@@ -214,11 +219,17 @@
 				placeholder="토론을 시작하는 이유와 의견을 작성해주세요."
 				class="w-full rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] p-3 text-sm text-[var(--lc-text-primary)] placeholder-[var(--lc-text-dim)] focus:border-blue-500 focus:outline-none"
 			></textarea>
-			<div class="lc-text-dim mt-1 flex justify-between text-xs">
+			<div class="lc-text-dim mt-1 flex justify-between gap-2 text-xs">
 				<span>* 작성자 식별을 위해 IP 주소 일부(예: 123.45.***.***)가 표시됩니다.</span>
-				<span>{content.length}/5000</span>
+				<span class="shrink-0 whitespace-nowrap">{content.length}/5000</span>
 			</div>
 		</div>
+
+		{#if isSubmitting && powState.message}
+			<div role="status" aria-live="polite" data-testid="discussion-security-status">
+				<PoWChallengeStatus {...powState} />
+			</div>
+		{/if}
 
 		<div class="flex justify-end gap-2 pt-2">
 			<button
@@ -237,7 +248,7 @@
 			>
 				{#if isSubmitting}
 					<FontAwesomeIcon icon={faSpinner} class="h-3 w-3 animate-spin" />
-					<span>개설 중...</span>
+					<span>{powState.message ? '보안 검증 중...' : '개설 중...'}</span>
 				{:else}
 					<FontAwesomeIcon icon={faPaperPlane} class="h-3 w-3" />
 					<span>토론 개설하기</span>

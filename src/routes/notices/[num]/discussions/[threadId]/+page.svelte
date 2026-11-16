@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { executePowInWorker } from '#lib/hashguard-worker.ts';
+	import { applyPowStatus, createPowDisplayState } from '#lib/utils/pow-status.ts';
 	import Alert from '#lib/components/Alert.svelte';
 	import Header from '#lib/components/Header.svelte';
 	import { afterNavigate, goto } from '$app/navigation';
@@ -63,6 +65,7 @@
 
 	let comments = $derived(discussionData?.comments ?? []);
 	let isSubmittingComment = $state(false);
+	let powState = $state(createPowDisplayState());
 	let isActionModalOpen = $state(false);
 	let actionModalMode: 'edit-comment' | 'delete-comment' | 'toggle-thread-status' =
 		$state('delete-comment');
@@ -251,17 +254,24 @@
 		goto(`/notices/${data.noticeNum}#notice-discussions`);
 	}
 
-	async function handleAddComment(payload: CreateCommentPayload) {
+	async function handleAddComment(payload: Omit<CreateCommentPayload, 'proof'>) {
+		if (isSubmittingComment) return;
 		isSubmittingComment = true;
+		powState = createPowDisplayState('보안 검증을 준비하고 있어요...');
 		errorMessage = '';
 		if (!discussionData) {
 			errorMessage = '토론 내용을 불러온 후 다시 시도해주세요.';
 			isSubmittingComment = false;
+			powState = createPowDisplayState();
 			return;
 		}
 		try {
 			const wasFirstOpinion = discussionData.comments.length === 1;
-			const newComment = await apiClient.addDiscussionComment(data.threadId, payload);
+			const proof = await executePowInWorker('discussion-comment', (status) => {
+				powState = applyPowStatus(powState, status);
+			});
+			powState = createPowDisplayState();
+			const newComment = await apiClient.addDiscussionComment(data.threadId, { ...payload, proof });
 			discussionData = {
 				...discussionData,
 				thread: {
@@ -282,6 +292,7 @@
 			errorMessage = discussionErrorMessage(err, '의견 등록 중 오류가 발생했습니다.');
 		} finally {
 			isSubmittingComment = false;
+			powState = createPowDisplayState();
 		}
 	}
 
@@ -556,6 +567,7 @@
 						{thread}
 						{comments}
 						{isSubmittingComment}
+						{powState}
 						isRateLimited={rateLimitRemaining > 0}
 						{rateLimitRemaining}
 						onRetryRateLimit={reloadThread}

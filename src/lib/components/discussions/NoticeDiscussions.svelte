@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { executePowInWorker } from '#lib/hashguard-worker.ts';
+	import { applyPowStatus, createPowDisplayState } from '#lib/utils/pow-status.ts';
 	import LoadFailureState from '#lib/components/LoadFailureState.svelte';
 	import Alert from '#lib/components/Alert.svelte';
 	import { tick, untrack, onDestroy } from 'svelte';
@@ -47,6 +49,7 @@
 
 	let isNewThreadModalOpen = $state(false);
 	let isSubmittingNewThread = $state(false);
+	let powState = $state(createPowDisplayState());
 	let newThreadErrorMessage = $state('');
 	let NewThreadModalComponent: Component<ComponentProps<typeof NewThreadModal>> | null =
 		$state(null);
@@ -107,11 +110,17 @@
 		goto(`/notices/${noticeNum}/discussions/${threadId}`);
 	}
 
-	async function handleCreateThread(payload: CreateThreadPayload) {
+	async function handleCreateThread(payload: Omit<CreateThreadPayload, 'proof'>) {
+		if (isSubmittingNewThread) return;
 		isSubmittingNewThread = true;
+		powState = createPowDisplayState('보안 검증을 준비하고 있어요...');
 		newThreadErrorMessage = '';
 		try {
-			const res = await apiClient.createNoticeDiscussion(noticeNum, payload);
+			const proof = await executePowInWorker('discussion-thread', (status) => {
+				powState = applyPowStatus(powState, status);
+			});
+			powState = createPowDisplayState();
+			const res = await apiClient.createNoticeDiscussion(noticeNum, { ...payload, proof });
 			isNewThreadModalOpen = false;
 			if (typeof sessionStorage !== 'undefined') {
 				sessionStorage.setItem(`lawcast-new-discussion:${res.thread.id}`, '1');
@@ -123,6 +132,7 @@
 			newThreadErrorMessage = discussionErrorMessage(err, '토론 개설 중 오류가 발생했습니다.');
 		} finally {
 			isSubmittingNewThread = false;
+			powState = createPowDisplayState();
 		}
 	}
 </script>
@@ -191,6 +201,7 @@
 	<NewThreadModalComponent
 		isOpen={isNewThreadModalOpen}
 		isSubmitting={isSubmittingNewThread}
+		{powState}
 		isRateLimited={rateLimitRemaining > 0}
 		externalErrorMessage={newThreadErrorMessage}
 		onClose={() => (isNewThreadModalOpen = false)}

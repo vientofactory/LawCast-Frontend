@@ -1,4 +1,5 @@
 export interface PowStatusLike {
+	phase?: string;
 	message: string;
 	attempts?: number;
 	difficultyBits?: number;
@@ -25,6 +26,9 @@ export function createPowDisplayState(message = ''): PowDisplayState {
 }
 
 export function applyPowStatus(current: PowDisplayState, status: PowStatusLike): PowDisplayState {
+	if (status.phase === 'assess' || status.phase === 'done') {
+		return createPowDisplayState(status.message);
+	}
 	return {
 		message: status.message,
 		attempts: status.attempts ?? current.attempts,

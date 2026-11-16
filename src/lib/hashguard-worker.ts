@@ -1,7 +1,8 @@
 import { browser } from '$app/env';
 import * as env from '$app/env/public';
 import HashGuardPowWorker from '#lib/workers/hashguardPow.worker?worker';
-import type { Challenge } from 'hashguard-client';
+import type { PowStatus } from '#lib/hashguard-flow.ts';
+export type { PowStatus } from '#lib/hashguard-flow.ts';
 
 const HASHGUARD_URL = env.PUBLIC_HASHGUARD_URL || 'https://hashguard.viento.me';
 
@@ -37,24 +38,14 @@ type WorkerResponse = {
 	wasmReady?: boolean;
 	proof?: string;
 	error?: string;
-};
-
-type PowStatusPhase = 'warmup' | 'issue' | 'solve' | 'verify' | 'done';
-
-export type PowStatus = {
-	phase: PowStatusPhase;
-	message: string;
-	attempts?: number;
-	difficultyBits?: number;
-	hashRate?: number;
-	estimatedRemainingMs?: number;
-	attemptProgress?: number;
+	status?: number;
+	code?: string;
 };
 
 type WorkerStatusEvent = {
 	requestId: number;
 	type: 'status';
-	phase: PowStatusPhase;
+	phase: PowStatus['phase'];
 	message: string;
 	attempts?: number;
 	difficultyBits?: number;
@@ -124,6 +115,8 @@ function ensureWorker(): Worker {
 	};
 
 	worker.onerror = () => {
+		worker?.terminate();
+		worker = null;
 		rejectAllPendingRequests(new Error('HashGuard 워커 실행 중 오류가 발생했습니다.'));
 	};
 
@@ -149,75 +142,13 @@ async function warmupOnMainThread(): Promise<boolean> {
 	return warmupHashGuardWasm();
 }
 
-function notifyStatus(
-	onStatus: ((status: PowStatus) => void) | undefined,
-	phase: PowStatusPhase,
-	message: string,
-	extra: Omit<PowStatus, 'phase' | 'message'> = {}
-): void {
-	onStatus?.({ phase, message, ...extra });
-}
-
-async function solveChallengeOnMainThread(
-	challenge: Challenge,
-	onStatus?: (status: PowStatus) => void
-) {
-	const { solvePow } = await import('hashguard-client');
-	return solvePow(challenge.challengeId, challenge.seed, challenge.target, {
-		difficultyBits: challenge.difficultyBits,
-		progressInterval: 50000,
-		onEstimate: (estimate_1) => {
-			if (estimate_1.phase !== 'progress') return;
-			notifyStatus(onStatus, 'solve', '잠시만 기다려주세요. 작업증명 해시를 계산하는 중입니다...', {
-				attempts: estimate_1.attempts,
-				difficultyBits: challenge.difficultyBits,
-				hashRate: estimate_1.hashRate,
-				estimatedRemainingMs: estimate_1.estimatedRemainingMs ?? undefined,
-				attemptProgress: estimate_1.attemptProgress
-			});
-		}
-	});
-}
-
 async function executeOnMainThread(
 	context: string,
 	onStatus?: (status: PowStatus) => void
 ): Promise<string> {
+	const { executeAdaptivePow } = await import('#lib/hashguard-flow.ts');
 	const { getHashGuardClient, warmupHashGuardWasm } = await import('#lib/hashguard.ts');
-	notifyStatus(onStatus, 'warmup', 'WASM 가속 엔진을 준비하고 있어요...');
-	await warmupHashGuardWasm();
-	const client = getHashGuardClient();
-
-	notifyStatus(onStatus, 'issue', '서버에 보안 챌린지를 요청하고 있어요...');
-	const challenge = await client.issueChallenge(context);
-
-	notifyStatus(onStatus, 'solve', '잠시만 기다려주세요. 작업증명 해시를 계산하는 중입니다...', {
-		difficultyBits: challenge.difficultyBits
-	});
-	const solveResult = await solveChallengeOnMainThread(challenge, onStatus);
-
-	notifyStatus(onStatus, 'verify', '연산 결과를 서버에서 검증하고 있어요...', {
-		attempts: solveResult.attempts,
-		difficultyBits: challenge.difficultyBits
-	});
-	const verification = await client.verifyChallenge(
-		challenge.challengeId,
-		solveResult.nonce,
-		solveResult.solveTimeMs
-	);
-
-	const proof = verification.proofToken;
-
-	if (!proof) {
-		throw new Error('보안 검증에 실패했습니다.');
-	}
-
-	notifyStatus(onStatus, 'done', '보안 검증이 완료되었습니다.', {
-		attempts: solveResult.attempts,
-		difficultyBits: challenge.difficultyBits
-	});
-
-	return proof;
+	return executeAdaptivePow(getHashGuardClient(), context, onStatus, warmupHashGuardWasm);
 }
 
 export async function warmupHashGuardWorker(): Promise<boolean> {
@@ -254,7 +185,10 @@ export async function executePowInWorker(
 		onStatus
 	);
 	if (!response.ok || !response.proof) {
-		throw new Error(response.error || '보안 검증에 실패했습니다.');
+		throw Object.assign(new Error(response.error || '보안 검증에 실패했습니다.'), {
+			status: response.status,
+			code: response.code
+		});
 	}
 
 	return response.proof;

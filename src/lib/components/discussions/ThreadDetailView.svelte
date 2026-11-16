@@ -1,4 +1,6 @@
 <script lang="ts">
+	import PoWChallengeStatus from '#lib/components/PoWChallengeStatus.svelte';
+	import { createPowDisplayState, type PowDisplayState } from '#lib/utils/pow-status.ts';
 	import FormFeedback from '#lib/components/FormFeedback.svelte';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { onMount } from 'svelte';
@@ -26,6 +28,7 @@
 		thread,
 		comments = [],
 		isSubmittingComment = false,
+		powState = createPowDisplayState(),
 		isRateLimited = false,
 		rateLimitRemaining = 0,
 		onRetryRateLimit,
@@ -43,12 +46,13 @@
 		thread: DiscussionThread;
 		comments?: DiscussionComment[];
 		isSubmittingComment?: boolean;
+		powState?: PowDisplayState;
 		isRateLimited?: boolean;
 		rateLimitRemaining?: number;
 		onRetryRateLimit?: () => void | Promise<void>;
 		isRetryingRateLimit?: boolean;
 		onBack?: () => void;
-		onSubmitComment?: (payload: CreateCommentPayload) => void;
+		onSubmitComment?: (payload: Omit<CreateCommentPayload, 'proof'>) => void;
 		onEditComment?: (comment: DiscussionComment) => void;
 		onDeleteComment?: (comment: DiscussionComment) => void;
 		onToggleStatus?: (thread: DiscussionThread) => void;
@@ -97,6 +101,7 @@
 	}
 
 	function handleCommentSubmit() {
+		if (isSubmittingComment || isRateLimited) return;
 		validationRevision++;
 		invalidField = null;
 		replyErrorMessage = '';
@@ -423,7 +428,7 @@
 					>
 						{#if isSubmittingComment}
 							<FontAwesomeIcon icon={faSpinner} class="h-3 w-3 animate-spin" />
-							<span>등록 중...</span>
+							<span>{powState.message ? '보안 검증 중...' : '등록 중...'}</span>
 						{:else if isRateLimited}
 							<span>잠시 후 다시 시도</span>
 						{:else}
@@ -432,6 +437,11 @@
 						{/if}
 					</button>
 				</div>
+				{#if isSubmittingComment && powState.message}
+					<div role="status" aria-live="polite" data-testid="discussion-security-status">
+						<PoWChallengeStatus {...powState} />
+					</div>
+				{/if}
 			</form>
 		</section>
 	{:else}
