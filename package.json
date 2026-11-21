@@ -1,6 +1,6 @@
 {
 	"name": "lawcast-frontend",
-	"version": "3.1.9",
+	"version": "3.2.0",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,
@@ -62,7 +62,7 @@
 		"date-fns": "^4.4.0",
 		"harfbuzz-upstream": "npm:harfbuzzjs@0.10.0",
 		"harfbuzzjs": "file:./vendor/harfbuzz-edge",
-		"hashguard-client": "2.0.0",
+		"hashguard-client": "2.0.1",
 		"marked": "^18.1.3",
 		"nprogress": "^0.2.0",
 		"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
