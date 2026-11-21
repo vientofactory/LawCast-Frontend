@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { installHashguardMock } from './helpers/hashguard';
 import { readModalTransitionSample, startModalTransitionSample } from './helpers/modal-transition';
 
 const noticeNum = 2210001;
@@ -68,6 +69,9 @@ async function openNewThreadModal(page: Page): Promise<void> {
 }
 
 test.describe('Discussion UI', () => {
+	test.beforeEach(async ({ context }) => {
+		await installHashguardMock(context);
+	});
 	test.skip(!mockEnabled, 'Discussion UI tests require DIFFCHAIN_UI_MOCK=1.');
 
 	test('shows discussion list and opens a thread from the notice detail page', async ({ page }) => {
@@ -122,6 +126,7 @@ test.describe('Discussion UI', () => {
 			const request = route.request();
 			expect(request.method()).toBe('POST');
 			expect(request.postDataJSON()).toMatchObject({
+				proof: 'assertion-discussion-comment-1',
 				authorNickname: '테스터',
 				password: '1234',
 				content: '새 테스트 의견입니다.'
@@ -259,6 +264,7 @@ test.describe('Discussion UI', () => {
 		await expect(page.getByTestId('discussion-thread-summary')).toContainText('모의 토론 주제');
 
 		expect(createdPayload).toMatchObject({
+			proof: 'assertion-discussion-thread-1',
 			title: '개정안 실효성 검증 토론',
 			authorNickname: '테스터',
 			password: '1234',

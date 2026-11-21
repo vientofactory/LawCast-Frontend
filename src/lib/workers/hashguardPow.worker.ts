@@ -1,4 +1,6 @@
-import { HashGuardClient, initHashGuardWasm, solvePow } from 'hashguard-client';
+import { HashGuardError, HashGuardClient, initHashGuardWasm } from 'hashguard-client';
+
+import { executeAdaptivePow, type PowStatus } from '../hashguard-flow';
 
 type WarmupRequest = {
 	requestId: number;
@@ -21,9 +23,11 @@ type WorkerResponse = {
 	wasmReady?: boolean;
 	proof?: string;
 	error?: string;
+	status?: number;
+	code?: string;
 };
 
-type PowStatusPhase = 'warmup' | 'issue' | 'solve' | 'verify' | 'done';
+type PowStatusPhase = PowStatus['phase'];
 
 type WorkerStatusEvent = {
 	requestId: number;
@@ -110,55 +114,19 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
 			return;
 		}
 
-		postStatus(requestId, 'warmup', 'WASM 가속 엔진을 준비하고 있어요...');
-		await warmupWasm();
-		const client = getClient(request.baseUrl);
-
-		postStatus(requestId, 'issue', '서버에 보안 챌린지를 요청하고 있어요...');
-		const challenge = await client.issueChallenge(request.context);
-
-		postStatus(requestId, 'solve', '작업증명 해시를 계산하는 중입니다...', {
-			difficultyBits: challenge.difficultyBits
-		});
-		const solveResult = solvePow(challenge.challengeId, challenge.seed, challenge.target, {
-			difficultyBits: challenge.difficultyBits,
-			progressInterval: 50_000,
-			onEstimate: (estimate) => {
-				if (estimate.phase !== 'progress') return;
-				postStatus(requestId, 'solve', '작업증명 해시를 계산하는 중입니다...', {
-					attempts: estimate.attempts,
-					difficultyBits: challenge.difficultyBits,
-					hashRate: estimate.hashRate,
-					estimatedRemainingMs: estimate.estimatedRemainingMs ?? undefined,
-					attemptProgress: estimate.attemptProgress
-				});
-			}
-		});
-
-		postStatus(requestId, 'verify', '연산 결과를 서버에서 검증하고 있어요...', {
-			attempts: solveResult.attempts,
-			difficultyBits: challenge.difficultyBits
-		});
-		const verification = await client.verifyChallenge(
-			challenge.challengeId,
-			solveResult.nonce,
-			solveResult.solveTimeMs
+		const proof = await executeAdaptivePow(
+			getClient(request.baseUrl),
+			request.context,
+			(status) => postStatus(requestId, status.phase, status.message, status),
+			warmupWasm
 		);
-		const proof = verification.proofToken;
-
-		if (!proof) {
-			throw new Error('보안 검증에 실패했습니다.');
-		}
-
-		postStatus(requestId, 'done', '보안 검증이 완료되었습니다.', {
-			attempts: solveResult.attempts,
-			difficultyBits: challenge.difficultyBits
-		});
 		postResult(requestId, { requestId, ok: true, proof });
 	} catch (error: unknown) {
 		postResult(requestId, {
 			requestId,
 			ok: false,
+			status: error instanceof HashGuardError ? error.status : undefined,
+			code: error instanceof HashGuardError ? error.code : undefined,
 			error: error instanceof Error ? error.message : '예상치 못한 오류가 발생했습니다.'
 		});
 	}

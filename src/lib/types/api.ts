@@ -684,6 +684,7 @@ export interface DiscussionThreadDetailResponse {
 }
 
 export interface CreateThreadPayload {
+	proof: string;
 	title: string;
 	authorNickname?: string;
 	password: string;
@@ -691,6 +692,7 @@ export interface CreateThreadPayload {
 }
 
 export interface CreateCommentPayload {
+	proof: string;
 	authorNickname?: string;
 	password: string;
 	content: string;
