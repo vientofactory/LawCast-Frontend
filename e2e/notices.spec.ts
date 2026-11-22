@@ -112,7 +112,9 @@ test.describe('Notices List Page', () => {
 	test('searching navigates with search query param', async ({ page }) => {
 		const searchInput = page.getByTestId('notices-search-input');
 		await searchInput.fill('테스트');
-		await page.getByTestId('notices-search-submit').click();
+		// Pressing Enter submits the form reliably; a raw button click can race
+		// the controlled input's re-render and submit an empty value.
+		await searchInput.press('Enter');
 		await page.waitForURL(/search=/, { timeout: 10_000 });
 		const url = new URL(page.url());
 		expect(url.searchParams.get('search')).toBeTruthy();

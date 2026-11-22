@@ -18,12 +18,23 @@ async function offer(page: Page, fails = false) {
 
 async function freeze(page: Page, id: string) {
 	return page.getByTestId(id).evaluate(async (node) => {
-		await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-		const animations = node
-			.getAnimations()
-			.filter((animation) =>
-				(animation.effect as KeyframeEffect).getKeyframes().some((frame) => 'opacity' in frame)
-			);
+		// The opacity fade-in can begin a frame or two after the node becomes
+		// visible, so poll for the in-flight animation instead of a fixed
+		// two-frame wait (which races the start).
+		let animations: Animation[] = [];
+		for (let attempt = 0; attempt < 60; attempt++) {
+			animations = node
+				.getAnimations()
+				.filter((animation) =>
+					(animation.effect as KeyframeEffect).getKeyframes().some((frame) => 'opacity' in frame)
+				);
+			if (
+				animations.length > 0 &&
+				animations.every((animation) => animation.playState === 'running')
+			)
+				break;
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+		}
 		for (const animation of animations) {
 			animation.pause();
 			animation.currentTime = Number(animation.effect!.getTiming().duration) / 2;
