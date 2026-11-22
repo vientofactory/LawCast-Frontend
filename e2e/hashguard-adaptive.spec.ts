@@ -119,7 +119,13 @@ for (const fallback of [false, true]) {
 					if (decision === '429' || decision === '503')
 						expect(result.status).toBe(Number(decision));
 				}
-				expect(calls).toEqual(
+				// Compare the leaf path so the assertion is independent of any base
+				// URL prefix (the default origin-only base or an `/api/hashguard` proxy).
+				const toTail = (p: string) => {
+					const idx = p.lastIndexOf('/v1/pow/');
+					return idx === -1 ? p : p.slice(idx);
+				};
+				expect(calls.map(toTail)).toEqual(
 					decision === 'challenge'
 						? ['/v1/pow/assessments', '/v1/pow/verifications']
 						: ['/v1/pow/assessments']
