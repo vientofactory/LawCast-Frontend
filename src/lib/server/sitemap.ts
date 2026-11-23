@@ -1,10 +1,14 @@
 import * as env from '$app/env/private';
 import { error } from '@sveltejs/kit';
 import { buildBackendForwardHeaders } from '#lib/server/client-ip.ts';
-import type { ArchiveNoticeListResponse, Notice } from '#lib/types/api.ts';
 
 export const SITEMAP_CHUNK_SIZE = 500;
-const BATCH_SIZE = 100;
+interface SitemapSnapshot {
+	generatedAt: string;
+	total: number;
+	items: { num: number; archiveStartedAt: string | null }[];
+}
+const snapshots = new Map<string, { value: Promise<SitemapSnapshot>; expiresAt: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000;
 const MAX_CACHED_SITEMAPS = 64;
 const XML_NAMESPACE = 'http://www.sitemaps.org/schemas/sitemap/0.9';
@@ -51,40 +55,54 @@ export function mainSitemap(origin: string): string {
 	);
 }
 
-export async function fetchArchivePage(
+export async function fetchSitemapSnapshot(
 	customFetch: typeof fetch,
-	request: Request,
-	page: number
-): Promise<ArchiveNoticeListResponse> {
+	request: Request
+): Promise<SitemapSnapshot> {
 	const backend = (env.API_BASE_URL || 'http://localhost:3001/api').replace(/\/$/, '');
-	// Give crawler work its own bucket and never forward visitor credentials.
-	const headers = buildBackendForwardHeaders(new Request(request.url), 'sitemap-bot');
-	const response = await customFetch(
-		`${backend}/notices/archive?page=${page}&limit=${BATCH_SIZE}&sortOrder=asc&searchMode=keyword`,
-		{ headers, signal: AbortSignal.timeout(10_000) }
-	);
-	if (!response.ok) throw new Error(`Archive page ${page} returned ${response.status}`);
-	const body = await response.json();
-	const data: ArchiveNoticeListResponse = body.data ?? body;
-	if (
-		!Array.isArray(data.items) ||
-		!Number.isSafeInteger(data.total) ||
-		data.total < 0 ||
-		data.totalPages !== Math.max(1, Math.ceil(data.total / BATCH_SIZE)) ||
-		data.limit !== BATCH_SIZE ||
-		data.page !== page ||
-		data.items.length !== Math.min(BATCH_SIZE, Math.max(0, data.total - (page - 1) * BATCH_SIZE))
-	) {
-		throw new Error('Invalid archive pagination in sitemap response');
+	let entry = snapshots.get(backend);
+	if (!entry || entry.expiresAt <= Date.now()) {
+		const value = (async () => {
+			const headers = buildBackendForwardHeaders(new Request(request.url), null);
+			const response = await customFetch(`${backend}/sitemap/notices`, {
+				headers,
+				signal: AbortSignal.timeout(10_000)
+			});
+			if (!response.ok) throw new Error(`Sitemap snapshot returned ${response.status}`);
+			const data: SitemapSnapshot = await response.json();
+			if (
+				!Array.isArray(data.items) ||
+				data.total !== data.items.length ||
+				!Number.isSafeInteger(data.total) ||
+				data.total < 0 ||
+				!Number.isFinite(Date.parse(data.generatedAt)) ||
+				data.items.some(
+					(notice, index) =>
+						!Number.isSafeInteger(notice.num) ||
+						notice.num <= 0 ||
+						(index > 0 && notice.num <= data.items[index - 1].num)
+				)
+			) {
+				throw new Error('Invalid sitemap snapshot');
+			}
+			return data;
+		})();
+		entry = { value, expiresAt: Date.now() + 300_000 };
+		snapshots.set(backend, entry);
 	}
-	return data;
+	try {
+		return await entry.value;
+	} catch (err) {
+		if (snapshots.get(backend) === entry) snapshots.delete(backend);
+		throw err;
+	}
 }
 
-function noticeTag(origin: string, notice: Notice): string {
+function noticeTag(origin: string, notice: SitemapSnapshot['items'][number]): string {
 	if (!Number.isSafeInteger(notice.num) || notice.num <= 0) {
 		throw new Error('Invalid notice number in sitemap response');
 	}
-	const rawDate = notice.lastUpdatedAt ?? notice.archiveStartedAt;
+	const rawDate = notice.archiveStartedAt;
 	const date = rawDate ? new Date(rawDate) : null;
 	const lastmod =
 		date && !Number.isNaN(date.getTime()) ? `<lastmod>${date.toISOString()}</lastmod>` : '';
@@ -97,34 +115,15 @@ export async function noticeSitemap(
 	customFetch: typeof fetch,
 	request: Request
 ): Promise<string> {
-	const firstPage = (chunk * SITEMAP_CHUNK_SIZE) / BATCH_SIZE + 1;
-	// The archive API accepts pages 1 through 10,000.
-	if (!Number.isSafeInteger(chunk) || chunk < 0 || firstPage > 10_000) {
+	if (!Number.isSafeInteger(chunk) || chunk < 0) error(404, '사이트맵을 찾을 수 없습니다.');
+	const snapshot = await fetchSitemapSnapshot(customFetch, request);
+	if (chunk >= Math.ceil(snapshot.total / SITEMAP_CHUNK_SIZE)) {
 		error(404, '사이트맵을 찾을 수 없습니다.');
 	}
-	const first = await fetchArchivePage(customFetch, request, firstPage);
-	if (chunk >= Math.ceil(first.total / SITEMAP_CHUNK_SIZE)) {
-		error(404, '사이트맵을 찾을 수 없습니다.');
-	}
-	const lastPage = Math.min(firstPage + SITEMAP_CHUNK_SIZE / BATCH_SIZE - 1, first.totalPages);
-	const notices = [...first.items];
-	// Ascending notice numbers keep existing chunks stable as newer bills arrive.
-	// At most two archive requests run concurrently, rather than fetching the entire archive.
-	for (let page = firstPage + 1; page <= lastPage; page += 2) {
-		const pages = await Promise.all(
-			Array.from({ length: Math.min(2, lastPage - page + 1) }, (_, offset) =>
-				fetchArchivePage(customFetch, request, page + offset)
-			)
-		);
-		for (const result of pages) notices.push(...result.items);
-	}
-	const expected = Math.min(SITEMAP_CHUNK_SIZE, first.total - chunk * SITEMAP_CHUNK_SIZE);
-	if (
-		notices.length !== expected ||
-		new Set(notices.map((notice) => notice.num)).size !== expected
-	) {
-		throw new Error('Incomplete archive chunk in sitemap response');
-	}
+	const notices = snapshot.items.slice(
+		chunk * SITEMAP_CHUNK_SIZE,
+		(chunk + 1) * SITEMAP_CHUNK_SIZE
+	);
 	return urlset(notices.map((notice) => noticeTag(origin, notice)));
 }
 
