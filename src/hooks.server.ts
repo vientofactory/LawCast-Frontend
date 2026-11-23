@@ -5,7 +5,8 @@ import { matchForced429, buildForced429Response } from '#lib/server/e2e-rate-lim
 import {
 	resolveClientIp,
 	buildBackendForwardHeaders,
-	getBackendBaseUrl
+	getBackendBaseUrl,
+	rejectBackendRedirect
 } from '#lib/server/client-ip.ts';
 import { resolveE2eReadClientIp } from '#lib/server/e2e-client-ip.ts';
 import { getMockSemanticApiResponse } from '#lib/server/semantic-search-mock.ts';
@@ -86,12 +87,13 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	const response = await fetch(
 		new Request(targetUrl, {
 			method: request.method,
-			redirect: 'error',
+			redirect: 'manual',
 			signal: request.signal,
 			headers,
 			body
 		})
 	);
+	rejectBackendRedirect(response);
 	if (!response.ok) markResponseFailure(event.locals, { status: response.status });
 	const responseHeaders = new Headers(response.headers);
 	responseHeaders.delete(PROXY_CONNECTION_FAILURE_HEADER);

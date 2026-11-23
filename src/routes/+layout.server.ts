@@ -1,4 +1,8 @@
-import { buildBackendForwardHeaders, getBackendBaseUrl } from '#lib/server/client-ip.ts';
+import {
+	buildBackendForwardHeaders,
+	getBackendBaseUrl,
+	rejectBackendRedirect
+} from '#lib/server/client-ip.ts';
 import type { LayoutServerLoad } from './$types';
 import { APP_VERSION, BACKEND_VERSION_BUILD } from '#lib/version.ts';
 
@@ -32,11 +36,12 @@ async function resolveBackendVersion(): Promise<string> {
 
 		const res = await fetch(`${getBackendBaseUrl()}/version`, {
 			signal: controller.signal,
-			redirect: 'error',
+			redirect: 'manual',
 			headers: buildBackendForwardHeaders(new Request('https://law.viento.me/'), null)
 		});
 		clearTimeout(timeout);
 
+		rejectBackendRedirect(res);
 		if (res.ok) {
 			const body = (await res.json()) as {
 				data?: { version?: string };

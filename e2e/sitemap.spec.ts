@@ -11,6 +11,8 @@ test('cold index retries upstream failure then all 46 chunks share one complete 
 	expect(failed.status()).toBe(503);
 	expect(failed.headers()['cache-control']).toContain('no-store');
 	expect(failed.headers()['retry-after']).toBe('60');
+	const redirected = await request.get('/sitemap.xml');
+	expect(redirected.status()).toBe(503);
 	const truncated = await request.get('/sitemap.xml');
 	expect(truncated.status()).toBe(503);
 	const [index, ...coldChunks] = await Promise.all(
@@ -46,7 +48,7 @@ test('cold index retries upstream failure then all 46 chunks share one complete 
 	expect(new Set(all).size).toBe(22740);
 	const stats = await (await request.get(`${backend}/stats`)).json();
 	expect(stats.archiveReads).toBe(0);
-	expect(stats.requests).toHaveLength(3);
+	expect(stats.requests).toHaveLength(4);
 	for (const entry of stats.requests) {
 		expect(entry.path).toBe('/api/sitemap/notices');
 		expect(entry.headers.cookie).toBeUndefined();

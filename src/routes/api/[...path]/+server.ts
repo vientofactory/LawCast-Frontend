@@ -15,7 +15,8 @@ import { matchForced429, buildForced429Response } from '#lib/server/e2e-rate-lim
 import {
 	resolveClientIp,
 	buildBackendForwardHeaders,
-	getBackendBaseUrl
+	getBackendBaseUrl,
+	rejectBackendRedirect
 } from '#lib/server/client-ip.ts';
 import { SEARCH_TIMING_HEADER, SEARCH_TRACE_HEADER } from '#lib/utils/search-timing.ts';
 
@@ -153,12 +154,13 @@ async function forwardRequest(
 
 		const response = await fetch(targetUrl, {
 			method,
-			redirect: 'error',
+			redirect: 'manual',
 			signal: request.signal,
 			headers,
 			body
 		});
 
+		rejectBackendRedirect(response);
 		const responseHeaders = new Headers(response.headers);
 		responseHeaders.delete(PROXY_CONNECTION_FAILURE_HEADER);
 		responseHeaders.delete(SEARCH_TIMING_HEADER);

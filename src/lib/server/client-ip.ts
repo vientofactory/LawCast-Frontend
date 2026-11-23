@@ -81,3 +81,10 @@ export function getBackendBaseUrl(): string {
 	}
 	return (env.API_BASE_URL || 'http://localhost:3001/api').replace(/\/$/, '');
 }
+
+/** Workers supports manual redirects, so reject them explicitly before any caller can follow them. */
+export function rejectBackendRedirect(response: Response): void {
+	if ([301, 302, 303, 307, 308].includes(response.status)) {
+		throw new Error('Backend redirects are not allowed');
+	}
+}
