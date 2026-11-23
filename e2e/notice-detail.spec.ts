@@ -157,6 +157,10 @@ test.describe('Notice Detail Page', () => {
 
 		const ogImage = page.locator('meta[property="og:image"]');
 		await expect(ogImage).toHaveCount(1);
+		// The detail page's og:image is set through <svelte:head>, which updates
+		// after the client-side navigation; poll for the bill-specific URL so the
+		// read doesn't catch the previous page's fallback image.
+		await expect(ogImage).toHaveAttribute('content', /\/notices\/\d+\/og\.png$/);
 		const imageUrl = (await ogImage.getAttribute('content')) ?? '';
 		expect(imageUrl).toMatch(/\/notices\/\d+\/og\.png$/);
 

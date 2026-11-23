@@ -32,15 +32,28 @@ for (const viewport of [
 			(await page.getByTestId('recent-notices-region').boundingBox())!.y
 		).toBeGreaterThanOrEqual(viewport.height);
 		if (viewport.height >= 1080) {
-			expect(Math.abs(heroBox.y + heroBox.height - viewport.height)).toBeLessThanOrEqual(1);
-			expect(cueBox.y).toBeGreaterThan(viewport.height - 100);
+			// The hero's min-height is derived from the ResizeObserver-computed
+			// offset, so the layout settles to exact fit over a few frames. Poll
+			// the exact-fit condition (retrying until it holds) instead of reading
+			// a single frame, then measure the sub-assertions on the settled value.
+			await expect
+				.poll(async () =>
+					Math.abs(
+						(await hero.boundingBox())!.y + (await hero.boundingBox())!.height - viewport.height
+					)
+				)
+				.toBeLessThanOrEqual(1);
+			const settledHero = (await hero.boundingBox())!;
+			const settledCue = (await page.getByTestId('home-scroll-cue').boundingBox())!;
+			expect(Math.abs(settledHero.y + settledHero.height - viewport.height)).toBeLessThanOrEqual(1);
+			expect(settledCue.y).toBeGreaterThan(viewport.height - 100);
 			const introduction = (await page.locator('.lc-home-introduction').boundingBox())!;
 			const status = (await page.getByTestId('home-status-region').boundingBox())!;
 			const gap = await page
 				.locator('.lc-home-hero-content')
 				.evaluate((node) => parseFloat(getComputedStyle(node).rowGap));
 			const bodyCenter = (introduction.y + status.y + status.height) / 2;
-			const availableCenter = (heroBox.y + cueBox.y - gap) / 2;
+			const availableCenter = (settledHero.y + settledCue.y - gap) / 2;
 			expect(Math.abs(bodyCenter - availableCenter)).toBeLessThanOrEqual(1);
 		}
 		if (viewport.width === 1920)
