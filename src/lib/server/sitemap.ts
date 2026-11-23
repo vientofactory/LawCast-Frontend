@@ -1,5 +1,9 @@
 import { error } from '@sveltejs/kit';
-import { buildBackendForwardHeaders, getBackendBaseUrl } from '#lib/server/client-ip.ts';
+import {
+	buildBackendForwardHeaders,
+	getBackendBaseUrl,
+	rejectBackendRedirect
+} from '#lib/server/client-ip.ts';
 
 export const SITEMAP_CHUNK_SIZE = 500;
 interface SitemapSnapshot {
@@ -65,9 +69,10 @@ export async function fetchSitemapSnapshot(
 			const headers = buildBackendForwardHeaders(new Request(request.url), null);
 			const response = await customFetch(`${backend}/sitemap/notices`, {
 				headers,
-				redirect: 'error',
+				redirect: 'manual',
 				signal: AbortSignal.timeout(10_000)
 			});
+			rejectBackendRedirect(response);
 			if (!response.ok) throw new Error(`Sitemap snapshot returned ${response.status}`);
 			const data: SitemapSnapshot = await response.json();
 			if (

@@ -26,6 +26,12 @@ createServer((request, response) => {
 		return;
 	}
 	attempt++;
+	if (attempt === 2) {
+		response.statusCode = 302;
+		response.setHeader('Location', 'http://localhost:4319/__redirect_sink');
+		response.end('{}');
+		return;
+	}
 	if (attempt === 1) {
 		response.statusCode = 503;
 		response.end('{}');
@@ -35,7 +41,7 @@ createServer((request, response) => {
 		JSON.stringify({
 			generatedAt: new Date().toISOString(),
 			total,
-			items: Array.from({ length: attempt === 2 ? total - 1 : total }, (_, index) => ({
+			items: Array.from({ length: attempt === 3 ? total - 1 : total }, (_, index) => ({
 				num: 2200001 + index,
 				archiveStartedAt: index === 0 ? '2026-10-23T14:30:00.000Z' : null
 			}))
