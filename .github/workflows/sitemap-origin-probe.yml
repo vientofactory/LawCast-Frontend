@@ -1,0 +1,31 @@
+name: Diagnose production sitemap origin
+
+on:
+  push:
+    branches: [codex/sitemap-origin-exception]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Probe public sitemap from the runner region
+        shell: bash
+        run: |
+          set -eu
+          for host in law.viento.me lawcast-frontend.pages.dev; do
+            for path in sitemap.xml sitemap_chunk_0.xml sitemap_chunk_23.xml sitemap_chunk_45.xml sitemap.xml; do
+              echo "PROBE https://$host/$path"
+              curl --silent --show-error --max-time 20 \
+                --dump-header /tmp/probe.headers --output /tmp/probe.body \
+                --write-out 'STATUS=%{http_code} TIME=%{time_total} BYTES=%{size_download}\n' \
+                "https://$host/$path?diagnostic=${GITHUB_RUN_ID}-${RANDOM}" || true
+              grep -Ei '^(HTTP/|cf-ray:|cf-cache-status:|content-type:|retry-after:)' /tmp/probe.headers || true
+              head -c 180 /tmp/probe.body
+              echo
+              sleep 1
+            done
+          done
