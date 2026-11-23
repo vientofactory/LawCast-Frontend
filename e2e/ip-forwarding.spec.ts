@@ -90,6 +90,7 @@ test.describe('SSR client-IP forwarding', () => {
 
 		const record = await findRecorded('/api/notices/recent', baseline);
 		expect(record.ipHeaders['x-lawcast-client-ip']).toBe('203.0.113.55');
+		expect(record.ipHeaders['x-lawcast-service-token']).toBe('fixture-only-service-token');
 	});
 
 	test('spoofed x-lawcast-client-ip from the visitor is stripped before forwarding', async ({
@@ -99,12 +100,36 @@ test.describe('SSR client-IP forwarding', () => {
 		const response = await request.get(`${DEV_SERVER}/api/notices/recent`, {
 			headers: {
 				'cf-connecting-ip': '203.0.113.55',
-				'x-lawcast-client-ip': '6.6.6.6'
+				'x-lawcast-client-ip': '6.6.6.6',
+				'x-lawcast-service-token': 'attacker-supplied'
 			}
 		});
 		expect(response.status()).toBe(200);
 
 		const record = await findRecorded('/api/notices/recent', baseline);
 		expect(record.ipHeaders['x-lawcast-client-ip']).toBe('203.0.113.55');
+		expect(record.ipHeaders['x-lawcast-service-token']).toBe('fixture-only-service-token');
+	});
+	test('origin rejects missing or incorrect service credentials', async ({ request }) => {
+		expect((await request.get(`${ECHO_BASE}/api/notices/recent`)).status()).toBe(403);
+		expect(
+			(
+				await request.get(`${ECHO_BASE}/api/notices/recent`, {
+					headers: { 'x-lawcast-service-token': 'wrong' }
+				})
+			).status()
+		).toBe(403);
+	});
+
+	test('service credentials stay server-side and are never forwarded through redirects', async ({
+		request
+	}) => {
+		const response = await request.get(`${DEV_SERVER}/api/notices/recent`);
+		expect(await response.text()).not.toContain('fixture-only-service-token');
+		const redirected = await request.get(`${DEV_SERVER}/api/redirect-test`);
+		expect(redirected.status()).toBe(502);
+		expect((await fetchRecords()).some((entry) => entry.url.includes('__redirect_sink'))).toBe(
+			false
+		);
 	});
 });

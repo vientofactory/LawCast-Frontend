@@ -1,6 +1,5 @@
-import * as env from '$app/env/private';
 import { error } from '@sveltejs/kit';
-import { buildBackendForwardHeaders } from '#lib/server/client-ip.ts';
+import { buildBackendForwardHeaders, getBackendBaseUrl } from '#lib/server/client-ip.ts';
 
 export const SITEMAP_CHUNK_SIZE = 500;
 interface SitemapSnapshot {
@@ -59,13 +58,14 @@ export async function fetchSitemapSnapshot(
 	customFetch: typeof fetch,
 	request: Request
 ): Promise<SitemapSnapshot> {
-	const backend = (env.API_BASE_URL || 'http://localhost:3001/api').replace(/\/$/, '');
+	const backend = getBackendBaseUrl();
 	let entry = snapshots.get(backend);
 	if (!entry || entry.expiresAt <= Date.now()) {
 		const value = (async () => {
 			const headers = buildBackendForwardHeaders(new Request(request.url), null);
 			const response = await customFetch(`${backend}/sitemap/notices`, {
 				headers,
+				redirect: 'error',
 				signal: AbortSignal.timeout(10_000)
 			});
 			if (!response.ok) throw new Error(`Sitemap snapshot returned ${response.status}`);

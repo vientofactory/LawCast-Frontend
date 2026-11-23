@@ -1,3 +1,4 @@
+import { buildBackendForwardHeaders, getBackendBaseUrl } from '#lib/server/client-ip.ts';
 import type { LayoutServerLoad } from './$types';
 import { APP_VERSION, BACKEND_VERSION_BUILD } from '#lib/version.ts';
 
@@ -24,18 +25,15 @@ async function resolveBackendVersion(): Promise<string> {
 	}
 
 	// 2. Runtime fetch from backend API
-	const apiBase =
-		typeof process !== 'undefined'
-			? process.env.API_BASE_URL || process.env.PUBLIC_API_BASE_URL || 'http://localhost:3001/api'
-			: '/api';
 
 	try {
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-		const res = await fetch(`${apiBase}/version`, {
+		const res = await fetch(`${getBackendBaseUrl()}/version`, {
 			signal: controller.signal,
-			headers: { Accept: 'application/json' }
+			redirect: 'error',
+			headers: buildBackendForwardHeaders(new Request('https://law.viento.me/'), null)
 		});
 		clearTimeout(timeout);
 

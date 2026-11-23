@@ -44,7 +44,9 @@ export default defineConfig({
 			timeout: 120_000,
 			env: {
 				NODE_ENV: 'development',
-				API_BASE_URL: 'http://127.0.0.1:3999/api'
+				API_BASE_URL: 'http://127.0.0.1:1/api',
+				API_SERVICE_URL: 'http://127.0.0.1:3999/api',
+				API_SERVICE_TOKEN: 'fixture-only-service-token'
 			}
 		}
 	]

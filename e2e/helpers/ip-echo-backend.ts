@@ -19,7 +19,8 @@ const TRACKED_HEADERS = [
 	'x-lawcast-client-ip',
 	'cf-connecting-ip',
 	'x-forwarded-for',
-	'x-real-ip'
+	'x-real-ip',
+	'x-lawcast-service-token'
 ] as const;
 
 const PORT = Number(process.env.ECHO_PORT ?? 3999);
@@ -61,6 +62,19 @@ createServer((req, res) => {
 		}
 	}
 	record.push({ url, ipHeaders });
+	if (
+		url.startsWith('/api/') &&
+		req.headers['x-lawcast-service-token'] !== 'fixture-only-service-token'
+	) {
+		res.writeHead(403);
+		res.end('{}');
+		return;
+	}
+	if (url.startsWith('/api/redirect-test')) {
+		res.writeHead(302, { location: 'http://localhost:3999/__redirect_sink' });
+		res.end();
+		return;
+	}
 
 	res.writeHead(200, { 'content-type': 'application/json' });
 	res.end(JSON.stringify({ success: true, data: echoPayload(url) }));

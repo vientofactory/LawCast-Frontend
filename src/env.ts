@@ -4,6 +4,8 @@ import { defineEnvVars } from '@sveltejs/kit/env';
 export const variables = defineEnvVars({
 	PUBLIC_GTM_CONTAINER_ID: { public: true, static: true, schema: (input) => input ?? '' },
 	API_BASE_URL: { schema: (input) => input ?? '' },
+	API_SERVICE_URL: { schema: (input) => input ?? '' },
+	API_SERVICE_TOKEN: { schema: (input) => input ?? '' },
 	PUBLIC_CF_UNDER_ATTACK_RELOAD_ENABLED: { public: true, schema: (input) => input ?? '' },
 	PUBLIC_DISCORD_SERVER_URL: { public: true, schema: (input) => input ?? '' },
 	PUBLIC_DISCORD_SERVER_ID: { public: true, schema: (input) => input ?? '' },
