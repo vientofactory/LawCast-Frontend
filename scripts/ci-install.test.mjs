@@ -158,7 +158,7 @@ test('runs specialized shared UI suites in independent cross-engine jobs', () =>
 	assert.match(workflow, /shared-ui:[\s\S]*fail-fast: false/);
 	assert.match(
 		workflow,
-		/suite:\s*\[\s*notifications,\s*screenshot-modal,\s*theme-states,\s*framework-cloudflare,\s*analytics,\s*pwa\s*\]/
+		/suite:\s*\[\s*notifications,\s*screenshot-modal,\s*theme-states,\s*framework-cloudflare,\s*analytics,\s*pwa,\s*sitemap-cloudflare\s*\]/
 	);
 	assert.match(workflow, /needs: prepare-shared-browsers/);
 	assert.equal((workflow.match(/browsers: chromium firefox webkit/g) || []).length, 2);
