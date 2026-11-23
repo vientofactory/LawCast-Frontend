@@ -4,17 +4,26 @@ const backend = 'http://127.0.0.1:4319';
 const origin = 'http://localhost:5189';
 const locations = (xml: string) => [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => match[1]);
 
-test('cold index retries upstream failure then all 46 chunks share one complete public snapshot', async ({
+test('cold index bounds transport retries without retrying redirects or invalid snapshots', async ({
 	request
 }) => {
 	const failed = await request.get('/sitemap.xml');
 	expect(failed.status()).toBe(503);
 	expect(failed.headers()['cache-control']).toContain('no-store');
 	expect(failed.headers()['retry-after']).toBe('60');
+	expect((await (await request.get(`${backend}/stats`)).json()).requests).toHaveLength(2);
 	const redirected = await request.get('/sitemap.xml');
 	expect(redirected.status()).toBe(503);
+	expect((await (await request.get(`${backend}/stats`)).json()).requests).toHaveLength(3);
 	const truncated = await request.get('/sitemap.xml');
 	expect(truncated.status()).toBe(503);
+	expect((await (await request.get(`${backend}/stats`)).json()).requests).toHaveLength(4);
+	const forbidden = await request.get('/sitemap.xml');
+	expect(forbidden.status()).toBe(503);
+	expect((await (await request.get(`${backend}/stats`)).json()).requests).toHaveLength(5);
+	const malformed = await request.get('/sitemap.xml');
+	expect(malformed.status()).toBe(503);
+	expect((await (await request.get(`${backend}/stats`)).json()).requests).toHaveLength(6);
 	const [index, ...coldChunks] = await Promise.all(
 		['/sitemap.xml', '/sitemap_chunk_0.xml', '/sitemap_chunk_1.xml'].map((path) =>
 			request.get(path, {
@@ -48,7 +57,7 @@ test('cold index retries upstream failure then all 46 chunks share one complete 
 	expect(new Set(all).size).toBe(22740);
 	const stats = await (await request.get(`${backend}/stats`)).json();
 	expect(stats.archiveReads).toBe(0);
-	expect(stats.requests).toHaveLength(4);
+	expect(stats.requests).toHaveLength(8);
 	for (const entry of stats.requests) {
 		expect(entry.path).toBe('/api/sitemap/notices');
 		expect(entry.headers.cookie).toBeUndefined();

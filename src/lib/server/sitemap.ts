@@ -17,6 +17,74 @@ const MAX_CACHED_SITEMAPS = 64;
 const XML_NAMESPACE = 'http://www.sitemaps.org/schemas/sitemap/0.9';
 const cache = new Map<string, { xml: Promise<string>; expiresAt: number }>();
 
+type SnapshotStage = 'request' | 'status' | 'body' | 'validation';
+type SnapshotFailure = Error & {
+	stage?: SnapshotStage;
+	upstreamStatus?: number;
+	attempt?: number;
+	retryable?: boolean;
+};
+
+function failureDetails(value: unknown) {
+	const failure = value instanceof Error ? (value as SnapshotFailure) : undefined;
+	return {
+		name: failure?.name ?? 'UnknownError',
+		message: failure?.message.slice(0, 400),
+		stage: failure?.stage,
+		upstreamStatus: failure?.upstreamStatus,
+		attempt: failure?.attempt,
+		retryable: failure?.retryable,
+		stack: failure?.stack?.slice(0, 1500)
+	};
+}
+
+async function readSnapshot(
+	customFetch: typeof fetch,
+	request: Request,
+	backend: string
+): Promise<SitemapSnapshot> {
+	const headers = buildBackendForwardHeaders(new Request(request.url), null);
+	// Both attempts share the original deadline; retries never extend crawler wait time.
+	const signal = AbortSignal.timeout(10_000);
+	for (let attempt = 1; ; attempt++) {
+		let stage: SnapshotStage = 'request';
+		let upstreamStatus: number | undefined;
+		try {
+			const response = await customFetch(`${backend}/sitemap/notices`, {
+				headers,
+				redirect: 'manual',
+				signal
+			});
+			upstreamStatus = response.status;
+			stage = 'status';
+			rejectBackendRedirect(response);
+			if (!response.ok) {
+				await response.body?.cancel().catch(() => {});
+				throw new Error(`Sitemap snapshot returned ${response.status}`);
+			}
+			stage = 'body';
+			return await response.json();
+		} catch (value) {
+			const failure: SnapshotFailure = Object.assign(
+				value instanceof Error ? value : new Error('Sitemap snapshot operation failed'),
+				{ stage, upstreamStatus, attempt }
+			);
+			const transient =
+				(stage === 'status' && upstreamStatus !== undefined && upstreamStatus >= 500) ||
+				((stage === 'request' || stage === 'body') &&
+					(failure.retryable === true || failure.name === 'TypeError'));
+			if (attempt >= 2 || signal.aborted || !transient) throw failure;
+			// Log only public correlation data and error details, never request headers or credentials.
+			console.warn('sitemap: snapshot retry', {
+				...failureDetails(failure),
+				backendHost: new URL(backend).hostname,
+				ray: request.headers.get('cf-ray')?.slice(0, 64)
+			});
+			await new Promise((resolve) => setTimeout(resolve, 150));
+		}
+	}
+}
+
 export function escapeXml(value: string): string {
 	return value.replace(/[<>&"']/g, (char) => {
 		return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' }[char]!;
@@ -66,16 +134,9 @@ export async function fetchSitemapSnapshot(
 	let entry = snapshots.get(backend);
 	if (!entry || entry.expiresAt <= Date.now()) {
 		const value = (async () => {
-			const headers = buildBackendForwardHeaders(new Request(request.url), null);
-			const response = await customFetch(`${backend}/sitemap/notices`, {
-				headers,
-				redirect: 'manual',
-				signal: AbortSignal.timeout(10_000)
-			});
-			rejectBackendRedirect(response);
-			if (!response.ok) throw new Error(`Sitemap snapshot returned ${response.status}`);
-			const data: SitemapSnapshot = await response.json();
+			const data = await readSnapshot(customFetch, request, backend);
 			if (
+				!data ||
 				!Array.isArray(data.items) ||
 				data.total !== data.items.length ||
 				!Number.isSafeInteger(data.total) ||
@@ -88,7 +149,7 @@ export async function fetchSitemapSnapshot(
 						(index > 0 && notice.num <= data.items[index - 1].num)
 				)
 			) {
-				throw new Error('Invalid sitemap snapshot');
+				throw Object.assign(new Error('Invalid sitemap snapshot'), { stage: 'validation' });
 			}
 			return data;
 		})();
@@ -160,7 +221,7 @@ export async function cachedSitemap(
 				headers: { 'Cache-Control': 'no-store' }
 			});
 		}
-		console.error('sitemap: generation failed', err);
+		console.error('sitemap: generation failed', { key, ...failureDetails(err) });
 		// Never cache a partial successful sitemap when an upstream page fails.
 		return new Response('사이트맵을 생성하지 못했습니다. 잠시 후 다시 시도해주세요.', {
 			status: 503,
