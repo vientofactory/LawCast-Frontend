@@ -1,4 +1,3 @@
-import * as env from '$app/env/private';
 import type { RequestHandler } from './$types';
 import { getFailureKind, PROXY_CONNECTION_FAILURE_HEADER } from '#lib/utils/request-failure.ts';
 import {
@@ -13,12 +12,14 @@ import {
 } from '#lib/server/diffchain-ui-mock.ts';
 import { getMockSemanticApiResponse } from '#lib/server/semantic-search-mock.ts';
 import { matchForced429, buildForced429Response } from '#lib/server/e2e-rate-limit-sim.ts';
-import { resolveClientIp, buildBackendForwardHeaders } from '#lib/server/client-ip.ts';
+import {
+	resolveClientIp,
+	buildBackendForwardHeaders,
+	getBackendBaseUrl
+} from '#lib/server/client-ip.ts';
 import { SEARCH_TIMING_HEADER, SEARCH_TRACE_HEADER } from '#lib/utils/search-timing.ts';
 
 import { isSemanticSearchKValid, SEMANTIC_SEARCH_K_ERROR } from '#lib/utils/semantic-search.ts';
-
-const BASE_URL = env.API_BASE_URL || 'http://localhost:3001/api';
 
 function parseNonNegativeInteger(value: string | null, fallback: number): number {
 	if (value === null) return fallback;
@@ -139,7 +140,7 @@ async function forwardRequest(
 		return buildForced429Response(forced429.retryAfter);
 	}
 
-	const targetUrl = `${BASE_URL}/${path}${url.search}`;
+	const targetUrl = `${getBackendBaseUrl()}/${path}${url.search}`;
 
 	try {
 		// Forward the original visitor's IP so the backend rate-limits per user
@@ -152,6 +153,7 @@ async function forwardRequest(
 
 		const response = await fetch(targetUrl, {
 			method,
+			redirect: 'error',
 			signal: request.signal,
 			headers,
 			body

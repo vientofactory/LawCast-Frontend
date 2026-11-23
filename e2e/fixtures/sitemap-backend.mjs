@@ -1,53 +1,44 @@
 import { createServer } from 'node:http';
 
 let requests = [];
-let active = 0;
-let maxActive = 0;
-let failPage = null;
-let shortPage = null;
-let total = 6501;
+let attempt = 0;
+let archiveReads = 0;
+const total = 22740;
 
-createServer(async (request, response) => {
+createServer((request, response) => {
 	const url = new URL(request.url, 'http://localhost');
 	response.setHeader('Content-Type', 'application/json');
-	if (url.pathname === '/control') {
-		total = url.searchParams.has('total') ? Number(url.searchParams.get('total')) : 6501;
-		failPage = Number(url.searchParams.get('fail')) || null;
-		shortPage = Number(url.searchParams.get('short')) || null;
-		requests = [];
-		maxActive = 0;
+	if (url.pathname === '/stats') {
+		response.end(JSON.stringify({ requests, archiveReads }));
+		return;
+	}
+	requests.push({ path: url.pathname, headers: request.headers });
+	if (url.pathname === '/api/notices/archive') {
+		// Interactive reads retain their own quota; sitemap generation must never use it.
+		archiveReads++;
+		response.statusCode = archiveReads > 30 ? 429 : 200;
 		response.end('{}');
 		return;
 	}
-	if (url.pathname === '/stats') {
-		response.end(JSON.stringify({ requests, maxActive }));
+	if (url.pathname !== '/api/sitemap/notices') {
+		response.statusCode = 404;
+		response.end('{}');
 		return;
 	}
-	const page = Number(url.searchParams.get('page'));
-	const limit = Number(url.searchParams.get('limit'));
-	requests.push({
-		page,
-		limit,
-		sortOrder: url.searchParams.get('sortOrder'),
-		headers: request.headers
-	});
-	active++;
-	maxActive = Math.max(maxActive, active);
-	await new Promise((resolve) => setTimeout(resolve, 10));
-	active--;
-	if (page === failPage) {
+	attempt++;
+	if (attempt === 1) {
 		response.statusCode = 503;
 		response.end('{}');
 		return;
 	}
-	const length = Math.max(0, Math.min(limit, total - (page - 1) * limit));
-	const items = Array.from({ length }, (_, index) => ({
-		num: 2200001 + (page - 1) * limit + index,
-		archiveStartedAt: '2026-09-01T00:00:00+09:00',
-		lastUpdatedAt: index === 0 ? '2026-10-23T23:30:00+09:00' : 'invalid-date'
-	}));
-	if (page === shortPage) items.pop();
-	const data = { items, page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
-	// Exercise both envelope shapes accepted by the frontend.
-	response.end(JSON.stringify(page % 2 ? { data } : data));
+	response.end(
+		JSON.stringify({
+			generatedAt: new Date().toISOString(),
+			total,
+			items: Array.from({ length: attempt === 2 ? total - 1 : total }, (_, index) => ({
+				num: 2200001 + index,
+				archiveStartedAt: index === 0 ? '2026-10-23T14:30:00.000Z' : null
+			}))
+		})
+	);
 }).listen(4319, '127.0.0.1');

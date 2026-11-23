@@ -1,3 +1,5 @@
+import * as env from '$app/env/private';
+
 const FORWARDED_IP_HEADERS = [
 	'cf-connecting-ip',
 	'true-client-ip',
@@ -39,7 +41,7 @@ export function resolveClientIp(request: Request): string | null {
 /**
  * Builds the outbound headers for an SSR→backend request.
  *
- * - Copies the inbound headers.
+ * - Copies the inbound headers, but replaces service credentials with server-only configuration.
  * - Strips hop-by-hop headers and every client-IP header, then re-adds a
  *   single `x-lawcast-client-ip` resolved from the original request. This
  *   prevents stale or spoofed values from surviving the hop and gives the
@@ -55,10 +57,27 @@ export function buildBackendForwardHeaders(request: Request, clientIp: string | 
 	headers.delete('x-real-ip');
 	headers.delete('x-forwarded-for');
 	headers.delete('x-lawcast-client-ip');
+	headers.delete('x-lawcast-service-token');
+	if (env.API_SERVICE_URL) {
+		getBackendBaseUrl();
+		headers.set('x-lawcast-service-token', env.API_SERVICE_TOKEN);
+	}
 
 	if (clientIp) {
 		headers.set('x-lawcast-client-ip', clientIp);
 	}
 
 	return headers;
+}
+
+/** Selects the authenticated origin only when its server-only credentials are configured. */
+export function getBackendBaseUrl(): string {
+	if (env.API_SERVICE_URL) {
+		const url = new URL(env.API_SERVICE_URL);
+		if (!env.API_SERVICE_TOKEN || (url.protocol !== 'https:' && !import.meta.env.DEV)) {
+			throw new Error('The backend service origin requires credentials and HTTPS');
+		}
+		return env.API_SERVICE_URL.replace(/\/$/, '');
+	}
+	return (env.API_BASE_URL || 'http://localhost:3001/api').replace(/\/$/, '');
 }
