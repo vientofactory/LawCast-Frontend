@@ -869,7 +869,7 @@
 				role="status"
 				aria-label="소스 삭제 감지 안내"
 			>
-				<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
+				<div class="lc-text-warning mt-0.5 inline-flex shrink-0">
 					<FontAwesomeIcon icon={faTriangleExclamation} class="h-4 w-4" />
 				</div>
 				<div>
@@ -888,7 +888,7 @@
 				role="status"
 				aria-label="의안번호 변경 안내"
 			>
-				<div class="lc-chip-muted mt-0.5 rounded-full p-1.5">
+				<div class="lc-text-muted mt-0.5 inline-flex shrink-0">
 					<FontAwesomeIcon icon={faRotate} class="h-4 w-4" />
 				</div>
 				<div>
@@ -1007,21 +1007,6 @@
 							</button>
 						</div>
 					</div>
-
-					<p class="lc-text-muted mt-4 text-sm leading-relaxed" data-testid="notice-legal-guidance">
-						법률안은 현행 법령과 다르며, 수집된 정보는 최신 원문과 다를 수 있습니다. 기한과 진행
-						상태는 국회 페이지에서 확인해 주세요.
-						<a
-							href="/legal#legal-rights"
-							class="lc-link inline-flex min-h-11 items-center"
-							data-testid="notice-reuse-guidance">자료 재이용 안내</a
-						>
-						<a
-							href="/legal#legal-corrections"
-							class="lc-link inline-flex min-h-11 items-center"
-							data-testid="notice-rights-inquiry">정정·권리침해 문의</a
-						>
-					</p>
 
 					{#if aiSummaryEnabled}<p class="lc-text-muted mt-4 text-xs">
 							AI 요약은 참고용이며 오류가 있을 수 있습니다. 아래 원문을 최종 기준으로 확인해주세요.
@@ -1320,6 +1305,21 @@
 				</div>
 			{/if}
 		</details>
+
+		<p class="lc-text-muted mt-4 text-sm leading-relaxed" data-testid="notice-legal-guidance">
+			법률안은 현행 법령과 다르며, 수집된 정보는 최신 원문과 다를 수 있습니다. 기한과 진행 상태는
+			국회 페이지에서 확인해 주세요.
+			<a
+				href="/legal#legal-rights"
+				class="lc-link inline-flex min-h-11 items-center"
+				data-testid="notice-reuse-guidance">자료 재이용 안내</a
+			>
+			<a
+				href="/legal#legal-corrections"
+				class="lc-link inline-flex min-h-11 items-center"
+				data-testid="notice-rights-inquiry">정정·권리침해 문의</a
+			>
+		</p>
 	</main>
 </div>
 

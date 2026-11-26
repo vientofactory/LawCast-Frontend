@@ -33,7 +33,7 @@ export default defineConfig({
 		},
 		{
 			cwd: fileURLToPath(new URL('..', import.meta.url)),
-			command: 'node e2e/fixtures/pwa-navigation-proxy.mjs',
+			command: 'node e2e/fixtures/pwa-navigation-proxy.ts',
 			url: baseURL,
 			reuseExistingServer: false
 		}

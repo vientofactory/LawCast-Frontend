@@ -31,10 +31,7 @@
 	<div class="lc-server-offline" data-testid="server-offline-screen" role="alert">
 		<div class="lc-page-heading">
 			<p class="lc-text-secondary mb-4 flex items-center gap-3 text-sm font-semibold">
-				<span
-					class="lc-empty-state-icon inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
-					aria-hidden="true"
-				>
+				<span class="inline-flex shrink-0 items-center justify-center" aria-hidden="true">
 					<FontAwesomeIcon icon={faServer} class="lc-text-muted h-5 w-5" />
 				</span>
 				서버 연결 안내

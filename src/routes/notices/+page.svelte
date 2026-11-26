@@ -564,7 +564,11 @@
 			{/if}
 		</div>
 		<h3 class="lc-text-primary lc-list-title mt-2">
-			<a href={`/notices/${result.noticeNum}`} class="lc-link">{result.subject}</a>
+			<a
+				href={`/notices/${result.noticeNum}`}
+				class="lc-list-link"
+				data-testid={`semantic-title-link-${result.noticeNum}`}>{result.subject}</a
+			>
 		</h3>
 		{#if result.excerpt}
 			<p
@@ -1065,7 +1069,7 @@
 						data-testid="notices-semantic-fallback-banner"
 					>
 						<div class="flex items-start gap-3">
-							<div class="lc-chip-warning mt-0.5 rounded-full p-1.5">
+							<div class="lc-text-warning mt-0.5 inline-flex shrink-0">
 								<FontAwesomeIcon icon={faWandMagicSparkles} class="h-4 w-4" />
 							</div>
 							<div>
@@ -1258,7 +1262,7 @@
 								<article
 									aria-labelledby="notice-heading-{notice.num}"
 									data-testid={`notice-card-${notice.num}`}
-									class={`lc-notice-card lc-result-row ${
+									class={`lc-flat-list-row lc-notice-card lc-result-row ${
 										notice.isDone
 											? 'lc-notice-card-done lc-notice-border-done'
 											: 'lc-notice-border-active'
@@ -1267,14 +1271,11 @@
 								>
 									<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 										<div class="min-w-0 flex-1">
-											<h3
-												id="notice-heading-{notice.num}"
-												class={`mb-3 text-lg leading-tight font-semibold wrap-break-word ${notice.isDone ? 'lc-text-muted' : 'lc-text-primary'}`}
-											>
+											<h3 id="notice-heading-{notice.num}" class="lc-list-title mb-3">
 												<a
 													href={`/notices/${notice.num}?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&sortOrder=${sortOrder}`}
 													data-testid={`notice-detail-link-${notice.num}`}
-													class={`no-underline transition-colors duration-150 ${notice.isDone ? 'hover:text-[var(--lc-text-secondary)]' : 'hover:text-[var(--lc-text-accent)]'}`}
+													class="lc-list-link"
 												>
 													{notice.subject}
 												</a>

@@ -106,15 +106,6 @@
 	grid-template-columns: minmax(0, 1fr);
 	border-top: 2px solid var(--lc-border-strong);
 }
-/* List rows share the page surface in both themes; only summaries are inset. */
-.lc-main .lc-result-list > .lc-notice-card.lc-result-row {
-	min-width: 0;
-	border: 0;
-	border-bottom: 1px solid var(--lc-border-soft);
-	border-radius: 0 !important;
-	padding: 1.5rem 0;
-	background: transparent;
-}
 .lc-result-row h3 {
 	margin-bottom: 0.5rem;
 }
@@ -307,8 +298,6 @@
 	margin-bottom: 0.875rem;
 }
 .lc-main .lc-home-signal-icon {
-	width: 2rem;
-	height: 2rem;
 	flex-shrink: 0;
 }
 .lc-main .lc-home-signal-tag {
@@ -762,11 +751,7 @@ summary:focus-visible {
 .lc-main :is(.lc-section, .lc-form-section, .lc-service-section) h2 {
 	color: var(--lc-text-primary);
 }
-.lc-main :is(.lc-icon-accent-primary, .lc-icon-accent-success, .lc-home-signal-icon) {
-	background: var(--lc-surface-hover);
-	color: var(--lc-text-secondary);
-}
-.lc-main :is(.lc-icon-accent-primary, .lc-icon-accent-success) .lc-text-on-accent {
+.lc-main .lc-home-signal-icon {
 	color: var(--lc-text-secondary);
 }
 .lc-detail-reading .agent-summary-card {
@@ -1032,13 +1017,11 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 	border: 0;
 	border-radius: 0.5rem;
 	cursor: pointer;
+	text-decoration: none;
 }
 @media (hover: hover) and (pointer: fine) {
 	.lc-main .lc-result-action-secondary:hover {
-		color: var(--lc-text-accent);
 		background: var(--lc-surface-hover);
-		text-decoration: underline;
-		text-underline-offset: 0.2em;
 	}
 }
 .lc-recent-notice-heading {
@@ -1046,10 +1029,6 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 0.75rem;
-}
-.lc-recent-notice-heading > a {
-	font-size: 1.125rem;
-	line-height: 1.6;
 }
 @media (min-width: 1024px) {
 	.lc-recent-notice-heading {
@@ -1090,6 +1069,8 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 .lc-flat-list {
 	min-width: 0;
 }
+/* Result rows must outrank legacy dark-theme card backgrounds. */
+.lc-main .lc-result-list > .lc-flat-list-row,
 .lc-main .lc-flat-list-row {
 	display: block;
 	min-width: 0;
@@ -1099,6 +1080,7 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 	border-radius: 0;
 	background: transparent;
 	box-shadow: none;
+	transition: background-color 160ms ease;
 }
 .lc-main .lc-discussion-list > .lc-flat-list-row {
 	display: flex;
@@ -1106,6 +1088,23 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 .lc-main .lc-flat-list-row:last-child {
 	border-bottom: 0;
 }
+/* List destinations stay neutral; keyboard focus retains visible row feedback. */
+.lc-main .lc-list-link {
+	display: block;
+	min-height: 2.75rem;
+	color: var(--lc-text-primary);
+	text-decoration: none;
+	cursor: pointer;
+}
+.lc-main .lc-flat-list-row.lc-list-link:focus-visible,
+.lc-main .lc-flat-list-row:has(.lc-list-link):has(:focus-visible) {
+	background: var(--lc-surface-hover);
+}
+.lc-main .lc-list-link:focus-visible {
+	outline: 2px solid var(--lc-text-accent);
+	outline-offset: -3px;
+}
+
 /* Digest matches retain a non-color cue without reintroducing a full card. */
 .lc-main .lc-flat-list-row-highlight {
 	border-inline-start: 3px solid var(--lc-status-warning);

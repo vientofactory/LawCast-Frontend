@@ -1,9 +1,9 @@
 import { createServer } from 'node:http';
 let mode = 'server';
 let requests = 0;
-let responsesByStatus = {};
+let responsesByStatus: Record<number, number> = {};
 createServer(async (request, response) => {
-	const url = new URL(request.url, 'http://127.0.0.1:4331');
+	const url = new URL(request.url ?? '/', 'http://127.0.0.1:4331');
 	if (url.pathname === '/control') {
 		mode = url.searchParams.get('mode') || 'server';
 		requests = 0;
@@ -95,20 +95,20 @@ createServer(async (request, response) => {
 		return;
 	}
 	if (requestMode === 'slow') await new Promise((resolve) => setTimeout(resolve, 60000));
-	const status =
-		{
-			server: 503,
-			internal: 500,
-			gateway: 502,
-			timeout: 504,
-			unauthorized: 401,
-			forbidden: 403,
-			invalid: 400,
-			missing: 404,
-			rate: 429,
-			'rate-html': 429,
-			'rate-json': 429
-		}[requestMode] || 200;
+	const statusByMode: Record<string, number> = {
+		server: 503,
+		internal: 500,
+		gateway: 502,
+		timeout: 504,
+		unauthorized: 401,
+		forbidden: 403,
+		invalid: 400,
+		missing: 404,
+		rate: 429,
+		'rate-html': 429,
+		'rate-json': 429
+	};
+	const status = statusByMode[requestMode] || 200;
 	response.statusCode = status;
 	response.setHeader('retry-after', '2');
 	response.setHeader(

@@ -147,3 +147,38 @@ test.describe('Changes Page', () => {
 		expect(content).toBeTruthy();
 	});
 });
+
+for (const width of [390, 1440]) {
+	for (const target of ['title', 'metadata', 'keyboard'] as const) {
+		test(`navigates from the change bill ${target} at ${width}px`, async ({ page }) => {
+			await page.setViewportSize({ width, height: 900 });
+			await page.goto('/notices/changes');
+			const row = page.locator('[data-testid^="change-row-"]').first();
+			await expect(row).toBeVisible();
+			const link = row.locator('[data-testid^="change-notice-"]');
+			await expect(link).toHaveAttribute('href', /^\/notices\/\d+$/);
+			const href = (await link.getAttribute('href'))!;
+			const history = row.getByRole('link', { name: '변경 내역 보기', exact: true });
+			await expect(history).toHaveAttribute('href', new RegExp(`^${href}\\?timeline=true`));
+			const compare = row.getByRole('link', { name: '이 변경 비교', exact: true });
+			if (await compare.count()) {
+				await expect(compare).toHaveAttribute(
+					'href',
+					new RegExp(`^${href}\\?timeline=true&cmpFrom=\\d+&cmpTo=\\d+$`)
+				);
+			}
+			await expect(row.locator('a a')).toHaveCount(0);
+			if (target === 'keyboard') {
+				await link.focus();
+				await expect(link).toBeFocused();
+				await page.keyboard.press('Enter');
+			} else if (target === 'metadata') {
+				await link.locator('span').filter({ hasText: '의안번호' }).first().click();
+			} else {
+				await link.getByRole('heading', { level: 2 }).click();
+			}
+			await expect(page).toHaveURL((url) => url.pathname === href && !url.search);
+			await expect(page.getByTestId('notice-detail-main')).toBeVisible();
+		});
+	}
+}

@@ -12,17 +12,40 @@ const source = ts.transpileModule(readFileSync(routePath, 'utf8'), {
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
 
-async function loadPackages(manifest, lockfile) {
-	const exports = {};
+interface PackageEntry {
+	name: string;
+	version: string;
+	license: string;
+	note?: string;
+}
+interface Manifest {
+	dependencies?: Record<string, string>;
+}
+interface Lockfile {
+	packages?: Record<
+		string,
+		{ name?: string; version?: string; license?: string; link?: boolean; resolved?: string }
+	>;
+}
+interface RouteExports {
+	load: (event: {
+		fetch: () => Promise<{ ok: boolean; json: () => Promise<{ data: unknown[] }> }>;
+		locals: Record<string, unknown>;
+	}) => Promise<{ frontendPackages: PackageEntry[] }>;
+}
+
+async function loadPackages(manifest: Manifest, lockfile: Lockfile): Promise<PackageEntry[]> {
+	const exports: Partial<RouteExports> = {};
 	runInNewContext(source, {
 		exports,
-		require(id) {
+		require(id: string) {
 			if (id.endsWith('/package.json')) return manifest;
 			if (id.endsWith('/package-lock.json')) return lockfile;
 			if (id === '#lib/server/response-cache.ts') return { markResponseFailure() {} };
 			throw new Error(`Unexpected import: ${id}`);
 		}
 	});
+	assert.ok(exports.load);
 	const result = await exports.load({
 		fetch: async () => ({ ok: true, json: async () => ({ data: [] }) }),
 		locals: {}
@@ -77,7 +100,7 @@ test('preserves registry metadata and package notes', async () => {
 });
 
 test('handles missing metadata and broken or circular links without hanging', async () => {
-	for (const packages of [
+	const brokenPackages: NonNullable<Lockfile['packages']>[] = [
 		{},
 		{ 'node_modules/local': { link: true } },
 		{ 'node_modules/local': { link: true, resolved: 'vendor/missing' } },
@@ -86,7 +109,8 @@ test('handles missing metadata and broken or circular links without hanging', as
 			'node_modules/local': { link: true, resolved: 'vendor/local' },
 			'vendor/local': { link: true, resolved: 'node_modules/local' }
 		}
-	]) {
+	];
+	for (const packages of brokenPackages) {
 		assert.deepEqual(
 			await loadPackages({ dependencies: { local: 'file:vendor/local' } }, { packages }),
 			[{ name: 'local', version: 'file:vendor/local', license: 'Unknown' }]

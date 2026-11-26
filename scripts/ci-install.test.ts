@@ -10,12 +10,12 @@ const root = process.env.CI_ROOT_UNDER_TEST || fileURLToPath(new URL('..', impor
 const script = join(root, '.github/scripts/install-browser-deps.sh');
 const actionPath = join(root, '.github/actions/setup-playwright/action.yml');
 const action = existsSync(actionPath) ? readFileSync(actionPath, 'utf8') : '';
-const identityModule = () =>
+const identityModule = (): Promise<typeof import('../.github/scripts/playwright-cache-key.mjs')> =>
 	import(
 		new URL(
 			'../.github/scripts/playwright-cache-key.mjs',
-			`file://${root}/scripts/ci-install.test.mjs`
-		)
+			`file://${root}/scripts/ci-install.test.ts`
+		).href
 	);
 const workflow = readFileSync(
 	process.env.CI_WORKFLOW_UNDER_TEST || join(root, '.github/workflows/web-vitals.yml'),
@@ -26,8 +26,7 @@ test('preserves every regression suite and fails rather than ignoring test error
 	for (const command of [
 		'npm run lint && git diff --exit-code',
 		'npm run check',
-		'node --test scripts/lighthouse-summary.test.mjs',
-		'node --test scripts/request-failure.test.mjs',
+		'npm run test:unit',
 		'playwright-configs/playwright.config.ts e2e/revision-history.spec.ts e2e/revision-text-diff.spec.ts e2e/revision-history-pagination.spec.ts e2e/navigation-scroll.spec.ts',
 		'npm run test:e2e:web-vitals',
 		'playwright-configs/playwright.load-failures.config.ts',
@@ -35,6 +34,11 @@ test('preserves every regression suite and fails rather than ignoring test error
 		'playwright-configs/playwright.consumers.config.ts'
 	])
 		assert.ok(workflow.includes(command), command);
+	const packageScripts: Record<string, string> = JSON.parse(
+		readFileSync(join(root, 'package.json'), 'utf8')
+	).scripts;
+	assert.equal(packageScripts['test:unit'], 'node --test scripts/*.test.ts');
+	assert.ok(packageScripts.check.includes('npm run check:tests'));
 	assert.ok(workflow.includes('timeout-minutes: 25'));
 	assert.doesNotMatch(workflow, /continue-on-error|\|\|\s*true/);
 });
@@ -54,7 +58,12 @@ test('separates npm downloads, APT archives and compatible browser binaries', ()
 	assert.doesNotMatch(action, /node_modules|\/var\/lib|\/usr\/lib|dpkg/);
 });
 
-function runInstaller(exitCode = 0, invalidPath, browsers = ['chromium'], installer = script) {
+function runInstaller(
+	exitCode = 0,
+	invalidPath?: string,
+	browsers: readonly string[] = ['chromium'],
+	installer = script
+) {
 	const directory = mkdtempSync(join(tmpdir(), 'lawcast-ci-install-'));
 	const bin = join(directory, 'bin');
 	const runner = invalidPath ?? join(directory, 'runner with spaces');
@@ -97,7 +106,8 @@ fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'lawcast-apt-archives', 'fon
 		runner,
 		result,
 		log: () => readFileSync(join(directory, 'sudo.log'), 'utf8'),
-		invocation: () => JSON.parse(readFileSync(join(directory, 'npx.json'), 'utf8')),
+		invocation: (): { args: string[]; configPath: string; config: string } =>
+			JSON.parse(readFileSync(join(directory, 'npx.json'), 'utf8')),
 		cleanup: () => rmSync(directory, { recursive: true, force: true })
 	};
 }
@@ -147,7 +157,7 @@ test('labels intentional HTTP errors without hiding application error output', (
 		join(root, 'playwright-configs/playwright.load-failures.config.ts'),
 		'utf8'
 	);
-	const fixture = readFileSync(join(root, 'e2e/fixtures/load-failure-backend.mjs'), 'utf8');
+	const fixture = readFileSync(join(root, 'e2e/fixtures/load-failure-backend.ts'), 'utf8');
 	assert.ok(config.includes("stdout: 'pipe'"));
 	assert.doesNotMatch(config, /stderr:\s*'ignore'/);
 	assert.ok(fixture.includes('intentional HTTP 429 injection'));
@@ -183,7 +193,7 @@ test('installs every requested browser dependency and preserves the Chromium wra
 	for (const [browsers, installer] of [
 		[['chromium', 'firefox', 'webkit'], script],
 		[['chromium'], join(root, '.github/scripts/install-chromium-deps.sh')]
-	]) {
+	] as const) {
 		const probe = runInstaller(0, undefined, browsers, installer);
 		try {
 			assert.equal(probe.result.status, 0, probe.result.stderr);

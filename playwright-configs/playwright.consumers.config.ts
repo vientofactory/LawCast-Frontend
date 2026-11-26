@@ -13,7 +13,7 @@ export default defineConfig({
 	webServer: [
 		{
 			cwd,
-			command: 'node e2e/fixtures/consumer-backend.mjs',
+			command: 'node e2e/fixtures/consumer-backend.ts',
 			url: 'http://127.0.0.1:4327/requests',
 			reuseExistingServer: false
 		},

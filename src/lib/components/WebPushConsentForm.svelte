@@ -366,8 +366,8 @@
 >
 	{#if !compact}
 		<h2 class="lc-text-primary mb-6 flex items-center text-xl font-bold tracking-tight">
-			<div class="lc-icon-accent-primary mr-3 rounded-lg p-2">
-				<FontAwesomeIcon icon={faCloud} class="lc-text-on-accent h-5 w-5" />
+			<div class="lc-text-secondary mr-3 inline-flex shrink-0">
+				<FontAwesomeIcon icon={faCloud} class="h-5 w-5" />
 			</div>
 			브라우저 웹 푸시 알림
 		</h2>

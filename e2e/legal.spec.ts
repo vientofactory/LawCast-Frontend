@@ -175,6 +175,14 @@ test('notice details link reuse and rights guidance independently of AI summarie
 	await page.goto('/notices/2210001');
 	const guidance = page.getByTestId('notice-legal-guidance');
 	await expect(guidance).toContainText('법률안은 현행 법령과 다르며');
+	await expect(page.locator('main > :last-child')).toHaveAttribute(
+		'data-testid',
+		'notice-legal-guidance'
+	);
+	await guidance.scrollIntoViewIfNeeded();
+	const archive = await page.getByTestId('notice-detail-archive-meta').boundingBox();
+	const legal = await guidance.boundingBox();
+	expect(legal!.y).toBeGreaterThanOrEqual(archive!.y + archive!.height);
 	await expect(page.getByTestId('notice-reuse-guidance')).toHaveAttribute(
 		'href',
 		'/legal#legal-rights'

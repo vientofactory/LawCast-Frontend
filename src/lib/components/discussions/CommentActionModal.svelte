@@ -127,12 +127,12 @@
 >
 	{#snippet icon()}
 		<div
-			class={`rounded-lg p-2 ${
+			class={`inline-flex shrink-0 ${
 				mode === 'delete-comment'
-					? 'bg-red-500/10 text-red-500'
+					? 'lc-text-danger'
 					: mode === 'edit-comment'
-						? 'lc-chip-blue'
-						: 'lc-chip-warning'
+						? 'lc-text-accent'
+						: 'lc-text-warning'
 			}`}
 		>
 			<FontAwesomeIcon

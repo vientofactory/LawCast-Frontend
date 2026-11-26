@@ -107,8 +107,8 @@
 
 <div class="lc-form-section">
 	<h2 class="lc-text-primary mb-6 flex items-center text-xl font-bold tracking-tight">
-		<div class="lc-icon-accent-primary mr-3 rounded-lg p-2">
-			<FontAwesomeIcon icon={faDiscord} class="lc-text-on-accent h-5 w-5" />
+		<div class="lc-text-secondary mr-3 inline-flex shrink-0">
+			<FontAwesomeIcon icon={faDiscord} class="h-5 w-5" />
 		</div>
 		디스코드 웹훅 등록
 	</h2>

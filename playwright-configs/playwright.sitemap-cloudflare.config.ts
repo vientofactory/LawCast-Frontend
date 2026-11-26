@@ -9,7 +9,7 @@ export default defineConfig({
 	webServer: [
 		{
 			cwd: fileURLToPath(new URL('..', import.meta.url)),
-			command: 'node e2e/fixtures/sitemap-backend.mjs',
+			command: 'node e2e/fixtures/sitemap-backend.ts',
 			url: 'http://127.0.0.1:4319/stats',
 			reuseExistingServer: false
 		},
