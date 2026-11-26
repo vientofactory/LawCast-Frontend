@@ -61,46 +61,55 @@
 		'hover:text-black focus-visible:text-black dark:hover:text-white dark:focus-visible:text-white';
 </script>
 
-<footer
-	class="mt-auto border-t border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] py-6 backdrop-blur-sm"
->
+<footer class="mt-auto border-t border-[var(--lc-border-soft)] bg-[var(--lc-surface-primary)] py-6">
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 		<div class="flex flex-col gap-3">
 			<a href="/" class="self-center sm:self-start" data-testid="footer-brand">
 				<BrandLogo compact />
 			</a>
 			<p class="lc-text-secondary text-center text-sm sm:text-left">
-				LawCast는 대한민국 국회와 관련이 없습니다. 모든 법률안은 기본적으로 퍼블릭 도메인으로
-				취급됩니다.
+				LawCast는 대한민국 국회가 운영하거나 보증하는 공식 서비스가 아닙니다. 자료의 출처와 이용에
+				관한 안내는 법적 고지를 확인해 주세요.
 			</p>
 			<div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-start">
 				<p class="lc-text-secondary text-sm">
 					Powered by <a
 						href="https://github.com/vientorepublic"
+						data-testid="footer-author"
 						target="_blank"
 						rel="noopener noreferrer"
 						class="lc-link">Vientorepublic</a
 					>
 				</p>
 				<p class="lc-text-secondary text-sm">
-					<a href="/license" class="lc-link">오픈소스 라이선스</a>
+					<a href="/license" class="lc-link" data-testid="footer-license">오픈소스 라이선스</a>
 				</p>
 				<p class="lc-text-secondary text-sm">
-					<a href="/status" class="lc-link">시스템 상태</a>
+					<a
+						href="/legal"
+						class="lc-link inline-flex min-h-11 items-center"
+						data-testid="footer-legal">법적 고지</a
+					>
 				</p>
 				<p class="lc-text-secondary text-sm">
-					<a href="/crawling-transparency" class="lc-link">투명성 정보</a>
+					<a href="/status" class="lc-link" data-testid="footer-status">시스템 상태</a>
 				</p>
 				<p class="lc-text-secondary text-sm">
-					<a href="/proposals" class="lc-link">발의 통계</a>
+					<a href="/crawling-transparency" class="lc-link" data-testid="footer-transparency"
+						>투명성 정보</a
+					>
 				</p>
 				<p class="lc-text-secondary text-sm">
-					<a href="/announcements" class="lc-link">공지사항</a>
+					<a href="/proposals" class="lc-link" data-testid="footer-proposals">발의 통계</a>
+				</p>
+				<p class="lc-text-secondary text-sm">
+					<a href="/announcements" class="lc-link" data-testid="footer-announcements">공지사항</a>
 				</p>
 				{#if env.PUBLIC_DISCORD_SERVER_URL?.trim()}
 					<p class="lc-text-secondary text-sm">
 						<a
 							href={env.PUBLIC_DISCORD_SERVER_URL}
+							data-testid="footer-discord"
 							target="_blank"
 							rel="noopener noreferrer"
 							class="lc-link">디스코드 서버</a

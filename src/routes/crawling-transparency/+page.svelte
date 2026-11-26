@@ -87,7 +87,7 @@
 <div class="lc-page-shell">
 	<Header />
 
-	<main id="main-content" class="lc-main">
+	<main id="main-content" class="lc-main" data-testid="crawling-transparency">
 		<!-- Hero -->
 		<div class="lc-page-heading">
 			<div class="flex flex-wrap items-start justify-between gap-3">
@@ -123,12 +123,13 @@
 			</h2>
 			<div class="grid gap-4 sm:grid-cols-2">
 				{#each transparency.noticeSources as source (source.id)}
-					<div class="lc-data-row">
+					<div class="min-w-0 py-4" data-testid={`transparency-source-${source.id}`}>
 						<h3 class="lc-text-primary lc-subsection-heading mb-2 font-bold">{source.name}</h3>
 						<a
 							href={source.url}
 							target="_blank"
 							rel="noopener noreferrer"
+							data-testid={`transparency-source-link-${source.id}`}
 							class="lc-text-info mb-2 inline-flex items-center gap-1 text-xs transition-opacity hover:opacity-75"
 						>
 							{source.url.replace('https://', '')}

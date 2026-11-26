@@ -1,0 +1,11 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true
+	},
+	"include": [
+		"e2e/legal-notices.spec.ts",
+		"e2e/legal.spec.ts",
+		"playwright-configs/playwright.legal-notices.config.ts"
+	]
+}

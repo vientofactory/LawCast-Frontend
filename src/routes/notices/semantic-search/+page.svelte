@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoticeConsultationStatus from '#lib/components/NoticeConsultationStatus.svelte';
 	import WeakSearchResultsTail from '#lib/components/WeakSearchResultsTail.svelte';
 	import { onDestroy } from 'svelte';
 	import { goto, refreshAll } from '$app/navigation';
@@ -244,6 +245,10 @@
 		class="lc-flat-list-row lc-semantic-result"
 	>
 		<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm wrap-anywhere">
+			<NoticeConsultationStatus
+				notice={{}}
+				testId={`semantic-consultation-status-${result.noticeNum}`}
+			/>
 			<span class="lc-flat-status lc-text-secondary font-medium">
 				의안번호 {result.noticeNum}
 			</span>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoticeConsultationStatus from '#lib/components/NoticeConsultationStatus.svelte';
 	import type { NoticeCard } from '#lib/types/api.ts';
 	import {
 		openExternalLink,
@@ -140,14 +141,7 @@
 					<div class="lc-text-dim mt-1 text-xs">
 						<div class="flex flex-wrap items-center gap-1.5">
 							<span>의안번호: {notice.num}</span>
-							{#if notice.isDone}
-								<span
-									class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-								>
-									<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
-									종료
-								</span>
-							{/if}
+							<NoticeConsultationStatus {notice} testId={`recent-notice-status-${notice.num}`} />
 							{#if isSourceDeleted(notice)}
 								<span
 									class="lc-chip-warning inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"

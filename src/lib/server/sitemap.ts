@@ -116,7 +116,8 @@ export function mainSitemap(origin: string): string {
 		['/proposals', 'daily', '0.7'],
 		['/announcements', 'daily', '0.6'],
 		['/crawling-transparency', 'daily', '0.5'],
-		['/license', 'monthly', '0.3']
+		['/license', 'monthly', '0.3'],
+		['/legal', 'monthly', '0.3']
 	];
 	return urlset(
 		pages.map(

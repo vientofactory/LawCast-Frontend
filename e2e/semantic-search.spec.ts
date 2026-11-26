@@ -1105,3 +1105,17 @@ test.describe('Semantic Search UI', () => {
 		await expect(page.getByText('초 후 다시 시도할 수 있습니다')).toBeVisible({ timeout: 10000 });
 	});
 });
+
+test('does not invent an opinion collection state for metadata-free search hits', async ({
+	page
+}) => {
+	test.skip(!semanticEnabled, 'Requires the semantic search fixture');
+	await page.goto('/notices/semantic-search?search=임대차');
+	await expect(page.getByTestId('semantic-consultation-status-2220607')).toHaveText(
+		'의견수렴 상태 미확인'
+	);
+	await expect(page.getByTestId('semantic-result-link-2220607')).toHaveAttribute(
+		'href',
+		'/notices/2220607'
+	);
+});

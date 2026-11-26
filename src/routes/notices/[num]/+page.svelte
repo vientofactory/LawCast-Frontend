@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { getNoticeConsultation } from '#lib/utils/notice-consultation.ts';
+	import NoticeConsultationStatus from '#lib/components/NoticeConsultationStatus.svelte';
 	import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
 	import Alert from '#lib/components/Alert.svelte';
 	import DisclosureIndicator from '#lib/components/DisclosureIndicator.svelte';
@@ -266,26 +268,25 @@
 	let deadline = $derived(
 		buildNoticeDeadline(displayContent.noticePeriod, displayContent.isDone ?? null)
 	);
-	let opinionGuidance = $derived(
-		displayContent.noticePeriod
-			? `입법예고 기간(의견 제출 가능 기간: ${displayContent.noticePeriod})`
-			: '입법예고 기간(의견 제출 가능 기간)'
-	);
-	// Before the transfer to the National Assembly legislative notice (the
-	// contentId added event), the bill lives only in the bill information
-	// system, which has no citizen opinion collection page. Keep the opinion
-	// CTA disabled until a contentId exists.
 	let opinionContentId = $derived(
 		(detail.notice.contentId ?? detail.originalContent.contentId ?? '').trim()
 	);
-	let hasOpinionTarget = $derived(opinionContentId.length > 0);
-	let isPreTransfer = $derived(!loadError && !hasOpinionTarget);
+	let consultationInput = $derived({
+		...displayContent,
+		contentId: opinionContentId || null
+	});
+	let consultation = $derived(getNoticeConsultation(consultationInput));
+	let isPreTransfer = $derived(!loadError && consultation.kind === 'pre_notice');
 	let opinionGuidanceText = $derived(
-		displayContent.isDone
-			? `${opinionGuidance}이 종료되어 더 이상 의견을 제출할 수 없습니다.`
+		consultation.kind === 'ended'
+			? '입법예고 의견 제출 기간이 종료되어 더 이상 의견을 제출할 수 없습니다. 법률안의 계류·의결 여부와는 별개입니다.'
 			: isPreTransfer
-				? `${opinionGuidance}이지만 아직 국회 입법예고로 이관되기 전이라 의안정보시스템에는 시민 의견 수렴 페이지가 없어 의견을 제출할 수 없습니다. 입법예고로 이관되면 의견 제출이 가능합니다.`
-				: `${opinionGuidance}에는 누구나 국회 홈페이지에서 의견을 제출할 수 있습니다.`
+				? '아직 입법예고 전입니다. 의안정보시스템에는 시민 의견 수렴 페이지가 없어 의견을 제출할 수 없습니다. 입법예고로 이관되면 의견 제출이 가능합니다.'
+				: consultation.kind === 'open'
+					? `입법예고 의견수렴 중입니다. ${displayContent.noticePeriod ? `의견 제출 가능 기간: ${displayContent.noticePeriod}. ` : ''}누구나 국회 홈페이지에서 의견을 제출할 수 있습니다.`
+					: consultation.kind === 'scheduled'
+						? `아직 의견 제출 기간이 시작되지 않았습니다. 입법예고 기간: ${displayContent.noticePeriod}`
+						: '현재 의견수렴 상태를 확인하지 못했습니다. 국회 페이지에서 최신 상태를 확인해 주세요.'
 	);
 
 	/** "2026-06-14 ~ 2026-06-28 · 2026-06-28 마감 (D-3)" combined display style for the facts row. */
@@ -418,7 +419,9 @@
 			{ label: '회부일', value: displayContent.referralDate },
 			{
 				label: '입법예고기간',
-				value: withDeadlineSuffix(displayContent.noticePeriod, deadline)
+				value: ['open', 'ended'].includes(consultation.kind)
+					? withDeadlineSuffix(displayContent.noticePeriod, deadline)
+					: displayContent.noticePeriod
 			},
 			{ label: '제안회기', value: displayContent.proposalSession }
 		].filter((item) => !!item.value)
@@ -914,22 +917,11 @@
 									<FontAwesomeIcon icon={faScaleBalanced} class="mr-1.5 h-3.5 w-3.5" />
 									의안번호 {detail.notice.num}
 								</div>
-								{#if displayContent.isDone}
-									<div
-										class="lc-chip-muted inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
-									>
-										<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
-										종료됨
-									</div>
-								{:else}
-									<div
-										class="lc-chip-success inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
-									>
-										<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
-										진행 중
-									</div>
-								{/if}
-								{#if deadline.kind !== 'none'}
+								<NoticeConsultationStatus
+									notice={consultationInput}
+									testId="notice-detail-consultation-status"
+								/>
+								{#if deadline.kind !== 'none' && ['open', 'ended'].includes(consultation.kind)}
 									<div
 										class={`${deadline.kind === 'open' ? 'lc-chip-danger' : 'lc-chip-muted'} inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold`}
 										data-testid="notice-detail-deadline-chip"
@@ -1016,6 +1008,21 @@
 						</div>
 					</div>
 
+					<p class="lc-text-muted mt-4 text-sm leading-relaxed" data-testid="notice-legal-guidance">
+						법률안은 현행 법령과 다르며, 수집된 정보는 최신 원문과 다를 수 있습니다. 기한과 진행
+						상태는 국회 페이지에서 확인해 주세요.
+						<a
+							href="/legal#legal-rights"
+							class="lc-link inline-flex min-h-11 items-center"
+							data-testid="notice-reuse-guidance">자료 재이용 안내</a
+						>
+						<a
+							href="/legal#legal-corrections"
+							class="lc-link inline-flex min-h-11 items-center"
+							data-testid="notice-rights-inquiry">정정·권리침해 문의</a
+						>
+					</p>
+
 					{#if aiSummaryEnabled}<p class="lc-text-muted mt-4 text-xs">
 							AI 요약은 참고용이며 오류가 있을 수 있습니다. 아래 원문을 최종 기준으로 확인해주세요.
 						</p>{/if}
@@ -1037,7 +1044,7 @@
 						class="lc-opinion-action flex flex-wrap items-center gap-3"
 						data-testid="notice-opinion-cta"
 					>
-						{#if displayContent.isDone}
+						{#if consultation.kind === 'ended'}
 							<button
 								type="button"
 								disabled
@@ -1047,7 +1054,7 @@
 								<FontAwesomeIcon icon={faLock} class="mr-2 h-4 w-4" />
 								제출 기간 종료
 							</button>
-						{:else if isPreTransfer}
+						{:else if consultation.kind !== 'open'}
 							<button
 								type="button"
 								disabled
@@ -1071,6 +1078,10 @@
 						{/if}
 						<p class="lc-text-secondary text-sm" data-testid="notice-opinion-guidance">
 							{opinionGuidanceText}
+						</p>
+						<p class="lc-text-secondary text-sm" data-testid="notice-stage-explanation">
+							법률안의 계류·의결 등 국회 처리 상태와 입법예고 의견수렴 상태는 별개입니다. 아래
+							표시는 의견 제출 가능 여부를 안내합니다.
 						</p>
 					</div>
 				</section>

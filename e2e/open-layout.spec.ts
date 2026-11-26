@@ -372,7 +372,11 @@ test('opinion boundaries stay single for pre-transfer, ongoing and ended notices
 		await page.setViewportSize({ width, height: 900 });
 		for (const theme of ['light', 'dark'] as const) {
 			await page.emulateMedia({ colorScheme: theme });
-			for (const number of [2210013, 2210015, 2210004]) {
+			for (const [number, kind, label] of [
+				[2210013, 'pre_notice', '입법예고 전'],
+				[2210015, 'open', '의견수렴 중'],
+				[2210004, 'ended', '의견수렴 종료']
+			] as const) {
 				await page.goto(`/notices/${number}`);
 				await page.addStyleTag({
 					content:
@@ -386,11 +390,14 @@ test('opinion boundaries stay single for pre-transfer, ongoing and ended notices
 					'border-top-width',
 					'2px'
 				);
+				const status = page.getByTestId('notice-detail-consultation-status');
+				await expect(status).toHaveAttribute('data-consultation-state', kind);
+				await expect(status).toHaveText(label);
 				const action = page.getByTestId('notice-opinion-submit');
-				if (number === 2210015) await expect(action).toBeEnabled();
+				if (kind === 'open') await expect(action).toBeEnabled();
 				else await expect(action).toBeDisabled();
-				if (number === 2210013)
-					await expect(page.getByTestId('notice-opinion-guidance')).toContainText('이관되기 전');
+				if (kind === 'pre_notice')
+					await expect(page.getByTestId('notice-opinion-guidance')).toContainText('입법예고 전');
 				expect((await page.evaluate(findSectionDividers)).pairs).toEqual([]);
 			}
 		}

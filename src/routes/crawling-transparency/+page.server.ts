@@ -38,7 +38,7 @@ const FALLBACK: CrawlingTransparencyData = {
 	noticeSources: [
 		{
 			id: 'pal',
-			name: '국회 입법예고 게시판',
+			name: '국회 입법예고 크롤러',
 			url: 'https://pal.assembly.go.kr',
 			description: '국회에서 발의된 법률안과 입법예고 정보를 수집합니다.',
 			noticeCount: 0,
@@ -47,7 +47,7 @@ const FALLBACK: CrawlingTransparencyData = {
 		},
 		{
 			id: 'nsm',
-			name: '국민참여입법센터 입법진행현황',
+			name: '국민참여입법센터 크롤러',
 			url: 'https://opinion.lawmaking.go.kr',
 			description: '국민참여입법센터의 입법진행현황(국회입법현황)을 수집합니다.',
 			noticeCount: 0,
