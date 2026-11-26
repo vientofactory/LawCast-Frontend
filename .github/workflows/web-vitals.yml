@@ -34,12 +34,8 @@ jobs:
         run: npm run lint && git diff --exit-code
       - name: Type check
         run: npm run check
-      - name: Test Lighthouse summaries
-        run: node --test scripts/lighthouse-summary.test.mjs
-      - name: Test request failure classification
-        run: node --test scripts/request-failure.test.mjs
-      - name: Test CI installation guards
-        run: node --test scripts/ci-install.test.mjs
+      - name: Test TypeScript unit suites
+        run: npm run test:unit
       - name: Set up cached Chromium
         uses: ./.github/actions/setup-playwright
         with:

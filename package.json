@@ -1,6 +1,6 @@
 {
 	"name": "lawcast-frontend",
-	"version": "3.3.0",
+	"version": "3.3.1",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,
@@ -16,7 +16,7 @@
 		"start:node": "node --env-file-if-exists=.env build/index.js",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && npm run check:native && npm run test:vendor && npm run test:license",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && npm run check:native && npm run check:tests && npm run test:vendor && npm run test:license",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --write . && eslint . --fix",
@@ -38,7 +38,9 @@
 		"check:native": "node node_modules/typescript-native/bin/tsc --noEmit",
 		"test:vendor": "node --test vendor/deepmerge/security.test.cjs",
 		"test:e2e:framework:cloudflare": "DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.framework-cloudflare.config.ts",
-		"test:license": "node --test scripts/license-metadata.test.mjs"
+		"test:license": "node --test scripts/license-metadata.test.ts",
+		"check:tests": "tsc --project tsconfig.tests.json && node node_modules/typescript-native/bin/tsc --project tsconfig.tests.json",
+		"test:unit": "node --test scripts/*.test.ts"
 	},
 	"repository": {
 		"type": "git",

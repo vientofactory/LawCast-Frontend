@@ -585,10 +585,14 @@
 							data-testid={`change-row-${item.id}`}
 						>
 							<div class="flex flex-wrap items-center justify-between gap-3">
-								<div class="min-w-0 flex-1 basis-full sm:basis-80">
-									<p class="lc-text-primary lc-list-title mb-2">
+								<a
+									href={`/notices/${item.noticeNum}`}
+									class="lc-list-link block min-w-0 flex-1 basis-full sm:basis-80"
+									data-testid={`change-notice-${item.id}`}
+								>
+									<h2 id={`change-title-${item.id}`} class="lc-list-title mb-2">
 										{item.subject?.trim() || '(법률안 제목 정보 없음)'}
-									</p>
+									</h2>
 									<div class="mb-2 flex flex-wrap items-center gap-2">
 										<span class="lc-text-secondary inline-flex items-center text-xs">
 											<FontAwesomeIcon icon={faRotate} class="mr-1 h-3 w-3" />
@@ -606,7 +610,7 @@
 									<p class="lc-text-secondary text-xs">
 										{formatDateTimeKST(item.detectedAt)} · 바뀐 항목 {item.changedFieldCount}개
 									</p>
-								</div>
+								</a>
 								<div class="flex flex-wrap gap-2">
 									<a
 										href={buildNoticeTimelineHref(item.noticeNum)}

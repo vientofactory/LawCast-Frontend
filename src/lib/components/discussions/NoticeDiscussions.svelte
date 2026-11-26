@@ -140,7 +140,7 @@
 <section id="notice-discussions" data-testid="notice-discussions" class="lc-section relative">
 	<div class="mb-4 flex items-center justify-between border-b border-[var(--lc-border-soft)] pb-4">
 		<div class="flex items-center gap-2.5">
-			<div class="lc-chip-blue rounded-xl p-2.5">
+			<div class="lc-text-accent inline-flex shrink-0">
 				<FontAwesomeIcon icon={faComments} class="h-5 w-5" />
 			</div>
 			<div>

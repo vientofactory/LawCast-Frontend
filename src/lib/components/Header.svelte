@@ -199,7 +199,7 @@
 								style="min-height:44px"
 							>
 								<span
-									class={`inline-flex h-6 w-6 items-center justify-center rounded-lg ${isActive(item.href) ? 'bg-[var(--lc-surface-primary)] text-[var(--lc-text-accent)]' : 'bg-[var(--lc-surface-muted)] text-[var(--lc-text-accent)] group-hover/menu:bg-[var(--lc-surface-accent)]'}`}
+									class="inline-flex shrink-0 items-center justify-center text-(--lc-text-accent)"
 								>
 									<FontAwesomeIcon icon={item.icon} class="h-3.5 w-3.5" />
 								</span>
@@ -275,7 +275,7 @@
 							onclick={closeMobileMenu}
 						>
 							<span
-								class={`inline-flex h-6 w-6 items-center justify-center rounded-lg ${isActive(item.href) ? 'bg-[var(--lc-surface-primary)] text-[var(--lc-text-accent)]' : 'bg-[var(--lc-surface-muted)] text-[var(--lc-text-accent)] group-hover/menu:bg-[var(--lc-surface-accent)]'}`}
+								class="inline-flex shrink-0 items-center justify-center text-(--lc-text-accent)"
 							>
 								<FontAwesomeIcon icon={item.icon} class="h-3.5 w-3.5" />
 							</span>

@@ -104,7 +104,7 @@
 	onClose={handleClose}
 >
 	{#snippet icon()}
-		<div class="lc-chip-blue rounded-lg">
+		<div class="lc-text-accent inline-flex shrink-0">
 			<FontAwesomeIcon icon={faComments} class="h-4 w-4" />
 		</div>
 	{/snippet}

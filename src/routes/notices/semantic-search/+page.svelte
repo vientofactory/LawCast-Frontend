@@ -269,7 +269,11 @@
 			{/if}
 		</div>
 		<h3 id="semantic-result-heading-{result.noticeNum}" class="lc-text-primary lc-list-title mt-2">
-			<a href={`/notices/${result.noticeNum}`} class="lc-link">
+			<a
+				href={`/notices/${result.noticeNum}`}
+				class="lc-list-link"
+				data-testid={`semantic-title-link-${result.noticeNum}`}
+			>
 				{result.subject}
 			</a>
 		</h3>
@@ -281,7 +285,7 @@
 		<div class="mt-3">
 			<a
 				href={`/notices/${result.noticeNum}`}
-				class="lc-link inline-flex items-center text-sm font-semibold"
+				class="lc-result-action-secondary"
 				data-testid={`semantic-result-link-${result.noticeNum}`}
 			>
 				법률안 상세 보기

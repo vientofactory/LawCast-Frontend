@@ -26,7 +26,7 @@
 		<div class="lc-rate-limit-overlay-backdrop absolute inset-0 z-20" aria-hidden="true"></div>
 		<div class="lc-rate-limit-overlay-content pointer-events-auto z-30">
 			<div class="lc-rate-limit-overlay-card">
-				<div class="lc-rate-limit-overlay-icon lc-chip-danger">
+				<div class="lc-text-danger inline-flex shrink-0">
 					<FontAwesomeIcon icon={faClock} class="h-6 w-6" />
 				</div>
 				<p class="lc-rate-limit-overlay-title">요청이 너무 많습니다</p>
@@ -96,15 +96,6 @@
 		text-align: center;
 		max-width: 20rem;
 		width: 100%;
-	}
-
-	.lc-rate-limit-overlay-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 3rem;
-		height: 3rem;
-		border-radius: 9999px;
 	}
 
 	.lc-rate-limit-overlay-title {

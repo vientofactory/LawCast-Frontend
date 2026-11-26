@@ -1,12 +1,12 @@
-import { createServer } from 'node:http';
+import { createServer, type IncomingHttpHeaders } from 'node:http';
 
-let requests = [];
+const requests: { path: string; headers: IncomingHttpHeaders }[] = [];
 let attempt = 0;
 let archiveReads = 0;
 const total = 22740;
 
 createServer((request, response) => {
-	const url = new URL(request.url, 'http://localhost');
+	const url = new URL(request.url ?? '/', 'http://localhost');
 	response.setHeader('Content-Type', 'application/json');
 	if (url.pathname === '/stats') {
 		response.end(JSON.stringify({ requests, archiveReads }));

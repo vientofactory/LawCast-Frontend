@@ -330,7 +330,6 @@ html[data-theme='dark'] .lc-panel-hero {
 }
 
 .lc-home-stat-icon {
-	background: var(--lc-surface-muted);
 	color: var(--lc-text-secondary);
 }
 
@@ -430,12 +429,8 @@ html[data-theme='dark'] .lc-panel-hero {
 
 .lc-home-signal-icon {
 	display: inline-flex;
-	height: 1.8rem;
-	width: 1.8rem;
 	align-items: center;
 	justify-content: center;
-	border-radius: 0.625rem;
-	background: color-mix(in srgb, var(--lc-text-accent) 18%, transparent);
 	color: var(--lc-text-accent);
 }
 
@@ -588,7 +583,6 @@ html[data-theme='dark'] .lc-urgent-badge {
 }
 
 .lc-home-foot-icon {
-	background: color-mix(in srgb, rgba(29, 78, 216, 0.18) 70%, var(--lc-surface-accent) 30%);
 	color: var(--lc-text-accent);
 }
 
@@ -725,14 +719,6 @@ html[data-theme='dark'] .lc-diff-added {
 
 .lc-hover-subtle-bg:hover {
 	background: color-mix(in srgb, var(--lc-surface-muted) 82%, transparent);
-}
-
-.lc-icon-accent-primary {
-	background: color-mix(in srgb, var(--lc-text-accent) 36%, var(--lc-surface-primary) 64%);
-}
-
-.lc-icon-accent-success {
-	background: color-mix(in srgb, #10b981 38%, var(--lc-surface-primary) 62%);
 }
 
 .lc-ai-badge-hoverable:hover {
@@ -1024,10 +1010,6 @@ html[data-theme='dark'] .lc-diff-added {
 	border-radius: 0.5rem;
 }
 
-.lc-empty-state-icon {
-	background: var(--lc-surface-hover);
-}
-
 .lc-code-block {
 	background: var(--lc-surface-inset);
 	border-color: var(--lc-border-soft);
@@ -1291,14 +1273,6 @@ html[data-theme='dark'] .lc-overlay-backdrop {
 	background: rgba(2, 6, 23, 0.55);
 }
 
-html[data-theme='dark'] .lc-icon-accent-primary {
-	background: rgba(30, 64, 175, 0.32);
-}
-
-html[data-theme='dark'] .lc-icon-accent-success {
-	background: rgba(5, 150, 105, 0.36);
-}
-
 html[data-theme='dark'] .lc-ai-badge-hoverable:hover {
 	background: var(--lc-surface-hover);
 }
@@ -1423,10 +1397,6 @@ html[data-theme='dark'] .lc-notice-card-done {
 
 html[data-theme='dark'] .lc-empty-state {
 	background: var(--lc-surface-muted);
-}
-
-html[data-theme='dark'] .lc-empty-state-icon {
-	background: var(--lc-surface-hover);
 }
 
 html[data-theme='dark'] .lc-code-block {

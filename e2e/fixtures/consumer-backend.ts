@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-let requests = [];
+let requests: string[] = [];
 let failHome = false;
 let failChanges = false;
 let historyCount = 0;
@@ -13,7 +13,7 @@ let failDetail = 0;
 let failDiscussions = 0;
 let failUrgent = false;
 createServer((request, response) => {
-	const url = new URL(request.url, 'http://127.0.0.1:4327');
+	const url = new URL(request.url ?? '/', 'http://127.0.0.1:4327');
 	response.setHeader('content-type', 'application/json');
 	if (url.pathname === '/control') {
 		requests = [];
@@ -74,7 +74,7 @@ createServer((request, response) => {
 		page: 1,
 		limit: 20
 	};
-	let data;
+	let data: unknown;
 	if (url.pathname === '/api/stats') {
 		if (url.searchParams.get('view') === 'home') {
 			if (failHome) {
@@ -188,7 +188,7 @@ createServer((request, response) => {
 			count: items.length,
 			items,
 			hasMore,
-			nextBeforeHeight: hasMore ? items.at(-1).eventHeight : null
+			nextBeforeHeight: hasMore ? items.at(-1)!.eventHeight : null
 		};
 	} else if (/^\/api\/notices\/(2210001|2210002)\/discussions$/.test(url.pathname)) {
 		data = threadData;

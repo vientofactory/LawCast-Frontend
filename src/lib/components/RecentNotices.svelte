@@ -40,8 +40,8 @@
 <div class="lc-section">
 	<div class="mb-6 flex items-center justify-between">
 		<h2 class="lc-text-primary flex items-center text-xl font-bold tracking-tight">
-			<div class="lc-icon-accent-success mr-3 rounded-lg p-2">
-				<FontAwesomeIcon icon={faBell} class="lc-text-on-accent h-5 w-5" />
+			<div class="lc-text-secondary mr-3 inline-flex shrink-0">
+				<FontAwesomeIcon icon={faBell} class="h-5 w-5" />
 			</div>
 			최근 입법예고
 		</h2>
@@ -86,18 +86,19 @@
 			<p class="lc-text-muted">아직 수집된 입법예고가 없습니다.</p>
 		</div>
 	{:else}
-		<div class="space-y-3">
+		<div class="lc-flat-list">
 			{#each notices.slice(0, 5) as notice, index (notice.num)}
 				<article
 					aria-labelledby="recent-notice-{notice.num}"
-					class="lc-data-row group"
+					class="lc-flat-list-row"
 					class:lc-defer-render-sm={index > 1}
 				>
 					<div class="lc-recent-notice-heading mb-3">
 						<a
 							id="recent-notice-{notice.num}"
 							href="/notices/{notice.num}"
-							class="lc-text-primary text-lg leading-relaxed font-semibold no-underline transition-colors duration-150 group-hover:text-blue-600 hover:text-blue-600"
+							class="lc-list-link lc-list-title"
+							data-testid="recent-notice-link-{notice.num}"
 						>
 							{notice.subject}
 						</a>

@@ -1635,3 +1635,228 @@ test('flat pagination preserves pending feedback and number width', async ({ pag
 	await expect(nav).toHaveAttribute('aria-busy', 'false');
 	await expect(nav.locator('[aria-current="page"]:visible')).toHaveText('2');
 });
+
+for (const width of [390, 1440]) {
+	for (const theme of ['light', 'dark'] as const) {
+		test(`decorative icons stay unboxed at ${width}px in ${theme}`, async ({ page }) => {
+			test.setTimeout(90_000);
+			await page.setViewportSize({ width, height: 900 });
+			await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
+			for (const path of [
+				'/',
+				'/notices/2210006',
+				'/notices/2210004',
+				'/discussions',
+				'/webhook',
+				'/notices'
+			]) {
+				await page.goto(path);
+				await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+				await expect(page.locator('main')).toBeVisible();
+				if (path === '/') {
+					await expect(page.locator('.lc-home-signal-icon')).toHaveCount(4);
+					await expect(
+						page.getByRole('heading', { name: '최근 입법예고', exact: true }).last()
+					).toBeVisible();
+				}
+				if (path === '/notices/2210006') {
+					await expect(page.getByRole('status', { name: '소스 삭제 감지 안내' })).toContainText(
+						'보존 상태로 전환됨'
+					);
+				}
+				const backplates = await page.locator('svg.svg-inline--fa').evaluateAll((icons) =>
+					icons.flatMap((icon) => {
+						// A switch thumb conveys control state rather than decorative hierarchy.
+						if (icon.closest('[role="switch"]')) return [];
+						const parent = icon.parentElement;
+						if (
+							!parent ||
+							!['DIV', 'SPAN'].includes(parent.tagName) ||
+							parent.children.length !== 1 ||
+							parent.textContent?.trim() ||
+							!parent.getClientRects().length
+						)
+							return [];
+						const style = getComputedStyle(parent);
+						return style.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+							style.backgroundImage !== 'none' ||
+							style.boxShadow !== 'none'
+							? [parent.outerHTML.slice(0, 250)]
+							: [];
+					})
+				);
+				await expect(backplates, path).toEqual([]);
+				await expect(page.locator('body')).toHaveJSProperty('scrollWidth', width);
+				if (path === '/' && screenshotDir) {
+					await mkdir(screenshotDir, { recursive: true });
+					await page.screenshot({
+						path: join(screenshotDir, `icons-${width}-${theme}.png`),
+						fullPage: true
+					});
+				}
+			}
+		});
+	}
+}
+
+for (const width of [390, 1440]) {
+	for (const theme of ['light', 'dark'] as const) {
+		test(`unified list interactions at ${width}px in ${theme}`, async ({ page }) => {
+			test.setTimeout(120_000);
+			await page.setViewportSize({ width, height: 900 });
+			await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
+			for (const path of [
+				'/',
+				'/notices',
+				'/notices/changes',
+				'/discussions',
+				'/notices/2210001',
+				'/announcements',
+				'/notices/semantic-search?search=' + encodeURIComponent('임대차 계약에서 세입자 보호'),
+				'/notices?search=' + encodeURIComponent('보호') + '&searchMode=semantic',
+				'/notices?search=' + encodeURIComponent('약한 결과 조회') + '&searchMode=semantic'
+			]) {
+				await page.goto(path);
+				await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+				if (path.includes(encodeURIComponent('약한 결과 조회'))) {
+					await expect(page.getByTestId('notices-semantic-show-weak')).toBeVisible();
+					await page.getByTestId('notices-semantic-show-weak').click();
+				}
+				const links = page.locator('main a.lc-list-link');
+				await expect(links.first(), path).toBeVisible();
+				const colors = await page.evaluate(() => {
+					const probe = document.createElement('span');
+					probe.style.color = 'var(--lc-text-primary)';
+					probe.style.backgroundColor = 'var(--lc-surface-hover)';
+					document.body.append(probe);
+					const { color, backgroundColor } = getComputedStyle(probe);
+					probe.remove();
+					return { color, backgroundColor };
+				});
+				for (const link of await links.all()) {
+					await expect(link).toHaveCSS('color', colors.color);
+					await expect(link).toHaveCSS('text-decoration-line', 'none');
+					const title = link.locator('.lc-list-title');
+					if (await title.count()) {
+						await expect(title).toHaveCSS('color', colors.color);
+						await expect(title).toHaveCSS('text-decoration-line', 'none');
+						await expect(title).toHaveCSS('font-size', '18px');
+					}
+				}
+				for (const action of await page
+					.locator('.lc-flat-list-row .lc-result-action-secondary')
+					.all()) {
+					await expect(action).toHaveCSS('text-decoration-line', 'none');
+					const color = await action.evaluate((node) => getComputedStyle(node).color);
+					await action.hover();
+					await expect(action).toHaveCSS('background-color', colors.backgroundColor);
+					await expect(action).toHaveCSS('color', color);
+					await expect(action).toHaveCSS('text-decoration-line', 'none');
+				}
+
+				const link = links.first();
+				const row = link.locator(
+					'xpath=ancestor-or-self::*[contains(concat(" ", normalize-space(@class), " "), " lc-flat-list-row ")][1]'
+				);
+				await page.mouse.move(0, 0);
+				await expect(row, `${path}: idle row`).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+
+				await link.hover();
+				await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+				await expect(link).toHaveCSS('color', colors.color);
+				await expect(link).toHaveCSS('text-decoration-line', 'none');
+				// Row backgrounds stay inert over titles, padding, metadata and independent actions.
+				await row.hover({ position: { x: 4, y: 4 } });
+				await expect(row, `${path}: row padding`).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+				const metadata = row.locator('p, time, .lc-text-secondary, .lc-text-muted').first();
+				if (await metadata.count()) {
+					await metadata.hover();
+					await expect(row, `${path}: row metadata`).toHaveCSS(
+						'background-color',
+						'rgba(0, 0, 0, 0)'
+					);
+				}
+				const action = row
+					.locator('a.lc-result-action-secondary, button.lc-result-action-secondary')
+					.first();
+				if (await action.count()) {
+					await action.hover();
+					await expect(row, `${path}: secondary action`).toHaveCSS(
+						'background-color',
+						'rgba(0, 0, 0, 0)'
+					);
+					await page.mouse.move(0, 0);
+					await page.keyboard.press('Tab');
+					await action.focus();
+					await expect(row, `${path}: secondary keyboard focus`).toHaveCSS(
+						'background-color',
+						colors.backgroundColor
+					);
+					await action.blur();
+				}
+
+				await page.mouse.move(0, 0);
+				await page.keyboard.press('Tab');
+				await link.focus();
+				await expect(link).toBeFocused();
+				await expect(link).toHaveCSS('outline-style', 'solid');
+				await expect(link).toHaveCSS('outline-width', '2px');
+				await expect(row).toHaveCSS('background-color', colors.backgroundColor);
+				await expect(link).toHaveCSS('color', colors.color);
+				await expect(link).toHaveCSS('text-decoration-line', 'none');
+				await expect(link).toHaveCSS('min-height', '44px');
+				// Firefox may serialize a 44px edge a fraction of a device pixel below 44.
+				expect((await link.boundingBox())!.height + 0.01).toBeGreaterThanOrEqual(44);
+				await link.blur();
+				await page.mouse.move(0, 0);
+				await expect(row, `${path}: pointer and focus leave`).toHaveCSS(
+					'background-color',
+					'rgba(0, 0, 0, 0)'
+				);
+
+				if (path === '/') {
+					await page.evaluate(() => {
+						const passive = document.createElement('article');
+						passive.className = 'lc-flat-list-row';
+						passive.dataset.testid = 'passive-list-row-probe';
+						passive.textContent = 'Non-interactive reference row';
+						document.querySelector('main')!.append(passive);
+					});
+					const passive = page.getByTestId('passive-list-row-probe');
+					await passive.hover();
+					await expect(passive).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+					await passive.evaluate((node) => node.remove());
+				}
+
+				if (screenshotDir) {
+					await mkdir(screenshotDir, { recursive: true });
+					await page.locator('main').screenshot({
+						path: join(
+							screenshotDir,
+							`lists-${path === '/' ? 'home' : path.split('?')[0].replaceAll('/', '-')}-${width}-${theme}.png`
+						)
+					});
+				}
+			}
+		});
+	}
+}
+
+test('coarse-pointer list hover remains passive', async ({ browser }) => {
+	const context = await browser.newContext({
+		hasTouch: true,
+		viewport: { width: 390, height: 900 }
+	});
+	try {
+		const page = await context.newPage();
+		await page.goto('/');
+		expect(
+			await page.evaluate(() => matchMedia('(hover: hover) and (pointer: fine)').matches)
+		).toBe(false);
+		const row = page.locator('main .lc-flat-list-row').first();
+		await row.hover({ position: { x: 4, y: 4 } });
+		await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+	} finally {
+		await context.close();
+	}
+});

@@ -706,9 +706,7 @@
 				{:else}
 					<section class="lc-chart-surface">
 						<div class="lc-empty-state flex flex-col items-center justify-center py-12">
-							<div
-								class="lc-empty-state-icon mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-							>
+							<div class="mb-4 inline-flex items-center justify-center">
 								<FontAwesomeIcon icon={faChartBar} class="lc-text-muted h-8 w-8" />
 							</div>
 							<p class="lc-text-secondary text-sm font-semibold">표시할 데이터가 없습니다.</p>

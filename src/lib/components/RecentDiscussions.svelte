@@ -36,8 +36,8 @@
 <div class="lc-section" data-testid="home-recent-discussions">
 	<div class="mb-6 flex items-center justify-between">
 		<h2 class="lc-text-primary flex items-center text-xl font-bold tracking-tight">
-			<div class="lc-icon-accent-success mr-3 rounded-lg p-2">
-				<FontAwesomeIcon icon={faComments} class="lc-text-on-accent h-5 w-5" />
+			<div class="lc-text-secondary mr-3 inline-flex shrink-0">
+				<FontAwesomeIcon icon={faComments} class="h-5 w-5" />
 			</div>
 			최근 토론
 		</h2>
@@ -67,18 +67,19 @@
 			<p class="lc-text-muted">최근 진행 중인 토론이 없습니다.</p>
 		</div>
 	{:else}
-		<div class="space-y-3">
+		<div class="lc-flat-list">
 			{#each threads.slice(0, 5) as thread, index (thread.id)}
 				<article
 					aria-labelledby="recent-discussion-{thread.id}"
-					class="lc-data-row group"
+					class="lc-flat-list-row"
 					class:lc-defer-render-sm={index > 1}
 				>
 					<div class="mb-3 flex items-start justify-between gap-3">
 						<a
 							id="recent-discussion-{thread.id}"
 							href="/notices/{thread.noticeNum}/discussions/{thread.id}"
-							class="lc-text-primary line-clamp-2 text-sm leading-relaxed font-semibold no-underline transition-colors duration-150 group-hover:text-blue-600 hover:text-blue-600"
+							class="lc-list-link lc-list-title"
+							data-testid="recent-discussion-link-{thread.id}"
 						>
 							{thread.title}
 						</a>
@@ -128,13 +129,3 @@
 		{/if}
 	{/if}
 </div>
-
-<style>
-	.line-clamp-2 {
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-</style>

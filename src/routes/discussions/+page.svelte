@@ -176,7 +176,7 @@
 							<a
 								href={`/notices/${thread.noticeNum}/discussions/${thread.id}`}
 								data-testid={`discussions-list-link-${thread.id}`}
-								class="lc-flat-list-row lc-card-list-link group flex cursor-pointer flex-col justify-between gap-3 text-inherit no-underline transition-colors sm:flex-row sm:items-center"
+								class="lc-flat-list-row lc-list-link flex cursor-pointer flex-col justify-between gap-3 sm:flex-row sm:items-center"
 							>
 								<div class="min-w-0 flex-1 space-y-1">
 									<div class="flex flex-wrap items-center gap-2">
@@ -195,7 +195,7 @@
 												닫힘
 											</span>
 										{/if}
-										<h2 class="lc-link lc-list-title">
+										<h2 class="lc-list-title">
 											{thread.title}
 										</h2>
 									</div>
@@ -229,7 +229,7 @@
 									</span>
 									<FontAwesomeIcon
 										icon={faChevronRight}
-										class="lc-text-dim hidden h-3 w-3 transition-transform group-hover:translate-x-0.5 sm:inline-block"
+										class="lc-text-dim hidden h-3 w-3 sm:inline-block"
 									/>
 								</div>
 							</a>

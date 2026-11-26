@@ -2,9 +2,16 @@ import { createServer, request } from 'node:http';
 
 // Delay the actual HTTP response: browser routing cannot pause worker-owned fetches.
 let state = { cssDelay: 0, cssFailure: false };
-let requests = [];
+interface RequestRecord {
+	path: string | undefined;
+	mode: string | string[] | undefined;
+	style: boolean;
+	start: number;
+	finish: number | null;
+}
+let requests: RequestRecord[] = [];
 createServer(async (incoming, outgoing) => {
-	const url = new URL(incoming.url, 'http://127.0.0.1:4187');
+	const url = new URL(incoming.url ?? '/', 'http://127.0.0.1:4187');
 	if (url.pathname === '/__pwa-test/network-failure') {
 		incoming.socket.destroy();
 		return;
@@ -21,7 +28,7 @@ createServer(async (incoming, outgoing) => {
 		return;
 	}
 	const style = url.pathname.startsWith('/_app/immutable/assets/') && url.pathname.endsWith('.css');
-	const record = {
+	const record: RequestRecord = {
 		path: incoming.url,
 		mode: incoming.headers['sec-fetch-mode'],
 		style,
@@ -56,7 +63,7 @@ createServer(async (incoming, outgoing) => {
 					url.pathname === '/' && url.searchParams.get('pwa-test') === 'status'
 						? 503
 						: response.statusCode;
-				outgoing.writeHead(status, {
+				outgoing.writeHead(status!, {
 					...response.headers,
 					'X-Pwa-Test-Target': incoming.url,
 					'Content-Security-Policy': "frame-ancestors 'self'"

@@ -42,7 +42,7 @@
 					<a
 						href={`/announcements/${encodeURIComponent(notice.id)}`}
 						data-testid={`admin-notices-list-link-${notice.id}`}
-						class="lc-flat-list-row lc-card-list-link cursor-pointer text-inherit no-underline"
+						class="lc-flat-list-row lc-list-link"
 					>
 						<div class="flex items-start justify-between gap-4">
 							<div class="min-w-0 flex-1">
@@ -62,9 +62,7 @@
 										</time>
 									{/if}
 								</div>
-								<h2
-									class="lc-text-primary lc-list-title underline decoration-[var(--lc-border-strong)] underline-offset-4"
-								>
+								<h2 class="lc-list-title">
 									{notice.title}
 								</h2>
 								{#if notice.content}

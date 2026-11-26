@@ -90,7 +90,7 @@
 				<a
 					href={`/notices/${thread.noticeNum}/discussions/${thread.id}`}
 					data-testid={`discussion-thread-link-${thread.id}`}
-					class="lc-flat-list-row lc-card-list-link group flex cursor-pointer flex-col justify-between gap-3 text-inherit no-underline transition-colors sm:flex-row sm:items-center"
+					class="lc-flat-list-row lc-list-link flex cursor-pointer flex-col justify-between gap-3 sm:flex-row sm:items-center"
 					onclick={(e) => {
 						if (onSelectThread) {
 							e.preventDefault();
@@ -124,7 +124,7 @@
 									잠김
 								</span>
 							{/if}
-							<h3 class="lc-link truncate text-sm font-semibold">
+							<h3 class="lc-list-title">
 								{thread.title}
 							</h3>
 						</div>
@@ -151,7 +151,7 @@
 						</span>
 						<FontAwesomeIcon
 							icon={faChevronRight}
-							class="lc-text-dim hidden h-3 w-3 transition-transform group-hover:translate-x-0.5 sm:inline-block"
+							class="lc-text-dim hidden h-3 w-3 sm:inline-block"
 						/>
 					</div>
 				</a>
