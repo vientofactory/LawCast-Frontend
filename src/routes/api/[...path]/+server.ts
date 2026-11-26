@@ -162,6 +162,9 @@ async function forwardRequest(
 
 		rejectBackendRedirect(response);
 		const responseHeaders = new Headers(response.headers);
+		// Fetch exposes decoded body bytes; wire encoding and length no longer describe them.
+		responseHeaders.delete('content-encoding');
+		responseHeaders.delete('content-length');
 		responseHeaders.delete(PROXY_CONNECTION_FAILURE_HEADER);
 		responseHeaders.delete(SEARCH_TIMING_HEADER);
 		return new Response(response.body, {

@@ -1,25 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Integration Playwright config — runs against a live backend.
- *
- * Usage: npm run test:e2e:integration
- *
- * Requires a running backend (see API_BASE_URL); the dev server itself is
- * started by this config with the env below. Tests that use mock-specific data
- * skip via their own guard; everything else runs against real API responses.
- *
- * Reusing an already-running dev server is refused for the default target
- * (reuseExistingServer: false, like the dedicated-env configs): such a server
- * was not started with the env below, so the run would silently regress into
- * 429 failures mid-suite — the rate-limit overlay blocks clicks while every
- * 429 stays hidden in the dev server's log. Point PLAYWRIGHT_BASE_URL at a
- * server you started yourself to reuse one on purpose.
- *
- * To run against a specific URL:
- *   PLAYWRIGHT_BASE_URL=http://localhost:3002 npm run test:e2e:integration
+ * Runs the complete integration suite against a configured real backend.
+ * PLAYWRIGHT_BACKEND_URL selects the API base, including `/api`.
+ * The default frontend target is isolated; an explicitly supplied frontend URL
+ * retains the existing caller-owned-server behavior for manual integration runs.
  */
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4218';
 // Reuse only a server the caller named explicitly (CI/staging target): it owns
 // its own env. The default local target must be launched by this config so the
 // env below is guaranteed to be in effect.
@@ -27,17 +14,7 @@ const reuseExistingServer = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 
 export default defineConfig({
 	testDir: '../e2e',
-	testIgnore: [
-		'sitemap.spec.ts',
-		'floating-prompts.spec.ts',
-		'analytics-consent.spec.ts',
-		'pwa.spec.ts',
-		'web-vitals.spec.ts',
-		'api-consumers.spec.ts',
-		'open-layout.spec.ts',
-		'notifications.spec.ts',
-		'load-failures.spec.ts'
-	],
+	testMatch: 'backend-integration.spec.ts',
 	fullyParallel: false,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,
@@ -51,22 +28,24 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'chromium',
-			grepInvert: /touch screenshot viewport/,
 			use: { ...devices['Desktop Chrome'] }
 		},
 		{
 			name: 'chromium-touch',
-			grep: /touch screenshot viewport/,
 			use: { ...devices['Pixel 7'] }
 		}
 	],
 	webServer: {
-		command: 'npm run dev',
+		command: `npm run dev -- --host 127.0.0.1 --port ${new URL(baseURL).port || '4218'} --strictPort`,
 		url: baseURL,
 		reuseExistingServer,
 		timeout: 120_000,
 		env: {
 			NODE_ENV: 'development',
+			API_BASE_URL:
+				process.env.PLAYWRIGHT_BACKEND_URL ??
+				process.env.API_BASE_URL ??
+				'http://localhost:3001/api',
 			// Explicitly disable mock mode for integration tests.
 			DIFFCHAIN_UI_MOCK: '0',
 			// One machine would otherwise be one per-visitor rate-limit bucket and

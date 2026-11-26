@@ -180,13 +180,19 @@ test('runs specialized shared UI suites in independent cross-engine jobs', () =>
 	assert.match(workflow, /retention-days: 7/);
 });
 
-test('assigns screenshot touch cases to a touch device in every general discovery config', () => {
-	for (const name of ['playwright.config.ts', 'playwright.config.integration.ts']) {
-		const source = readFileSync(join(root, 'playwright-configs', name), 'utf8');
-		assert.match(source, /name: 'chromium',[\s\S]*grepInvert: \/touch screenshot viewport\//);
-		assert.match(source, /name: 'chromium-touch',[\s\S]*grep: \/touch screenshot viewport\//);
-		assert.ok(source.includes("devices['Pixel 7']"));
-	}
+test('preserves touch device coverage for fixture screenshots and real backend integration', () => {
+	const source = readFileSync(join(root, 'playwright-configs', 'playwright.config.ts'), 'utf8');
+	assert.match(source, /name: 'chromium',[\s\S]*grepInvert: \/touch screenshot viewport\//);
+	assert.match(source, /name: 'chromium-touch',[\s\S]*grep: \/touch screenshot viewport\//);
+	assert.ok(source.includes("devices['Pixel 7']"));
+	const integration = readFileSync(
+		join(root, 'playwright-configs', 'playwright.config.integration.ts'),
+		'utf8'
+	);
+	assert.match(integration, /testMatch: 'backend-integration\.spec\.ts'/);
+	assert.ok(integration.includes("devices['Desktop Chrome']"));
+	assert.match(integration, /name: 'chromium-touch',[\s\S]*devices\['Pixel 7'\]/);
+	assert.doesNotMatch(integration, /grepInvert:|grep:/);
 });
 
 test('installs every requested browser dependency and preserves the Chromium wrapper', () => {

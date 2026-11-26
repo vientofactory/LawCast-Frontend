@@ -2,6 +2,11 @@ import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { expectHeadMetadata } from './helpers/head-metadata';
 
+// Consent UI has its own suite; these flows model a visitor who declined analytics.
+test.beforeEach(async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('lawcast-cookie-consent', 'declined'));
+});
+
 test('the initial legal notice remains stable and unknown versions are rejected', async ({
 	request
 }) => {
@@ -24,14 +29,14 @@ test('history preserves the initial body and navigates back to the reinforced cu
 	page
 }, testInfo) => {
 	await page.goto('/legal');
-	await expect(page.getByTestId('legal-version')).toContainText('2026-11-26.3');
+	await expect(page.getByTestId('legal-version')).toContainText('2026-11-27.1');
 	await expect(page.getByTestId('legal-body')).toContainText(
 		'입법정보의 접근성과 탐색 편의를 높이는 것'
 	);
 	await page.getByTestId('legal-history-link').click();
 	await expect(page).toHaveURL(/#legal-history-title$/);
 	const history = page.getByTestId('legal-history');
-	await expect(history.getByRole('link')).toHaveCount(3);
+	await expect(history.getByRole('link')).toHaveCount(4);
 	await expect(history).toContainText('최초 법적 고지');
 	await expect(history).not.toContainText('윤문');
 	await expect(history).not.toContainText('문체 정리');
@@ -44,9 +49,9 @@ test('history preserves the initial body and navigates back to the reinforced cu
 	await expectHeadMetadata(page, { canonical: /\/legal\/versions\/2026-11-26\.1$/ });
 	await expect(page.locator('a[role="doc-noteref"]')).toHaveCount(11);
 	await page.goBack();
-	await expect(page.getByTestId('legal-version')).toContainText('2026-11-26.3');
+	await expect(page.getByTestId('legal-version')).toContainText('2026-11-27.1');
 	await page.getByTestId('legal-permalink').click();
-	await expect(page).toHaveURL(/\/legal\/versions\/2026-11-26\.3$/);
+	await expect(page).toHaveURL(/\/legal\/versions\/2026-11-27\.1$/);
 });
 
 test('serves the legal notice with sources in server-rendered HTML', async ({ request }) => {
@@ -115,7 +120,7 @@ test('rights inquiries open an email draft with the displayed subject and body t
 	]) {
 		expect(body).toContain(label);
 	}
-	await expect(page.getByTestId('legal-history').getByRole('link')).toHaveCount(3);
+	await expect(page.getByTestId('legal-history').getByRole('link')).toHaveCount(4);
 });
 
 test('legal notice stays readable and accessible across themes and viewports', async ({
@@ -209,4 +214,22 @@ test('the current body presents verified access grounds without secondary case c
 	await expect(page.getByTestId('legal-archive-banner')).toBeVisible();
 	await expect(page.locator('a[role="doc-noteref"]')).toHaveCount(11);
 	await expect(page.getByTestId('legal-body')).toContainText('사람인');
+});
+
+test('the current notice renders open-source and third-party responsibility guidance', async ({
+	page
+}) => {
+	await page.goto('/legal');
+	const service = page.locator('section[aria-labelledby="legal-service"]');
+	await expect(service).toContainText('MIT 라이선스 하에 배포되는 오픈소스');
+	await expect(service).toContainText('공식 사이트와 운영상 관련이 없으며');
+	await expect(service).toContainText('법령상 배제할 수 없는 책임');
+	await service.getByRole('link', { name: '라이선스 안내' }).click();
+	await expect(page).toHaveURL(/\/license$/);
+	await expect(page.getByRole('heading', { name: 'LawCast 프로젝트 라이선스' })).toBeVisible();
+	await page.goto('/legal/versions/2026-11-26.3');
+	await expect(page.getByTestId('legal-archive-banner')).toBeVisible();
+	await expect(page.getByTestId('legal-body')).not.toContainText(
+		'공식 사이트와 운영상 관련이 없으며'
+	);
 });

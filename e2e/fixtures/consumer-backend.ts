@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { gzipSync, brotliCompressSync } from 'node:zlib';
 let requests: string[] = [];
 let failHome = false;
 let failChanges = false;
@@ -37,6 +38,22 @@ createServer((request, response) => {
 		return;
 	}
 	requests.push(url.pathname + url.search);
+	const encoding = /^\/api\/proxy-encoding\/(gzip|br|identity)$/.exec(url.pathname)?.[1];
+	if (encoding) {
+		const status = url.searchParams.get('status') === '429' ? 429 : 200;
+		const raw = Buffer.from(
+			JSON.stringify({ success: status === 200, data: { text: '압축 응답 검증', encoding } })
+		);
+		const payload =
+			encoding === 'gzip' ? gzipSync(raw) : encoding === 'br' ? brotliCompressSync(raw) : raw;
+		response.statusCode = status;
+		response.setHeader('cache-control', 'no-store');
+		if (encoding !== 'identity') response.setHeader('content-encoding', encoding);
+		response.setHeader('content-length', payload.length);
+		if (status === 429) response.setHeader('retry-after', '3');
+		response.end(payload);
+		return;
+	}
 	const isDiscussion =
 		/\/discussions$/.test(url.pathname) || url.pathname === '/api/discussions/threads';
 	const isUrgent =

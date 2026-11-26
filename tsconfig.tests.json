@@ -14,6 +14,8 @@
 	"include": [
 		"scripts/**/*.test.ts",
 		"e2e/fixtures/**/*.ts",
-		"../tools/check-agent-guidelines.spec.ts"
+		"../tools/check-agent-guidelines.spec.ts",
+		"e2e/backend-integration.spec.ts",
+		"e2e/proxy-encoding.spec.ts"
 	]
 }

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { measureContrast } from './helpers/contrast';
 
 for (const width of [320, 390, 820, 1440]) {
 	for (const theme of ['light', 'dark']) {
@@ -65,6 +66,20 @@ for (const width of [320, 390, 820, 1440]) {
 			// Safari's native all-controls navigation uses Option-Tab.
 			await page.keyboard.press(browserName === 'webkit' ? 'Alt+Tab' : 'Tab');
 			await expect(actions.first()).toBeFocused();
+			const warning = page.locator('.lc-flat-list-row .lc-text-warning').first();
+			await expect(warning).toBeVisible();
+			const warningRow = warning.locator(
+				'xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " lc-flat-list-row ")][1]'
+			);
+			await warningRow.locator('.lc-list-link').first().focus();
+			await expect
+				.poll(async () => {
+					const contrast = await measureContrast(page, {
+						selector: '.lc-flat-list-row:has(:focus-visible) .lc-text-warning'
+					});
+					return contrast.ratio;
+				})
+				.toBeGreaterThanOrEqual(4.5);
 			// Audit the completed historical reveal, not a partially transparent animation frame.
 			await page.getByTestId('brand-heading').evaluate(async (node) => {
 				await Promise.all(

@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const cwd = fileURLToPath(new URL('..', import.meta.url));
 export default defineConfig({
 	testDir: '../e2e',
-	testMatch: 'api-consumers.spec.ts',
+	testMatch: ['api-consumers.spec.ts', 'proxy-encoding.spec.ts'],
 	workers: 1,
 	use: { baseURL: 'http://127.0.0.1:4197', trace: 'retain-on-failure' },
 	projects: [
