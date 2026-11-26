@@ -1,6 +1,6 @@
 {
 	"name": "lawcast-frontend",
-	"version": "3.3.1",
+	"version": "3.3.2",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,
@@ -24,7 +24,7 @@
 		"test:e2e:web-vitals": "playwright test --config playwright-configs/playwright.web-vitals.config.ts",
 		"test:e2e:pwa:cloudflare": "PWA_CLOUDFLARE=1 playwright test --config playwright-configs/playwright.pwa.config.ts",
 		"test:e2e:pwa": "playwright test --config playwright-configs/playwright.pwa.config.ts",
-		"test:e2e": "playwright test --config playwright-configs/playwright.config.ts && playwright test --config playwright-configs/playwright.analytics.config.ts",
+		"test:e2e": "DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.config.ts && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.analytics.config.ts",
 		"test:e2e:integration": "playwright test --config playwright-configs/playwright.config.integration.ts",
 		"test:e2e:rate-limit": "E2E_RATE_LIMIT_SIM=1 playwright test --config playwright-configs/playwright.rate-limit.config.ts",
 		"test:e2e:ip-forwarding": "E2E_IP_ECHO=1 playwright test --config playwright-configs/playwright.ip-forwarding.config.ts",
@@ -40,7 +40,8 @@
 		"test:e2e:framework:cloudflare": "DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.framework-cloudflare.config.ts",
 		"test:license": "node --test scripts/license-metadata.test.ts",
 		"check:tests": "tsc --project tsconfig.tests.json && node node_modules/typescript-native/bin/tsc --project tsconfig.tests.json",
-		"test:unit": "node --test scripts/*.test.ts"
+		"test:unit": "node --test scripts/*.test.ts",
+		"test:e2e:all": "npm run test:unit && DIFFCHAIN_UI_MOCK=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:4216 playwright test --config playwright-configs/playwright.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.analytics.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 E2E_CF_CHALLENGE=1 playwright test --config playwright-configs/playwright.cloudflare-challenge.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.consumers.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:4217 playwright test --config playwright-configs/playwright.dark-mode.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.framework-cloudflare.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.hard-reload.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 E2E_IP_ECHO=1 playwright test --config playwright-configs/playwright.ip-forwarding.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.legal-notices.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.load-failures.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.notifications.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 E2E_NSM_DEGRADED=1 playwright test --config playwright-configs/playwright.nsm-degraded.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.open-layout.config.ts --forbid-only --retries=0 && PWA_CLOUDFLARE=0 DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.pwa.config.ts --forbid-only --retries=0 && PWA_CLOUDFLARE=1 DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.pwa.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 E2E_RATE_LIMIT_SIM=1 playwright test --config playwright-configs/playwright.rate-limit.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.screenshot-modal.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 E2E_SEMANTIC_SEARCH=1 playwright test --config playwright-configs/playwright.semantic-search.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.sitemap.config.ts --forbid-only --retries=0 && DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.sitemap-cloudflare.config.ts --forbid-only --retries=0 && env -u THEME_REPORT_PATH DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.theme-states.config.ts --forbid-only --retries=0 && env -u WEB_VITALS_BASE_URL DIFFCHAIN_UI_MOCK=1 playwright test --config playwright-configs/playwright.web-vitals.config.ts --forbid-only --retries=0 && env -u PLAYWRIGHT_BASE_URL DIFFCHAIN_UI_MOCK=0 playwright test --config playwright-configs/playwright.config.integration.ts --forbid-only --retries=0"
 	},
 	"repository": {
 		"type": "git",

@@ -5,6 +5,8 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
 export default defineConfig({
 	testDir: '../e2e',
 	testIgnore: [
+		'backend-integration.spec.ts',
+		'proxy-encoding.spec.ts',
 		'sitemap.spec.ts',
 		'floating-prompts.spec.ts',
 		'analytics-consent.spec.ts',

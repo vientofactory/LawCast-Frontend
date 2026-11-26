@@ -346,14 +346,23 @@
 <div class="lc-page-shell">
 	<Header />
 
-	<main id="main-content" class="lc-main">
-		<nav class="mb-4 flex items-center gap-2 text-sm" aria-label="이동 경로">
-			<a href="/" class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2">
+	<main id="main-content" class="lc-main" data-testid="changes-main">
+		<nav
+			class="mb-4 flex items-center gap-2 text-sm"
+			aria-label="이동 경로"
+			data-testid="changes-breadcrumbs"
+		>
+			<a
+				href="/"
+				data-testid="changes-home-link"
+				class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2"
+			>
 				<FontAwesomeIcon icon={faArrowLeft} class="mr-2 h-3.5 w-3.5" />
 				홈으로
 			</a>
 			<a
 				href="/notices"
+				data-testid="changes-list-link"
 				class="lc-button-neutral inline-flex items-center rounded-lg border px-3 py-2"
 			>
 				<FontAwesomeIcon icon={faTableList} class="mr-2 h-3.5 w-3.5" />
@@ -410,7 +419,12 @@
 
 		{#if !isDigestContext}
 			<section class="lc-search-section mb-5">
-				<form method="GET" action="/notices/changes" onsubmit={handleFilterSubmit}>
+				<form
+					method="GET"
+					action="/notices/changes"
+					onsubmit={handleFilterSubmit}
+					data-testid="changes-filter-form"
+				>
 					<div class="lc-search-row">
 						<div class="relative">
 							<label for="changes-search" class="sr-only">검색어</label>
@@ -420,16 +434,18 @@
 							/>
 							<input
 								id="changes-search"
+								data-testid="changes-search"
 								type="search"
 								name="search"
 								value={searchQuery}
 								placeholder="의안번호, 제목, 위원회, 제안이유 검색"
-								class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-sm"
+								class="lc-input lc-input-focus w-full rounded-lg border py-2 pr-3 pl-10 text-sm shadow-none"
 								onkeydown={handleSearchInputKeydown}
 							/>
 						</div>
 						<button
 							type="submit"
+							data-testid="changes-search-submit"
 							disabled={isServerLoading}
 							class="lc-button-primary inline-flex cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 						>
@@ -441,7 +457,7 @@
 						class="lc-settings-disclosure"
 						data-testid="changes-settings"
 					>
-						<summary class="lc-disclosure-trigger"
+						<summary class="lc-disclosure-trigger" data-testid="changes-advanced-toggle"
 							><span class="lc-disclosure-label">상세 조건 · 의안번호·변경 유형·정렬</span
 							><DisclosureIndicator /></summary
 						>
@@ -450,12 +466,13 @@
 								<label for="changes-notice-num" class="sr-only">의안번호</label>
 								<input
 									id="changes-notice-num"
+									data-testid="changes-notice-num"
 									type="number"
 									name="noticeNum"
 									min="1"
 									value={noticeNumFilter ?? ''}
 									placeholder="의안번호"
-									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-none"
 								/>
 							</div>
 
@@ -463,9 +480,10 @@
 								<label for="changes-event-type" class="sr-only">이벤트 유형</label>
 								<select
 									id="changes-event-type"
+									data-testid="changes-event-type"
 									name="eventType"
 									value={selectedEventType ?? ''}
-									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-none"
 								>
 									<option value="">전체 유형</option>
 									<option value="updated">내용 변경</option>
@@ -477,9 +495,10 @@
 								<label for="changes-sort-order" class="sr-only">정렬</label>
 								<select
 									id="changes-sort-order"
+									data-testid="changes-sort-order"
 									name="sortOrder"
 									value={sortOrder}
-									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-none"
 								>
 									<option value="desc">최신순</option>
 									<option value="asc">오래된순</option>
@@ -490,9 +509,10 @@
 								<label for="changes-limit" class="sr-only">페이지당 개수</label>
 								<select
 									id="changes-limit"
+									data-testid="changes-limit"
 									name="limit"
 									value={String(limit)}
-									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-sm"
+									class="lc-input lc-input-focus w-full rounded-lg border px-3 py-2 text-sm shadow-none"
 									title="페이지당 개수"
 								>
 									{#each PAGE_SIZE_OPTIONS as size (size)}
@@ -508,6 +528,7 @@
 							<input
 								type="checkbox"
 								name="includeIsDoneChanges"
+								data-testid="changes-include-done"
 								value="true"
 								checked={includeIsDoneChanges}
 								class="h-4 w-4"
@@ -517,6 +538,7 @@
 
 						<a
 							href="/notices/changes"
+							data-testid="changes-reset-filters"
 							class="lc-button-neutral inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold"
 						>
 							필터 초기화
@@ -568,7 +590,7 @@
 		{/if}
 
 		<section class="relative" data-testid="changes-results-region">
-			{#if changes.items.length === 0}
+			{#if changes.items.length === 0 && !loadError}
 				<section class="lc-open-empty-state">
 					<FontAwesomeIcon
 						icon={faFileCircleXmark}
@@ -614,6 +636,7 @@
 								<div class="flex flex-wrap gap-2">
 									<a
 										href={buildNoticeTimelineHref(item.noticeNum)}
+										data-testid={`change-timeline-${item.id}`}
 										class="lc-result-action-secondary"
 									>
 										<FontAwesomeIcon icon={faCodeCompare} class="mr-1.5 h-3.5 w-3.5" />

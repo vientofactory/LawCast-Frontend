@@ -2,6 +2,11 @@ import { expect, test, type Page } from '@playwright/test';
 import { installHashguardMock } from './helpers/hashguard';
 import { readModalTransitionSample, startModalTransitionSample } from './helpers/modal-transition';
 
+// Consent UI has its own suite; these flows model a visitor who declined analytics.
+test.beforeEach(async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('lawcast-cookie-consent', 'declined'));
+});
+
 const noticeNum = 2210001;
 const threadId = noticeNum * 100 + 1;
 
@@ -353,7 +358,7 @@ test.describe('Discussion modal behavior', () => {
 		await startModalTransitionSample(page);
 		await openNewThreadModal(page);
 
-		const dialog = page.getByRole('dialog');
+		const dialog = page.getByRole('dialog').filter({ has: page.locator('[id$="title"]') });
 		await expect(dialog).toHaveAttribute('aria-modal', 'true');
 		const labelledBy = await dialog.getAttribute('aria-labelledby');
 		expect(labelledBy).toBeTruthy();
@@ -421,7 +426,7 @@ test.describe('Discussion modal behavior', () => {
 		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
 		await page.getByTestId('discussion-comment-1').getByTitle('의견 수정').click();
 
-		const dialog = page.getByRole('dialog');
+		const dialog = page.getByRole('dialog').filter({ has: page.locator('[id$="title"]') });
 		await expect(dialog).toContainText('의견 수정 (#1)');
 		await expect(dialog).toHaveAttribute('aria-modal', 'true');
 		// The edit form is pre-filled from the comment it is editing.
@@ -482,7 +487,7 @@ test.describe('Discussion modal behavior', () => {
 		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
 		await page.getByTestId('discussion-comment-2').getByTitle('의견 삭제').click();
 
-		const dialog = page.getByRole('dialog');
+		const dialog = page.getByRole('dialog').filter({ has: page.locator('[id$="title"]') });
 		await expect(dialog).toContainText('의견 삭제 (#2)');
 		await expect(dialog).toContainText('본문이 삭제된 상태로 보존');
 
@@ -529,7 +534,7 @@ test.describe('Discussion modal behavior', () => {
 		await page.goto(`/notices/${noticeNum}/discussions/${threadId}`);
 		await page.getByRole('button', { name: '토론 닫기' }).click();
 
-		const dialog = page.getByRole('dialog');
+		const dialog = page.getByRole('dialog').filter({ has: page.locator('[id$="title"]') });
 		await expect(dialog).toContainText('토론 상태 변경 (토론 닫기)');
 		await expect(dialog).toContainText('토론을 닫으면 추가 의견 작성이 제한됩니다.');
 
@@ -714,9 +719,10 @@ test('keeps comment action errors available after toast dismissal', async ({ pag
 	await untilVisible(
 		page,
 		() => page.getByTestId('discussion-comment-1').getByTitle('의견 수정').click(),
-		() => expect(page.getByRole('dialog')).toBeVisible()
+		() =>
+			expect(page.getByRole('dialog').filter({ has: page.locator('[id$="title"]') })).toBeVisible()
 	);
-	const dialog = page.getByRole('dialog');
+	const dialog = page.getByRole('dialog').filter({ has: page.locator('[id$="title"]') });
 	const submit = () =>
 		dialog
 			.locator('form')

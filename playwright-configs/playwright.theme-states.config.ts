@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 import base from './playwright.open-layout.config';
 
@@ -12,7 +13,14 @@ export default defineConfig({
 	use: { ...base.use, serviceWorkers: 'block' },
 	reporter: [
 		['list'],
-		['json', { outputFile: process.env.THEME_REPORT_PATH || 'test-results/theme-states.json' }]
+		[
+			'json',
+			{
+				outputFile:
+					process.env.THEME_REPORT_PATH ||
+					fileURLToPath(new URL('../test-results/theme-states.json', import.meta.url))
+			}
+		]
 	],
 	projects: [
 		{ name: 'firefox-theme', grep: desktopCases, use: { ...devices['Desktop Firefox'] } },

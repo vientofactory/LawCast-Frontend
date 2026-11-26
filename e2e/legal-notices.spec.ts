@@ -12,7 +12,8 @@ test('preserves recorded legal notices independently of presentation changes', (
 	const hashes: Record<string, string> = {
 		'2026-11-26.1': '41ad1df21c23a5ac96530d06a3af4c95507e645f4dc86b0ff15f15ef02bbdd1b',
 		'2026-11-26.2': 'b3cb7cd4d4f5e3f5ab56393342cb4720a13c5967794d4e2b52a64221203f8729',
-		'2026-11-26.3': '46804bf53d1513eb4f655f48616fcb1a09f5a6af1b1626b06a3dd184ad0e4a3e'
+		'2026-11-26.3': '46804bf53d1513eb4f655f48616fcb1a09f5a6af1b1626b06a3dd184ad0e4a3e',
+		'2026-11-27.1': '7eaadefffe49fd83db55f0cd3d7f9c9395abaa0e006111ed0bde752539466877'
 	};
 	expect(notices.map(({ id }) => id).sort()).toEqual(Object.keys(hashes).sort());
 	for (const { id, title, intro, sections, sources } of notices) {
@@ -31,7 +32,7 @@ test('each snapshot owns its complete body, metadata and bidirectional citation 
 		expect(notice.changeSummary).toBeTruthy();
 		expect(notice.sections).toHaveLength(7);
 		expect(new Set(notice.sections.map((section) => section.id)).size).toBe(7);
-		expect(notice.sources).toHaveLength(notice.id === '2026-11-26.3' ? 5 : 11);
+		expect(notice.sources).toHaveLength(notice.id >= '2026-11-26.3' ? 5 : 11);
 		const citations: number[] = [];
 		for (const section of notice.sections) {
 			expect(section.paragraphs.length).toBeGreaterThan(0);
@@ -71,7 +72,7 @@ test('rights inquiries store the email recipient and reusable body with the init
 });
 
 test('the initial notice keeps the final copy without unpublished editorial history', () => {
-	expect(notices).toHaveLength(3);
+	expect(notices).toHaveLength(4);
 	const [initial] = notices;
 	expect(initial.id).toBe('2026-11-26.1');
 	expect(initial.changeSummary).toBe('최초 법적 고지');
@@ -126,4 +127,28 @@ test('the grounded notice emphasizes verified grounds without claiming blanket p
 	expect(current.sections.find((section) => section.id === 'legal-corrections')).toEqual(
 		previous.sections.find((section) => section.id === 'legal-corrections')
 	);
+});
+
+test('the open-source notice separates third-party operation from non-excludable liability', () => {
+	const current = notices.find((notice) => notice.id === '2026-11-27.1')!;
+	const previous = notices.find((notice) => notice.id === '2026-11-26.3')!;
+	const body = JSON.stringify(current.sections);
+	for (const text of [
+		'MIT 라이선스 하에 배포되는 오픈소스',
+		'저작권 고지와 라이선스 고지를 유지',
+		'공식 사이트와 운영상 관련이 없으며',
+		'해당 운영자의 행위와 관련 법령',
+		'소프트웨어를 있는 그대로 제공',
+		'책임이 LawCast 공식 사이트 운영자나 소프트웨어 저작자·저작권자에게 귀속되는 것은 아닙니다',
+		'법령상 배제할 수 없는 책임',
+		'소프트웨어 라이선스는 수집 자료의 이용허락을 대신하지 않습니다'
+	])
+		expect(body).toContain(text);
+	expect(current.sections[0].paragraphs.flat()).toContainEqual({
+		text: '라이선스 안내',
+		href: '/license'
+	});
+	expect(current.sections.slice(1)).toEqual(previous.sections.slice(1));
+	expect(current.sources).toEqual(previous.sources);
+	expect(current.reviewedOn).toBe(previous.reviewedOn);
 });

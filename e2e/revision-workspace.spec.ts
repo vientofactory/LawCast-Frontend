@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+// Consent UI has its own suite; these flows model a visitor who declined analytics.
+test.beforeEach(async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('lawcast-cookie-consent', 'declined'));
+});
+
 for (const width of [320, 390, 768, 1440]) {
 	for (const theme of ['light', 'dark']) {
 		test(`keeps comparison actions available at ${width}px in ${theme}`, async ({

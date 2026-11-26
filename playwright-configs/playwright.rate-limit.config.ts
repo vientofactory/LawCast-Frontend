@@ -18,6 +18,8 @@ const FORCE_429_PATHS = [
 	// in real time instead of relying on Playwright's clock emulation.
 	'/api/notices/changes:5',
 	'/api/notices/recent:90',
+	'/api/notices/keywords:90',
+	'/api/announcements/top:90',
 	'/api/notices/archive:90',
 	'/api/stats:90',
 	'/api/discussions/threads:90',
@@ -46,7 +48,8 @@ export default defineConfig({
 	],
 	webServer: {
 		command: 'npm run dev -- --port 5199 --strictPort',
-		url: baseURL,
+		// The home SSR intentionally fails when this fixture's upstream is unavailable.
+		url: `${baseURL}/offline.html`,
 		reuseExistingServer: false,
 		timeout: 120_000,
 		env: {

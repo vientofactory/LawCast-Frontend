@@ -1141,9 +1141,13 @@ details[data-disclosure-state='closing'] > .lc-disclosure-trigger > .lc-disclosu
 .lc-main .lc-status-tab:hover {
 	color: var(--lc-text-accent);
 }
-/* Plain status text also needs AA contrast over the full-row hover surface. */
+/* Plain status text also needs AA contrast over the keyboard-focus surface. */
 .lc-main .lc-flat-list .lc-chip-success {
 	color: color-mix(in srgb, var(--lc-status-success) 80%, var(--lc-text-primary));
+}
+
+.lc-main .lc-flat-list-row .lc-text-warning {
+	color: color-mix(in srgb, var(--lc-status-warning) 80%, var(--lc-text-primary));
 }
 
 /* Pagination follows the same open, underlined treatment as status navigation. */

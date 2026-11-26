@@ -6,6 +6,7 @@ import { expect, test } from '@playwright/test';
  * These tests require the dev server to run with E2E_FORCE_429_PATHS set to
  * the endpoints each page depends on (see playwright.rate-limit.config.ts):
  *   /api/notices/changes:5,/api/notices/recent:90,/api/notices/archive:90,
+ *   /api/notices/keywords:90,/api/announcements/top:90,
  *   /api/stats:90,/api/discussions/threads:90,/api/crawling-transparency:90,
  *   /api/stats/proposals:90
  *
@@ -21,18 +22,20 @@ test.describe('SSR rate-limit handling', () => {
 	}) => {
 		const response = await page.goto('/notices/changes');
 
-		// The page itself must NOT fail with an error page.
-		expect(response?.status()).toBe(200);
+		// Preserve HTTP 429 while rendering the recoverable page instead of HTTP 500.
+		expect(response?.status()).toBe(429);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText('변경 내역 모아보기');
 
 		// The rate-limit overlay must be visible with countdown text.
 		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible();
 		await expect(page.getByText('초 후 다시 시도할 수 있습니다')).toBeVisible();
 
-		// Empty state is shown for the change list.
-		await expect(page.getByTestId('changes-results-region')).toContainText(
-			'보여드릴 변경 내역이 없습니다.'
-		);
+		// A failed read must not masquerade as a successful empty result.
+		await expect(page.locator('.lc-rate-limit-overlay')).toBeVisible();
+		await expect(
+			page.getByTestId('changes-results-region').locator('.lc-open-empty-state')
+		).toHaveCount(0);
+		await expect(page.getByText('보여드릴 변경 내역이 없습니다.', { exact: true })).toHaveCount(0);
 	});
 
 	test('retry button re-issues the API request after the countdown expires', async ({ page }) => {
@@ -67,7 +70,7 @@ test.describe('SSR rate-limit handling', () => {
 		page
 	}) => {
 		const response = await page.goto('/notices');
-		expect(response?.status()).toBe(200);
+		expect(response?.status()).toBe(429);
 
 		await expect(page.getByTestId('notices-main')).toBeVisible();
 		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible();
@@ -77,31 +80,31 @@ test.describe('SSR rate-limit handling', () => {
 		page
 	}) => {
 		const response = await page.goto('/');
-		expect(response?.status()).toBe(200);
+		expect(response?.status()).toBe(429);
 		await expect(page.getByTestId('home-main')).toBeVisible();
 	});
 
 	test('status page shows the rate-limit message with fallback stats', async ({ page }) => {
 		const response = await page.goto('/status');
-		expect(response?.status()).toBe(200);
+		expect(response?.status()).toBe(429);
 		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible();
 	});
 
 	test('discussions page shows the rate-limit message with an empty list', async ({ page }) => {
 		const response = await page.goto('/discussions');
-		expect(response?.status()).toBe(200);
+		expect(response?.status()).toBe(429);
 		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible();
 	});
 
 	test('crawling transparency page shows the rate-limit message', async ({ page }) => {
 		const response = await page.goto('/crawling-transparency');
-		expect(response?.status()).toBe(200);
+		expect(response?.status()).toBe(429);
 		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible();
 	});
 
 	test('proposals page shows the rate-limit message', async ({ page }) => {
 		const response = await page.goto('/proposals');
-		expect(response?.status()).toBe(200);
+		expect(response?.status()).toBe(429);
 		await expect(page.getByText('요청이 너무 많습니다')).toBeVisible();
 	});
 });
