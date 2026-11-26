@@ -34,6 +34,11 @@ jobs:
         run: npm run lint && git diff --exit-code
       - name: Type check
         run: npm run check
+      - name: Verify recorded legal notices
+        run: |
+          node node_modules/typescript/bin/tsc --project tsconfig.legal-tests.json
+          node node_modules/typescript-native/bin/tsc --project tsconfig.legal-tests.json
+          npx --no-install playwright test --config playwright-configs/playwright.legal-notices.config.ts
       - name: Build production artifact
         env:
           PUBLIC_GTM_CONTAINER_ID: ${{ vars.PUBLIC_GTM_CONTAINER_ID }}

@@ -385,7 +385,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			await page.goto('/notices?search=AI&isDone=false');
 			const filterText = await getActiveFilterText(page);
 			expect(filterText).toContain('키워드: AI');
-			expect(filterText).toContain('진행 중인 입법예고만');
+			expect(filterText).toContain('미종료 항목만 (입법예고 전 포함)');
 		});
 	});
 
@@ -755,7 +755,7 @@ test.describe('Notices Filter Cross-Dimension Tests', () => {
 			await page.goto('/notices?search=AI&isDone=false');
 			const filterText = await getActiveFilterText(page);
 			expect(filterText).toContain('키워드: AI');
-			expect(filterText).toContain('진행 중인 입법예고만');
+			expect(filterText).toContain('미종료 항목만 (입법예고 전 포함)');
 		});
 
 		test('sorting chip shows when other filters are active', async ({ page }) => {

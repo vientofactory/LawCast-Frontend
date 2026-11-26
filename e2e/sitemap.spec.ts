@@ -81,7 +81,8 @@ test('main groups canonical public pages without invented modification dates', a
 			'/proposals',
 			'/announcements',
 			'/crawling-transparency',
-			'/license'
+			'/license',
+			'/legal'
 		].map((p) => origin + p)
 	);
 	expect(xml).not.toContain('<lastmod>');

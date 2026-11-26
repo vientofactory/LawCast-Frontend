@@ -29,6 +29,7 @@ export function toNoticeCard(notice: Notice): NoticeCard {
 		proposerCategory: notice.proposerCategory,
 		committee: notice.committee,
 		link: notice.link,
+		contentId: notice.contentId,
 		isDone: notice.isDone,
 		noticePeriod: notice.noticePeriod,
 		aiSummary: notice.aiSummary,

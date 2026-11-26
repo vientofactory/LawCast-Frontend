@@ -1,5 +1,45 @@
 import { test, expect } from '@playwright/test';
 
+test('source panels have no bottom dividers in either theme or layout', async ({
+	page
+}, testInfo) => {
+	for (const theme of ['light', 'dark']) {
+		await page.addInitScript((value) => localStorage.setItem('lawcast-theme', value), theme);
+		for (const width of [320, 1280]) {
+			await page.setViewportSize({ width, height: 900 });
+			await page.goto('/crawling-transparency');
+			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+			const section = page
+				.getByRole('heading', { name: '데이터 수집 소스', exact: true })
+				.locator('..');
+			const panels = section.locator(':scope > .grid > div');
+			await expect(panels).toHaveCount(2);
+			for (const panel of await panels.all()) {
+				await expect(panel).toHaveCSS('border-bottom-width', '0px');
+				await expect(panel).toHaveCSS('padding-top', '16px');
+				await expect(panel).toHaveCSS('padding-bottom', '16px');
+			}
+			await expect(page.locator('main > section').nth(1)).toHaveCSS('border-top-width', '2px');
+			await section.screenshot({
+				path: testInfo.outputPath(`source-panels-${theme}-${width}.png`)
+			});
+		}
+	}
+});
+
+test('transparency source names match both status crawler names', async ({ page }) => {
+	await page.goto('/status');
+	const names = await Promise.all(
+		['crawler-pal', 'crawler-nsm'].map(async (id) =>
+			(await page.getByTestId(id).getByRole('heading').innerText()).trim()
+		)
+	);
+	await page.goto('/crawling-transparency');
+	for (const name of names) {
+		await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+	}
+});
+
 test.describe('Crawling Transparency Page', () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/crawling-transparency');

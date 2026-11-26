@@ -775,6 +775,7 @@ export interface AdminNoticeCard {
 
 /** Fields rendered by the home recent list and the /notices board rows. */
 export interface NoticeCard {
+	contentId?: string | null;
 	num: number;
 	subject: string;
 	proposerCategory: string;

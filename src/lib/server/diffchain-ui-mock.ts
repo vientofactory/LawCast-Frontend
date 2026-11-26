@@ -1294,11 +1294,12 @@ export function getMockSystemStats(): SystemStats {
 }
 
 export function getMockCrawlingTransparencyData(): CrawlingTransparencyData {
+	const crawlers = getMockSystemStats().crawlers!;
 	return {
 		noticeSources: [
 			{
 				id: 'pal',
-				name: '국회 입법예고 게시판',
+				name: crawlers.palCrawler.name!,
 				url: 'https://pal.assembly.go.kr',
 				description: '국회에서 발의된 법률안과 입법예고 정보를 수집합니다.',
 				noticeCount: 12,
@@ -1307,7 +1308,7 @@ export function getMockCrawlingTransparencyData(): CrawlingTransparencyData {
 			},
 			{
 				id: 'nsm',
-				name: '국민참여입법센터 입법진행현황',
+				name: crawlers.nsmPendingCrawler.name!,
 				url: 'https://opinion.lawmaking.go.kr',
 				description: '국민참여입법센터의 입법진행현황(국회입법현황)을 수집합니다.',
 				noticeCount: 4,

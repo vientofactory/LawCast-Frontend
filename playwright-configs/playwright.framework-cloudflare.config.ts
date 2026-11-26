@@ -8,7 +8,8 @@ export default defineConfig({
 	testMatch: [
 		'framework-migration.spec.ts',
 		'navigation-scroll.spec.ts',
-		'revision-workspace.spec.ts'
+		'revision-workspace.spec.ts',
+		'legal.spec.ts'
 	],
 	workers: 1,
 	retries: 0,

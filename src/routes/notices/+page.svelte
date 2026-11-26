@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoticeConsultationStatus from '#lib/components/NoticeConsultationStatus.svelte';
 	import WeakSearchResultsTail from '#lib/components/WeakSearchResultsTail.svelte';
 	import type { LoadErrorPayload } from '#lib/utils/request-failure.ts';
 	import { onDestroy } from 'svelte';
@@ -11,6 +12,7 @@
 	import SemanticEngineStatus from '#lib/components/SemanticEngineStatus.svelte';
 	import { openExternalLink, downloadFile, isDownloadable } from '#lib/utils/helpers.ts';
 	import { extractProposerFromSubject } from '#lib/utils/proposer.ts';
+	import { getNoticeConsultation } from '#lib/utils/notice-consultation.ts';
 	import { buildNoticeDeadline } from '#lib/utils/notice-deadline.util.ts';
 	import { RetryCountdown } from '#lib/utils/retry-countdown.util.ts';
 	import { dismissTouchKeyboard } from '#lib/utils/keyboard.ts';
@@ -535,6 +537,7 @@
 		data-testid={`notices-weak-result-${result.noticeNum}`}
 	>
 		<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm wrap-anywhere">
+			<NoticeConsultationStatus notice={{}} testId={`notices-weak-status-${result.noticeNum}`} />
 			<span class="lc-flat-status lc-text-secondary font-medium">
 				의안번호 {result.noticeNum}
 			</span>
@@ -593,6 +596,11 @@
 		<div class="lc-page-heading">
 			<h1 id="notices-page-title" class="lc-text-primary text-2xl font-bold">입법예고</h1>
 		</div>
+
+		<p class="lc-text-secondary mb-4 text-sm" data-testid="notice-consultation-guide">
+			입법예고 전인 법률안도 함께 조회됩니다. ‘의견수렴 중’인 항목에서 국회에 의견을 제출할 수
+			있습니다. 의견수렴 종료는 법률안 처리 완료를 뜻하지 않습니다.
+		</p>
 
 		{#if archive?.appliedMode === 'semantic' && searchQuery.trim() && notices.length > 0}
 			<p class="lc-text-dim mb-6 text-xs" data-testid="notices-semantic-scope-note">
@@ -730,7 +738,7 @@
 												: 'lc-text-muted hover:text-[var(--lc-text-secondary)]'
 										}`}
 									>
-										진행 중
+										미종료
 									</a>
 									<a
 										href={buildFilterLink({ isDone: isDoneFilter === true ? null : true })}
@@ -990,7 +998,7 @@
 												종료된 입법예고만
 											{:else}
 												<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
-												진행 중인 입법예고만
+												미종료 항목만 (입법예고 전 포함)
 											{/if}
 											<a
 												href={buildFilterLink({ isDone: null })}
@@ -1277,22 +1285,11 @@
 												>
 													의안번호 {notice.num}
 												</span>
-												{#if notice.isDone}
-													<span
-														class="lc-chip-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
-													>
-														<FontAwesomeIcon icon={faLock} class="h-2.5 w-2.5" />
-														입법예고 종료
-													</span>
-												{:else}
-													<span
-														class="lc-chip-success inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold"
-													>
-														<span class="lc-dot-success h-1.5 w-1.5 rounded-full"></span>
-														진행 중
-													</span>
-												{/if}
-												{#if deadline.kind !== 'none'}
+												<NoticeConsultationStatus
+													{notice}
+													testId={`notice-consultation-status-${notice.num}`}
+												/>
+												{#if deadline.kind !== 'none' && ['open', 'ended'].includes(getNoticeConsultation(notice).kind)}
 													<span
 														class={`${deadline.kind === 'open' ? 'lc-chip-danger' : 'lc-chip-muted'} inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold`}
 														data-testid={`notice-deadline-chip-${notice.num}`}
