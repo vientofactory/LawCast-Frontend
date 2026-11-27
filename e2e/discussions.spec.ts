@@ -750,3 +750,168 @@ test('keeps comment action errors available after toast dismissal', async ({ pag
 	await page.keyboard.press('Escape');
 	await expect(dialog).toHaveCount(0);
 });
+
+test.describe('Discussion refresh motion', () => {
+	test.skip(!mockEnabled, 'Discussion motion tests require DIFFCHAIN_UI_MOCK=1.');
+
+	for (const theme of ['light', 'dark'] as const) {
+		test(`rotates the refresh icon once per hover and stays still at rest in ${theme}`, async ({
+			page
+		}, testInfo) => {
+			await page.emulateMedia({ reducedMotion: 'no-preference', colorScheme: theme });
+			await page.goto(`/notices/${noticeNum}`);
+			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+			const button = page.getByTestId('notice-discussions').getByTitle('새로고침', { exact: true });
+			const icon = button.locator('[data-testid="notice-discussions-refresh-icon"], svg').first();
+			await expect(button).toBeEnabled();
+			await button.scrollIntoViewIfNeeded();
+			await page.mouse.move(0, 0);
+			await expect
+				.poll(() =>
+					icon.evaluate(
+						(el) =>
+							el
+								.getAnimations({ subtree: true })
+								.filter((animation) => animation instanceof CSSAnimation).length
+					)
+				)
+				.toBe(0);
+			await button.hover();
+			const timing = await icon.evaluate(async (el) => {
+				const animation = el
+					.getAnimations({ subtree: true })
+					.filter((animation) => animation instanceof CSSAnimation)[0];
+				if (!animation) return null;
+				const timing = animation.effect!.getTiming();
+				await animation.finished;
+				return {
+					iterations: timing.iterations,
+					duration: timing.duration,
+					state: animation.playState
+				};
+			});
+			expect(timing).toEqual({ iterations: 1, duration: 500, state: 'finished' });
+			expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+			await testInfo.attach(`refresh-button-${theme}`, {
+				body: await button.screenshot(),
+				contentType: 'image/png'
+			});
+			await page.waitForTimeout(700);
+			expect(
+				await icon.evaluate(
+					(el) =>
+						el
+							.getAnimations({ subtree: true })
+							.filter((animation) => animation instanceof CSSAnimation).length
+				)
+			).toBe(0);
+			const refreshed = page.waitForResponse(
+				(r) => new URL(r.url()).pathname === `/api/notices/${noticeNum}/discussions`
+			);
+			await button.click();
+			expect((await refreshed).status()).toBe(200);
+			await expect(button).toBeEnabled();
+			expect(
+				await icon.evaluate(
+					(el) =>
+						el
+							.getAnimations({ subtree: true })
+							.filter((animation) => animation instanceof CSSAnimation).length
+				)
+			).toBe(0);
+			await page.mouse.move(0, 0);
+			await button.hover();
+			expect(
+				await icon.evaluate(
+					(el) =>
+						el
+							.getAnimations({ subtree: true })
+							.filter((animation) => animation instanceof CSSAnimation).length
+				)
+			).toBe(1);
+		});
+	}
+	test('does not spin during a pending discussion read and preserves refresh behavior', async ({
+		page
+	}) => {
+		let release!: () => void;
+		const blocked = new Promise<void>((resolve) => (release = resolve));
+		await page.route(`**/api/notices/${noticeNum}/discussions`, async (route) => {
+			await blocked;
+			await route.continue();
+		});
+		try {
+			await page.goto(`/notices/${noticeNum}`);
+			const button = page.getByTestId('notice-discussions').getByTitle('새로고침', { exact: true });
+			const icon = button.locator('[data-testid="notice-discussions-refresh-icon"], svg').first();
+			await expect(button).toBeDisabled();
+			await button.scrollIntoViewIfNeeded();
+			await page.mouse.move(0, 0);
+			expect(
+				await icon.evaluate(
+					(el) =>
+						el
+							.getAnimations({ subtree: true })
+							.filter((animation) => animation instanceof CSSAnimation).length
+				)
+			).toBe(0);
+			release();
+			await expect(button).toBeEnabled();
+			await expect(page.getByTestId(`discussion-thread-link-${threadId}`)).toBeVisible();
+			await page.mouse.move(0, 0);
+			await button.focus();
+			expect(
+				await icon.evaluate(
+					(el) =>
+						el
+							.getAnimations({ subtree: true })
+							.filter((animation) => animation instanceof CSSAnimation).length
+				)
+			).toBe(0);
+			const refreshed = page.waitForResponse(
+				(r) => new URL(r.url()).pathname === `/api/notices/${noticeNum}/discussions`
+			);
+			await button.press('Enter');
+			expect((await refreshed).status()).toBe(200);
+			await expect(button).toBeEnabled();
+		} finally {
+			release();
+		}
+	});
+
+	test('respects reduced motion on hover', async ({ page }) => {
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		await page.goto(`/notices/${noticeNum}`);
+		const button = page.getByTestId('notice-discussions').getByTitle('새로고침', { exact: true });
+		const icon = button.locator('[data-testid="notice-discussions-refresh-icon"], svg').first();
+		await expect(button).toBeEnabled();
+		await button.hover();
+		expect(
+			await icon.evaluate(
+				(el) =>
+					el
+						.getAnimations({ subtree: true })
+						.filter((animation) => animation instanceof CSSAnimation).length
+			)
+		).toBe(0);
+	});
+
+	test('keeps the refresh icon still in the touch screenshot viewport', async ({ page }) => {
+		await page.emulateMedia({ reducedMotion: 'no-preference' });
+		await page.goto(`/notices/${noticeNum}`);
+		const button = page.getByTestId('notice-discussions').getByTitle('새로고침', { exact: true });
+		const icon = button.locator('[data-testid="notice-discussions-refresh-icon"], svg').first();
+		await expect(button).toBeEnabled();
+		expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+		await button.tap();
+		await expect(button).toBeEnabled();
+		expect(
+			await icon.evaluate(
+				(el) =>
+					el
+						.getAnimations({ subtree: true })
+						.filter((animation) => animation instanceof CSSAnimation).length
+			)
+		).toBe(0);
+	});
+});

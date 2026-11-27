@@ -153,12 +153,14 @@
 			onclick={loadThreads}
 			disabled={isLoadingThreads || rateLimitRemaining > 0 || read.retryAfter > 0}
 			title="새로고침"
-			class="lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1.5 text-xs font-semibold"
+			aria-label="새로고침"
+			aria-busy={isLoadingThreads}
+			data-testid="notice-discussions-refresh"
+			class="lc-discussion-refresh-button lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1.5 text-xs font-semibold"
 		>
-			<FontAwesomeIcon
-				icon={faRotateRight}
-				class={`h-3.5 w-3.5 ${isLoadingThreads ? 'animate-spin' : ''}`}
-			/>
+			<span class="lc-discussion-refresh-icon" data-testid="notice-discussions-refresh-icon">
+				<FontAwesomeIcon icon={faRotateRight} class="h-3.5 w-3.5" />
+			</span>
 			<span class="hidden sm:inline">새로고침</span>
 		</button>
 	</div>
@@ -208,3 +210,24 @@
 		onSubmit={handleCreateThread}
 	/>
 {/if}
+
+<style>
+	.lc-discussion-refresh-icon {
+		display: inline-flex;
+	}
+
+	@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+		.lc-discussion-refresh-button:hover .lc-discussion-refresh-icon {
+			animation: lc-discussion-refresh-turn 500ms ease-out 1;
+		}
+	}
+
+	@keyframes lc-discussion-refresh-turn {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+</style>
