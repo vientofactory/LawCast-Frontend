@@ -106,3 +106,23 @@ test('robots advertises the parent sitemap index', async ({ request }) => {
 		'Sitemap: https://law.viento.me/sitemap.xml'
 	);
 });
+
+test('canonical XML and bounded freshness survive query variants and HEAD requests', async ({
+	request
+}) => {
+	const first = await request.get('/sitemap_chunk_0.xml?crawler=first');
+	const second = await request.get('/sitemap_chunk_0.xml?crawler=second');
+	expect(first.status()).toBe(200);
+	expect(second.status()).toBe(200);
+	expect(await second.text()).toBe(await first.text());
+	const match = second.headers()['cache-control'].match(/^public, max-age=(\d+), s-maxage=(\d+)$/);
+	expect(match).not.toBeNull();
+	expect(Number(match![1])).toBeGreaterThan(0);
+	expect(Number(match![1])).toBeLessThanOrEqual(3600);
+	expect(match![2]).toBe(match![1]);
+	const head = await request.head('/sitemap_chunk_0.xml');
+	expect(head.status()).toBe(200);
+	expect(await head.text()).toBe('');
+	const stats = await (await request.get(`${backend}/stats`)).json();
+	expect(stats.requests).toHaveLength(8);
+});

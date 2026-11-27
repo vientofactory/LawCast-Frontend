@@ -165,7 +165,7 @@ export async function fetchSitemapSnapshot(
 	}
 }
 
-function noticeTag(origin: string, notice: SitemapSnapshot['items'][number]): string {
+function noticeTag(escapedOrigin: string, notice: SitemapSnapshot['items'][number]): string {
 	if (!Number.isSafeInteger(notice.num) || notice.num <= 0) {
 		throw new Error('Invalid notice number in sitemap response');
 	}
@@ -173,7 +173,7 @@ function noticeTag(origin: string, notice: SitemapSnapshot['items'][number]): st
 	const date = rawDate ? new Date(rawDate) : null;
 	const lastmod =
 		date && !Number.isNaN(date.getTime()) ? `<lastmod>${date.toISOString()}</lastmod>` : '';
-	return `  <url><loc>${escapeXml(`${origin}/notices/${notice.num}`)}</loc>${lastmod}</url>`;
+	return `  <url><loc>${escapedOrigin}/notices/${notice.num}</loc>${lastmod}</url>`;
 }
 
 export async function noticeSitemap(
@@ -191,7 +191,8 @@ export async function noticeSitemap(
 		chunk * SITEMAP_CHUNK_SIZE,
 		(chunk + 1) * SITEMAP_CHUNK_SIZE
 	);
-	return urlset(notices.map((notice) => noticeTag(origin, notice)));
+	const escapedOrigin = escapeXml(origin);
+	return urlset(notices.map((notice) => noticeTag(escapedOrigin, notice)));
 }
 
 export async function cachedSitemap(
@@ -208,10 +209,12 @@ export async function cachedSitemap(
 			if (cache.size > MAX_CACHED_SITEMAPS) cache.delete(cache.keys().next().value!);
 		}
 		const xml = await entry.xml;
+		// Do not renew an old in-memory generation for another full CDN TTL.
+		const maxAge = Math.max(0, Math.floor((entry.expiresAt - Date.now()) / 1000));
 		return new Response(xml, {
 			headers: {
 				'Content-Type': 'application/xml; charset=utf-8',
-				'Cache-Control': 'public, max-age=3600, s-maxage=3600'
+				'Cache-Control': `public, max-age=${maxAge}, s-maxage=${maxAge}`
 			}
 		});
 	} catch (err) {
