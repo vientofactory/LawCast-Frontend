@@ -827,7 +827,11 @@
 		aria-labelledby="notice-detail-title"
 		data-testid="notice-detail-main"
 	>
-		<nav class="mb-4 flex flex-wrap items-center gap-2 text-sm" aria-label="이동 경로">
+		<nav
+			class="mb-4 flex flex-wrap items-center gap-2 text-sm"
+			aria-label="이동 경로"
+			data-testid="notice-detail-breadcrumb"
+		>
 			<a
 				href={backLink}
 				data-testid="notice-detail-back-link"
@@ -856,7 +860,11 @@
 			>
 				기록 #{activeRevision}에 보존된 내용을 열람 중입니다. 현재 정보와 다를 수 있습니다.
 				{#if headRevision !== null}
-					<a href={buildRevisionLink(null)} class="lc-link ml-2 font-semibold">
+					<a
+						href={buildRevisionLink(null)}
+						class="lc-link ml-2 font-semibold"
+						data-testid="notice-latest-revision-link"
+					>
 						최신 기록 #{headRevision} 보기
 					</a>
 				{/if}
@@ -865,7 +873,7 @@
 
 		{#if isSourceDeleted}
 			<div
-				class="lc-banner-warning mb-6 flex items-start gap-3 rounded-xl border px-5 py-4 shadow-sm"
+				class="lc-banner-warning mb-6 flex items-start gap-3 rounded-xl border px-5 py-4"
 				role="status"
 				aria-label="소스 삭제 감지 안내"
 			>
@@ -884,7 +892,7 @@
 			</div>
 		{:else if isRenumbered}
 			<div
-				class="lc-banner-muted mb-6 flex items-start gap-3 rounded-xl border px-5 py-4 shadow-sm"
+				class="lc-banner-muted mb-6 flex items-start gap-3 rounded-xl border px-5 py-4"
 				role="status"
 				aria-label="의안번호 변경 안내"
 			>
@@ -1020,13 +1028,17 @@
 				</section>
 
 				<!-- Opinion submission entry CTA: the notice period is the opinion window.
-		     Rendered as its own panel below the header card so the primary action
+		     Rendered as its own section below the header so the primary action
 		     stays visually separated from the title metadata. The CTA links the
 		     PAL opinion page built from the contentId, never the archived
 		     source link, which may still point at the pre-transfer system. -->
-				<section class="mb-6" aria-label="의견 제출">
+				<section
+					class="lc-opinion-section"
+					aria-label="의견 제출"
+					data-testid="notice-opinion-section"
+				>
 					<div
-						class="lc-opinion-action flex flex-wrap items-center gap-3"
+						class="lc-opinion-action flex flex-col items-start gap-3"
 						data-testid="notice-opinion-cta"
 					>
 						{#if consultation.kind === 'ended'}
@@ -1061,13 +1073,14 @@
 								의견 제출하기
 							</button>
 						{/if}
-						<p class="lc-text-secondary text-sm" data-testid="notice-opinion-guidance">
-							{opinionGuidanceText}
-						</p>
-						<p class="lc-text-secondary text-sm" data-testid="notice-stage-explanation">
-							법률안의 계류·의결 등 국회 처리 상태와 입법예고 의견수렴 상태는 별개입니다. 아래
-							표시는 의견 제출 가능 여부를 안내합니다.
-						</p>
+						<div class="space-y-2">
+							<p class="lc-text-secondary text-sm" data-testid="notice-opinion-guidance">
+								{opinionGuidanceText}
+							</p>
+							<p class="lc-text-secondary text-sm" data-testid="notice-stage-explanation">
+								법률안의 계류·의결 등 국회 처리 상태와 입법예고 의견수렴 상태는 별개입니다.
+							</p>
+						</div>
 					</div>
 				</section>
 
@@ -1113,7 +1126,7 @@
 						aria-labelledby="notice-detail-facts-heading"
 						data-testid="notice-detail-facts"
 					>
-						<summary class="lc-disclosure-trigger">
+						<summary class="lc-disclosure-trigger" data-testid="notice-detail-facts-trigger">
 							<FontAwesomeIcon icon={faScaleBalanced} class="lc-text-accent h-5 w-5" />
 							<h2 id="notice-detail-facts-heading" class="lc-text-primary text-lg font-bold">
 								입법예고 정보
@@ -1185,7 +1198,7 @@
 			class="lc-archive-disclosure lc-defer-render group"
 			data-testid="notice-detail-archive-meta"
 		>
-			<summary class="lc-disclosure-trigger">
+			<summary class="lc-disclosure-trigger" data-testid="notice-detail-archive-trigger">
 				<span class="flex items-center gap-2">
 					<FontAwesomeIcon icon={faShieldHalved} class="lc-text-success h-5 w-5" />
 					<h2 id="notice-detail-archive-heading" class="lc-text-primary text-lg font-bold">
@@ -1235,12 +1248,12 @@
 
 						{#if !hasScreenshot && screenshotCaptureError}
 							<div
-								class="mb-3 flex items-start gap-2 rounded-lg border border-amber-300/40 bg-amber-50 px-3 py-2 text-xs dark:border-amber-500/30 dark:bg-amber-900/20"
+								class="lc-banner-warning mb-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs"
 								data-testid="notice-detail-screenshot-capture-error"
 							>
 								<FontAwesomeIcon
 									icon={faTriangleExclamation}
-									class="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500"
+									class="lc-text-warning mt-0.5 h-3.5 w-3.5 shrink-0"
 								/>
 								<span class="lc-text-secondary">
 									{screenshotCaptureError}
@@ -1248,7 +1261,7 @@
 							</div>
 						{:else if !hasScreenshot}
 							<div
-								class="mb-3 flex items-start gap-2 rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-secondary)] px-3 py-2 text-xs"
+								class="mb-3 flex items-start gap-2 rounded-lg border border-[var(--lc-border-soft)] bg-[var(--lc-surface-muted)] px-3 py-2 text-xs"
 								data-testid="notice-detail-screenshot-pending"
 							>
 								<FontAwesomeIcon icon={faImage} class="lc-text-muted mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -1332,3 +1345,9 @@
 	returnFocus={screenshotTrigger}
 	onClose={closeScreenshotModal}
 />
+
+<style>
+	.lc-opinion-section + .lc-reading-content {
+		margin-top: 0;
+	}
+</style>
