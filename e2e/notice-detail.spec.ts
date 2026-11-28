@@ -475,3 +475,60 @@ test.describe('Opinion submission CTA and deadline chip (mock fixtures)', () => 
 		await expect(page.getByTestId('notice-detail-deadline-chip')).toHaveText('종료(2026-06-28)');
 	});
 });
+
+for (const theme of ['light', 'dark']) {
+	for (const width of [1280, 390]) {
+		for (const num of [2210013, 2210003, 2210002]) {
+			test(`opinion section keeps balanced vertical spacing ${theme} ${width} ${num}`, async ({
+				page
+			}, testInfo) => {
+				await page.setViewportSize({ width, height: 900 });
+				await page.addInitScript((value) => {
+					localStorage.setItem('lawcast-theme', value);
+				}, theme);
+				await page.goto(`/notices/${num}`);
+				await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+				const cta = page.getByTestId('notice-opinion-cta');
+				await expect(cta).toBeVisible();
+				await page.waitForLoadState('networkidle');
+				await page.evaluate(() => document.fonts.ready);
+				await cta.evaluate((element) =>
+					element.scrollIntoView({ block: 'center', behavior: 'instant' })
+				);
+				const geometry = await cta.evaluate((element) => {
+					const button = element
+						.querySelector('[data-testid="notice-opinion-submit"]')!
+						.getBoundingClientRect();
+					const guidance = element
+						.querySelector('[data-testid="notice-opinion-guidance"]')!
+						.getBoundingClientRect();
+					const explanation = element
+						.querySelector('[data-testid="notice-stage-explanation"]')!
+						.getBoundingClientRect();
+					const content = document
+						.querySelector('[data-testid="notice-detail-content"]')!
+						.getBoundingClientRect();
+					const box = element.getBoundingClientRect();
+					return {
+						top: button.top - box.top - parseFloat(getComputedStyle(element).borderTopWidth),
+						bottom: content.top - explanation.bottom,
+						buttonGap: guidance.top - button.bottom,
+						paragraphGap: explanation.top - guidance.bottom,
+						overflow: document.documentElement.scrollWidth > innerWidth
+					};
+				});
+				if (num === 2210013) {
+					await page
+						.getByRole('region', { name: '의견 제출', exact: true })
+						.screenshot({ path: testInfo.outputPath(`opinion-${theme}-${width}.png`) });
+				}
+				console.log(JSON.stringify({ theme, width, num, ...geometry }));
+				expect(geometry.top).toBeCloseTo(16, 0);
+				expect(geometry.bottom).toBeCloseTo(16, 0);
+				expect(geometry.buttonGap).toBeCloseTo(12, 0);
+				expect(geometry.paragraphGap).toBeCloseTo(8, 0);
+				expect(geometry.overflow).toBe(false);
+			});
+		}
+	}
+}

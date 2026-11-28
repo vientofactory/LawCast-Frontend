@@ -845,7 +845,13 @@ test.describe('Discussion refresh motion', () => {
 			const button = page.getByTestId('notice-discussions').getByTitle('새로고침', { exact: true });
 			const icon = button.locator('[data-testid="notice-discussions-refresh-icon"], svg').first();
 			await expect(button).toBeDisabled();
+			await expect(button).toHaveAttribute('aria-busy', 'true');
+			await expect(button).toHaveCSS('opacity', '0.5');
+			await expect(button).toHaveCSS('cursor', 'not-allowed');
+			await expect(button).toHaveAccessibleName('토론 목록을 불러오는 중…');
+			await expect(button.getByTestId('notice-discussions-refresh-label')).toBeVisible();
 			await button.scrollIntoViewIfNeeded();
+			const pendingWidth = (await button.boundingBox())!.width;
 			await page.mouse.move(0, 0);
 			expect(
 				await icon.evaluate(
@@ -857,6 +863,10 @@ test.describe('Discussion refresh motion', () => {
 			).toBe(0);
 			release();
 			await expect(button).toBeEnabled();
+			await expect(button).toHaveCSS('opacity', '1');
+			await expect(button).toHaveAttribute('aria-busy', 'false');
+			await expect(button).toHaveAccessibleName('새로고침');
+			expect((await button.boundingBox())!.width).toBe(pendingWidth);
 			await expect(page.getByTestId(`discussion-thread-link-${threadId}`)).toBeVisible();
 			await page.mouse.move(0, 0);
 			await button.focus();
@@ -915,3 +925,97 @@ test.describe('Discussion refresh motion', () => {
 		).toBe(0);
 	});
 });
+
+test('shows disabled loading feedback in the touch screenshot viewport', async ({ page }) => {
+	test.skip(!mockEnabled, 'Loading feedback requires DIFFCHAIN_UI_MOCK=1.');
+	await page.goto(`/notices/${noticeNum}`);
+	const button = page.getByTestId('notice-discussions-refresh');
+	await expect(button).toBeEnabled();
+	let release!: () => void;
+	let started!: () => void;
+	const blocked = new Promise<void>((resolve) => (release = resolve));
+	const observed = new Promise<void>((resolve) => (started = resolve));
+	await page.route(`**/api/notices/${noticeNum}/discussions`, async (route) => {
+		started();
+		await blocked;
+		await route.continue();
+	});
+	try {
+		await button.tap();
+		await observed;
+		await expect(button).toBeDisabled();
+		await expect(button).toHaveCSS('opacity', '0.5');
+		await expect(button).toHaveAccessibleName('토론 목록을 불러오는 중…');
+		await expect(button.getByTestId('notice-discussions-refresh-label')).not.toBeVisible();
+		expect(
+			await button.evaluate(
+				(el) => el.getAnimations({ subtree: true }).filter((a) => a instanceof CSSAnimation).length
+			)
+		).toBe(0);
+		release();
+		await expect(button).toBeEnabled();
+		await expect(button).toHaveCSS('opacity', '1');
+		await expect(button).toHaveAccessibleName('새로고침');
+	} finally {
+		release();
+	}
+});
+
+for (const theme of ['light', 'dark'] as const) {
+	test(`balances refresh content padding across loading states in ${theme}`, async ({
+		page
+	}, testInfo) => {
+		test.skip(!mockEnabled, 'Refresh spacing requires DIFFCHAIN_UI_MOCK=1.');
+		await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+		let release!: () => void;
+		const blocked = new Promise<void>((resolve) => (release = resolve));
+		await page.route(`**/api/notices/${noticeNum}/discussions`, async (route) => {
+			await blocked;
+			await route.continue();
+		});
+		try {
+			await page.goto(`/notices/${noticeNum}`);
+			const button = page.getByTestId('notice-discussions-refresh');
+			await expect(button).toBeDisabled();
+			await button.scrollIntoViewIfNeeded();
+			const measure = () =>
+				button.evaluate((element) => {
+					const button = element.getBoundingClientRect();
+					const icon = element
+						.querySelector('[data-testid="notice-discussions-refresh-icon"]')!
+						.getBoundingClientRect();
+					const text = element.getAttribute('aria-busy') === 'true' ? '불러오는 중…' : '새로고침';
+					const label = Array.from(element.querySelectorAll('span')).find(
+						(span) =>
+							span.children.length === 0 &&
+							span.textContent?.trim() === text &&
+							getComputedStyle(span).visibility === 'visible'
+					)!;
+					const range = document.createRange();
+					range.selectNodeContents(label);
+					const ink = range.getBoundingClientRect();
+					return {
+						left: icon.left - button.left,
+						right: button.right - ink.right,
+						gap: ink.left - icon.right,
+						width: button.width
+					};
+				});
+			const loading = await measure();
+			expect(Math.abs(loading.left - loading.right)).toBeLessThanOrEqual(0.5);
+			expect(Math.abs(loading.gap - 6)).toBeLessThanOrEqual(0.5);
+			await button.screenshot({ path: testInfo.outputPath(`refresh-loading-${theme}.png`) });
+			release();
+			await expect(button).toBeEnabled();
+			await expect(button).toHaveAttribute('aria-busy', 'false');
+			await expect(button.getByText('새로고침', { exact: true })).toBeVisible();
+			const ready = await measure();
+			expect(Math.abs(ready.left - ready.right)).toBeLessThanOrEqual(0.5);
+			expect(Math.abs(ready.gap - 6)).toBeLessThanOrEqual(0.5);
+			expect(ready.width).toBe(loading.width);
+			await button.screenshot({ path: testInfo.outputPath(`refresh-ready-${theme}.png`) });
+		} finally {
+			release();
+		}
+	});
+}

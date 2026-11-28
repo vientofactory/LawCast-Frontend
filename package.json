@@ -1,6 +1,6 @@
 {
 	"name": "lawcast-frontend",
-	"version": "3.3.4",
+	"version": "3.3.5",
 	"description": "",
 	"author": "vientorepublic",
 	"private": true,
@@ -113,5 +113,10 @@
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
+	},
+	"allowScripts": {
+		"esbuild@0.28.2": true,
+		"workerd@1.20261104.1": true,
+		"fsevents@2.3.3": true
 	}
 }

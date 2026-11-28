@@ -19,6 +19,8 @@
 	import type { Component, ComponentProps } from 'svelte';
 	import type NewThreadModal from './NewThreadModal.svelte';
 
+	const LOADING_LABEL = '불러오는 중…';
+
 	let {
 		noticeNum,
 		onTotalChange
@@ -153,15 +155,26 @@
 			onclick={loadThreads}
 			disabled={isLoadingThreads || rateLimitRemaining > 0 || read.retryAfter > 0}
 			title="새로고침"
-			aria-label="새로고침"
+			aria-label={isLoadingThreads ? `토론 목록을 ${LOADING_LABEL}` : '새로고침'}
 			aria-busy={isLoadingThreads}
 			data-testid="notice-discussions-refresh"
-			class="lc-discussion-refresh-button lc-button-neutral inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1.5 text-xs font-semibold"
+			class="lc-discussion-refresh-button lc-button-neutral inline-grid cursor-pointer items-center rounded-lg border border-[var(--lc-border-soft)] px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 		>
-			<span class="lc-discussion-refresh-icon" data-testid="notice-discussions-refresh-icon">
-				<FontAwesomeIcon icon={faRotateRight} class="h-3.5 w-3.5" />
+			<span
+				aria-hidden="true"
+				class="invisible col-start-1 row-start-1 inline-flex items-center gap-1.5"
+			>
+				<span class="h-3.5 w-3.5"></span>
+				<span class="hidden sm:inline">{LOADING_LABEL}</span>
 			</span>
-			<span class="hidden sm:inline">새로고침</span>
+			<span class="col-start-1 row-start-1 inline-flex items-center justify-center gap-1.5">
+				<span class="lc-discussion-refresh-icon" data-testid="notice-discussions-refresh-icon">
+					<FontAwesomeIcon icon={faRotateRight} class="h-3.5 w-3.5" />
+				</span>
+				<span class="hidden sm:inline" data-testid="notice-discussions-refresh-label">
+					{isLoadingThreads ? LOADING_LABEL : '새로고침'}
+				</span>
+			</span>
 		</button>
 	</div>
 
